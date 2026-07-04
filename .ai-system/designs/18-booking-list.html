@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="NavBar,ClButton,ClCard,ClBadge,ClSelect,EscrowStatusPill,BookingCard">
+  <title>Crelab — Your Bookings</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+      --color-escrow-held:     #FACC15;
+      --color-escrow-progress: #A78BFA;
+      --color-escrow-released: #4ADE80;
+      --color-escrow-disputed: #F87171;
+
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+
+      --max-width-content: 1200px;
+
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Nav Bar */
+    .nav-accent-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: var(--color-accent);
+      z-index: 60;
+    }
+    .navbar {
+      position: fixed;
+      top: 5px;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-logo-mark {
+      width: 12px;
+      height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .nav-logo-text {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+    }
+    .nav-center {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .nav-center a {
+      font-family: var(--font-body);
+      font-weight: var(--weight-medium);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .nav-center a:hover { color: var(--color-text-primary); }
+    .nav-center a.active { color: var(--color-accent); }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hamburger {
+      display: none;
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .hamburger:hover { color: var(--color-text-primary); border-color: var(--color-border-mid); }
+
+    /* Hamburger overlay */
+    .hamburger-overlay {
+      position: fixed;
+      inset: 0;
+      background: #0A0A0A;
+      z-index: 60;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      opacity: 0;
+      transition: opacity 250ms var(--ease-out);
+    }
+    .hamburger-overlay.open { display: flex; opacity: 1; }
+    .hamburger-overlay a {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 28px;
+      color: var(--color-text-secondary);
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .hamburger-overlay a:hover { color: var(--color-accent); }
+    .hamburger-close {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      width: 44px;
+      height: 44px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hamburger-close:hover { color: var(--color-text-primary); }
+
+    @media (max-width: 640px) {
+      .nav-center { display: none; }
+      .nav-right { display: none; }
+      .hamburger { display: flex; }
+      .nav-right-mobile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+    }
+    @media (min-width: 641px) {
+      .nav-right-mobile { display: none; }
+    }
+
+    /* Shared component classes */
+    .cl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-color: transparent;
+    }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+    .cl-btn-primary:active { background: var(--color-accent-dim); }
+
+    .cl-btn-outlined {
+      background: transparent;
+      color: var(--color-text-primary);
+      border-color: var(--color-border-mid);
+    }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .cl-btn-outlined:active { background: var(--color-accent-muted); }
+
+    .cl-btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border-color: transparent;
+    }
+    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+    .cl-btn-ghost:active { background: var(--color-surface-raised); }
+
+    .cl-btn-destructive-outlined {
+      background: transparent;
+      color: var(--color-error);
+      border-color: var(--color-error);
+    }
+    .cl-btn-destructive-outlined:hover { background: rgba(248,113,113,0.08); }
+    .cl-btn-destructive-outlined:active { background: rgba(248,113,113,0.15); }
+
+    .cl-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      transition: border-color 200ms var(--ease-out), background 200ms var(--ease-out);
+    }
+    .cl-card:hover { border-color: var(--color-border-mid); }
+    .cl-card-raised { background: var(--color-surface-raised); }
+
+    .cl-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+    .cl-badge-accent { background: var(--color-accent); color: var(--color-text-inverse); }
+    .cl-badge-accent-muted { background: var(--color-accent-muted); color: var(--color-accent); border: 1px solid var(--color-accent); }
+
+    /* EscrowStatusPill */
+    .escrow-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+    .escrow-pill.held { background: rgba(250,204,21,0.1); border: 1px solid var(--color-escrow-held); color: var(--color-escrow-held); }
+    .escrow-pill.progress { background: rgba(167,139,250,0.1); border: 1px solid var(--color-escrow-progress); color: var(--color-escrow-progress); }
+    .escrow-pill.released { background: rgba(74,222,128,0.1); border: 1px solid var(--color-escrow-released); color: var(--color-escrow-released); }
+    .escrow-pill.disputed { background: rgba(248,113,113,0.1); border: 1px solid var(--color-escrow-disputed); color: var(--color-escrow-disputed); }
+    .escrow-pill.refunded { background: rgba(96,165,250,0.1); border: 1px solid var(--color-info); color: var(--color-info); }
+    .escrow-pill.declined { background: rgba(248,113,113,0.05); border: 1px solid var(--color-border-mid); color: var(--color-text-tertiary); }
+    .escrow-pill.pending { background: rgba(250,204,21,0.05); border: 1px solid var(--color-border-mid); color: var(--color-text-tertiary); }
+    .escrow-pill.counter { background: rgba(96,165,250,0.1); border: 1px solid var(--color-info); color: var(--color-info); }
+    .escrow-pill.accepted { background: rgba(74,222,128,0.1); border: 1px solid var(--color-success); color: var(--color-success); }
+
+    /* Custom select */
+    .cl-select {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      font-family: var(--font-body);
+      font-size: 13px;
+      padding: 0 12px;
+      height: 36px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color var(--duration-fast) var(--ease-out);
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235C5C5C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 32px;
+    }
+    .cl-select:hover { border-color: var(--color-border-mid); }
+    .cl-select:focus { border-color: var(--color-accent); color: var(--color-text-primary); }
+
+    /* Page layout */
+    .page-wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+      padding-top: 88px;
+      padding-bottom: 64px;
+    }
+
+    .page-heading {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 36px;
+      line-height: var(--leading-tight);
+      letter-spacing: -0.02em;
+    }
+    .page-sub {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-top: 8px;
+    }
+
+    /* Role toggle */
+    .role-toggle-wrap {
+      margin-top: 24px;
+      margin-bottom: 32px;
+      display: flex;
+      gap: 4px;
+    }
+    .role-toggle-wrap .role-pill {
+      padding: 8px 20px;
+      border: none;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 13px;
+      cursor: pointer;
+      background: var(--color-surface-raised);
+      color: var(--color-text-secondary);
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .role-toggle-wrap .role-pill.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .role-toggle-wrap .role-pill:hover:not(.active) { color: var(--color-text-primary); }
+
+    /* Status group */
+    .status-group { margin-bottom: 40px; }
+    .status-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .status-group-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-group-title {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+    }
+    .status-group-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 8px;
+      background: var(--color-escrow-progress);
+      color: var(--color-text-inverse);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      border-radius: var(--radius-full);
+    }
+
+    /* Booking cards */
+    .booking-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: border-color 200ms var(--ease-out);
+      margin-bottom: 16px;
+    }
+    .booking-card:hover { border-color: var(--color-border-mid); }
+    .booking-card:last-child { margin-bottom: 0; }
+
+    .booking-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .booking-name-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .booking-provider-name {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 14px;
+      color: var(--color-text-primary);
+    }
+    .booking-id {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+    .booking-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .booking-middle {
+      margin-top: 12px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .booking-detail {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .booking-amount {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      color: var(--color-accent);
+      font-weight: var(--weight-bold);
+    }
+
+    .booking-bottom {
+      margin-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .booking-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .card-svg-icon {
+      width: 14px;
+      height: 14px;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    .empty-group {
+      text-align: center;
+      padding: 20px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-tertiary);
+    }
+
+    .hidden { display: none !important; }
+
+    /* Provider view hidden by default */
+    .provider-only { display: none; }
+    body.provider-mode .client-only { display: none; }
+    body.provider-mode .provider-only { display: inline-flex; }
+    body.provider-mode .provider-only.block { display: flex; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .page-wrap { padding: 88px 16px 48px; }
+      .page-heading { font-size: 28px; }
+      .booking-middle { flex-direction: column; gap: 6px; }
+      .booking-top { flex-direction: column; }
+      .booking-pills { margin-top: 8px; }
+      .booking-bottom { flex-direction: column; align-items: stretch; }
+      .booking-actions { justify-content: stretch; }
+      .booking-actions .cl-btn { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Nav Bar -->
+  <div class="nav-accent-bar"></div>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <span class="nav-logo-mark"></span>
+        <span class="nav-logo-text">Crelab</span>
+      </a>
+      <div class="nav-center">
+        <a href="/explore">Explore</a>
+        <a href="/for-creators">For Creators</a>
+        <a href="/blog">Blog</a>
+        <a href="/bookings" class="active">Bookings</a>
+      </div>
+      <div class="nav-right">
+        <a href="#" class="cl-btn cl-btn-outlined cl-btn-default">Find Talent</a>
+        <a href="#" class="cl-btn cl-btn-primary cl-btn-default">Get Hired</a>
+      </div>
+      <div class="nav-right-mobile">
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">☰</button>
+      </div>
+    </div>
+  </nav>
+  <div class="hamburger-overlay" id="hamburgerOverlay">
+    <button class="hamburger-close" id="hamburgerClose" aria-label="Close">✕</button>
+    <a href="/explore">Explore</a>
+    <a href="/for-creators">For Creators</a>
+    <a href="/blog">Blog</a>
+    <a href="/bookings">Bookings</a>
+    <a href="#" class="cl-btn cl-btn-outlined cl-btn-lg" style="margin-top:16px">Find Talent</a>
+    <a href="#" class="cl-btn cl-btn-primary cl-btn-lg">Get Hired</a>
+  </div>
+
+  <!-- Page content -->
+  <div class="page-wrap">
+    <div class="page-heading">Your Bookings</div>
+    <div class="page-sub">Manage and track all your creative projects.</div>
+
+    <!-- Role Toggle -->
+    <div class="role-toggle-wrap" id="roleToggle">
+      <button class="role-pill active" data-role="client">As Client (12)</button>
+      <button class="role-pill" data-role="provider">As Provider (3)</button>
+    </div>
+
+    <!-- Status groups rendered by JS -->
+    <div id="bookingsContainer"></div>
+  </div>
+
+  <!-- SVG icon helpers -->
+  <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  </svg>
+
+  <script>
+    (function () {
+      var role = 'client';
+      var data = {
+        client: {
+          IN_PROGRESS: [
+            { id: 'CLB-20260812-4F9A', name: 'Adunola Okonkwo', category: 'Content Creator', status: 'progress', statusLabel: 'In Progress', package: 'Standard — UGC Package', date: 'Aug 12, 2026', amount: 89250, level: 'Established', rating: 4.9 },
+            { id: 'CLB-20260728-3B2C', name: 'Chidi Ezeugo', category: 'Cinematographer', status: 'progress', statusLabel: 'In Progress', package: 'Premium — Event Coverage', date: 'Jul 28, 2026', amount: 157500, level: 'Veteran', rating: 5.0 }
+          ],
+          HELD: [
+            { id: 'CLB-20260905-7D1E', name: 'Simi Adebayo', category: 'Content Creator', status: 'held', statusLabel: 'Funds Held', package: 'Basic — Social Pack', date: 'Sep 5, 2026', amount: 47250, level: 'Emerging', rating: 4.7 }
+          ],
+          ACCEPTED: [
+            { id: 'CLB-20260715-1A3F', name: 'Femi Kuti', category: 'Cinematographer', status: 'accepted', statusLabel: 'Confirmed', package: 'Standard — Corporate Shoot', date: 'Jul 15, 2026', amount: 89250, level: 'Established', rating: 4.8 }
+          ],
+          REQUESTED: [
+            { id: 'CLB-20261201-9G4H', name: 'Zara Nwosu', category: 'Content Creator', status: 'pending', statusLabel: 'Pending', package: 'Premium — Brand Campaign', date: 'Dec 1, 2026', amount: 157500, level: 'Established', rating: 4.9 }
+          ],
+          COMPLETED: [
+            { id: 'CLB-20260610-2B5D', name: 'Adunola Okonkwo', category: 'Content Creator', status: 'released', statusLabel: 'Completed', package: 'Standard — UGC Package', date: 'Jun 10, 2026', amount: 89250, level: 'Established', rating: 4.9 },
+            { id: 'CLB-20260522-6C7E', name: 'Kelechi Nnamdi', category: 'Content Creator', status: 'released', statusLabel: 'Completed', package: 'Basic — Social Pack', date: 'May 22, 2026', amount: 47250, level: 'Emerging', rating: 4.6 },
+            { id: 'CLB-20260418-3D8F', name: 'Damilola Salami', category: 'Photographer', status: 'released', statusLabel: 'Completed', package: 'Standard — Photo Package', date: 'Apr 18, 2026', amount: 68250, level: 'Established', rating: 4.8 },
+            { id: 'CLB-20260305-9E1G', name: 'Tunde Bamidele', category: 'Cinematographer', status: 'released', statusLabel: 'Completed', package: 'Premium — Event Coverage', date: 'Mar 5, 2026', amount: 157500, level: 'Veteran', rating: 5.0 },
+            { id: 'CLB-20260212-5F2H', name: 'Chidi Ezeugo', category: 'Cinematographer', status: 'released', statusLabel: 'Completed', package: 'Standard — Corporate Shoot', date: 'Feb 12, 2026', amount: 89250, level: 'Veteran', rating: 5.0 }
+          ],
+          RELEASED: [
+            { id: 'CLB-20260701-8A3I', name: 'Simi Adebayo', category: 'Content Creator', status: 'released', statusLabel: 'Released', package: 'Standard — UGC Package', date: 'Jul 1, 2026', amount: 89250, level: 'Emerging', rating: 4.7 }
+          ],
+          DISPUTED: [
+            { id: 'CLB-20260620-4B5J', name: 'Femi Kuti', category: 'Cinematographer', status: 'disputed', statusLabel: 'Disputed', package: 'Premium — Event Coverage', date: 'Jun 20, 2026', amount: 157500, level: 'Established', rating: 4.8 }
+          ],
+          DECLINED: [
+            { id: 'CLB-20260515-7C6K', name: 'Zara Nwosu', category: 'Content Creator', status: 'declined', statusLabel: 'Declined', package: 'Basic — Social Pack', date: 'May 15, 2026', amount: 47250, level: 'Established', rating: 4.9 }
+          ],
+          REFUNDED: [
+            { id: 'CLB-20260401-9D7L', name: 'Kelechi Nnamdi', category: 'Content Creator', status: 'refunded', statusLabel: 'Refunded', package: 'Premium — Brand Campaign', date: 'Apr 1, 2026', amount: 157500, level: 'Emerging', rating: 4.6 }
+          ]
+        },
+        provider: {
+          IN_PROGRESS: [
+            { id: 'CLB-20260812-4F9A', name: 'Adebayo Martins', category: 'Content Creator', status: 'progress', statusLabel: 'In Progress', package: 'Standard — UGC Package', date: 'Aug 12, 2026', amount: 89250, level: 'Established', rating: 4.9 },
+            { id: 'CLB-20260818-5E3M', name: 'Folake Asuni', category: 'Brand / Client', status: 'progress', statusLabel: 'In Progress', package: 'Premium — Brand Campaign', date: 'Aug 18, 2026', amount: 150000, level: null, rating: null }
+          ],
+          HELD: [
+            { id: 'CLB-20260905-7D1E', name: 'Chidi Ezeugo', category: 'Brand / Client', status: 'held', statusLabel: 'Funds Held', package: 'Basic — Social Pack', date: 'Sep 5, 2026', amount: 45000, level: null, rating: null }
+          ],
+          ACCEPTED: [
+            { id: 'CLB-20260728-3B2C', name: 'Mercy Nwachukwu', category: 'Brand / Client', status: 'accepted', statusLabel: 'Confirmed', package: 'Standard — Corporate Shoot', date: 'Jul 28, 2026', amount: 85000, level: null, rating: null }
+          ],
+          COMPLETED: [
+            { id: 'CLB-20260610-2B5D', name: 'TechPoint NG', category: 'Brand / Client', status: 'released', statusLabel: 'Completed', package: 'Standard — UGC Package', date: 'Jun 10, 2026', amount: 89250, level: null, rating: null },
+            { id: 'CLB-20260418-3D8F', name: 'Glow Beauty', category: 'Brand / Client', status: 'released', statusLabel: 'Completed', package: 'Premium — Brand Campaign', date: 'Apr 18, 2026', amount: 150000, level: null, rating: null },
+            { id: 'CLB-20260305-9E1G', name: 'ChopNow Foods', category: 'Brand / Client', status: 'released', statusLabel: 'Completed', package: 'Standard — Corporate Shoot', date: 'Mar 5, 2026', amount: 85000, level: null, rating: null }
+          ],
+          REQUESTED: [],
+          RELEASED: [],
+          DISPUTED: [],
+          DECLINED: [],
+          REFUNDED: []
+        }
+      };
+
+      var statusOrder = ['IN_PROGRESS', 'HELD', 'ACCEPTED', 'REQUESTED', 'COMPLETED', 'RELEASED', 'DISPUTED', 'REFUNDED', 'DECLINED'];
+
+      var statusDisplay = {
+        IN_PROGRESS: 'In Progress',
+        HELD: 'Funds Held',
+        ACCEPTED: 'Confirmed',
+        REQUESTED: 'Pending',
+        COMPLETED: 'Completed',
+        RELEASED: 'Released',
+        DISPUTED: 'Disputed',
+        DECLINED: 'Declined',
+        REFUNDED: 'Refunded'
+      };
+
+      var statusBadge = {
+        IN_PROGRESS: 'progress',
+        HELD: 'held',
+        ACCEPTED: 'accepted',
+        REQUESTED: 'pending',
+        COMPLETED: 'released',
+        RELEASED: 'released',
+        DISPUTED: 'disputed',
+        DECLINED: 'declined',
+        REFUNDED: 'refunded'
+      };
+
+      function fmt(n) { return '₦' + n.toLocaleString('en-NG'); }
+
+      function escrowIcon(s) {
+        if (s === 'held' || s === 'progress' || s === 'pending' || s === 'accepted') return '●';
+        if (s === 'released') return '✓';
+        if (s === 'disputed') return '⚠';
+        if (s === 'refunded') return '↩';
+        if (s === 'declined') return '✕';
+        return '';
+      }
+
+      function renderBookings(roleKey) {
+        var d = data[roleKey];
+        var html = '';
+        statusOrder.forEach(function (key) {
+          var items = d[key] || [];
+          html += '<div class="status-group">';
+          html += '  <div class="status-group-header">';
+          html += '    <div class="status-group-header-left">';
+          html += '      <span class="status-group-title">' + statusDisplay[key] + '</span>';
+          html += '      <span class="status-group-count">' + items.length + '</span>';
+          html += '    </div>';
+          html += '    <select class="cl-select" style="width:140px"><option>Sort: Newest</option><option>Oldest</option><option>Amount</option></select>';
+          html += '  </div>';
+
+          if (items.length === 0) {
+            html += '  <div class="empty-group">No bookings in this status</div>';
+          } else {
+            items.forEach(function (b) {
+              var badgeClass = statusBadge[key];
+              html += '  <div class="booking-card">';
+              html += '    <div class="booking-top">';
+              html += '      <div>';
+              html += '        <div class="booking-name-row">';
+              html += '          <span class="booking-provider-name">' + b.name + '</span>';
+              if (b.category) {
+                html += '            <span class="cl-badge cl-badge-accent-muted" style="font-size:10px;padding:1px 6px">' + b.category + '</span>';
+              }
+              html += '        </div>';
+              html += '        <div class="booking-id" style="margin-top:4px">' + b.id + '</div>';
+              html += '      </div>';
+              html += '      <div class="booking-pills">';
+              html += '        <span class="escrow-pill ' + badgeClass + '">' + escrowIcon(b.status) + ' ' + b.statusLabel + '</span>';
+              html += '      </div>';
+              html += '    </div>';
+              html += '    <div class="booking-middle">';
+              html += '      <span class="booking-detail">' + b.package + '</span>';
+              html += '      <span class="booking-detail"><svg class="card-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#cal"/></svg> ' + b.date + '</span>';
+              html += '      <span class="booking-amount">' + fmt(b.amount) + '</span>';
+              html += '    </div>';
+              html += '    <div class="booking-bottom">';
+              html += '      <div></div>';
+              html += '      <div class="booking-actions">';
+
+              // Client view actions
+              if (roleKey === 'client') {
+                if (key === 'IN_PROGRESS') {
+                  html += '        <button class="cl-btn cl-btn-primary cl-btn-sm" onclick="alert(\'// Navigate to /confirm/' + b.id + '\')">Confirm Delivery</button>';
+                  html += '        <button class="cl-btn cl-btn-destructive-outlined cl-btn-sm" onclick="alert(\'// Navigate to /dispute/' + b.id + '\')">Raise Dispute</button>';
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                } else if (key === 'HELD' || key === 'ACCEPTED') {
+                  html += '        <button class="cl-btn cl-btn-primary cl-btn-sm" onclick="alert(\'// Navigate to /pay/' + b.id + '\')">Pay Now</button>';
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                } else if (key === 'REQUESTED') {
+                  html += '        <span style="font-size:12px;color:var(--color-text-tertiary)">Awaiting response</span>';
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                } else if (key === 'COMPLETED' || key === 'RELEASED') {
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">Leave Review</a>';
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                } else if (key === 'DISPUTED') {
+                  html += '        <span style="font-size:12px;color:var(--color-error)">Awaiting admin review</span>';
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                } else if (key === 'REFUNDED' || key === 'DECLINED') {
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                }
+              }
+
+              // Provider view actions
+              if (roleKey === 'provider') {
+                if (key === 'IN_PROGRESS') {
+                  html += '        <button class="cl-btn cl-btn-primary cl-btn-sm" onclick="alert(\'// Navigate to /deliver/' + b.id + '\')">Deliver Work</button>';
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                } else if (key === 'HELD') {
+                  html += '        <span style="font-size:12px;color:var(--color-text-tertiary)">Awaiting confirmation</span>';
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                } else if (key === 'ACCEPTED') {
+                  html += '        <button class="cl-btn cl-btn-primary cl-btn-sm" onclick="alert(\'// Navigate to /start/' + b.id + '\')">Start Work</button>';
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                } else {
+                  html += '        <a href="#" class="cl-btn cl-btn-outlined cl-btn-sm" style="padding:0 12px">View Details</a>';
+                }
+              }
+
+              html += '      </div>';
+              html += '    </div>';
+              html += '  </div>';
+            });
+          }
+
+          html += '</div>';
+        });
+        document.getElementById('bookingsContainer').innerHTML = html;
+      }
+
+      // Role toggle
+      var roleBtns = document.querySelectorAll('.role-pill');
+      roleBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          roleBtns.forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          role = btn.getAttribute('data-role');
+          document.body.classList.toggle('provider-mode', role === 'provider');
+          renderBookings(role);
+        });
+      });
+
+      // Hamburger
+      var hBtn = document.getElementById('hamburgerBtn');
+      var hOverlay = document.getElementById('hamburgerOverlay');
+      var hClose = document.getElementById('hamburgerClose');
+      if (hBtn && hOverlay) {
+        hBtn.addEventListener('click', function () { hOverlay.classList.add('open'); });
+        hClose.addEventListener('click', function () { hOverlay.classList.remove('open'); });
+        hOverlay.addEventListener('click', function (e) { if (e.target === hOverlay) { hOverlay.classList.remove('open'); } });
+      }
+
+      // Init
+      renderBookings('client');
+    })();
+  </script>
+</body>
+</html>

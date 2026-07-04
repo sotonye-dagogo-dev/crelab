@@ -1,0 +1,1753 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="NavBar,ClButton,ClInput,ClTextarea,ClField,ClCard,ClBadge,ExploreVideoCard,ServicePackageCard,ExperienceLevelBadge">
+  <title>Crelab — Edit Profile</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+      --color-escrow-held:     #FACC15;
+      --color-escrow-progress: #A78BFA;
+      --color-escrow-released: #4ADE80;
+      --color-escrow-disputed: #F87171;
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+      --max-width-content: 1200px;
+      --nav-height: 64px;
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+    }
+    /* ============================================================
+       Nav Bar (from OD-3 spec)
+    ============================================================ */
+    .nav-accent-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: var(--color-accent);
+      z-index: 60;
+    }
+    .nav {
+      position: fixed;
+      top: 5px;
+      left: 0;
+      right: 0;
+      height: var(--nav-height);
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-6);
+    }
+    .nav-inner {
+      max-width: var(--max-width-content);
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .nav-logo-mark {
+      width: 12px;
+      height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+    .nav-logo-text {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+    }
+    /* platformConfig.name — never hardcoded in production */
+    .nav-center {
+      display: flex;
+      align-items: center;
+      gap: var(--space-8);
+    }
+    @media (max-width: 640px) { .nav-center { display: none; } }
+    .nav-link {
+      font-family: var(--font-body);
+      font-weight: var(--weight-medium);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .nav-link:hover { color: var(--color-text-primary); }
+    .nav-link.active { color: var(--color-accent); }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    @media (max-width: 640px) { .nav-right .nav-desktop-cta { display: none; } }
+    /* ClButton variants in nav */
+    .cl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-color: transparent;
+    }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+    .cl-btn-outlined {
+      background: transparent;
+      color: var(--color-text-primary);
+      border-color: var(--color-border-mid);
+    }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .cl-btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border-color: transparent;
+      font-weight: var(--weight-medium);
+    }
+    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+    .cl-btn-destructive-outlined {
+      background: transparent;
+      color: var(--color-error);
+      border-color: var(--color-error);
+    }
+    .cl-btn-destructive-outlined:hover { background: rgba(248,113,113,0.08); }
+
+    /* Hamburger + overlay */
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--color-text-primary);
+      cursor: pointer;
+      padding: var(--space-2);
+    }
+    @media (max-width: 640px) { .hamburger { display: flex; } }
+    .mobile-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0A0A0A;
+      z-index: 60;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-8);
+      opacity: 0;
+      transition: opacity 250ms var(--ease-out);
+    }
+    .mobile-overlay.open { display: flex; opacity: 1; }
+    .mobile-overlay-close {
+      position: absolute;
+      top: var(--space-6);
+      right: var(--space-6);
+      background: none;
+      border: none;
+      color: var(--color-text-primary);
+      font-size: 24px;
+      cursor: pointer;
+    }
+    .mobile-overlay a, .mobile-overlay button {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-2xl);
+      color: var(--color-text-primary);
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .mobile-overlay a:hover, .mobile-overlay button:hover { color: var(--color-accent); }
+
+    /* ============================================================
+       Page layout
+    ============================================================ */
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 var(--space-6);
+      padding-top: calc(var(--nav-height) + 5px + var(--space-8));
+      padding-bottom: 100px;
+    }
+    .page-header {
+      margin-bottom: var(--space-8);
+    }
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 28px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+      line-height: var(--leading-tight);
+    }
+    .page-header p {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-top: var(--space-2);
+    }
+
+    /* ============================================================
+       Tab navigation (sticky)
+    ============================================================ */
+    .tab-nav {
+      position: sticky;
+      top: calc(var(--nav-height) + 5px);
+      z-index: 20;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: var(--space-6);
+      display: flex;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 20px;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+      text-align: center;
+    }
+    .tab-btn:hover { background: var(--color-surface-raised); }
+    .tab-btn.active {
+      background: var(--color-accent-muted);
+      border-bottom: 2px solid var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    /* ============================================================
+       Tab content
+    ============================================================ */
+    .tab-content {
+      display: none;
+      opacity: 0;
+      transition: opacity 150ms var(--ease-out);
+    }
+    .tab-content.active {
+      display: block;
+      opacity: 1;
+    }
+    .tab-section {
+      margin-bottom: var(--space-6);
+    }
+    .tab-section-title {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 16px;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-4);
+    }
+
+    /* ClField */
+    .cl-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .cl-field-label {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .cl-field-helper {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* ClInput / ClTextarea */
+    .cl-input,
+    .cl-textarea {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 0 var(--space-3);
+      height: 40px;
+      outline: none;
+      transition: border-color var(--duration-fast) var(--ease-out);
+      width: 100%;
+    }
+    .cl-input::placeholder,
+    .cl-textarea::placeholder { color: var(--color-text-tertiary); }
+    .cl-input:focus,
+    .cl-textarea:focus { border-color: var(--color-accent); }
+    .cl-input:disabled,
+    .cl-textarea:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cl-textarea {
+      height: auto;
+      min-height: 100px;
+      padding: var(--space-3);
+      resize: vertical;
+    }
+    .cl-textarea-wrap { position: relative; }
+    .cl-char-counter {
+      position: absolute;
+      bottom: var(--space-2);
+      right: var(--space-2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      pointer-events: none;
+    }
+    .cl-char-counter.near-limit { color: var(--color-warning); }
+    .cl-char-counter.at-limit { color: var(--color-error); }
+
+    /* ClCard */
+    .cl-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      transition: border-color 200ms var(--ease-out);
+    }
+    .cl-card:hover { border-color: var(--color-border-mid); }
+
+    /* ClBadge */
+    .cl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      white-space: nowrap;
+      line-height: 1.5;
+    }
+    .cl-badge-accent { background: var(--color-accent); color: var(--color-text-inverse); }
+    .cl-badge-accent-muted { background: var(--color-accent-muted); color: var(--color-accent); }
+    .cl-badge-surface { background: var(--color-surface-raised); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+
+    /* Experience level pills */
+    .exp-pills {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .exp-pill {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      user-select: none;
+    }
+    .exp-pill:hover { border-color: var(--color-border-mid); }
+    .exp-pill.selected {
+      background: var(--color-accent-muted);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    /* Tags input */
+    .tags-input-wrap {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-2) var(--space-3);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-1);
+      align-items: center;
+      cursor: text;
+      min-height: 40px;
+      transition: border-color var(--duration-fast) var(--ease-out);
+    }
+    .tags-input-wrap:focus-within { border-color: var(--color-accent); }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--color-accent-muted);
+      color: var(--color-accent);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      font-family: var(--font-body);
+    }
+    .tag-chip .tag-remove {
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      color: var(--color-accent);
+      opacity: 0.7;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .tag-chip .tag-remove:hover { opacity: 1; }
+    .tags-input {
+      border: none;
+      background: transparent;
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      outline: none;
+      flex: 1;
+      min-width: 80px;
+      padding: 2px 0;
+    }
+    .tags-input::placeholder { color: var(--color-text-tertiary); }
+
+    /* ============================================================
+       Profile tab — form layout
+    ============================================================ */
+    .profile-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+    .profile-section-inner {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+    .category-badge-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .category-badge-row .note {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+    .form-row {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .form-row .cl-field {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    /* ============================================================
+       Packages tab — editor cards
+    ============================================================ */
+    .pkg-editor-grid {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+    .pkg-editor-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+    }
+    .pkg-editor-card.standard {
+      border-top: 3px solid var(--color-accent);
+    }
+    .pkg-editor-card .pkg-popular-badge {
+      position: absolute;
+      top: 0;
+      right: var(--space-4);
+      transform: translateY(-50%);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      font-family: var(--font-body);
+      font-weight: var(--weight-bold);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 1px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .pkg-editor-tier {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+    }
+    .pkg-editor-row {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+    .pkg-editor-row .cl-field {
+      flex: 1;
+      min-width: 100px;
+    }
+    .pkg-price-wrap {
+      position: relative;
+    }
+    .pkg-price-prefix {
+      position: absolute;
+      left: var(--space-3);
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--color-text-primary);
+      pointer-events: none;
+    }
+    .pkg-price-wrap .cl-input { padding-left: 28px; font-family: var(--font-mono); font-size: 14px; }
+    .pkg-editor-divider {
+      height: 1px;
+      background: var(--color-border);
+      margin: var(--space-1) 0;
+    }
+    .pkg-editor-card .pkg-cta-row {
+      margin-top: auto;
+    }
+
+    /* ============================================================
+       Portfolio tab
+    ============================================================ */
+    .upload-panels {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .upload-panel {
+      flex: 1;
+      min-width: 200px;
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-raised);
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+      text-align: center;
+      gap: var(--space-3);
+      transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+      cursor: pointer;
+    }
+    .upload-panel:hover { border-color: var(--color-accent); background: rgba(232,255,71,0.04); }
+    .upload-panel-icon { color: var(--color-text-tertiary); }
+    .upload-panel-text {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+    .upload-panel-link {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-accent);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .upload-panel-link:hover { text-decoration: underline; }
+    .upload-thumb-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2);
+      width: 100%;
+      margin-top: var(--space-4);
+    }
+    .upload-thumb {
+      background: var(--color-surface);
+      aspect-ratio: 4/5;
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-thumb svg { opacity: 0.5; }
+    .upload-thumb-caption {
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* Portfolio masonry grid */
+    .portfolio-masonry {
+      column-count: 3;
+      column-gap: var(--space-2);
+      margin-top: var(--space-4);
+    }
+    @media (max-width: 768px) { .portfolio-masonry { column-count: 2; } }
+    @media (max-width: 480px) { .portfolio-masonry { column-count: 1; } }
+    .portfolio-item {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+      display: inline-block;
+      width: 100%;
+      break-inside: avoid;
+      margin-bottom: var(--space-2);
+    }
+    .portfolio-item:hover { transform: scale(1.02); box-shadow: 0 0 0 1px var(--color-accent), 0 0 16px rgba(232,255,71,0.15); }
+    .portfolio-item-video {
+      position: relative;
+      background: var(--color-surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 160px;
+    }
+    .portfolio-item-gradient {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 60%;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      pointer-events: none;
+    }
+    .portfolio-item-info {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .portfolio-item-name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: var(--weight-medium);
+      color: var(--color-text-primary);
+      line-height: var(--leading-tight);
+    }
+    .portfolio-item-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .portfolio-item-stars {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      color: var(--color-warning);
+      font-variant-numeric: tabular-nums;
+    }
+    .portfolio-item-price {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    .portfolio-item-price .price-amount {
+      font-family: var(--font-mono);
+      color: var(--color-accent);
+      font-weight: var(--weight-medium);
+    }
+    .portfolio-item-overlay-controls {
+      position: absolute;
+      top: var(--space-2);
+      right: var(--space-2);
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 200ms var(--ease-out);
+    }
+    .portfolio-item:hover .portfolio-item-overlay-controls { opacity: 1; }
+    .portfolio-overlay-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--color-text-secondary);
+      transition: all var(--duration-fast) var(--ease-out);
+    }
+    .portfolio-overlay-btn:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+    .portfolio-overlay-btn.delete:hover { color: var(--color-error); border-color: var(--color-error); }
+    .portfolio-item-drive-badge {
+      position: absolute;
+      bottom: var(--space-2);
+      right: var(--space-2);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 2px 5px;
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      line-height: 1.4;
+    }
+    .empty-portfolio {
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-10);
+      text-align: center;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-top: var(--space-6);
+    }
+
+    /* Reorder instruction */
+    .reorder-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      margin-top: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .reorder-handle-card {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      background: var(--color-accent-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      font-size: 11px;
+      color: var(--color-accent);
+      font-family: var(--font-body);
+    }
+    .reorder-handle-card .drag-icon { cursor: grab; }
+    .reorder-handle-card .remove-icon { cursor: pointer; opacity: 0.7; }
+    .reorder-handle-card .remove-icon:hover { opacity: 1; }
+
+    /* ============================================================
+       Google Drive tab (from 09-drive-portfolio Part 1)
+    ============================================================ */
+    .state-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-bottom: var(--space-6);
+    }
+    .state-pill {
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-out);
+    }
+    .state-pill:hover { border-color: var(--color-border-mid); }
+    .state-pill.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-color: var(--color-accent);
+    }
+    .status-card { margin-top: var(--space-4); }
+    .status-card-inner {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+    .status-icon { flex-shrink: 0; }
+    .status-content { flex: 1; }
+    .status-title {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 14px;
+      color: var(--color-text-primary);
+    }
+    .status-sub {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+    .status-link {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      color: var(--color-accent);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .status-link:hover { text-decoration: underline; }
+    .status-card.success { border-color: rgba(74,222,128,0.3); }
+    .status-card.error { border-color: rgba(248,113,113,0.3); }
+    .status-card.info { border-color: rgba(96,165,250,0.3); }
+    .status-card.success .status-title { color: var(--color-success); }
+    .status-card.error .status-title { color: var(--color-error); }
+    .status-card.info .status-title { color: var(--color-info); }
+    .btn-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .cl-btn-primary .btn-spinner { border-top-color: var(--color-text-inverse); border-right-color: rgba(10,10,10,0.2); border-bottom-color: rgba(10,10,10,0.2); border-left-color: rgba(10,10,10,0.2); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .drive-input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 0;
+    }
+    .drive-input-row > div:first-child { flex: 1; min-width: 0; }
+    .field-error {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-error);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .state-content { margin-top: var(--space-4); }
+
+    /* ============================================================
+       Save indicator toast
+    ============================================================ */
+    .save-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--color-success);
+      color: var(--color-text-inverse);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+      pointer-events: none;
+      z-index: 100;
+    }
+    .save-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ============================================================
+       Responsive
+    ============================================================ */
+    @media (max-width: 768px) {
+      .pkg-editor-grid { flex-direction: column; }
+      .upload-panels { flex-direction: column; }
+    }
+    @media (max-width: 480px) {
+      .form-row { flex-direction: column; }
+      .pkg-editor-row { flex-direction: column; }
+      .drive-input-row { flex-direction: column; }
+      .page { padding-left: var(--space-4); padding-right: var(--space-4); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav accent bar -->
+<div class="nav-accent-bar"></div>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">
+      <span class="nav-logo-mark"></span>
+      <span class="nav-logo-text">Crelab</span>
+    </a>
+    <!-- platformConfig.name — never hardcoded in production -->
+    <div class="nav-center">
+      <a class="nav-link" href="#">Explore</a>
+      <a class="nav-link" href="#">For Creators</a>
+      <a class="nav-link active" href="#">Dashboard</a>
+      <a class="nav-link" href="#">Blog</a>
+    </div>
+    <div class="nav-right">
+      <button class="cl-btn cl-btn-outlined cl-btn-default nav-desktop-ctA">Find Talent</button>
+      <button class="cl-btn cl-btn-primary cl-btn-default nav-desktop-ctA">Get Hired</button>
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile overlay -->
+<div class="mobile-overlay" id="mobile-overlay">
+  <button class="mobile-overlay-close" id="mobile-close">✕</button>
+  <a href="#">Explore</a>
+  <a href="#">For Creators</a>
+  <a href="#">Dashboard</a>
+  <a href="#">Blog</a>
+  <button class="cl-btn cl-btn-outlined cl-btn-lg" style="width:200px">Find Talent</button>
+  <button class="cl-btn cl-btn-primary cl-btn-lg" style="width:200px">Get Hired</button>
+</div>
+
+<!-- ================================================================ -->
+<!-- Page content                                                     -->
+<!-- ================================================================ -->
+<div class="page">
+
+  <div class="page-header">
+    <h1>Edit Profile</h1>
+    <p>Changes save automatically. Your profile stays live while you edit.</p>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav" id="tab-nav">
+    <button class="tab-btn active" data-tab="profile">Profile</button>
+    <button class="tab-btn" data-tab="packages">Packages</button>
+    <button class="tab-btn" data-tab="portfolio">Portfolio</button>
+    <button class="tab-btn" data-tab="drive">Google Drive</button>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- TAB: Profile                                                     -->
+  <!-- ================================================================ -->
+  <div class="tab-content active" id="tab-profile">
+    <div class="profile-grid">
+
+      <!-- Category (non-editable) -->
+      <div class="cl-card tab-section">
+        <div class="tab-section-title">Category</div>
+        <div class="category-badge-row">
+          <span class="cl-badge cl-badge-accent-muted">Content Creator</span>
+          <span class="note">Category change requires re-onboarding; contact support.</span>
+        </div>
+        <!-- Category change requires re-onboarding; contact support. -->
+      </div>
+
+      <!-- Basic Info -->
+      <div class="cl-card tab-section">
+        <div class="tab-section-title">Basic Info</div>
+        <div class="profile-section-inner">
+          <div class="cl-field">
+            <label class="cl-field-label">Bio</label>
+            <div class="cl-textarea-wrap">
+              <textarea class="cl-textarea" id="bio-input" placeholder="Tell brands about yourself..." style="padding-bottom:var(--space-8)" oninput="updateBioCounter(this)">I make brand content that actually gets watched. Specialising in lifestyle, beauty, and product UGC for Nigerian and global brands. Based in Lagos with 3+ years of experience creating scroll-stopping content for social media campaigns.</textarea>
+              <span class="cl-char-counter" id="bio-counter">247 / 300</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="cl-field">
+              <label class="cl-field-label">Location</label>
+              <input class="cl-input" type="text" placeholder="e.g. Lagos, Nigeria" value="Lagos, Nigeria" />
+            </div>
+            <div class="cl-field">
+              <label class="cl-field-label">Years Active</label>
+              <input class="cl-input" type="number" min="0" max="50" value="3" />
+            </div>
+          </div>
+          <div class="cl-field">
+            <label class="cl-field-label">Experience Level</label>
+            <div class="exp-pills">
+              <span class="exp-pill" data-exp="emerging">Emerging</span>
+              <span class="exp-pill selected" data-exp="established">Established</span>
+              <span class="exp-pill" data-exp="veteran">Veteran</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Niche & Platforms -->
+      <div class="cl-card tab-section">
+        <div class="tab-section-title">Niche &amp; Platforms</div>
+        <div class="profile-section-inner">
+          <div class="cl-field">
+            <label class="cl-field-label">Content Niche</label>
+            <div class="tags-input-wrap" id="niche-tags">
+              <span class="tag-chip">Beauty <button class="tag-remove" onclick="removeTag(this)">×</button></span>
+              <span class="tag-chip">Fashion <button class="tag-remove" onclick="removeTag(this)">×</button></span>
+              <span class="tag-chip">Lifestyle <button class="tag-remove" onclick="removeTag(this)">×</button></span>
+              <input class="tags-input" type="text" placeholder="Add niche..." onkeydown="handleTagInput(event, 'niche-tags')" />
+            </div>
+          </div>
+          <div class="cl-field">
+            <label class="cl-field-label">Active Platforms</label>
+            <div class="tags-input-wrap" id="platform-tags">
+              <span class="tag-chip">Instagram <button class="tag-remove" onclick="removeTag(this)">×</button></span>
+              <span class="tag-chip">TikTok <button class="tag-remove" onclick="removeTag(this)">×</button></span>
+              <span class="tag-chip">YouTube <button class="tag-remove" onclick="removeTag(this)">×</button></span>
+              <input class="tags-input" type="text" placeholder="Add platform..." onkeydown="handleTagInput(event, 'platform-tags')" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- TAB: Packages                                                    -->
+  <!-- ================================================================ -->
+  <div class="tab-content" id="tab-packages">
+    <div class="pkg-editor-grid">
+
+      <!-- Basic -->
+      <div class="pkg-editor-card">
+        <span class="pkg-editor-tier">Tier</span>
+        <div class="cl-field">
+          <label class="cl-field-label">Package Name</label>
+          <input class="cl-input" type="text" value="Basic" />
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Price</label>
+          <div class="pkg-price-wrap">
+            <span class="pkg-price-prefix">₦</span>
+            <input class="cl-input" type="text" value="45,000" />
+          </div>
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Deliverables</label>
+          <textarea class="cl-textarea" placeholder="One per line — ✓ prefix added automatically">1 video (30–60s)
+Basic colour grading
+2 revision rounds</textarea>
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Turnaround</label>
+          <div class="pkg-price-wrap">
+            <input class="cl-input" type="number" min="1" max="60" value="7" style="padding-right:48px" />
+            <span style="position:absolute;right:var(--space-3);top:50%;transform:translateY(-50%);font-family:var(--font-body);font-size:12px;color:var(--color-text-tertiary);pointer-events:none">days</span>
+          </div>
+        </div>
+        <div class="pkg-cta-row">
+          <button class="cl-btn cl-btn-outlined cl-btn-default" style="width:100%">Book Basic</button>
+        </div>
+      </div>
+
+      <!-- Standard -->
+      <div class="pkg-editor-card standard">
+        <div class="pkg-popular-badge">Most Popular</div>
+        <span class="pkg-editor-tier">Tier</span>
+        <div class="cl-field">
+          <label class="cl-field-label">Package Name</label>
+          <input class="cl-input" type="text" value="Standard" />
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Price</label>
+          <div class="pkg-price-wrap">
+            <span class="pkg-price-prefix">₦</span>
+            <input class="cl-input" type="text" value="85,000" />
+          </div>
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Deliverables</label>
+          <textarea class="cl-textarea" placeholder="One per line">3 short-form videos (30–60s)
+Full editing & colour grading
+Custom captions
+5-day turnaround</textarea>
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Turnaround</label>
+          <div class="pkg-price-wrap">
+            <input class="cl-input" type="number" min="1" max="60" value="5" style="padding-right:48px" />
+            <span style="position:absolute;right:var(--space-3);top:50%;transform:translateY(-50%);font-family:var(--font-body);font-size:12px;color:var(--color-text-tertiary);pointer-events:none">days</span>
+          </div>
+        </div>
+        <div class="pkg-cta-row">
+          <button class="cl-btn cl-btn-primary cl-btn-default" style="width:100%">Book Standard</button>
+        </div>
+        <!-- Price changes affect new bookings only. Existing bookings honour original price. -->
+      </div>
+
+      <!-- Premium -->
+      <div class="pkg-editor-card">
+        <span class="pkg-editor-tier">Tier</span>
+        <div class="cl-field">
+          <label class="cl-field-label">Package Name</label>
+          <input class="cl-input" type="text" value="Premium" />
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Price</label>
+          <div class="pkg-price-wrap">
+            <span class="pkg-price-prefix">₦</span>
+            <input class="cl-input" type="text" value="150,000" />
+          </div>
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Deliverables</label>
+          <textarea class="cl-textarea" placeholder="One per line">5 short-form videos (30–60s)
+Full editing & premium colour grading
+Custom captions & thumbnails
+3 revision rounds
+3-day turnaround</textarea>
+        </div>
+        <div class="cl-field">
+          <label class="cl-field-label">Turnaround</label>
+          <div class="pkg-price-wrap">
+            <input class="cl-input" type="number" min="1" max="60" value="3" style="padding-right:48px" />
+            <span style="position:absolute;right:var(--space-3);top:50%;transform:translateY(-50%);font-family:var(--font-body);font-size:12px;color:var(--color-text-tertiary);pointer-events:none">days</span>
+          </div>
+        </div>
+        <div class="pkg-cta-row">
+          <button class="cl-btn cl-btn-outlined cl-btn-default" style="width:100%">Book Premium</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- TAB: Portfolio                                                   -->
+  <!-- ================================================================ -->
+  <div class="tab-content" id="tab-portfolio">
+    <div class="tab-section">
+      <div class="tab-section-title">Upload New Items</div>
+      <div class="upload-panels">
+        <div class="upload-panel">
+          <svg class="upload-panel-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span class="upload-panel-text">Drag files here</span>
+          <span class="upload-panel-link">or Browse Files</span>
+          <div class="upload-thumb-grid">
+            <div class="upload-thumb">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span class="upload-thumb-caption">campaign.mp4</span>
+            </div>
+            <div class="upload-thumb">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span class="upload-thumb-caption">portrait.jpg</span>
+            </div>
+            <div class="upload-thumb">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span class="upload-thumb-caption">reel.mp4</span>
+            </div>
+            <div class="upload-thumb">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="upload-thumb-caption">brief.pdf</span>
+            </div>
+          </div>
+        </div>
+        <div class="upload-panel">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <span class="upload-panel-text">Paste your Drive folder link</span>
+          <div style="width:100%">
+            <input class="cl-input" type="url" placeholder="https://drive.google.com/drive/folders/..." style="margin-bottom:var(--space-2)" />
+          </div>
+          <button class="cl-btn cl-btn-primary cl-btn-default" style="width:100%">Sync Folder</button>
+        </div>
+      </div>
+      <!-- DriveService.ingestFolder() called on sync. No OAuth required for public folders. -->
+    </div>
+
+    <!-- Current Portfolio -->
+    <div class="tab-section">
+      <div class="tab-section-title">Current Portfolio</div>
+      <div class="portfolio-masonry">
+        <!-- Item 1 -->
+        <div class="portfolio-item" style="height:260px">
+          <div class="portfolio-item-video" style="height:100%;background:#141414">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <div class="portfolio-item-gradient"></div>
+            <div class="portfolio-item-info">
+              <span class="cl-badge cl-badge-accent portfolio-item-category" style="align-self:flex-start;margin-bottom:var(--space-2)">Content Creation</span>
+              <span class="portfolio-item-name">GTBank Campaign</span>
+              <div class="portfolio-item-meta">
+                <span class="portfolio-item-stars">★ 4.9</span>
+                <span class="portfolio-item-price">from <span class="price-amount">₦85,000</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="portfolio-item-overlay-controls">
+            <div class="portfolio-overlay-btn" title="Drag to reorder">⠿</div>
+            <div class="portfolio-overlay-btn" title="Hide">👁</div>
+            <div class="portfolio-overlay-btn delete" title="Delete">🗑</div>
+          </div>
+          <div class="portfolio-item-drive-badge">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Drive
+          </div>
+        </div>
+        <!-- Item 2 -->
+        <div class="portfolio-item" style="height:200px">
+          <div class="portfolio-item-video" style="height:100%;background:#0D0D1A">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <div class="portfolio-item-gradient"></div>
+            <div class="portfolio-item-info">
+              <span class="portfolio-item-name">Beauty UGC Reel</span>
+              <div class="portfolio-item-meta">
+                <span class="portfolio-item-stars">★ 4.8</span>
+                <span class="portfolio-item-price">from <span class="price-amount">₦45,000</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="portfolio-item-overlay-controls">
+            <div class="portfolio-overlay-btn" title="Drag to reorder">⠿</div>
+            <div class="portfolio-overlay-btn" title="Hide">👁</div>
+            <div class="portfolio-overlay-btn delete" title="Delete">🗑</div>
+          </div>
+        </div>
+        <!-- Item 3 -->
+        <div class="portfolio-item" style="height:320px">
+          <div class="portfolio-item-video" style="height:100%;background:#0A0A14">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <div class="portfolio-item-gradient"></div>
+            <div class="portfolio-item-info">
+              <span class="portfolio-item-name">Fashion Week BTS</span>
+              <div class="portfolio-item-meta">
+                <span class="portfolio-item-stars">★ 5.0</span>
+                <span class="portfolio-item-price">from <span class="price-amount">₦120,000</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="portfolio-item-overlay-controls">
+            <div class="portfolio-overlay-btn" title="Drag to reorder">⠿</div>
+            <div class="portfolio-overlay-btn" title="Hide">👁</div>
+            <div class="portfolio-overlay-btn delete" title="Delete">🗑</div>
+          </div>
+        </div>
+        <!-- Item 4 -->
+        <div class="portfolio-item" style="height:230px">
+          <div class="portfolio-item-video" style="height:100%;background:#1E2200">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <div class="portfolio-item-gradient"></div>
+            <div class="portfolio-item-info">
+              <span class="portfolio-item-name">Food Brand Promo</span>
+              <div class="portfolio-item-meta">
+                <span class="portfolio-item-stars">★ 4.7</span>
+                <span class="portfolio-item-price">from <span class="price-amount">₦65,000</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="portfolio-item-overlay-controls">
+            <div class="portfolio-overlay-btn" title="Drag to reorder">⠿</div>
+            <div class="portfolio-overlay-btn" title="Hide">👁</div>
+            <div class="portfolio-overlay-btn delete" title="Delete">🗑</div>
+          </div>
+        </div>
+        <!-- Item 5 -->
+        <div class="portfolio-item" style="height:280px">
+          <div class="portfolio-item-video" style="height:100%;background:#0D1A0D">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <div class="portfolio-item-gradient"></div>
+            <div class="portfolio-item-info">
+              <span class="portfolio-item-name">Portfolio Showreel</span>
+              <div class="portfolio-item-meta">
+                <span class="portfolio-item-stars">★ 4.9</span>
+                <span class="portfolio-item-price">from <span class="price-amount">₦150,000</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="portfolio-item-overlay-controls">
+            <div class="portfolio-overlay-btn" title="Drag to reorder">⠿</div>
+            <div class="portfolio-overlay-btn" title="Hide">👁</div>
+            <div class="portfolio-overlay-btn delete" title="Delete">🗑</div>
+          </div>
+        </div>
+        <!-- Item 6 -->
+        <div class="portfolio-item" style="height:190px">
+          <div class="portfolio-item-video" style="height:100%;background:#1A0D1A">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+            <div class="portfolio-item-gradient"></div>
+            <div class="portfolio-item-info">
+              <span class="portfolio-item-name">Product Photography</span>
+              <div class="portfolio-item-meta">
+                <span class="portfolio-item-stars">★ 5.0</span>
+                <span class="portfolio-item-price">from <span class="price-amount">₦55,000</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="portfolio-item-overlay-controls">
+            <div class="portfolio-overlay-btn" title="Drag to reorder">⠿</div>
+            <div class="portfolio-overlay-btn" title="Hide">👁</div>
+            <div class="portfolio-overlay-btn delete" title="Delete">🗑</div>
+          </div>
+          <div class="portfolio-item-drive-badge">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Drive
+          </div>
+        </div>
+      </div>
+
+      <!-- Reorder instruction -->
+      <div class="reorder-row">
+        <span style="font-family:var(--font-body);font-size:12px;color:var(--color-text-tertiary)">Drag to reorder</span>
+        <div class="reorder-handle-card">
+          <span class="drag-icon">⠿</span>
+          <span>GTBank Campaign</span>
+          <span class="remove-icon" style="margin-left:4px">×</span>
+        </div>
+        <div class="reorder-handle-card">
+          <span class="drag-icon">⠿</span>
+          <span>Beauty UGC Reel</span>
+          <span class="remove-icon" style="margin-left:4px">×</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- TAB: Google Drive                                                -->
+  <!-- ================================================================ -->
+  <div class="tab-content" id="tab-drive">
+    <div class="tab-section">
+      <div class="tab-section-title">Connect Google Drive</div>
+      <p style="font-family:var(--font-body);font-size:14px;color:var(--color-text-secondary);line-height:1.6;max-width:520px;margin-bottom:var(--space-5)">
+        Paste the link to a publicly shared Google Drive folder. Crelab will automatically import your videos, images, and PDFs.
+      </p>
+      <!-- Folder must be shared with 'Anyone with the link'. DriveService reads files via Google Drive Files API v3, key=GOOGLE_API_KEY. No OAuth. -->
+
+      <!-- State toggle pills (for reference) -->
+      <div class="state-toggles">
+        <button class="state-pill active" data-drive-state="disconnected">Disconnected</button>
+        <button class="state-pill" data-drive-state="syncing">Syncing</button>
+        <button class="state-pill" data-drive-state="synced">Synced</button>
+        <button class="state-pill" data-drive-state="error-private">Error — Private</button>
+        <button class="state-pill" data-drive-state="error-empty">Error — Empty</button>
+      </div>
+
+      <!-- Input row -->
+      <div class="drive-input-row">
+        <div>
+          <input class="cl-input" id="drive-input" type="url" placeholder="https://drive.google.com/drive/folders/..." />
+        </div>
+        <button class="cl-btn cl-btn-primary cl-btn-default" id="drive-sync-btn" style="flex-shrink:0;padding:0 16px">
+          <span id="drive-sync-text">Sync Folder</span>
+        </button>
+      </div>
+
+      <!-- Validation error -->
+      <div id="drive-validation" class="field-error" style="display:none">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        This doesn't look like a valid Google Drive folder link.
+      </div>
+
+      <!-- State: Disconnected -->
+      <div id="drive-disconnected" class="state-content">
+        <div class="cl-card status-card" style="border-color:var(--color-border);margin-top:var(--space-4)">
+          <div style="text-align:center;padding:var(--space-4) 0">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5" style="margin-bottom:var(--space-3)">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <div style="font-family:var(--font-body);font-size:14px;color:var(--color-text-secondary)">Paste a Drive folder link and click Sync to import your portfolio.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State: Syncing -->
+      <div id="drive-syncing" class="state-content" style="display:none">
+        <div class="cl-card status-card" style="margin-top:var(--space-4)">
+          <div class="status-card-inner">
+            <div class="status-icon">
+              <span class="btn-spinner" style="width:20px;height:20px;border-top-color:var(--color-accent);border-right-color:rgba(232,255,71,0.2);border-bottom-color:rgba(232,255,71,0.2);border-left-color:rgba(232,255,71,0.2)"></span>
+            </div>
+            <div class="status-content">
+              <div class="status-title" style="color:var(--color-accent)">Syncing portfolio files...</div>
+              <div class="status-sub">Reading your Drive folder and fetching thumbnails</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State: Synced -->
+      <div id="drive-synced" class="state-content" style="display:none">
+        <div class="cl-card status-card success" style="margin-top:var(--space-4)">
+          <div class="status-card-inner">
+            <svg class="status-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <div class="status-content">
+              <div class="status-title">8 files imported</div>
+              <div class="status-sub">Last synced: Today at 2:14 PM</div>
+              <span class="status-link">Refresh ↻</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State: Error — Private -->
+      <div id="drive-error-private" class="state-content" style="display:none">
+        <div class="cl-card status-card error" style="margin-top:var(--space-4)">
+          <div class="status-card-inner">
+            <svg class="status-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div class="status-content">
+              <div class="status-title">Folder is not publicly accessible</div>
+              <div class="status-sub">Set sharing to 'Anyone with the link' in Google Drive, then try again.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State: Error — Empty -->
+      <div id="drive-error-empty" class="state-content" style="display:none">
+        <div class="cl-card status-card info" style="margin-top:var(--space-4)">
+          <div class="status-card-inner">
+            <svg class="status-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-info)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div class="status-content">
+              <div class="status-title">No supported files found</div>
+              <div class="status-sub">Add MP4, MOV, JPG, PNG, or PDF files to your Drive folder and sync again.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Save indicator toast -->
+<div class="save-toast" id="save-toast">✓ Changes saved</div>
+
+<!-- ================================================================ -->
+<!-- JavaScript                                                       -->
+<!-- ================================================================ -->
+<script>
+  (function () {
+    // ================================================================
+    // Nav — hamburger overlay
+    // ================================================================
+    var hamburger = document.getElementById('hamburger');
+    var overlay = document.getElementById('mobile-overlay');
+    var closeBtn = document.getElementById('mobile-close');
+    if (hamburger && overlay) {
+      function openOverlay() { overlay.classList.add('open'); }
+      function closeOverlay() { overlay.classList.remove('open'); }
+      hamburger.addEventListener('click', openOverlay);
+      if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) closeOverlay(); });
+    }
+
+    // ================================================================
+    // Tab switching
+    // ================================================================
+    var tabBtns = document.querySelectorAll('.tab-btn');
+    var tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var target = btn.getAttribute('data-tab');
+        // Fade out
+        tabContents.forEach(function (tc) {
+          if (tc.classList.contains('active')) {
+            tc.style.opacity = '0';
+            setTimeout(function () {
+              tc.classList.remove('active');
+              tc.style.opacity = '';
+            }, 150);
+          }
+        });
+        tabBtns.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        // Fade in target
+        setTimeout(function () {
+          var targetEl = document.getElementById('tab-' + target);
+          if (targetEl) {
+            targetEl.classList.add('active');
+            targetEl.style.opacity = '0';
+            requestAnimationFrame(function () {
+              targetEl.style.opacity = '1';
+              setTimeout(function () { targetEl.style.opacity = ''; }, 200);
+            });
+          }
+        }, 150);
+      });
+    });
+
+    // ================================================================
+    // Bio char counter
+    // ================================================================
+    window.updateBioCounter = function (el) {
+      var counter = document.getElementById('bio-counter');
+      if (!counter) return;
+      var len = el.value.length;
+      counter.textContent = len + ' / 300';
+      counter.classList.remove('near-limit', 'at-limit');
+      if (len >= 300) counter.classList.add('at-limit');
+      else if (len >= 280) counter.classList.add('near-limit');
+    };
+
+    // ================================================================
+    // Tags input (Enter to add)
+    // ================================================================
+    window.handleTagInput = function (e, wrapId) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var input = e.target;
+        var val = input.value.trim();
+        if (!val) return;
+        var wrap = document.getElementById(wrapId);
+        if (!wrap) return;
+        var chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.innerHTML = val + ' <button class="tag-remove" onclick="removeTag(this)">\u00d7</button>';
+        wrap.insertBefore(chip, input);
+        input.value = '';
+      }
+    };
+
+    window.removeTag = function (btn) {
+      var chip = btn.parentNode;
+      if (chip.parentNode) chip.parentNode.removeChild(chip);
+    };
+
+    // ================================================================
+    // Experience level pills
+    // ================================================================
+    document.querySelectorAll('.exp-pill').forEach(function (pill) {
+      pill.addEventListener('click', function () {
+        var parent = pill.parentNode;
+        parent.querySelectorAll('.exp-pill').forEach(function (p) { p.classList.remove('selected'); });
+        pill.classList.add('selected');
+      });
+    });
+
+    // ================================================================
+    // Google Drive state pills
+    // ================================================================
+    var drivePills = document.querySelectorAll('[data-drive-state]');
+    var driveStates = ['drive-disconnected', 'drive-syncing', 'drive-synced', 'drive-error-private', 'drive-error-empty'];
+    var driveInput = document.getElementById('drive-input');
+    var driveSyncBtn = document.getElementById('drive-sync-btn');
+    var driveSyncText = document.getElementById('drive-sync-text');
+    var driveValidation = document.getElementById('drive-validation');
+
+    drivePills.forEach(function (pill) {
+      pill.addEventListener('click', function () {
+        drivePills.forEach(function (p) { p.classList.remove('active'); });
+        pill.classList.add('active');
+        var state = pill.getAttribute('data-drive-state');
+        driveStates.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+        var target = document.getElementById('drive-' + state);
+        if (target) target.style.display = 'block';
+        // Update input/button per state
+        if (state === 'disconnected') {
+          if (driveInput) { driveInput.value = ''; driveInput.disabled = false; }
+          if (driveSyncBtn) { driveSyncBtn.disabled = false; }
+          if (driveSyncText) driveSyncText.textContent = 'Sync Folder';
+          if (driveValidation) driveValidation.style.display = 'none';
+        }
+        if (state === 'syncing') {
+          if (driveInput) driveInput.disabled = true;
+          if (driveSyncBtn) driveSyncBtn.disabled = true;
+          if (driveSyncText) driveSyncText.innerHTML = '<span class="btn-spinner" style="vertical-align:middle;margin-right:6px"></span> Syncing...';
+        }
+        if (state === 'synced') {
+          if (driveInput) { driveInput.value = 'https://drive.google.com/drive/folders/1ABCxyz...'; driveInput.disabled = false; }
+          if (driveSyncBtn) driveSyncBtn.disabled = false;
+          if (driveSyncText) driveSyncText.textContent = 'Sync Folder';
+        }
+        if (state === 'error-private' || state === 'error-empty') {
+          if (driveInput) { driveInput.value = state === 'error-private' ? 'https://drive.google.com/drive/folders/1ABCxyz...' : ''; driveInput.disabled = false; }
+          if (driveSyncBtn) driveSyncBtn.disabled = false;
+          if (driveSyncText) driveSyncText.textContent = 'Sync Folder';
+        }
+      });
+    });
+
+    // Drive input validation
+    if (driveSyncBtn && driveInput) {
+      driveSyncBtn.addEventListener('click', function () {
+        var val = driveInput.value.trim();
+        var pattern = /drive\.google\.com\/drive\/folders\//;
+        if (val && !pattern.test(val)) {
+          if (driveValidation) driveValidation.style.display = 'flex';
+          return;
+        }
+        if (driveValidation) driveValidation.style.display = 'none';
+        // Simple: switch to syncing state
+        drivePills.forEach(function (p) { p.classList.remove('active'); });
+        var syncPill = document.querySelector('[data-drive-state="syncing"]');
+        if (syncPill) syncPill.classList.add('active');
+        driveStates.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+        var target = document.getElementById('drive-syncing');
+        if (target) target.style.display = 'block';
+        if (driveInput) driveInput.disabled = true;
+        if (driveSyncBtn) driveSyncBtn.disabled = true;
+        if (driveSyncText) driveSyncText.innerHTML = '<span class="btn-spinner" style="vertical-align:middle;margin-right:6px"></span> Syncing...';
+        // Simulate completion after 2s
+        setTimeout(function () {
+          if (driveInput) driveInput.disabled = false;
+          if (driveSyncBtn) driveSyncBtn.disabled = false;
+          if (driveSyncText) driveSyncText.textContent = 'Sync Folder';
+          drivePills.forEach(function (p) { p.classList.remove('active'); });
+          var syncedPill = document.querySelector('[data-drive-state="synced"]');
+          if (syncedPill) syncedPill.classList.add('active');
+          driveStates.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+          });
+          var synced = document.getElementById('drive-synced');
+          if (synced) synced.style.display = 'block';
+          // Show save toast
+          showToast();
+        }, 2000);
+      });
+    }
+
+    // ================================================================
+    // Auto-save toast
+    // ================================================================
+    var saveToast = document.getElementById('save-toast');
+    var toastTimer = null;
+    function showToast() {
+      if (saveToast) {
+        saveToast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () {
+          saveToast.classList.remove('show');
+        }, 2000);
+      }
+    }
+    // Auto-save on any input change (debounced 800ms)
+    var changeTimer = null;
+    document.querySelectorAll('.cl-input, .cl-textarea, .cl-select').forEach(function (el) {
+      el.addEventListener('input', function () {
+        clearTimeout(changeTimer);
+        changeTimer = setTimeout(function () { showToast(); }, 800);
+      });
+      el.addEventListener('change', function () {
+        clearTimeout(changeTimer);
+        changeTimer = setTimeout(function () { showToast(); }, 800);
+      });
+    });
+    document.querySelectorAll('.exp-pill, .tag-remove, .state-pill').forEach(function (el) {
+      el.addEventListener('click', function () {
+        clearTimeout(changeTimer);
+        changeTimer = setTimeout(function () { showToast(); }, 800);
+      });
+    });
+
+    // ================================================================
+    // Initialise drive state to disconnected
+    // ================================================================
+    driveStates.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && id !== 'drive-disconnected') el.style.display = 'none';
+    });
+
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="NavBar,ConversationList,MessageThread,ClInput,ClTextarea,ClButton,EscrowStatusPill,ClCard">
+  <title>Crelab — Messages</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+      --color-escrow-held:     #FACC15;
+      --color-escrow-progress: #A78BFA;
+      --color-escrow-released: #4ADE80;
+      --color-escrow-disputed: #F87171;
+
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+
+      --max-width-content: 1200px;
+      --nav-height: 64px;
+
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+      padding-top: var(--nav-height);
+    }
+
+    /* ============================================================
+       Nav Bar
+    ============================================================ */
+    .nav-accent-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 5px; background: var(--color-accent); z-index: 60;
+    }
+    .nav-bar {
+      position: fixed; top: 5px; left: 0; right: 0;
+      height: 64px;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      z-index: 50;
+      display: flex; align-items: center; padding: 0 var(--space-6);
+    }
+    .nav-inner {
+      max-width: var(--max-width-content); width: 100%; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-left { display: flex; align-items: center; gap: var(--space-3); }
+    .nav-logo-mark {
+      width: 12px; height: 12px; background: var(--color-accent);
+      transform: rotate(45deg); flex-shrink: 0;
+    }
+    .nav-logo-text {
+      font-family: var(--font-display); font-weight: var(--weight-extrabold);
+      font-size: 18px; color: var(--color-text-primary); letter-spacing: -0.01em;
+    }
+    .nav-center {
+      display: flex; align-items: center; gap: var(--space-8);
+    }
+    .nav-center a {
+      font-family: var(--font-body); font-weight: var(--weight-medium);
+      font-size: 14px; color: var(--color-text-secondary);
+      text-decoration: none; transition: color var(--duration-fast) var(--ease-out);
+    }
+    .nav-center a:hover { color: var(--color-text-primary); }
+    .nav-center a.active { color: var(--color-accent); }
+    .nav-right {
+      display: flex; align-items: center; gap: var(--space-3);
+    }
+    .cl-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); border: 1px solid transparent;
+      border-radius: var(--radius-md); cursor: pointer;
+      font-family: var(--font-body); font-weight: var(--weight-semibold);
+      text-decoration: none; white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+    .cl-btn-primary { background: var(--color-accent); color: var(--color-text-inverse); border-color: transparent; }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+    .cl-btn-outlined { background: transparent; color: var(--color-text-primary); border-color: var(--color-border-mid); }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .cl-btn-ghost { background: transparent; color: var(--color-text-secondary); border-color: transparent; }
+    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+
+    /* Mobile hamburger */
+    .nav-hamburger {
+      display: none; width: 36px; height: 36px;
+      background: transparent; border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); color: var(--color-text-secondary);
+      cursor: pointer; align-items: center; justify-content: center;
+      flex-direction: column; gap: 4px;
+    }
+    .nav-hamburger span {
+      display: block; width: 16px; height: 2px;
+      background: currentColor; border-radius: 1px;
+    }
+    .mobile-overlay {
+      position: fixed; inset: 0; background: #0A0A0A; z-index: 60;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: var(--space-8);
+      opacity: 0; pointer-events: none;
+      transition: opacity 250ms var(--ease-out);
+    }
+    .mobile-overlay.open { opacity: 1; pointer-events: auto; }
+    .mobile-overlay a {
+      font-family: var(--font-display); font-size: var(--text-2xl);
+      color: var(--color-text-primary); text-decoration: none;
+      font-weight: var(--weight-bold);
+    }
+    .mobile-overlay .close-btn {
+      position: absolute; top: var(--space-6); right: var(--space-6);
+      width: 44px; height: 44px; background: transparent;
+      border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      color: var(--color-text-primary); font-size: 24px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ============================================================
+       EscrowStatusPill
+    ============================================================ */
+    .escrow-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 8px; border-radius: var(--radius-full);
+      font-family: var(--font-body); font-size: 11px;
+      font-weight: var(--weight-semibold);
+      white-space: nowrap; line-height: 1.4;
+    }
+    .escrow-pill.held {
+      background: rgba(250,204,21,0.1); border: 1px solid var(--color-escrow-held);
+      color: var(--color-escrow-held);
+    }
+    .escrow-pill.progress {
+      background: rgba(167,139,250,0.1); border: 1px solid var(--color-escrow-progress);
+      color: var(--color-escrow-progress);
+    }
+    .escrow-pill.completed {
+      background: rgba(74,222,128,0.1); border: 1px solid var(--color-escrow-released);
+      color: var(--color-escrow-released);
+    }
+
+    /* ============================================================
+       Layout — Main Container
+    ============================================================ */
+    .app-layout {
+      display: flex;
+      height: calc(100vh - 64px);
+    }
+
+    /* ============================================================
+       Left Pane — Conversation List
+    ============================================================ */
+    .conversation-list {
+      width: 360px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--color-border);
+      background: var(--color-surface);
+      overflow-y: auto;
+      max-height: calc(100vh - 64px);
+      display: flex;
+      flex-direction: column;
+    }
+    .conversation-header {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .conversation-header h2 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-base);
+      color: var(--color-text-primary);
+    }
+    .conversation-search-wrap {
+      padding: var(--space-3) var(--space-4);
+    }
+    .conversation-search {
+      position: relative;
+    }
+    .conversation-search svg {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%);
+      width: 14px; height: 14px; color: var(--color-text-tertiary);
+      pointer-events: none;
+    }
+    .conversation-search input {
+      width: 100%; height: 36px;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 0 var(--space-3) 0 32px;
+      font-family: var(--font-body); font-size: 14px;
+      color: var(--color-text-primary); outline: none;
+      transition: border-color var(--duration-fast) var(--ease-out);
+    }
+    .conversation-search input::placeholder { color: var(--color-text-tertiary); }
+    .conversation-search input:focus { border-color: var(--color-accent); }
+
+    .conversation-items { flex: 1; overflow-y: auto; }
+
+    .conv-item {
+      display: flex;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      cursor: pointer;
+      border-bottom: 1px solid var(--color-border);
+      transition: background var(--duration-fast) var(--ease-out);
+    }
+    .conv-item:hover { background: var(--color-surface-raised); }
+    .conv-item.active {
+      background: var(--color-accent-muted);
+      border-left: 2px solid var(--color-accent);
+    }
+    .conv-item.active .conv-name { color: var(--color-accent); }
+
+    .conv-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+    .conv-content {
+      flex: 1; min-width: 0;
+    }
+    .conv-name {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 13px;
+      color: var(--color-text-primary);
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .conv-preview {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .conv-ref {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+    .conv-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .conv-time {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+    }
+    .conv-unread {
+      width: auto;
+      min-width: 16px;
+      height: 16px;
+      line-height: 16px;
+      padding: 0 5px;
+      border-radius: var(--radius-full);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      font-size: 11px;
+      font-weight: var(--weight-bold);
+      text-align: center;
+    }
+    .conv-list-empty {
+      padding: var(--space-10) var(--space-6);
+      text-align: center;
+      font-size: 13px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* ============================================================
+       Right Pane — Message Thread
+    ============================================================ */
+    .message-thread {
+      flex: 1;
+      background: var(--color-bg);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .thread-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      padding: var(--space-8);
+      text-align: center;
+    }
+    .thread-empty h3 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-xl);
+      color: var(--color-text-primary);
+    }
+    .thread-empty p {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      max-width: 320px;
+    }
+
+    .thread-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .thread-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .thread-header-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .thread-header-info h3 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 15px;
+      color: var(--color-text-primary);
+    }
+    .thread-header-info .thread-header-ref {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+    }
+    .thread-header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .thread-back-btn {
+      display: none;
+      width: 36px; height: 36px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: border-color var(--duration-fast) var(--ease-out);
+    }
+    .thread-back-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    /* Message area */
+    .message-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .date-separator {
+      text-align: center;
+      font-size: 11px;
+      font-weight: var(--weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-2) 0;
+      position: relative;
+    }
+    .date-separator::before,
+    .date-separator::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      height: 1px;
+      width: 30%;
+      background: var(--color-border);
+    }
+    .date-separator::before { left: 0; }
+    .date-separator::after { right: 0; }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 70%;
+    }
+    .msg.own { align-self: flex-end; }
+    .msg.other { align-self: flex-start; }
+
+    .msg-bubble {
+      padding: 10px 14px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .msg.own .msg-bubble {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-radius: 16px 16px 4px 16px;
+    }
+    .msg.other .msg-bubble {
+      background: var(--color-surface-raised);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border);
+      border-radius: 16px 16px 16px 4px;
+    }
+
+    .msg-attachment {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      margin-top: var(--space-2);
+    }
+    .msg.own .msg-attachment {
+      background: rgba(10,10,10,0.1);
+    }
+    .msg.other .msg-attachment {
+      background: var(--color-surface);
+    }
+    .msg-attachment-thumb {
+      width: 48px; height: 48px;
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .msg-attachment-thumb svg {
+      width: 20px; height: 20px;
+      color: var(--color-text-tertiary);
+    }
+    .msg-attachment-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .msg-attachment-name {
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+    }
+    .msg-attachment-link {
+      font-size: 11px;
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+
+    .msg-time {
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+    .msg.own .msg-time { text-align: right; }
+
+    /* Composer */
+    .composer {
+      flex-shrink: 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding: var(--space-4) var(--space-5);
+    }
+    .composer-row {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-3);
+    }
+    .composer-attach {
+      width: 36px; height: 36px;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color var(--duration-fast) var(--ease-out);
+    }
+    .composer-attach:hover { border-color: var(--color-accent); }
+    .composer-attach svg { width: 16px; height: 16px; color: var(--color-text-secondary); }
+
+    .composer-input {
+      flex: 1;
+    }
+    .composer-input textarea {
+      width: 100%;
+      min-height: 44px;
+      max-height: 120px;
+      resize: none;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: 20px;
+      padding: 10px 16px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-primary);
+      outline: none;
+      line-height: 1.5;
+      transition: border-color var(--duration-fast) var(--ease-out);
+    }
+    .composer-input textarea::placeholder { color: var(--color-text-tertiary); }
+    .composer-input textarea:focus { border-color: var(--color-accent); }
+
+    .composer-send {
+      width: 44px; height: 44px;
+      background: var(--color-accent);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background var(--duration-fast) var(--ease-out);
+    }
+    .composer-send:hover { background: var(--color-accent-dim); }
+    .composer-send svg {
+      width: 18px; height: 18px;
+      color: var(--color-text-inverse);
+    }
+
+    /* ============================================================
+       Mobile — Master-Detail
+    ============================================================ */
+    @media (max-width: 1023px) {
+      .conversation-list {
+        width: 100%;
+        border-right: none;
+      }
+      .message-thread {
+        position: fixed;
+        inset: 64px 0 0 0;
+        z-index: 50;
+        background: var(--color-bg);
+        transform: translateX(100%);
+        transition: transform 250ms var(--ease-out);
+      }
+      .message-thread.open {
+        transform: translateX(0);
+      }
+      .thread-back-btn { display: flex; }
+    }
+
+    @media (max-width: 640px) {
+      .nav-center { display: none; }
+      .nav-right { display: none; }
+      .nav-hamburger { display: flex; }
+    }
+    @media (min-width: 641px) {
+      .mobile-overlay { display: none !important; }
+    }
+
+    /* --- Scrollbar --- */
+    .conversation-list::-webkit-scrollbar,
+    .conversation-items::-webkit-scrollbar,
+    .message-area::-webkit-scrollbar {
+      width: 4px;
+    }
+    .conversation-list::-webkit-scrollbar-track,
+    .conversation-items::-webkit-scrollbar-track,
+    .message-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .conversation-list::-webkit-scrollbar-thumb,
+    .conversation-items::-webkit-scrollbar-thumb,
+    .message-area::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== Nav Bar ========== -->
+  <div class="nav-accent-bar"></div>
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <div class="nav-left">
+        <div class="nav-logo-mark"></div>
+        <!-- platformConfig.name — never hardcoded in production -->
+        <span class="nav-logo-text">Crelab</span>
+      </div>
+      <div class="nav-center">
+        <a href="#">Explore</a>
+        <a href="#">For Creators</a>
+        <a href="#">Blog</a>
+        <a href="#" class="active">Messages</a>
+      </div>
+      <div class="nav-right">
+        <button class="cl-btn cl-btn-default cl-btn-outlined">Find Talent</button>
+        <button class="cl-btn cl-btn-default cl-btn-primary">Get Hired</button>
+      </div>
+      <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile overlay -->
+  <div class="mobile-overlay" id="mobileOverlay">
+    <button class="close-btn" id="closeOverlay" aria-label="Close">✕</button>
+    <a href="#">Explore</a>
+    <a href="#">For Creators</a>
+    <a href="#">Blog</a>
+    <a href="#" style="color:var(--color-accent)">Messages</a>
+    <button class="cl-btn cl-btn-lg cl-btn-outlined" style="width:200px">Find Talent</button>
+    <button class="cl-btn cl-btn-lg cl-btn-primary" style="width:200px">Get Hired</button>
+  </div>
+
+  <!-- ========== App Layout ========== -->
+  <div class="app-layout">
+
+    <!-- ===== Left Pane ===== -->
+    <aside class="conversation-list" id="conversationList">
+      <div class="conversation-header">
+        <h2>Messages</h2>
+      </div>
+      <div class="conversation-search-wrap">
+        <div class="conversation-search">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="M16 16l4 4"/></svg>
+          <input type="text" placeholder="Search conversations..." />
+        </div>
+      </div>
+      <div class="conversation-items" id="convItems">
+        <!-- Supabase Realtime subscription for live messages -->
+        <!-- Conversation items rendered from conversations query in production -->
+        <div class="conv-item active" data-conv="0" data-booking="CLB-20260812-4F9A">
+          <div class="conv-avatar">AO</div>
+          <div class="conv-content">
+            <div class="conv-name">Adunola Okonkwo</div>
+            <div class="conv-preview">Sure, I can have the first draft ready by Thursday. Let me know if you want any changes to the brief.</div>
+            <div class="conv-ref">CLB-20260812-4F9A</div>
+          </div>
+          <div class="conv-meta">
+            <span class="conv-time">2m ago</span>
+            <span class="conv-unread">2</span>
+          </div>
+        </div>
+
+        <div class="conv-item" data-conv="1" data-booking="CLB-20260728-3C2B">
+          <div class="conv-avatar">CE</div>
+          <div class="conv-content">
+            <div class="conv-name">Chidi Ezeugo</div>
+            <div class="conv-preview">The final edit is ready. I've uploaded it to the Drive folder. Here's the link...</div>
+            <div class="conv-ref">CLB-20260728-3C2B</div>
+          </div>
+          <div class="conv-meta">
+            <span class="conv-time">1h ago</span>
+            <span class="conv-unread" style="display:none">0</span>
+          </div>
+        </div>
+
+        <div class="conv-item" data-conv="2" data-booking="CLB-20260715-7D1E">
+          <div class="conv-avatar">SA</div>
+          <div class="conv-content">
+            <div class="conv-name">Simi Adebayo</div>
+            <div class="conv-preview">Thanks for the booking! I'll start working on the mood board this weekend.</div>
+            <div class="conv-ref">CLB-20260715-7D1E</div>
+          </div>
+          <div class="conv-meta">
+            <span class="conv-time">3h ago</span>
+            <span class="conv-unread" style="display:none">0</span>
+          </div>
+        </div>
+
+        <div class="conv-item" data-conv="3" data-booking="CLB-20260710-5E8F">
+          <div class="conv-avatar">FK</div>
+          <div class="conv-content">
+            <div class="conv-name">Femi Kuti</div>
+            <div class="conv-preview">Yes, I'm available on the 20th. Shall we schedule a kickoff call?</div>
+            <div class="conv-ref">CLB-20260710-5E8F</div>
+          </div>
+          <div class="conv-meta">
+            <span class="conv-time">Yesterday</span>
+            <span class="conv-unread" style="display:none">0</span>
+          </div>
+        </div>
+
+        <div class="conv-item" data-conv="4" data-booking="CLB-20260625-2A7C">
+          <div class="conv-avatar">ZN</div>
+          <div class="conv-content">
+            <div class="conv-name">Zara Nwosu</div>
+            <div class="conv-preview">Here are the raw files. Let me know which ones you'd like me to edit first.</div>
+            <div class="conv-ref">CLB-20260625-2A7C</div>
+          </div>
+          <div class="conv-meta">
+            <span class="conv-time">2d ago</span>
+            <span class="conv-unread" style="display:none">0</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== Right Pane ===== -->
+    <main class="message-thread" id="messageThread">
+
+      <!-- Empty state (no conversation selected) -->
+      <div class="thread-empty" id="threadEmpty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <h3>Select a conversation</h3>
+        <p>Messages appear here when you book a creator.</p>
+        <button class="cl-btn cl-btn-default cl-btn-primary" style="padding:12px 24px;margin-top:8px">Browse Creators</button>
+      </div>
+
+      <!-- Thread content (hidden when empty) -->
+      <div id="threadContent" style="display:none;flex:1;display:none;flex-direction:column">
+
+        <!-- Thread header -->
+        <div class="thread-header">
+          <div class="thread-header-left">
+            <button class="thread-back-btn" id="threadBack" aria-label="Back to conversations">
+              <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="18" height="18"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div class="thread-header-avatar" id="threadAvatar">AO</div>
+            <div class="thread-header-info">
+              <h3 id="threadName">Adunola Okonkwo</h3>
+              <span class="thread-header-ref" id="threadRef">CLB-20260812-4F9A</span>
+              <span class="escrow-pill progress" id="threadStatus" style="margin-top:4px;display:inline-flex">● In Progress</span>
+            </div>
+          </div>
+          <div class="thread-header-right">
+            <button class="cl-btn cl-btn-sm cl-btn-outlined" style="color:var(--color-accent);border-color:var(--color-accent)">View Booking</button>
+          </div>
+        </div>
+
+        <!-- Message area -->
+        <div class="message-area" id="messageArea">
+
+          <!-- Date separator -->
+          <div class="date-separator">Today</div>
+
+          <!-- Other message -->
+          <div class="msg other">
+            <div class="msg-bubble">Hi! Thanks for booking the Standard package. Just to confirm — you're looking for 3 short-form videos for your brand's social campaign, right?</div>
+            <span class="msg-time">9:42 AM</span>
+          </div>
+
+          <!-- Own message -->
+          <div class="msg own">
+            <div class="msg-bubble">Yes, exactly. Gen Z audience in Lagos, lifestyle and fashion focus. I'd love to see some concepts before we shoot.</div>
+            <span class="msg-time">9:48 AM</span>
+          </div>
+
+          <!-- Other message with attachment -->
+          <div class="msg other">
+            <div class="msg-bubble">Perfect! Here's the mood board I put together based on your brief. Let me know what you think.</div>
+            <div class="msg-attachment">
+              <div class="msg-attachment-thumb">
+                <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              </div>
+              <div class="msg-attachment-info">
+                <div class="msg-attachment-name">Mood_Board_v1.png</div>
+                <a href="#" class="msg-attachment-link">Download</a>
+              </div>
+            </div>
+            <span class="msg-time">10:15 AM</span>
+          </div>
+
+          <!-- Own message -->
+          <div class="msg own">
+            <div class="msg-bubble">Love the direction! The colour palette in option B is exactly what we had in mind. Let's go with that.</div>
+            <span class="msg-time">10:32 AM</span>
+          </div>
+
+          <!-- Other message -->
+          <div class="msg other">
+            <div class="msg-bubble">Great choice! I'll start production this week and share the first draft by Thursday. I'll keep you posted on progress.</div>
+            <span class="msg-time">10:45 AM</span>
+          </div>
+
+          <!-- Own message -->
+          <div class="msg own">
+            <div class="msg-bubble">Sounds good. Let me know if you need any additional assets or brand guidelines.</div>
+            <span class="msg-time">10:48 AM</span>
+          </div>
+
+          <!-- Date separator -->
+          <div class="date-separator">Yesterday</div>
+
+          <!-- Other message -->
+          <div class="msg other">
+            <div class="msg-bubble">Quick update: production is going well. I've secured the locations and the talent is confirmed. Shooting starts tomorrow.</div>
+            <span class="msg-time">2:15 PM</span>
+          </div>
+
+          <!-- Own message -->
+          <div class="msg own">
+            <div class="msg-bubble">Excellent! Looking forward to seeing the results. Let me know if there's anything I need to review before the final cut.</div>
+            <span class="msg-time">3:00 PM</span>
+          </div>
+
+          <!-- Other message -->
+          <div class="msg other">
+            <div class="msg-bubble">Sure, I can have the first draft ready by Thursday. Let me know if you want any changes to the brief.</div>
+            <span class="msg-time">4:22 PM</span>
+          </div>
+
+          <!-- Own message (latest) -->
+          <div class="msg own">
+            <div class="msg-bubble">The brief looks solid. Go ahead with the plan. Thanks!</div>
+            <span class="msg-time">5:30 PM</span>
+          </div>
+
+        </div>
+
+        <!-- Composer -->
+        <div class="composer">
+          <div class="composer-row">
+            <div class="composer-attach" title="Attach file">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+            </div>
+            <!-- Supabase Realtime subscription for live messages. Cleanup on unmount. -->
+            <div class="composer-input">
+              <textarea id="composerTextarea" placeholder="Type a message..." rows="1"></textarea>
+            </div>
+            <button class="composer-send" id="sendBtn" aria-label="Send message">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4z"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    (function() {
+      // ---- Hamburger ----
+      var hamburger = document.getElementById('hamburger');
+      var overlay = document.getElementById('mobileOverlay');
+      var closeBtn = document.getElementById('closeOverlay');
+      if (hamburger && overlay) {
+        hamburger.addEventListener('click', function() { overlay.classList.add('open'); });
+        closeBtn.addEventListener('click', function() { overlay.classList.remove('open'); });
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.classList.remove('open'); });
+      }
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay && overlay.classList.contains('open')) {
+          overlay.classList.remove('open');
+        }
+      });
+
+      // ---- Conversation items ----
+      var convItems = document.querySelectorAll('.conv-item');
+      var threadContent = document.getElementById('threadContent');
+      var threadEmpty = document.getElementById('threadEmpty');
+      var threadName = document.getElementById('threadName');
+      var threadAvatar = document.getElementById('threadAvatar');
+      var threadRef = document.getElementById('threadRef');
+      var threadStatus = document.getElementById('threadStatus');
+      var messageThread = document.getElementById('messageThread');
+
+      var convData = {
+        0: { name: 'Adunola Okonkwo', initials: 'AO', booking: 'CLB-20260812-4F9A', status: 'In Progress', statusClass: 'progress' },
+        1: { name: 'Chidi Ezeugo', initials: 'CE', booking: 'CLB-20260728-3C2B', status: 'In Progress', statusClass: 'progress' },
+        2: { name: 'Simi Adebayo', initials: 'SA', booking: 'CLB-20260715-7D1E', status: 'Completed', statusClass: 'completed' },
+        3: { name: 'Femi Kuti', initials: 'FK', booking: 'CLB-20260710-5E8F', status: 'In Progress', statusClass: 'progress' },
+        4: { name: 'Zara Nwosu', initials: 'ZN', booking: 'CLB-20260625-2A7C', status: 'Completed', statusClass: 'completed' }
+      };
+
+      function selectConversation(el) {
+        var idx = el.getAttribute('data-conv');
+        var data = convData[idx];
+        if (!data) return;
+
+        convItems.forEach(function(c) { c.classList.remove('active'); });
+        el.classList.add('active');
+
+        threadName.textContent = data.name;
+        threadAvatar.textContent = data.initials;
+        threadRef.textContent = data.booking;
+
+        var statusText = data.status;
+        threadStatus.textContent = '\u25CF ' + statusText;
+        threadStatus.className = 'escrow-pill ' + data.statusClass;
+
+        threadEmpty.style.display = 'none';
+        threadContent.style.display = 'flex';
+
+        // Mobile: slide in thread
+        if (window.innerWidth < 1024) {
+          messageThread.classList.add('open');
+        }
+      }
+
+      convItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+          selectConversation(this);
+        });
+      });
+
+      // ---- Thread back button ----
+      var threadBack = document.getElementById('threadBack');
+      if (threadBack) {
+        threadBack.addEventListener('click', function() {
+          messageThread.classList.remove('open');
+        });
+      }
+
+      // ---- Composer ----
+      var textarea = document.getElementById('composerTextarea');
+      var sendBtn = document.getElementById('sendBtn');
+      var messageArea = document.getElementById('messageArea');
+
+      function sendMessage() {
+        var text = textarea.value.trim();
+        if (!text) return;
+
+        // Create message bubble
+        var msg = document.createElement('div');
+        msg.className = 'msg own';
+
+        var bubble = document.createElement('div');
+        bubble.className = 'msg-bubble';
+        bubble.textContent = text;
+        msg.appendChild(bubble);
+
+        var time = document.createElement('span');
+        time.className = 'msg-time';
+        var now = new Date();
+        var h = now.getHours();
+        var m = now.getMinutes();
+        time.textContent = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+        msg.appendChild(time);
+
+        messageArea.appendChild(msg);
+        textarea.value = '';
+        textarea.style.height = 'auto';
+        messageArea.scrollTop = messageArea.scrollHeight;
+      }
+
+      sendBtn.addEventListener('click', sendMessage);
+      textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Auto-resize textarea
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+
+      // Scroll message area to bottom
+      if (messageArea) {
+        messageArea.scrollTop = messageArea.scrollHeight;
+      }
+
+      // ---- Select first conversation by default on desktop ----
+      if (window.innerWidth >= 1024 && convItems.length > 0) {
+        selectConversation(convItems[0]);
+      }
+    })();
+  </script>
+
+</body>
+</html>

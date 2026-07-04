@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="RoleSelectCard,ClInput,ClTextarea,ClButton,ServicePackageCard,ExploreVideoCard,ClBadge">
+  <title>Crelab — Provider Onboarding</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+      --color-escrow-held:     #FACC15;
+      --color-escrow-progress: #A78BFA;
+      --color-escrow-released: #4ADE80;
+      --color-escrow-disputed: #F87171;
+
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+
+      --max-width-content: 1200px;
+
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0A0A0A;
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 0;
+    }
+
+    .onboard-panel {
+      position: relative;
+      z-index: 1;
+      max-width: 560px;
+      width: 100%;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+    }
+
+    /* ============================================================
+       Step indicator
+    ============================================================ */
+    .step-indicator-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-8);
+    }
+    .step-progress-label {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      color: var(--color-text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .step-dots {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .step-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 12px;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+      position: relative;
+    }
+    .step-dot.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .step-dot.complete {
+      background: var(--color-surface-raised);
+      color: var(--color-success);
+      border: 1px solid rgba(74,222,128,0.3);
+    }
+    .step-dot.future {
+      background: transparent;
+      color: var(--color-text-tertiary);
+      border: 1px solid var(--color-border);
+    }
+    .step-connector {
+      width: 24px;
+      height: 1px;
+      background: var(--color-border);
+      margin: 0 2px;
+    }
+    .step-connector.done {
+      background: var(--color-success);
+    }
+
+    /* ============================================================
+       Step content (animated transitions)
+    ============================================================ */
+    .step-content {
+      display: none;
+      flex-direction: column;
+      gap: var(--space-4);
+      opacity: 0;
+      transition: opacity 200ms var(--ease-out);
+    }
+    .step-content.active {
+      display: flex;
+      opacity: 1;
+    }
+    .step-heading {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-xl);
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+      line-height: var(--leading-tight);
+    }
+    .step-sub {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+      margin-top: -8px;
+    }
+    .step-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin-top: var(--space-4);
+    }
+    .step-actions-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    /* ClButton reused */
+    .cl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-color: transparent;
+    }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+    .cl-btn-primary:active { background: var(--color-accent-dim); }
+
+    .cl-btn-outlined {
+      background: transparent;
+      color: var(--color-text-primary);
+      border-color: var(--color-border-mid);
+    }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    .cl-btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border-color: transparent;
+    }
+    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+
+    /* ClInput / ClField */
+    .cl-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .cl-field-label {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    .cl-field-label .optional {
+      font-weight: var(--weight-regular);
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--color-text-tertiary);
+      font-size: 12px;
+    }
+    .cl-input,
+    .cl-textarea {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 0 var(--space-3);
+      height: 40px;
+      outline: none;
+      transition: border-color var(--duration-fast) var(--ease-out);
+      width: 100%;
+    }
+    .cl-input::placeholder,
+    .cl-textarea::placeholder {
+      color: var(--color-text-tertiary);
+    }
+    .cl-input:focus,
+    .cl-textarea:focus {
+      border-color: var(--color-accent);
+    }
+    .cl-input.error,
+    .cl-textarea.error {
+      border-color: var(--color-error);
+    }
+    .cl-input:disabled,
+    .cl-textarea:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .cl-textarea {
+      height: auto;
+      min-height: 100px;
+      padding: var(--space-3);
+      resize: vertical;
+    }
+    .cl-textarea-wrap {
+      position: relative;
+    }
+    .cl-char-counter {
+      position: absolute;
+      bottom: var(--space-2);
+      right: var(--space-2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      pointer-events: none;
+    }
+    .cl-char-counter.near-limit { color: var(--color-warning); }
+    .cl-char-counter.at-limit { color: var(--color-error); }
+
+    /* ============================================================
+       Step 1 — Category selection
+    ============================================================ */
+    .category-card {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+    }
+    .category-card:hover { border-color: var(--color-border-mid); }
+    .category-card.selected {
+      border: 2px solid var(--color-accent);
+      background: var(--color-accent-muted);
+    }
+    .category-card-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-accent);
+    }
+    .category-card-icon svg { width: 24px; height: 24px; }
+    .category-card-name {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-base);
+      color: var(--color-text-primary);
+    }
+    .category-card-desc {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+    }
+
+    /* ============================================================
+       Step 2 — Experience level pills
+    ============================================================ */
+    .exp-pills {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .exp-pill {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      user-select: none;
+    }
+    .exp-pill.selected {
+      background: var(--color-accent-muted);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    .exp-pill:hover { border-color: var(--color-border-mid); }
+
+    /* Tags input */
+    .tags-input-wrap {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-2) var(--space-3);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-1);
+      align-items: center;
+      cursor: text;
+      min-height: 40px;
+      transition: border-color var(--duration-fast) var(--ease-out);
+    }
+    .tags-input-wrap:focus-within { border-color: var(--color-accent); }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--color-accent-muted);
+      color: var(--color-accent);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      font-family: var(--font-body);
+    }
+    .tag-chip .tag-remove {
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      color: var(--color-accent);
+      opacity: 0.7;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .tag-chip .tag-remove:hover { opacity: 1; }
+    .tags-input {
+      border: none;
+      background: transparent;
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      outline: none;
+      flex: 1;
+      min-width: 80px;
+      padding: 2px 0;
+    }
+    .tags-input::placeholder { color: var(--color-text-tertiary); }
+
+    /* ============================================================
+       Step 3 — Package editor cards
+    ============================================================ */
+    .pkg-editor-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .pkg-editor-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      position: relative;
+    }
+    .pkg-editor-card.standard {
+      border-top: 3px solid var(--color-accent);
+    }
+    .pkg-editor-card .pkg-popular-badge {
+      position: absolute;
+      top: 0;
+      right: var(--space-4);
+      transform: translateY(-50%);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      font-family: var(--font-body);
+      font-weight: var(--weight-bold);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 1px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .pkg-editor-tier {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+    }
+    .pkg-editor-row {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+    .pkg-editor-row .cl-field {
+      flex: 1;
+      min-width: 120px;
+    }
+    .pkg-price-wrap {
+      position: relative;
+    }
+    .pkg-price-prefix {
+      position: absolute;
+      left: var(--space-3);
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--color-text-primary);
+      pointer-events: none;
+    }
+    .pkg-price-wrap .cl-input { padding-left: 28px; }
+    .pkg-editor-divider {
+      height: 1px;
+      background: var(--color-border);
+    }
+
+    /* ============================================================
+       Step 4 — Upload panels
+    ============================================================ */
+    .upload-panels {
+      display: flex;
+      gap: var(--space-4);
+    }
+    .upload-panel {
+      flex: 1;
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface-raised);
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-4);
+      text-align: center;
+      transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+    }
+    .upload-panel.drag-over {
+      border-color: var(--color-accent);
+      background: rgba(232,255,71,0.04);
+    }
+    .upload-panel svg {
+      width: 32px;
+      height: 32px;
+      color: var(--color-text-tertiary);
+    }
+    .upload-panel-text {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+    .upload-panel-link {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-accent);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .upload-thumb-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+    }
+    .upload-thumb {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--color-surface);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-thumb svg {
+      width: 18px;
+      height: 18px;
+      color: rgba(255,255,255,0.3);
+    }
+    .upload-thumb-caption {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* Reorder row */
+    .reorder-row {
+      margin-top: var(--space-3);
+    }
+    .reorder-hint {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-2);
+    }
+    .reorder-cards {
+      display: flex;
+      gap: var(--space-2);
+    }
+    .reorder-card {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      background: var(--color-accent-muted);
+      padding: 6px 10px;
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--color-accent);
+    }
+    .reorder-card .drag-handle {
+      cursor: grab;
+      color: var(--color-accent);
+      font-size: 14px;
+      line-height: 1;
+    }
+    .reorder-card .remove-btn {
+      background: none;
+      border: none;
+      color: var(--color-error);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+
+    /* ============================================================
+       Step 5 — Preview & Go Live
+    ============================================================ */
+    .preview-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-5);
+      text-align: center;
+    }
+
+    .explore-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--color-surface);
+      cursor: default;
+      width: 280px;
+      transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+    }
+    .explore-card-video {
+      position: relative;
+      background: var(--color-surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 4/5;
+    }
+    .explore-card-video .play-icon {
+      width: 24px;
+      height: 24px;
+      color: rgba(255,255,255,0.5);
+    }
+    .explore-card-gradient {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60%;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      pointer-events: none;
+    }
+    .explore-card-info {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .explore-card-category {
+      align-self: flex-start;
+      margin-bottom: var(--space-2);
+    }
+    .cl-badge-category {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      white-space: nowrap;
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .explore-card-name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: var(--weight-medium);
+      color: var(--color-text-primary);
+      line-height: var(--leading-tight);
+    }
+    .explore-card-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .explore-card-stars {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      color: var(--color-warning);
+      font-variant-numeric: tabular-nums;
+    }
+    .explore-card-price {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    .explore-card-price .price-amount {
+      font-family: var(--font-mono);
+      color: var(--color-accent);
+      font-weight: var(--weight-medium);
+    }
+
+    .info-banner {
+      background: rgba(96,165,250,0.08);
+      border: 1px solid rgba(96,165,250,0.2);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      text-align: left;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-info);
+      line-height: var(--leading-normal);
+    }
+    .info-banner .info-icon {
+      flex-shrink: 0;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    /* ============================================================
+       Responsive
+    ============================================================ */
+    @media (max-width: 640px) {
+      .onboard-panel { padding: var(--space-6) var(--space-4); border-radius: var(--radius-lg); }
+      .upload-panels { flex-direction: column; }
+      .pkg-editor-row { flex-direction: column; }
+      .pkg-editor-row .cl-field { min-width: 100%; }
+      body { padding: var(--space-3); }
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .pkg-editor-row .cl-field { min-width: 100px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="backdrop"></div>
+
+  <div class="onboard-panel">
+
+    <!-- Step indicator -->
+    <div class="step-indicator-wrap">
+      <span class="step-progress-label" id="stepLabel">Step 1 of 5</span>
+      <div class="step-dots" id="stepDots">
+        <div class="step-dot active" data-step="1">1</div>
+        <div class="step-connector" data-connector="1"></div>
+        <div class="step-dot future" data-step="2">2</div>
+        <div class="step-connector" data-connector="2"></div>
+        <div class="step-dot future" data-step="3">3</div>
+        <div class="step-connector" data-connector="3"></div>
+        <div class="step-dot future" data-step="4">4</div>
+        <div class="step-connector" data-connector="4"></div>
+        <div class="step-dot future" data-step="5">5</div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Step 1 — Choose Your Category
+    ============================================================ -->
+    <div class="step-content active" id="step1">
+      <h2 class="step-heading">Choose your category</h2>
+      <!-- Categories rendered from platformConfig.categories in production. These cards are generated, not hardcoded. -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+        <div class="category-card selected" data-category="content-creator" onclick="selectCategory(this)">
+          <div class="category-card-icon">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M17 9.2l5.213-3.55a.5.5 0 0 1 .787.41v12.88a.5.5 0 0 1-.787.41L17 14.8V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v4.2z"/></svg>
+          </div>
+          <div class="category-card-name">Content Creator</div>
+          <div class="category-card-desc">UGC, lifestyle, brand content, social media</div>
+        </div>
+        <div class="category-card" data-category="cinematographer" onclick="selectCategory(this)">
+          <div class="category-card-icon">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2l-4 4 4 4v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"/></svg>
+          </div>
+          <div class="category-card-name">Cinematographer / Videographer</div>
+          <div class="category-card-desc">Events, commercials, narrative, documentary</div>
+        </div>
+      </div>
+      <div class="step-actions">
+        <button class="cl-btn cl-btn-lg cl-btn-primary" onclick="goToStep(2)" style="width:100%">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Step 2 — Your Details (Content Creator variant)
+    ============================================================ -->
+    <div class="step-content" id="step2">
+      <h2 class="step-heading">Tell us about yourself</h2>
+      <!-- Step 2 fields are rendered from category fieldSchema JSONB in production. The Content Creator variant is shown here. -->
+
+      <div class="cl-field">
+        <label class="cl-field-label">Bio</label>
+        <div class="cl-textarea-wrap">
+          <textarea class="cl-textarea" id="bioInput" maxlength="300" placeholder="Tell brands what makes you unique..." rows="3"></textarea>
+          <span class="cl-char-counter" id="bioCounter">0 / 300</span>
+        </div>
+      </div>
+
+      <div class="cl-field">
+        <label class="cl-field-label">Location</label>
+        <input class="cl-input" type="text" placeholder="e.g. Lagos, Nigeria" />
+      </div>
+
+      <div class="cl-field">
+        <label class="cl-field-label">Years Active</label>
+        <input class="cl-input" type="number" placeholder="e.g. 3" />
+      </div>
+
+      <div class="cl-field">
+        <label class="cl-field-label">Experience Level</label>
+        <div class="exp-pills">
+          <span class="exp-pill" onclick="selectExp(this)">Emerging</span>
+          <span class="exp-pill" onclick="selectExp(this)">Established</span>
+          <span class="exp-pill" onclick="selectExp(this)">Veteran</span>
+        </div>
+      </div>
+
+      <div class="cl-field">
+        <label class="cl-field-label">Content Niche</label>
+        <div class="tags-input-wrap" id="nicheTagsWrap">
+          <span class="tag-chip">Beauty<span class="tag-remove" onclick="removeTag(this)">×</span></span>
+          <span class="tag-chip">Fashion<span class="tag-remove" onclick="removeTag(this)">×</span></span>
+          <span class="tag-chip">Tech<span class="tag-remove" onclick="removeTag(this)">×</span></span>
+          <input class="tags-input" id="nicheInput" placeholder="Type and enter..." />
+        </div>
+      </div>
+
+      <div class="cl-field">
+        <label class="cl-field-label">Active Platforms</label>
+        <div class="tags-input-wrap" id="platformTagsWrap">
+          <span class="tag-chip">Instagram<span class="tag-remove" onclick="removeTag(this)">×</span></span>
+          <span class="tag-chip">TikTok<span class="tag-remove" onclick="removeTag(this)">×</span></span>
+          <input class="tags-input" id="platformInput" placeholder="Type and enter..." />
+        </div>
+      </div>
+
+      <div class="step-actions step-actions-row" style="justify-content:space-between;margin-top:var(--space-2)">
+        <button class="cl-btn cl-btn-ghost" onclick="goToStep(1)" style="padding:0">← Back</button>
+        <button class="cl-btn cl-btn-lg cl-btn-primary" onclick="goToStep(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Step 3 — Set Your Packages
+    ============================================================ -->
+    <div class="step-content" id="step3">
+      <h2 class="step-heading">Set your packages</h2>
+      <p class="step-sub">Define what you offer at each tier.</p>
+
+      <div class="pkg-editor-grid">
+        <!-- BASIC -->
+        <div class="pkg-editor-card">
+          <span class="pkg-editor-tier">Basic</span>
+          <div class="cl-field">
+            <label class="cl-field-label">Package Name</label>
+            <input class="cl-input" type="text" value="Basic Reel" />
+          </div>
+          <div class="pkg-editor-row">
+            <div class="cl-field" style="flex:0 0 140px">
+              <label class="cl-field-label">Price</label>
+              <div class="pkg-price-wrap">
+                <span class="pkg-price-prefix">₦</span>
+                <input class="cl-input" type="text" value="45,000" style="padding-left:28px;font-family:var(--font-mono)" />
+              </div>
+            </div>
+            <div class="cl-field">
+              <label class="cl-field-label">Turnaround</label>
+              <div style="display:flex;gap:var(--space-1);align-items:center">
+                <input class="cl-input" type="number" value="7" style="flex:1" />
+                <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary)">days</span>
+              </div>
+            </div>
+          </div>
+          <div class="cl-field">
+            <label class="cl-field-label">Deliverables</label>
+            <textarea class="cl-textarea" rows="2" style="min-height:60px">1 video, Basic edit</textarea>
+          </div>
+        </div>
+
+        <!-- STANDARD -->
+        <div class="pkg-editor-card standard">
+          <span class="pkg-popular-badge">Most Popular</span>
+          <span class="pkg-editor-tier">Standard</span>
+          <div class="cl-field">
+            <label class="cl-field-label">Package Name</label>
+            <input class="cl-input" type="text" value="Standard Package" />
+          </div>
+          <div class="pkg-editor-row">
+            <div class="cl-field" style="flex:0 0 140px">
+              <label class="cl-field-label">Price</label>
+              <div class="pkg-price-wrap">
+                <span class="pkg-price-prefix">₦</span>
+                <input class="cl-input" type="text" value="85,000" style="padding-left:28px;font-family:var(--font-mono)" />
+              </div>
+            </div>
+            <div class="cl-field">
+              <label class="cl-field-label">Turnaround</label>
+              <div style="display:flex;gap:var(--space-1);align-items:center">
+                <input class="cl-input" type="number" value="5" style="flex:1" />
+                <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary)">days</span>
+              </div>
+            </div>
+          </div>
+          <div class="cl-field">
+            <label class="cl-field-label">Deliverables</label>
+            <textarea class="cl-textarea" rows="2" style="min-height:60px">3 videos, Full edit, Captions</textarea>
+          </div>
+        </div>
+
+        <!-- PREMIUM -->
+        <div class="pkg-editor-card">
+          <span class="pkg-editor-tier">Premium</span>
+          <div class="cl-field">
+            <label class="cl-field-label">Package Name</label>
+            <input class="cl-input" type="text" value="Premium Experience" />
+          </div>
+          <div class="pkg-editor-row">
+            <div class="cl-field" style="flex:0 0 140px">
+              <label class="cl-field-label">Price</label>
+              <div class="pkg-price-wrap">
+                <span class="pkg-price-prefix">₦</span>
+                <input class="cl-input" type="text" value="150,000" style="padding-left:28px;font-family:var(--font-mono)" />
+              </div>
+            </div>
+            <div class="cl-field">
+              <label class="cl-field-label">Turnaround</label>
+              <div style="display:flex;gap:var(--space-1);align-items:center">
+                <input class="cl-input" type="number" value="3" style="flex:1" />
+                <span style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary)">days</span>
+              </div>
+            </div>
+          </div>
+          <div class="cl-field">
+            <label class="cl-field-label">Deliverables</label>
+            <textarea class="cl-textarea" rows="2" style="min-height:60px">5 videos, Full edit, 2 revisions, Captions</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-actions step-actions-row" style="justify-content:space-between;margin-top:var(--space-2)">
+        <button class="cl-btn cl-btn-ghost" onclick="goToStep(2)" style="padding:0">← Back</button>
+        <button class="cl-btn cl-btn-lg cl-btn-primary" onclick="goToStep(4)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Step 4 — Upload Your Portfolio
+    ============================================================ -->
+    <div class="step-content" id="step4">
+      <h2 class="step-heading">Upload your portfolio</h2>
+      <p class="step-sub">Show your best work. Videos, images, or PDFs.</p>
+
+      <div class="upload-panels">
+        <!-- Native Upload -->
+        <div class="upload-panel" id="nativeUploadPanel">
+          <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          <span class="upload-panel-text">Drag files here</span>
+          <span class="upload-panel-link">or Browse Files</span>
+        </div>
+        <!-- Google Drive -->
+        <div class="upload-panel">
+          <!-- DriveService.ingestFolder() is called on sync. No OAuth required for public folders. -->
+          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2zm0 4l5 10H7l5-10z"/></svg>
+          <span class="upload-panel-text">Paste your Drive folder link</span>
+          <input class="cl-input" type="url" placeholder="https://drive.google.com/drive/..." style="margin-top:var(--space-2)" />
+          <button class="cl-btn cl-btn-default cl-btn-primary" style="width:100%;margin-top:var(--space-2)">Sync Folder</button>
+        </div>
+      </div>
+
+      <!-- Portfolio thumbnails -->
+      <div class="upload-thumb-grid">
+        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="upload-thumb-caption">intro.mp4</span></div>
+        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="upload-thumb-caption">brand.mp4</span></div>
+        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="upload-thumb-caption">reel.mp4</span></div>
+        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="upload-thumb-caption">portrait.mp4</span></div>
+      </div>
+
+      <!-- Reorder -->
+      <div class="reorder-row">
+        <div class="reorder-hint">Drag to reorder</div>
+        <div class="reorder-cards">
+          <div class="reorder-card"><span class="drag-handle">⠿</span> intro.mp4 <button class="remove-btn">×</button></div>
+          <div class="reorder-card"><span class="drag-handle">⠿</span> brand.mp4 <button class="remove-btn">×</button></div>
+          <div class="reorder-card"><span class="drag-handle">⠿</span> reel.mp4 <button class="remove-btn">×</button></div>
+          <div class="reorder-card"><span class="drag-handle">⠿</span> portrait.mp4 <button class="remove-btn">×</button></div>
+        </div>
+      </div>
+
+      <div class="step-actions step-actions-row" style="justify-content:space-between;margin-top:var(--space-2)">
+        <button class="cl-btn cl-btn-ghost" onclick="goToStep(3)" style="padding:0">← Back</button>
+        <button class="cl-btn cl-btn-lg cl-btn-primary" onclick="goToStep(5)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Step 5 — Preview & Go Live
+    ============================================================ -->
+    <div class="step-content" id="step5">
+      <h2 class="step-heading" style="text-align:center">Your profile is ready</h2>
+      <p class="step-sub" style="text-align:center">Here's how creators will see you in the Explore feed.</p>
+
+      <div class="preview-section">
+        <!-- Preview ExploreVideoCard -->
+        <div class="explore-card">
+          <div class="explore-card-video">
+            <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div class="explore-card-gradient"></div>
+          <div class="explore-card-info">
+            <span class="cl-badge-category explore-card-category">Content Creator</span>
+            <span class="explore-card-name">Adunola O.</span>
+            <div class="explore-card-meta">
+              <span class="explore-card-stars">★ 5.0</span>
+              <span class="explore-card-price">from <span class="price-amount">₦45,000</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-banner">
+          <span class="info-icon">ℹ</span>
+          <span>Your profile will go live with a 'New' badge and be reviewed by our team within 48 hours.</span>
+        </div>
+      </div>
+      <!-- Profile active=true, verified=false, new badge displayed until admin review. -->
+
+      <div class="step-actions step-actions-row" style="justify-content:space-between;margin-top:var(--space-4)">
+        <button class="cl-btn cl-btn-ghost" onclick="goToStep(4)" style="padding:0">← Back</button>
+        <button class="cl-btn cl-btn-lg cl-btn-primary" onclick="goLive()" style="width:100%;flex:1">Go Live →</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      var currentStep = 1;
+
+      // Expose to global
+      window.selectCategory = function(el) {
+        document.querySelectorAll('.category-card').forEach(function(c) { c.classList.remove('selected'); });
+        el.classList.add('selected');
+      };
+
+      window.selectExp = function(el) {
+        var parent = el.parentElement;
+        parent.querySelectorAll('.exp-pill').forEach(function(p) { p.classList.remove('selected'); });
+        el.classList.add('selected');
+      };
+
+      window.removeTag = function(el) {
+        el.parentElement.remove();
+      };
+
+      // Tags input handlers
+      function setupTagsInput(inputId, wrapId) {
+        var input = document.getElementById(inputId);
+        var wrap = document.getElementById(wrapId);
+        if (!input || !wrap) return;
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            var val = input.value.trim();
+            if (!val) return;
+            var chip = document.createElement('span');
+            chip.className = 'tag-chip';
+            chip.innerHTML = val + '<span class="tag-remove" onclick="removeTag(this)">\u00d7</span>';
+            wrap.insertBefore(chip, input);
+            input.value = '';
+          }
+        });
+        wrap.addEventListener('click', function(e) {
+          if (e.target === wrap || e.target === input) input.focus();
+        });
+      }
+
+      setupTagsInput('nicheInput', 'nicheTagsWrap');
+      setupTagsInput('platformInput', 'platformTagsWrap');
+
+      // Bio char counter
+      var bioInput = document.getElementById('bioInput');
+      var bioCounter = document.getElementById('bioCounter');
+      if (bioInput && bioCounter) {
+        bioInput.addEventListener('input', function() {
+          var len = this.value.length;
+          bioCounter.textContent = len + ' / 300';
+          bioCounter.classList.remove('near-limit', 'at-limit');
+          if (len >= 280) bioCounter.classList.add('near-limit');
+          if (len >= 300) bioCounter.classList.add('at-limit');
+        });
+      }
+
+      // Step navigation
+      var stepContents = {
+        1: document.getElementById('step1'),
+        2: document.getElementById('step2'),
+        3: document.getElementById('step3'),
+        4: document.getElementById('step4'),
+        5: document.getElementById('step5')
+      };
+
+      var dots = document.querySelectorAll('.step-dot');
+      var connectors = document.querySelectorAll('.step-connector');
+      var stepLabel = document.getElementById('stepLabel');
+
+      window.goToStep = function(n) {
+        if (n < 1 || n > 5) return;
+
+        // Fade out current
+        var currentEl = stepContents[currentStep];
+        if (currentEl) {
+          currentEl.style.transition = 'opacity 150ms ease-out';
+          currentEl.style.opacity = '0';
+        }
+
+        setTimeout(function() {
+          if (currentEl) currentEl.classList.remove('active');
+
+          currentStep = n;
+
+          var nextEl = stepContents[currentStep];
+          if (nextEl) {
+            nextEl.classList.add('active');
+            nextEl.style.opacity = '0';
+            setTimeout(function() {
+              nextEl.style.transition = 'opacity 200ms ease-out';
+              nextEl.style.opacity = '1';
+            }, 10);
+          }
+
+          // Update dots
+          dots.forEach(function(dot) {
+            var stepNum = parseInt(dot.getAttribute('data-step'));
+            dot.classList.remove('active', 'complete', 'future');
+            if (stepNum === currentStep) dot.classList.add('active');
+            else if (stepNum < currentStep) dot.classList.add('complete');
+            else dot.classList.add('future');
+            // Set content
+            if (stepNum < currentStep) {
+              dot.textContent = '\u2713';
+            } else {
+              dot.textContent = stepNum;
+            }
+          });
+
+          // Update connectors
+          connectors.forEach(function(conn) {
+            var idx = parseInt(conn.getAttribute('data-connector'));
+            if (idx < currentStep) conn.classList.add('done');
+            else conn.classList.remove('done');
+          });
+
+          stepLabel.textContent = 'Step ' + currentStep + ' of 5';
+
+          // Scroll panel into view
+          document.querySelector('.onboard-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+      };
+
+      window.goLive = function() {
+        alert('Your profile has been submitted for review. Our team will review it within 48 hours.');
+      };
+
+      // Upload panel drag-over effect
+      var nativePanel = document.getElementById('nativeUploadPanel');
+      if (nativePanel) {
+        nativePanel.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          this.classList.add('drag-over');
+        });
+        nativePanel.addEventListener('dragleave', function(e) {
+          this.classList.remove('drag-over');
+        });
+        nativePanel.addEventListener('drop', function(e) {
+          e.preventDefault();
+          this.classList.remove('drag-over');
+        });
+      }
+
+      // Init step 1
+      goToStep(1);
+    })();
+  </script>
+</body>
+</html>

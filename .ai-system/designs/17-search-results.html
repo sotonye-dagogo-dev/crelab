@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="NavBar,ExploreVideoCard,ClButton,FilterBar,SearchResults,ScrollToTop">
+  <title>Crelab — Search Results</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+      --color-escrow-held:     #FACC15;
+      --color-escrow-progress: #A78BFA;
+      --color-escrow-released: #4ADE80;
+      --color-escrow-disputed: #F87171;
+
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+
+      --max-width-content: 1200px;
+
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+      padding-top: 69px;
+    }
+
+    /* ============================================================
+       Nav Bar
+    ============================================================ */
+    .nav-accent-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 5px; background: var(--color-accent); z-index: 60;
+    }
+    .nav-bar {
+      position: fixed; top: 5px; left: 0; right: 0;
+      height: 64px;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      z-index: 50;
+      display: flex; align-items: center;
+      padding: 0 var(--space-6);
+    }
+    .nav-inner {
+      max-width: var(--max-width-content); width: 100%; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-left { display: flex; align-items: center; gap: var(--space-3); }
+    .nav-logo-mark {
+      width: 12px; height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+    .nav-logo-text {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+    }
+    /* platformConfig.name — never hardcoded in production */
+    .nav-center { display: flex; align-items: center; gap: var(--space-8); }
+    .nav-center a {
+      font-family: var(--font-body);
+      font-weight: var(--weight-medium);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .nav-center a:hover { color: var(--color-text-primary); }
+    .nav-right { display: flex; align-items: center; gap: var(--space-3); }
+
+    .nav-hamburger {
+      display: none;
+      width: 36px; height: 36px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nav-hamburger span {
+      display: block; width: 16px; height: 2px;
+      background: currentColor; border-radius: 1px;
+      transition: transform var(--duration-fast) var(--ease-out);
+    }
+
+    .mobile-overlay {
+      position: fixed; inset: 0; background: #0A0A0A; z-index: 60;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: var(--space-8);
+      opacity: 0; pointer-events: none;
+      transition: opacity 250ms var(--ease-out);
+    }
+    .mobile-overlay.open { opacity: 1; pointer-events: auto; }
+    .mobile-overlay a {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      color: var(--color-text-primary);
+      text-decoration: none;
+      font-weight: var(--weight-bold);
+    }
+    .mobile-overlay .close-btn {
+      position: absolute; top: var(--space-6); right: var(--space-6);
+      width: 44px; height: 44px;
+      background: transparent; border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-primary); font-size: 24px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ============================================================
+       ClButton
+    ============================================================ */
+    .cl-btn {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      gap: var(--space-2);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-color: transparent;
+    }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+    .cl-btn-primary:active { background: var(--color-accent-dim); }
+
+    .cl-btn-outlined {
+      background: transparent;
+      color: var(--color-text-primary);
+      border-color: var(--color-border-mid);
+    }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    .cl-btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border-color: transparent;
+    }
+    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+
+    /* ============================================================
+       Search Header
+    ============================================================ */
+    .search-header {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+      padding: var(--space-8) var(--space-6) var(--space-6);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .search-header-left {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .search-header-prefix {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+    .search-header-query {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 28px;
+      color: var(--color-text-primary);
+    }
+    .search-header-query mark {
+      background: transparent;
+      color: var(--color-accent);
+    }
+    .search-header-count {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* ============================================================
+       Filter Bar
+    ============================================================ */
+    .filter-bar {
+      position: sticky;
+      top: 69px;
+      width: 100%;
+      height: 56px;
+      background: rgba(10,10,10,0.95);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--color-border);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-6);
+    }
+    .filter-inner {
+      max-width: var(--max-width-content);
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: row;
+      gap: var(--space-3);
+      align-items: center;
+      height: 100%;
+    }
+    .filter-search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 120px;
+    }
+    .filter-search-wrap svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: var(--color-text-tertiary);
+      pointer-events: none;
+    }
+    .filter-search {
+      width: 100%;
+      height: 36px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 0 var(--space-3) 0 34px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-primary);
+      outline: none;
+      transition: border-color var(--duration-fast) var(--ease-out);
+    }
+    .filter-search::placeholder { color: var(--color-text-tertiary); }
+    .filter-search:focus { border-color: var(--color-accent); }
+
+    .filter-select {
+      height: 36px;
+      min-width: 120px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 0 32px 0 var(--space-3);
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239A9A9A' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 5.646a.5.5 0 0 1 .708 0L8 8.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .filter-select:focus { border-color: var(--color-accent); }
+    .filter-select.active { border-color: var(--color-accent); color: var(--color-text-primary); }
+
+    /* Active filter pills */
+    .active-filters {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+      padding: var(--space-2) var(--space-6) 0;
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--color-accent-muted);
+      border: 1px solid var(--color-accent);
+      color: var(--color-accent);
+      font-family: var(--font-body);
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+    }
+    .filter-pill .pill-remove {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      color: var(--color-accent);
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .filter-pill .pill-remove:hover {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .filter-bar-clear {
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       Masonry Grid
+    ============================================================ */
+    .explore-grid-wrap {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-6) 0;
+    }
+    .explore-grid {
+      column-count: 2;
+      column-gap: var(--space-2);
+    }
+    @media (min-width: 640px) { .explore-grid { column-count: 3; } }
+    @media (min-width: 1024px) { .explore-grid { column-count: 4; } }
+    @media (min-width: 1440px) { .explore-grid { column-count: 5; } }
+
+    .explore-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+      display: inline-block;
+      width: 100%;
+      margin-bottom: var(--space-2);
+      break-inside: avoid;
+    }
+    .explore-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 1px var(--color-accent), 0 0 16px rgba(232, 255, 71, 0.15);
+    }
+    .explore-card-video {
+      position: relative;
+      background: var(--color-surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+    .explore-card-video .play-icon {
+      width: 24px;
+      height: 24px;
+      color: rgba(255,255,255,0.5);
+    }
+    .explore-card-gradient {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 60%;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      pointer-events: none;
+    }
+    .explore-card-info {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .explore-card-category {
+      align-self: flex-start;
+      margin-bottom: var(--space-2);
+    }
+    .cl-badge-category {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      white-space: nowrap;
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .explore-card-name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: var(--weight-medium);
+      color: var(--color-text-primary);
+      line-height: var(--leading-tight);
+    }
+    .explore-card-name mark {
+      background: rgba(232,255,71,0.15);
+      color: var(--color-accent);
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+    .explore-card-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .explore-card-stars {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      color: var(--color-warning);
+      font-variant-numeric: tabular-nums;
+    }
+    .explore-card-price {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    .explore-card-price .price-amount {
+      font-family: var(--font-mono);
+      color: var(--color-accent);
+      font-weight: var(--weight-medium);
+    }
+    .explore-card-hover-cta {
+      position: absolute;
+      top: var(--space-3);
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      opacity: 0;
+      transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 2;
+    }
+    .explore-card:hover .explore-card-hover-cta {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .explore-card-drive-badge {
+      position: absolute;
+      bottom: var(--space-2);
+      right: var(--space-2);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-tertiary);
+      font-family: var(--font-body);
+      font-size: 10px;
+      padding: 2px 5px;
+      border-radius: var(--radius-sm);
+      line-height: 1.4;
+      z-index: 2;
+    }
+    .explore-card-location {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+    }
+    .explore-card-location mark {
+      background: rgba(232,255,71,0.15);
+      color: var(--color-accent);
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+    .explore-card-bio {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      line-height: var(--leading-normal);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .explore-card-bio mark {
+      background: rgba(232,255,71,0.15);
+      color: var(--color-accent);
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+    <!-- IntersectionObserver triggers autoplay in production. Muted looped <video> replaces placeholder. -->
+
+    /* ============================================================
+       Empty State
+    ============================================================ */
+    .empty-state {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+      padding: 60px var(--space-6);
+      text-align: center;
+    }
+    .empty-state-heading {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 24px;
+      color: var(--color-text-primary);
+    }
+    .empty-state-sub {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-top: var(--space-3);
+    }
+    .empty-state-suggestions {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: var(--space-4);
+    }
+    .suggestion-pill {
+      display: inline-block;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      font-family: var(--font-body);
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .suggestion-pill:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    /* ============================================================
+       Load More & Scroll-to-top
+    ============================================================ */
+    .load-more-wrap {
+      display: flex;
+      justify-content: center;
+      padding: var(--space-8) 0 var(--space-12);
+    }
+    .scroll-top-btn {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-base) var(--ease-out), background var(--duration-fast) var(--ease-out);
+      z-index: 30;
+    }
+    .scroll-top-btn.visible { opacity: 1; pointer-events: auto; }
+    .scroll-top-btn:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+
+    /* ============================================================
+       Responsive
+    ============================================================ */
+    @media (max-width: 640px) {
+      .nav-center { display: none; }
+      .nav-right { display: none; }
+      .nav-hamburger { display: flex; }
+      .search-header { flex-direction: column; align-items: flex-start; }
+      .search-header-query { font-size: 22px; }
+      .filter-inner { overflow-x: auto; gap: var(--space-2); scrollbar-width: none; }
+      .filter-inner::-webkit-scrollbar { display: none; }
+      .filter-select { min-width: 100px; flex-shrink: 0; }
+      .scroll-top-btn { bottom: 16px; right: 16px; }
+      .empty-state-suggestions { flex-direction: column; align-items: center; }
+    }
+    @media (min-width: 641px) {
+      .mobile-overlay { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== Nav Bar ========== -->
+  <div class="nav-accent-bar"></div>
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <div class="nav-left">
+        <div class="nav-logo-mark"></div>
+        <!-- platformConfig.name — never hardcoded in production -->
+        <span class="nav-logo-text">Crelab</span>
+      </div>
+      <div class="nav-center">
+        <a href="#">Explore</a>
+        <a href="#">For Creators</a>
+        <a href="#">Blog</a>
+      </div>
+      <div class="nav-right">
+        <button class="cl-btn cl-btn-default cl-btn-outlined">Find Talent</button>
+        <button class="cl-btn cl-btn-default cl-btn-primary">Get Hired</button>
+      </div>
+      <button class="nav-hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile overlay -->
+  <div class="mobile-overlay" id="mobileOverlay">
+    <button class="close-btn" id="closeOverlay" aria-label="Close">✕</button>
+    <a href="#">Explore</a>
+    <a href="#">For Creators</a>
+    <a href="#">Blog</a>
+    <button class="cl-btn cl-btn-lg cl-btn-outlined" style="width:200px">Find Talent</button>
+    <button class="cl-btn cl-btn-lg cl-btn-primary" style="width:200px">Get Hired</button>
+  </div>
+
+  <!-- ========== Search Header ========== -->
+  <!-- Query injected from searchParam, sanitised. -->
+  <div class="search-header" id="searchHeader">
+    <div class="search-header-left">
+      <span class="search-header-prefix">Search results for</span>
+      <span class="search-header-query"><mark>UGC creator</mark></span>
+    </div>
+    <span class="search-header-count">247 results</span>
+  </div>
+
+  <!-- ========== Filter Bar ========== -->
+  <div class="filter-bar" id="filterBar">
+    <div class="filter-inner">
+      <div class="filter-search-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="M16 16l4 4"/></svg>
+        <input class="filter-search" type="text" placeholder="Search creators..." value="UGC creator" id="searchInput" />
+      </div>
+      <select class="filter-select active" id="filterCategory">
+        <option value="">All Categories</option>
+        <option value="content-creator" selected>Content Creator</option>
+        <option value="cinematographer">Cinematographer</option>
+        <option value="video-editor">Video Editor</option>
+        <option value="photographer">Photographer</option>
+      </select>
+      <select class="filter-select" id="filterLocation">
+        <option value="">Location</option>
+        <option value="lagos" selected>Lagos</option>
+        <option value="abuja">Abuja</option>
+        <option value="ph">Port Harcourt</option>
+      </select>
+      <select class="filter-select" id="filterBudget">
+        <option value="">Budget</option>
+        <option value="under50k">Under ₦50k</option>
+        <option value="50k-100k">₦50k–₦100k</option>
+        <option value="100kplus">₦100k+</option>
+      </select>
+      <select class="filter-select" id="filterSort">
+        <option value="newest">Sort: Newest</option>
+        <option value="popular">Sort: Popular</option>
+        <option value="price-low">Sort: Price Low</option>
+        <option value="price-high">Sort: Price High</option>
+      </select>
+      <button class="cl-btn cl-btn-ghost cl-btn-default filter-bar-clear" id="clearFilters" style="font-size:13px;color:var(--color-accent)">Clear filters</button>
+    </div>
+  </div>
+
+  <!-- ========== Active Filter Pills ========== -->
+  <div class="active-filters" id="activeFilters">
+    <span class="filter-pill">Content Creator <button class="pill-remove" data-filter="category" aria-label="Remove filter">×</button></span>
+    <span class="filter-pill">Lagos <button class="pill-remove" data-filter="location" aria-label="Remove filter">×</button></span>
+    <span class="filter-pill">Under ₦50k <button class="pill-remove" data-filter="budget" aria-label="Remove filter">×</button></span>
+  </div>
+
+  <!-- ========== Masonry Grid ========== -->
+  <div class="explore-grid-wrap">
+    <div class="explore-grid" id="exploreGrid">
+      <!-- Card 1 — highlighted name + bio -->
+      <div class="explore-card" style="--card-h:240px">
+        <div class="explore-card-video" style="height:240px;background:#141414">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">UGC</span>
+          <span class="explore-card-name">Adunola O. — <mark>UGC</mark> Creator</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.9</span>
+            <span class="explore-card-price">from <span class="price-amount">₦45,000</span></span>
+          </div>
+          <span class="explore-card-bio">Lagos-based <mark>UGC</mark> creator specialising in beauty &amp; lifestyle content</span>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="explore-card" style="--card-h:320px">
+        <div class="explore-card-video" style="height:320px;background:#0D0D1A">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Content Creator</span>
+          <span class="explore-card-name">Simi A. — <mark>UGC</mark> &amp; Campaigns</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 5.0</span>
+            <span class="explore-card-price">from <span class="price-amount">₦65,000</span></span>
+          </div>
+          <span class="explore-card-bio"><mark>UGC</mark> for beauty, fashion, and food brands across Lagos</span>
+        </div>
+        <div class="explore-card-drive-badge">Drive</div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="explore-card" style="--card-h:260px">
+        <div class="explore-card-video" style="height:260px;background:#0A0A14">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Cinematographer</span>
+          <span class="explore-card-name">Tunde B.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.8</span>
+            <span class="explore-card-price">from <span class="price-amount">₦120,000</span></span>
+          </div>
+          <span class="explore-card-bio">Cinematographer specialising in brand commercials</span>
+        </div>
+      </div>
+
+      <!-- Card 4 — highlighted location -->
+      <div class="explore-card" style="--card-h:300px">
+        <div class="explore-card-video" style="height:300px;background:#141414">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Content Creator</span>
+          <span class="explore-card-name">Lola D. — <mark>UGC</mark> Strategist</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.6</span>
+            <span class="explore-card-price">from <span class="price-amount">₦35,000</span></span>
+          </div>
+          <span class="explore-card-bio"><mark>UGC</mark> content strategist helping brands go viral</span>
+        </div>
+        <div class="explore-card-drive-badge">Drive</div>
+      </div>
+
+      <!-- Card 5 -->
+      <div class="explore-card" style="--card-h:280px">
+        <div class="explore-card-video" style="height:280px;background:#0D0D1A">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Video Editor</span>
+          <span class="explore-card-name">Kelechi O.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.9</span>
+            <span class="explore-card-price">from <span class="price-amount">₦95,000</span></span>
+          </div>
+          <span class="explore-card-bio">Video editor for <mark>UGC</mark> content and brand campaigns</span>
+        </div>
+      </div>
+
+      <!-- Card 6 -->
+      <div class="explore-card" style="--card-h:340px">
+        <div class="explore-card-video" style="height:340px;background:#0A0A14">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Content Creator</span>
+          <span class="explore-card-name">Ngozi E.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 5.0</span>
+            <span class="explore-card-price">from <span class="price-amount">₦180,000</span></span>
+          </div>
+          <span class="explore-card-bio">Premium <mark>UGC</mark> creator for luxury and lifestyle brands</span>
+        </div>
+        <div class="explore-card-drive-badge">Drive</div>
+      </div>
+
+      <!-- Card 7 -->
+      <div class="explore-card" style="--card-h:250px">
+        <div class="explore-card-video" style="height:250px;background:#141414">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Content Creator</span>
+          <span class="explore-card-name">Temi F. — <mark>UGC</mark> Specialist</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.8</span>
+            <span class="explore-card-price">from <span class="price-amount">₦70,000</span></span>
+          </div>
+          <span class="explore-card-bio">Short-form <mark>UGC</mark> for TikTok &amp; Instagram Reels</span>
+        </div>
+      </div>
+
+      <!-- Card 8 -->
+      <div class="explore-card" style="--card-h:310px">
+        <div class="explore-card-video" style="height:310px;background:#0D0D1A">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Cinematographer</span>
+          <span class="explore-card-name">Dapo A.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.7</span>
+            <span class="explore-card-price">from <span class="price-amount">₦135,000</span></span>
+          </div>
+          <span class="explore-card-bio">Cinematographer for brand <mark>UGC</mark> and commercial work</span>
+        </div>
+      </div>
+
+      <!-- Card 9 -->
+      <div class="explore-card" style="--card-h:270px">
+        <div class="explore-card-video" style="height:270px;background:#0A0A14">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Content Creator</span>
+          <span class="explore-card-name">Zara K. — <mark>UGC</mark> &amp; Lifestyle</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.9</span>
+            <span class="explore-card-price">from <span class="price-amount">₦85,000</span></span>
+          </div>
+          <span class="explore-card-bio">Lifestyle <mark>UGC</mark> creator — fashion, food, and travel</span>
+        </div>
+      </div>
+
+      <!-- Card 10 -->
+      <div class="explore-card" style="--card-h:330px">
+        <div class="explore-card-video" style="height:330px;background:#141414">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Video Editor</span>
+          <span class="explore-card-name">Chidi M.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.7</span>
+            <span class="explore-card-price">from <span class="price-amount">₦80,000</span></span>
+          </div>
+          <span class="explore-card-bio"><mark>UGC</mark> video editor with 5+ years in brand content</span>
+        </div>
+        <div class="explore-card-drive-badge">Drive</div>
+      </div>
+
+      <!-- Card 11 -->
+      <div class="explore-card" style="--card-h:290px">
+        <div class="explore-card-video" style="height:290px;background:#0D0D1A">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Content Creator</span>
+          <span class="explore-card-name">Efe J. — <mark>UGC</mark> Photographer</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.8</span>
+            <span class="explore-card-price">from <span class="price-amount">₦55,000</span></span>
+          </div>
+          <span class="explore-card-bio">Product <mark>UGC</mark> photography for e-commerce brands</span>
+        </div>
+      </div>
+
+      <!-- Card 12 -->
+      <div class="explore-card" style="--card-h:315px">
+        <div class="explore-card-video" style="height:315px;background:#0A0A14">
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+        <div class="explore-card-info">
+          <span class="cl-badge-category explore-card-category">Content Creator</span>
+          <span class="explore-card-name">Sola B. — <mark>UGC</mark> Creator</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.9</span>
+            <span class="explore-card-price">from <span class="price-amount">₦60,000</span></span>
+          </div>
+          <span class="explore-card-bio">Authentic <mark>UGC</mark> for beauty, skincare &amp; wellness brands</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load More -->
+  <div class="load-more-wrap">
+    <button class="cl-btn cl-btn-default cl-btn-outlined" style="padding:12px 32px;font-size:14px">Load more</button>
+  </div>
+
+  <!-- Scroll to top -->
+  <button class="scroll-top-btn" id="scrollTopBtn" aria-label="Scroll to top">
+    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><path d="M18 15l-6-6-6 6"/></svg>
+  </button>
+
+  <!-- ========== Empty State (hidden by default) ========== -->
+  <div class="empty-state" id="emptyState" style="display:none">
+    <!-- Query injected from searchParam, sanitised. -->
+    <div class="empty-state-heading">No results for '<span id="emptyQuery">UGC creator</span>'</div>
+    <div class="empty-state-sub">Try broadening your search:</div>
+    <div class="empty-state-suggestions">
+      <span class="suggestion-pill" data-query="content creator">content creator</span>
+      <span class="suggestion-pill" data-query="videographer">videographer</span>
+      <span class="suggestion-pill" data-query="Lagos">Lagos</span>
+      <span class="suggestion-pill" data-query="₦50k-₦100k">₦50k–₦100k</span>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---- Hamburger menu ----
+      var hamburger = document.getElementById('hamburger');
+      var overlay = document.getElementById('mobileOverlay');
+      var closeBtn = document.getElementById('closeOverlay');
+      if (hamburger && overlay) {
+        hamburger.addEventListener('click', function() { overlay.classList.add('open'); });
+        closeBtn.addEventListener('click', function() { overlay.classList.remove('open'); });
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.classList.remove('open'); });
+      }
+
+      // ---- Scroll to top ----
+      var scrollBtn = document.getElementById('scrollTopBtn');
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 300) {
+          scrollBtn.classList.add('visible');
+        } else {
+          scrollBtn.classList.remove('visible');
+        }
+      });
+      scrollBtn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // ---- Filter select active state ----
+      var selects = document.querySelectorAll('.filter-select');
+      selects.forEach(function(sel) {
+        sel.addEventListener('change', function() {
+          if (this.selectedIndex > 0) {
+            this.classList.add('active');
+          } else {
+            this.classList.remove('active');
+          }
+        });
+      });
+
+      // ---- Filter pill remove ----
+      var pillRemoves = document.querySelectorAll('.pill-remove');
+      pillRemoves.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var pill = this.parentElement;
+          pill.remove();
+          var filter = this.getAttribute('data-filter');
+          var sel = document.getElementById('filter' + filter.charAt(0).toUpperCase() + filter.slice(1));
+          if (sel) { sel.selectedIndex = 0; sel.classList.remove('active'); }
+        });
+      });
+
+      // ---- Clear filters ----
+      var clearBtn = document.getElementById('clearFilters');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          selects.forEach(function(sel) { sel.selectedIndex = 0; sel.classList.remove('active'); });
+          document.getElementById('activeFilters').innerHTML = '';
+          document.getElementById('searchInput').value = '';
+        });
+      }
+
+      // ---- Empty state suggestion pills ----
+      var suggestionPills = document.querySelectorAll('.suggestion-pill');
+      suggestionPills.forEach(function(pill) {
+        pill.addEventListener('click', function() {
+          var query = this.getAttribute('data-query');
+          var searchInput = document.getElementById('searchInput');
+          if (searchInput) { searchInput.value = query; }
+          var headerQuery = document.querySelector('.search-header-query mark');
+          if (headerQuery) { headerQuery.textContent = query; }
+        });
+      });
+
+      // ---- Overlay close on Escape ----
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay && overlay.classList.contains('open')) {
+          overlay.classList.remove('open');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

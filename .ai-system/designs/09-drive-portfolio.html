@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="ClInput,ClButton,ClCard,ClBadge,ExploreVideoCard">
+  <title>Crelab — Drive Portfolio Integration</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+      --color-escrow-held:     #FACC15;
+      --color-escrow-progress: #A78BFA;
+      --color-escrow-released: #4ADE80;
+      --color-escrow-disputed: #F87171;
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+      --max-width-content: 1200px;
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+    }
+    .page { max-width: 760px; margin: 0 auto; padding: 40px 24px; }
+    h1 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: var(--text-3xl);
+      letter-spacing: -0.01em;
+      line-height: var(--leading-tight);
+      margin-bottom: var(--space-6);
+    }
+    h2 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-xl);
+      line-height: var(--leading-tight);
+      margin-bottom: var(--space-4);
+    }
+    hr {
+      border: none;
+      height: 1px;
+      background: var(--color-border);
+      margin: var(--space-10) 0;
+    }
+
+    /* State toggle pills */
+    .state-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-bottom: var(--space-8);
+    }
+    .state-pill {
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-out);
+    }
+    .state-pill:hover { border-color: var(--color-border-mid); }
+    .state-pill.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-color: var(--color-accent);
+    }
+
+    /* ClField / ClInput */
+    .cl-field { display: flex; flex-direction: column; gap: var(--space-1); }
+    .cl-field-label {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .cl-input {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 0 var(--space-3);
+      height: 40px;
+      outline: none;
+      transition: border-color var(--duration-fast) var(--ease-out);
+      width: 100%;
+    }
+    .cl-input::placeholder { color: var(--color-text-tertiary); }
+    .cl-input:focus { border-color: var(--color-accent); }
+    .cl-input:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cl-input.error { border-color: var(--color-error); }
+
+    /* ClButton */
+    .cl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-color: transparent;
+    }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+    .cl-btn-outlined {
+      background: transparent;
+      color: var(--color-text-primary);
+      border-color: var(--color-border-mid);
+    }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .cl-btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border-color: transparent;
+      font-weight: var(--weight-medium);
+    }
+    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+
+    /* Spinner for syncing state */
+    .btn-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .cl-btn-primary .btn-spinner { border-top-color: var(--color-text-inverse); border-right-color: rgba(10,10,10,0.2); border-bottom-color: rgba(10,10,10,0.2); border-left-color: rgba(10,10,10,0.2); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ClCard */
+    .cl-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      transition: border-color 200ms var(--ease-out);
+    }
+    .cl-card.cl-card-raised { background: var(--color-surface-raised); }
+
+    /* Status cards */
+    .status-card { margin-top: var(--space-4); }
+    .status-card-inner {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+    .status-icon { flex-shrink: 0; }
+    .status-content { flex: 1; }
+    .status-title {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 14px;
+      color: var(--color-text-primary);
+    }
+    .status-sub {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+    .status-link {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      color: var(--color-accent);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .status-link:hover { text-decoration: underline; }
+    .status-card.success { border-color: rgba(74,222,128,0.3); }
+    .status-card.error { border-color: rgba(248,113,113,0.3); }
+    .status-card.info { border-color: rgba(96,165,250,0.3); }
+    .status-card.success .status-title { color: var(--color-success); }
+    .status-card.error .status-title { color: var(--color-error); }
+    .status-card.info .status-title { color: var(--color-info); }
+
+    .field-error {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-error);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Drive badge on cards */
+    .drive-badge {
+      position: absolute;
+      bottom: var(--space-2);
+      right: var(--space-2);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 2px 5px;
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      line-height: 1.4;
+    }
+
+    /* ExploreVideoCard component spec */
+    .explore-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+      display: inline-block;
+      width: 100%;
+      break-inside: avoid;
+      margin-bottom: var(--space-2);
+    }
+    .explore-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 1px var(--color-accent), 0 0 16px rgba(232,255,71,0.15);
+    }
+    .explore-card-video {
+      position: relative;
+      background: var(--color-surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 160px;
+    }
+    .explore-card-gradient {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60%;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      pointer-events: none;
+    }
+    .explore-card-info {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .explore-card-category { align-self: flex-start; margin-bottom: var(--space-2); }
+    .explore-card-name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: var(--weight-medium);
+      color: var(--color-text-primary);
+      line-height: var(--leading-tight);
+    }
+    .explore-card-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .explore-card-stars {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      color: var(--color-warning);
+      font-variant-numeric: tabular-nums;
+    }
+    .explore-card-price {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    .explore-card-price .price-amount {
+      font-family: var(--font-mono);
+      color: var(--color-accent);
+      font-weight: var(--weight-medium);
+    }
+    .explore-card-hover-cta {
+      position: absolute;
+      top: var(--space-3);
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      opacity: 0;
+      transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .explore-card:hover .explore-card-hover-cta {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Masonry grid */
+    .masonry-grid {
+      column-count: 3;
+      column-gap: var(--space-2);
+    }
+    @media (max-width: 640px) { .masonry-grid { column-count: 2; } }
+
+    /* Empty state */
+    .empty-state {
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-10);
+      text-align: center;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+
+    /* Media overlay modal */
+    .media-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .media-overlay.open { display: flex; }
+    .media-overlay-close {
+      position: absolute;
+      top: var(--space-6);
+      right: var(--space-6);
+      width: 28px;
+      height: 28px;
+      background: none;
+      border: none;
+      color: var(--color-text-secondary);
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 101;
+    }
+    .media-overlay-close:hover { color: var(--color-text-primary); }
+    .media-overlay-content {
+      max-width: 800px;
+      max-height: 80vh;
+      width: 90%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .media-overlay-content img,
+    .media-overlay-content video,
+    .media-overlay-content iframe {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: var(--radius-lg);
+    }
+    .media-overlay-content .video-wrapper {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .media-overlay .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(10,10,10,0.8);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      font-size: 18px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background var(--duration-fast);
+    }
+    .media-overlay .nav-arrow:hover { background: var(--color-surface-raised); }
+    .media-overlay .nav-arrow.prev { left: var(--space-4); }
+    .media-overlay .nav-arrow.next { right: var(--space-4); }
+
+    /* Section header */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+    .section-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .section-header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    /* ClBadge re-use */
+    .cl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      white-space: nowrap;
+      line-height: 1.5;
+    }
+    .cl-badge-accent { background: var(--color-accent); color: var(--color-text-inverse); }
+    .cl-badge-accent-muted { background: var(--color-accent-muted); color: var(--color-accent); }
+    .cl-badge-surface { background: var(--color-surface-raised); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+
+    .flex-row { display: flex; gap: var(--space-2); align-items: center; }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <h1>Google Drive Portfolio</h1>
+  <p style="font-family:var(--font-body);font-size:14px;color:var(--color-text-secondary);margin-bottom:var(--space-6);line-height:1.6">
+    State toggle for development reference. In production, the UI reflects the actual connection status fetched from the backend.
+  </p>
+
+  <!-- State toggle pills -->
+  <div class="state-toggles">
+    <button class="state-pill active" data-state="disconnected">Disconnected</button>
+    <button class="state-pill" data-state="syncing">Syncing</button>
+    <button class="state-pill" data-state="synced">Synced</button>
+    <button class="state-pill" data-state="error-private">Error — Private</button>
+    <button class="state-pill" data-state="error-empty">Error — Empty</button>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Part 1: Provider Settings Panel                                  -->
+  <!-- ================================================================ -->
+  <h2>Connect Google Drive</h2>
+  <p style="font-family:var(--font-body);font-size:14px;color:var(--color-text-secondary);line-height:1.6;max-width:520px;margin-bottom:var(--space-5)">
+    Paste the link to a publicly shared Google Drive folder. Crelab will automatically import your videos, images, and PDFs.
+  </p>
+  <!-- DESIGN.md §reference: platformConfig.features.drive must be enabled. Folder must be shared with 'Anyone with the link'. DriveService reads files via Google Drive Files API v3, key=GOOGLE_API_KEY. No OAuth. -->
+
+  <!-- Input row -->
+  <div class="flex-row" style="gap:10px;margin-bottom:0">
+    <div style="flex:1;min-width:0">
+      <input class="cl-input" id="drive-input" type="url" placeholder="https://drive.google.com/drive/folders/..." />
+    </div>
+    <button class="cl-btn cl-btn-primary cl-btn-default" id="sync-btn" style="flex-shrink:0;padding:0 16px">
+      <span id="sync-btn-text">Sync Folder</span>
+    </button>
+  </div>
+
+  <!-- Validation error (hidden by default) -->
+  <div id="validation-error" class="field-error" style="display:none">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    This doesn't look like a valid Google Drive folder link.
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- State: Disconnected — no status card below                       -->
+  <!-- ================================================================ -->
+  <div id="state-disconnected" class="state-content">
+    <div class="cl-card status-card" style="border-color:var(--color-border);margin-top:var(--space-4)">
+      <div style="text-align:center;padding:var(--space-4) 0">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5" style="margin-bottom:var(--space-3)">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <div style="font-family:var(--font-body);font-size:14px;color:var(--color-text-secondary)">Paste a Drive folder link and click Sync to import your portfolio.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- State: Syncing — spinner + disabled input                        -->
+  <!-- ================================================================ -->
+  <div id="state-syncing" class="state-content" style="display:none">
+    <div class="cl-card status-card" style="margin-top:var(--space-4)">
+      <div class="status-card-inner">
+        <div class="status-icon">
+          <span class="btn-spinner" style="width:20px;height:20px;border-top-color:var(--color-accent);border-right-color:rgba(232,255,71,0.2);border-bottom-color:rgba(232,255,71,0.2);border-left-color:rgba(232,255,71,0.2)"></span>
+        </div>
+        <div class="status-content">
+          <div class="status-title" style="color:var(--color-accent)">Syncing portfolio files...</div>
+          <div class="status-sub">Reading your Drive folder and fetching thumbnails</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- State: Synced — success card with file count                     -->
+  <!-- ================================================================ -->
+  <div id="state-synced" class="state-content" style="display:none">
+    <div class="cl-card status-card success" style="margin-top:var(--space-4)">
+      <div class="status-card-inner">
+        <svg class="status-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="1.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <div class="status-content">
+          <div class="status-title">8 files imported</div>
+          <div class="status-sub">Last synced: Today at 2:14 PM</div>
+          <div style="margin-top:var(--space-2)"><span class="status-link">Refresh ↻</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- State: Error — Private folder                                    -->
+  <!-- ================================================================ -->
+  <div id="state-error-private" class="state-content" style="display:none">
+    <div class="cl-card status-card error" style="margin-top:var(--space-4)">
+      <div class="status-card-inner">
+        <svg class="status-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div class="status-content">
+          <div class="status-title" style="color:var(--color-error)">Folder is not publicly accessible</div>
+          <div class="status-sub">Set sharing to 'Anyone with the link' in Google Drive, then try again.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- State: Error — Empty folder                                      -->
+  <!-- ================================================================ -->
+  <div id="state-error-empty" class="state-content" style="display:none">
+    <div class="cl-card status-card info" style="margin-top:var(--space-4)">
+      <div class="status-card-inner">
+        <svg class="status-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-info)" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <div class="status-content">
+          <div class="status-title" style="color:var(--color-info)">No supported files found</div>
+          <div class="status-sub">Add MP4, MOV, JPG, PNG, or PDF files to your Drive folder and sync again.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- ================================================================ -->
+  <!-- Part 2: Profile Display Section                                  -->
+  <!-- ================================================================ -->
+  <div class="section-header">
+    <div class="section-header-left">
+      <span style="font-family:var(--font-body);font-weight:var(--weight-semibold);font-size:14px;color:var(--color-text-secondary)">Portfolio via Google Drive</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <div class="section-header-right">
+      <span style="font-family:var(--font-body);font-size:11px;color:var(--color-text-tertiary)">Last synced 3h ago</span>
+      <span class="status-link" style="font-size:11px">Refresh ↻</span>
+    </div>
+  </div>
+
+  <!-- Masonry grid — visible in synced state -->
+  <div id="portfolio-grid" class="masonry-grid">
+    <!-- 6 Drive portfolio cards -->
+    <div class="explore-card" style="height:260px" data-index="0" data-type="video">
+      <div class="explore-card-video" style="height:100%;background:#141414">
+        <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-info">
+          <span class="cl-badge cl-badge-accent-muted explore-card-category">Content Creation</span>
+          <span class="explore-card-name">Adunola O.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.9</span>
+            <span class="explore-card-price">from <span class="price-amount">₦45,000</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="drive-badge">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Drive
+      </div>
+      <div class="explore-card-hover-cta">View Profile →</div>
+    </div>
+
+    <div class="explore-card" style="height:200px" data-index="1" data-type="video">
+      <div class="explore-card-video" style="height:100%;background:#0D0D1A">
+        <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-info">
+          <span class="cl-badge cl-badge-accent-muted explore-card-category">Video Production</span>
+          <span class="explore-card-name">Chidi E.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.8</span>
+            <span class="explore-card-price">from <span class="price-amount">₦85,000</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="drive-badge">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Drive
+      </div>
+      <div class="explore-card-hover-cta">View Profile →</div>
+    </div>
+
+    <!-- PDF card 1 -->
+    <div class="explore-card" style="height:280px;background:var(--color-surface-raised)" data-index="2" data-type="pdf">
+      <div class="explore-card-video" style="height:100%;background:#0A0A14">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(96,165,250,0.5)" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="12" x2="13" y2="12"/>
+        </svg>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-info">
+          <span class="cl-badge cl-badge-accent-muted explore-card-category">Portfolio PDF</span>
+          <span class="explore-card-name">Portfolio Overview</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-price">PDF · 12 pages</span>
+          </div>
+        </div>
+      </div>
+      <div class="drive-badge">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Drive
+      </div>
+      <div class="explore-card-hover-cta">View →</div>
+    </div>
+
+    <div class="explore-card" style="height:240px" data-index="3" data-type="video">
+      <div class="explore-card-video" style="height:100%;background:#141414">
+        <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-info">
+          <span class="cl-badge cl-badge-accent-muted explore-card-category">Cinematography</span>
+          <span class="explore-card-name">Simi A.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 5.0</span>
+            <span class="explore-card-price">from <span class="price-amount">₦120,000</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="drive-badge">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Drive
+      </div>
+      <div class="explore-card-hover-cta">View Profile →</div>
+    </div>
+
+    <!-- PDF card 2 -->
+    <div class="explore-card" style="height:320px;background:var(--color-surface-raised)" data-index="4" data-type="pdf">
+      <div class="explore-card-video" style="height:100%;background:#0A0A14">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(96,165,250,0.5)" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="12" x2="13" y2="12"/>
+        </svg>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-info">
+          <span class="cl-badge cl-badge-accent-muted explore-card-category">Brand Deck</span>
+          <span class="explore-card-name">Glow Beauty — Pitch</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-price">PDF · 8 pages</span>
+          </div>
+        </div>
+      </div>
+      <div class="drive-badge">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Drive
+      </div>
+      <div class="explore-card-hover-cta">View →</div>
+    </div>
+
+    <div class="explore-card" style="height:220px" data-index="5" data-type="video">
+      <div class="explore-card-video" style="height:100%;background:#0D0D1A">
+        <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <div class="explore-card-gradient"></div>
+        <div class="explore-card-info">
+          <span class="cl-badge cl-badge-accent-muted explore-card-category">Content Creation</span>
+          <span class="explore-card-name">Femi K.</span>
+          <div class="explore-card-meta">
+            <span class="explore-card-stars">★ 4.7</span>
+            <span class="explore-card-price">from <span class="price-amount">₦35,000</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="drive-badge">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Drive
+      </div>
+      <div class="explore-card-hover-cta">View Profile →</div>
+    </div>
+  </div>
+
+  <!-- Empty state (visible in error-empty state) -->
+  <div id="portfolio-empty" class="empty-state" style="display:none;margin-top:var(--space-2)">
+    No files found in your linked Drive folder. Add supported files (MP4, MOV, JPG, PNG, PDF) and click Refresh.
+  </div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- Media embed overlay                                              -->
+<!-- ================================================================ -->
+<div class="media-overlay" id="media-overlay">
+  <button class="media-overlay-close" id="overlay-close">✕</button>
+  <button class="nav-arrow prev" id="overlay-prev">‹</button>
+  <button class="nav-arrow next" id="overlay-next">›</button>
+  <div class="media-overlay-content" id="overlay-content">
+    <div class="video-wrapper" id="overlay-inner">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  /* ---- State management ---- */
+  var states = ['disconnected', 'syncing', 'synced', 'error-private', 'error-empty'];
+  var currentState = 'disconnected';
+  var pills = document.querySelectorAll('.state-pill');
+  var stateContents = {};
+  states.forEach(function(s) {
+    stateContents[s] = document.getElementById('state-' + s);
+  });
+  var inputEl = document.getElementById('drive-input');
+  var syncBtn = document.getElementById('sync-btn');
+  var syncBtnText = document.getElementById('sync-btn-text');
+  var validationError = document.getElementById('validation-error');
+  var portfolioGrid = document.getElementById('portfolio-grid');
+  var portfolioEmpty = document.getElementById('portfolio-empty');
+
+  function setState(state) {
+    currentState = state;
+    pills.forEach(function(p) { p.classList.toggle('active', p.dataset.state === state); });
+    Object.keys(stateContents).forEach(function(s) {
+      stateContents[s].style.display = (s === state) ? '' : 'none';
+    });
+
+    // Input/button per state
+    inputEl.disabled = (state === 'syncing');
+    if (state === 'syncing') {
+      syncBtnText.innerHTML = '<span class="btn-spinner"></span> Syncing...';
+      syncBtn.disabled = true;
+      validationError.style.display = 'none';
+    } else if (state === 'synced' || state === 'error-private' || state === 'error-empty') {
+      syncBtnText.textContent = 'Sync Folder';
+      syncBtn.disabled = false;
+    } else {
+      syncBtnText.textContent = 'Sync Folder';
+      syncBtn.disabled = false;
+    }
+
+    // Portfolio grid visibility
+    portfolioGrid.style.display = (state === 'synced') ? '' : 'none';
+    portfolioEmpty.style.display = (state === 'error-empty') ? '' : 'none';
+
+    // Sync button enters syncing state
+    if (state === 'disconnected') {
+      inputEl.value = '';
+      validationError.style.display = 'none';
+    }
+  }
+
+  pills.forEach(function(p) {
+    p.addEventListener('click', function() { setState(p.dataset.state); });
+  });
+
+  // Validate Drive URL format
+  function validateUrl(url) {
+    var pattern = /drive\.google\.com\/drive\/folders\//;
+    return pattern.test(url);
+  }
+
+  syncBtn.addEventListener('click', function() {
+    var val = inputEl.value.trim();
+    if (currentState === 'synced' || currentState === 'error-private' || currentState === 'error-empty') {
+      // In synced/error states, clicking acts as "Sync again"
+      if (!validateUrl(val)) {
+        validationError.style.display = 'flex';
+        return;
+      }
+      validationError.style.display = 'none';
+      setState('syncing');
+      return;
+    }
+    if (!val) {
+      validationError.style.display = 'flex';
+      return;
+    }
+    if (!validateUrl(val)) {
+      validationError.style.display = 'flex';
+      return;
+    }
+    validationError.style.display = 'none';
+    setState('syncing');
+    // Simulate sync completion after 2s
+    setTimeout(function() { setState('synced'); }, 2000);
+  });
+
+  inputEl.addEventListener('input', function() {
+    validationError.style.display = 'none';
+  });
+
+  /* ---- Media overlay ---- */
+  var overlay = document.getElementById('media-overlay');
+  var overlayInner = document.getElementById('overlay-inner');
+  var overlayContent = document.getElementById('overlay-content');
+  var closeBtn = document.getElementById('overlay-close');
+  var prevBtn = document.getElementById('overlay-prev');
+  var nextBtn = document.getElementById('overlay-next');
+  var cards = document.querySelectorAll('.explore-card');
+  var currentIndex = 0;
+  var items = [];
+
+  // Build gallery data
+  cards.forEach(function(card) {
+    var idx = parseInt(card.dataset.index);
+    var type = card.dataset.type;
+    // Get card info for the label
+    var nameEl = card.querySelector('.explore-card-name');
+    var name = nameEl ? nameEl.textContent : 'Portfolio item';
+    items.push({ index: idx, type: type, name: name });
+  });
+
+  function renderMedia(index) {
+    var item = items[index];
+    if (!item) return;
+    overlayInner.innerHTML = '';
+    if (item.type === 'video') {
+      overlayInner.innerHTML = '<div class="video-wrapper" style="position:relative">' +
+        '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">' +
+        '<polygon points="5 3 19 12 5 21 5 3"/></svg>' +
+        '<div style="width:100%;height:100%;min-height:300px;display:flex;align-items:center;justify-content:center;color:var(--color-text-tertiary);font-family:var(--font-body);font-size:14px">' +
+        '<!-- <video src="..." controls autoplay class="w-full rounded-lg" /> in production -->' +
+        item.name + ' — Video Preview</div></div>';
+    } else if (item.type === 'pdf') {
+      overlayInner.innerHTML = '<div style="width:100%;height:60vh;background:var(--color-surface-raised);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:var(--space-4);padding:var(--space-10)">' +
+        '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="12" x2="13" y2="12"/></svg>' +
+        '<div style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary)">' + item.name + '</div>' +
+        '<div style="font-family:var(--font-body);font-size:11px;color:var(--color-text-tertiary)"><!-- <iframe src="..." class="w-full h-full rounded-lg" /> in production -->' + 'PDF preview · 8 pages</div></div>';
+    }
+    prevBtn.style.display = index > 0 ? '' : 'none';
+    nextBtn.style.display = index < items.length - 1 ? '' : 'none';
+  }
+
+  cards.forEach(function(card) {
+    card.addEventListener('click', function() {
+      var idx = parseInt(card.dataset.index);
+      currentIndex = items.findIndex(function(i) { return i.index === idx; });
+      if (currentIndex === -1) currentIndex = 0;
+      renderMedia(currentIndex);
+      overlay.classList.add('open');
+    });
+  });
+
+  function closeOverlay() { overlay.classList.remove('open'); }
+  function prevMedia() { if (currentIndex > 0) { currentIndex--; renderMedia(currentIndex); } }
+  function nextMedia() { if (currentIndex < items.length - 1) { currentIndex++; renderMedia(currentIndex); } }
+
+  closeBtn.addEventListener('click', closeOverlay);
+  prevBtn.addEventListener('click', prevMedia);
+  nextBtn.addEventListener('click', nextMedia);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) closeOverlay(); });
+
+  // Keyboard: Escape → close, ArrowLeft/ArrowRight → prev/next
+  // <!-- JS keydown listener: Escape → close, ArrowLeft/ArrowRight → prev/next -->
+  document.addEventListener('keydown', function(e) {
+    if (!overlay.classList.contains('open')) return;
+    if (e.key === 'Escape') { closeOverlay(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { prevMedia(); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { nextMedia(); e.preventDefault(); }
+  });
+
+  setState('disconnected');
+})();
+</script>
+</body>
+</html>

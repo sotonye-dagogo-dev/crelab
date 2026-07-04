@@ -1,0 +1,1420 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="ClButton,ClCard,ClInput,ClTextarea,ClSelect,ClBadge,ExploreVideoCard,ServicePackageCard,EscrowStatusPill,AvailabilityBadge,ExperienceLevelBadge,ConsentCheckbox,RoleSelectCard">
+  <title>Crelab — Design System Components</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+      --color-escrow-held:     #FACC15;
+      --color-escrow-progress: #A78BFA;
+      --color-escrow-released: #4ADE80;
+      --color-escrow-disputed: #F87171;
+
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+
+      --max-width-content: 1200px;
+
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+    }
+
+    .container {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+      padding: var(--space-12) var(--space-6);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: var(--text-5xl);
+      letter-spacing: -0.02em;
+      line-height: var(--leading-tight);
+      margin-bottom: var(--space-2);
+    }
+
+    .subtitle {
+      font-family: var(--font-body);
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-12);
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-3xl);
+      margin-top: var(--space-16);
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-3);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .component-section {
+      margin-bottom: var(--space-12);
+    }
+
+    .state-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      align-items: flex-end;
+      margin-bottom: var(--space-6);
+    }
+
+    .state-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .state-label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      white-space: nowrap;
+    }
+
+    .size-row-label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: var(--space-2) 0;
+      margin-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    /* Component: ClButton */
+    .cl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
+    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      border-color: transparent;
+    }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+    .cl-btn-primary:active { background: var(--color-accent-dim); }
+
+    .cl-btn-outlined {
+      background: transparent;
+      color: var(--color-text-primary);
+      border-color: var(--color-border-mid);
+    }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .cl-btn-outlined:active { background: var(--color-accent-muted); }
+
+    .cl-btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border-color: transparent;
+    }
+    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+    .cl-btn-ghost:active { background: var(--color-surface-raised); }
+
+    .cl-btn-destructive {
+      background: transparent;
+      color: var(--color-error);
+      border-color: var(--color-error);
+    }
+    .cl-btn-destructive:hover { background: rgba(248,113,113,0.08); }
+    .cl-btn-destructive:active { background: rgba(248,113,113,0.15); }
+
+    .cl-btn-loading {
+      position: relative;
+    }
+    .cl-btn-loading .btn-label { visibility: hidden; }
+    .cl-btn-loading .btn-spinner {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .cl-btn-primary.cl-btn-loading .btn-spinner { border-top-color: var(--color-text-inverse); border-right-color: rgba(10,10,10,0.2); border-bottom-color: rgba(10,10,10,0.2); border-left-color: rgba(10,10,10,0.2); }
+    .cl-btn-outlined.cl-btn-loading .btn-spinner { border-top-color: var(--color-text-primary); border-right-color: rgba(242,242,242,0.2); border-bottom-color: rgba(242,242,242,0.2); border-left-color: rgba(242,242,242,0.2); }
+    .cl-btn-ghost.cl-btn-loading .btn-spinner { border-top-color: var(--color-text-secondary); border-right-color: rgba(154,154,154,0.2); border-bottom-color: rgba(154,154,154,0.2); border-left-color: rgba(154,154,154,0.2); }
+    .cl-btn-destructive.cl-btn-loading .btn-spinner { border-top-color: var(--color-error); border-right-color: rgba(248,113,113,0.2); border-bottom-color: rgba(248,113,113,0.2); border-left-color: rgba(248,113,113,0.2); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Component: ClCard */
+    .cl-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      transition: border-color 200ms var(--ease-out), background 200ms var(--ease-out);
+    }
+    .cl-card:hover { border-color: var(--color-border-mid); }
+    .cl-card-raised { background: var(--color-surface-raised); }
+    .cl-card-accent { border-color: var(--color-accent); }
+    .cl-card-accent:hover { border-color: var(--color-accent-dim); }
+
+    /* Component: Input / Textarea / Select */
+    .cl-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .cl-field-label {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .cl-field-helper {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+    .cl-field-error {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-error);
+    }
+    .cl-input,
+    .cl-textarea,
+    .cl-select {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 0 var(--space-3);
+      height: 40px;
+      outline: none;
+      transition: border-color var(--duration-fast) var(--ease-out);
+    }
+    .cl-input::placeholder,
+    .cl-textarea::placeholder {
+      color: var(--color-text-tertiary);
+    }
+    .cl-input:focus,
+    .cl-textarea:focus,
+    .cl-select:focus {
+      border-color: var(--color-accent);
+    }
+    .cl-input.error,
+    .cl-textarea.error,
+    .cl-select.error {
+      border-color: var(--color-error);
+    }
+    .cl-input:disabled,
+    .cl-textarea:disabled,
+    .cl-select:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .cl-textarea {
+      height: auto;
+      min-height: 100px;
+      padding: var(--space-3);
+      resize: vertical;
+    }
+    .cl-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239A9A9A' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 5.646a.5.5 0 0 1 .708 0L8 8.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+    .cl-textarea-wrapper {
+      position: relative;
+    }
+    .cl-char-counter {
+      position: absolute;
+      bottom: var(--space-2);
+      right: var(--space-2);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      pointer-events: none;
+    }
+    .cl-char-counter.near-limit { color: var(--color-warning); }
+    .cl-char-counter.at-limit { color: var(--color-error); }
+
+    /* Component: ClBadge */
+    .cl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      white-space: nowrap;
+      line-height: 1.5;
+    }
+    .cl-badge-accent { background: var(--color-accent); color: var(--color-text-inverse); }
+    .cl-badge-accent-muted { background: var(--color-accent-muted); color: var(--color-accent); }
+    .cl-badge-surface { background: var(--color-surface-raised); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+    .cl-badge-success { background: rgba(74,222,128,0.12); color: var(--color-success); }
+    .cl-badge-warning { background: rgba(250,204,21,0.12); color: var(--color-warning); }
+    .cl-badge-error { background: rgba(248,113,113,0.12); color: var(--color-error); }
+    .cl-badge-info { background: rgba(96,165,250,0.12); color: var(--color-info); }
+    .cl-badge-new { background: var(--color-error); color: var(--color-text-primary); font-weight: var(--weight-bold); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 6px; border-radius: var(--radius-sm); }
+    .cl-badge-drive { background: rgba(96,165,250,0.15); color: var(--color-info); border: 1px solid rgba(96,165,250,0.3); font-size: 10px; padding: 1px 6px; }
+    .cl-badge-verified { background: rgba(74,222,128,0.12); color: var(--color-success); }
+    .cl-badge-popular { background: var(--color-accent); color: var(--color-text-inverse); font-weight: var(--weight-bold); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 8px; }
+    .cl-badge-sponsored { background: var(--color-surface); color: var(--color-text-tertiary); border: 1px solid var(--color-border); font-size: 10px; }
+
+    /* Component: ExploreVideoCard */
+    .explore-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+      display: flex;
+      flex-direction: column;
+    }
+    .explore-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 1px var(--color-accent), 0 0 16px rgba(232, 255, 71, 0.15);
+    }
+    .explore-card-video {
+      position: relative;
+      background: var(--color-surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+    .explore-card-video .play-icon {
+      width: 24px;
+      height: 24px;
+      color: rgba(255,255,255,0.5);
+    }
+    .explore-card-gradient {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60%;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      pointer-events: none;
+    }
+    .explore-card-info {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .explore-card-category {
+      align-self: flex-start;
+      margin-bottom: var(--space-2);
+    }
+    .explore-card-name {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: var(--weight-medium);
+      color: var(--color-text-primary);
+      line-height: var(--leading-tight);
+    }
+    .explore-card-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .explore-card-stars {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      color: var(--color-warning);
+      font-variant-numeric: tabular-nums;
+    }
+    .explore-card-price {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    .explore-card-price .price-amount {
+      font-family: var(--font-mono);
+      color: var(--color-accent);
+      font-weight: var(--weight-medium);
+    }
+    .explore-card-hover-cta {
+      position: absolute;
+      top: var(--space-3);
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      opacity: 0;
+      transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .explore-card:hover .explore-card-hover-cta {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .explore-card-drive-badge {
+      position: absolute;
+      bottom: var(--space-2);
+      right: var(--space-2);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-tertiary);
+      font-family: var(--font-body);
+      font-size: 10px;
+      padding: 2px 5px;
+      border-radius: var(--radius-sm);
+      line-height: 1.4;
+    }
+
+    /* Component: ServicePackageCard */
+    .pkg-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+    .pkg-card.standard {
+      border-top: 3px solid var(--color-accent);
+    }
+    .pkg-card-popular {
+      position: absolute;
+      top: 0;
+      right: var(--space-4);
+      transform: translateY(-50%);
+    }
+    .pkg-tier {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+    }
+    .pkg-name {
+      font-family: var(--font-display);
+      font-size: var(--text-base);
+      font-weight: var(--weight-bold);
+      color: var(--color-text-primary);
+    }
+    .pkg-price {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: var(--weight-bold);
+      color: var(--color-accent);
+      font-variant-numeric: tabular-nums;
+      line-height: var(--leading-tight);
+    }
+    .pkg-turnaround {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    .pkg-divider {
+      height: 1px;
+      background: var(--color-border);
+      margin: var(--space-1) 0;
+    }
+    .pkg-deliverables {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .pkg-deliverables li {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .pkg-deliverables li::before {
+      content: '✓';
+      color: var(--color-success);
+      font-weight: var(--weight-bold);
+    }
+    .pkg-cta {
+      margin-top: auto;
+    }
+
+    /* EscrowStatusPill */
+    .escrow-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+    .escrow-pill.held {
+      background: rgba(250,204,21,0.1);
+      border: 1px solid var(--color-escrow-held);
+      color: var(--color-escrow-held);
+    }
+    .escrow-pill.progress {
+      background: rgba(167,139,250,0.1);
+      border: 1px solid var(--color-escrow-progress);
+      color: var(--color-escrow-progress);
+    }
+    .escrow-pill.released {
+      background: rgba(74,222,128,0.1);
+      border: 1px solid var(--color-escrow-released);
+      color: var(--color-escrow-released);
+    }
+    .escrow-pill.disputed {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid var(--color-escrow-disputed);
+      color: var(--color-escrow-disputed);
+    }
+    .escrow-pill.refunded {
+      background: rgba(96,165,250,0.1);
+      border: 1px solid var(--color-info);
+      color: var(--color-info);
+    }
+
+    /* AvailabilityBadge */
+    .avail-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+    .avail-badge.now {
+      background: rgba(74,222,128,0.12);
+      color: var(--color-success);
+    }
+    .avail-badge.soon {
+      background: rgba(250,204,21,0.12);
+      color: var(--color-warning);
+    }
+    .avail-badge.unavail {
+      background: rgba(248,113,113,0.08);
+      color: var(--color-error);
+      opacity: 0.7;
+    }
+
+    /* ExperienceLevelBadge */
+    .exp-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-semibold);
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+    .exp-badge.emerging {
+      background: rgba(96,165,250,0.1);
+      color: var(--color-info);
+    }
+    .exp-badge.established {
+      background: rgba(167,139,250,0.12);
+      color: var(--color-escrow-progress);
+    }
+    .exp-badge.veteran {
+      background: rgba(250,204,21,0.12);
+      color: var(--color-warning);
+    }
+
+    /* ConsentCheckbox */
+    .cl-checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text-primary);
+    }
+    .cl-checkbox input { display: none; }
+    .cl-checkbox-box {
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+    }
+    .cl-checkbox.checked .cl-checkbox-box {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    .cl-checkbox-check {
+      color: var(--color-text-inverse);
+      font-size: 12px;
+      font-weight: var(--weight-bold);
+      line-height: 1;
+    }
+
+    /* RoleSelectCard */
+    .role-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+      flex: 1;
+      min-width: 200px;
+    }
+    .role-card.selected {
+      border: 2px solid var(--color-accent);
+      background: var(--color-accent-muted);
+    }
+    .role-card:hover { border-color: var(--color-border-mid); }
+    .role-card.selected:hover { border-color: var(--color-accent); }
+    .role-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: var(--color-surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .role-card.selected .role-icon { background: var(--color-accent-muted); }
+    .role-name {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: var(--weight-bold);
+      color: var(--color-text-primary);
+    }
+    .role-desc {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+    }
+
+    /* Layout helpers */
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-4);
+    }
+
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      align-items: flex-start;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      align-items: center;
+    }
+
+    .section-intro {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-6);
+    }
+
+    /* Card content placeholder */
+    .card-content {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+    }
+
+    /* Integer width marker for cards */
+    .card-demo {
+      width: 260px;
+    }
+    .card-demo-wide {
+      width: 320px;
+    }
+
+    /* Masonry row */
+    .masonry-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      align-items: flex-start;
+    }
+
+    .pkg-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      align-items: stretch;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>Crelab Components</h1>
+  <p class="subtitle">Full-fidelity reference of every reusable component in the Crelab design system</p>
+
+  <!-- ================================================================ -->
+  <!-- Component: ClButton                                              -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ClButton</h2>
+    <p class="section-intro"><!-- Component: ClButton --> Four variants × all states. Default size 40px, font-size 14px, Inter SemiBold. Also sm (32px, 13px) and lg (48px, 15px).</p>
+
+    <!-- Primary -->
+    <div class="size-row-label">Primary — accent background</div>
+    <div class="state-row">
+      <div class="state-item">
+        <span class="state-label">Default</span>
+        <button class="cl-btn cl-btn-primary cl-btn-default">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Hover</span>
+        <button class="cl-btn cl-btn-primary cl-btn-default" style="background:var(--color-accent-dim)">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Active</span>
+        <button class="cl-btn cl-btn-primary cl-btn-default" style="transform:scale(0.98);background:var(--color-accent-dim)">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Disabled</span>
+        <button class="cl-btn cl-btn-primary cl-btn-default" disabled>Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Loading</span>
+        <button class="cl-btn cl-btn-primary cl-btn-default cl-btn-loading">
+          <span class="btn-label">Book Now</span>
+          <span class="btn-spinner"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Outlined -->
+    <div class="size-row-label">Outlined — border var(--color-border-mid)</div>
+    <div class="state-row">
+      <div class="state-item">
+        <span class="state-label">Default</span>
+        <button class="cl-btn cl-btn-outlined cl-btn-default">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Hover</span>
+        <button class="cl-btn cl-btn-outlined cl-btn-default" style="border-color:var(--color-accent);color:var(--color-accent)">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Active</span>
+        <button class="cl-btn cl-btn-outlined cl-btn-default" style="transform:scale(0.98);background:var(--color-accent-muted)">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Disabled</span>
+        <button class="cl-btn cl-btn-outlined cl-btn-default" disabled>Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Loading</span>
+        <button class="cl-btn cl-btn-outlined cl-btn-default cl-btn-loading">
+          <span class="btn-label">Book Now</span>
+          <span class="btn-spinner"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Ghost -->
+    <div class="size-row-label">Ghost — transparent, text var(--color-text-secondary)</div>
+    <div class="state-row">
+      <div class="state-item">
+        <span class="state-label">Default</span>
+        <button class="cl-btn cl-btn-ghost cl-btn-default">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Hover</span>
+        <button class="cl-btn cl-btn-ghost cl-btn-default" style="color:var(--color-text-primary)">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Active</span>
+        <button class="cl-btn cl-btn-ghost cl-btn-default" style="transform:scale(0.98);background:var(--color-surface-raised)">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Disabled</span>
+        <button class="cl-btn cl-btn-ghost cl-btn-default" disabled>Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Loading</span>
+        <button class="cl-btn cl-btn-ghost cl-btn-default cl-btn-loading">
+          <span class="btn-label">Book Now</span>
+          <span class="btn-spinner"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Destructive -->
+    <div class="size-row-label">Destructive — border var(--color-error), text var(--color-error)</div>
+    <div class="state-row">
+      <div class="state-item">
+        <span class="state-label">Default</span>
+        <button class="cl-btn cl-btn-destructive cl-btn-default">Delete</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Hover</span>
+        <button class="cl-btn cl-btn-destructive cl-btn-default" style="background:rgba(248,113,113,0.08)">Delete</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Active</span>
+        <button class="cl-btn cl-btn-destructive cl-btn-default" style="transform:scale(0.98);background:rgba(248,113,113,0.15)">Delete</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Disabled</span>
+        <button class="cl-btn cl-btn-destructive cl-btn-default" disabled>Delete</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Loading</span>
+        <button class="cl-btn cl-btn-destructive cl-btn-default cl-btn-loading">
+          <span class="btn-label">Delete</span>
+          <span class="btn-spinner"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sizes -->
+    <div class="size-row-label">Sizes — sm / default / lg</div>
+    <div class="state-row">
+      <div class="state-item">
+        <span class="state-label">Small</span>
+        <button class="cl-btn cl-btn-primary cl-btn-sm">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Default</span>
+        <button class="cl-btn cl-btn-primary cl-btn-default">Book Now</button>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Large</span>
+        <button class="cl-btn cl-btn-primary cl-btn-lg">Book Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ClCard                                                -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ClCard</h2>
+    <p class="section-intro"><!-- Component: ClCard --> Three variants: Default, Raised, Accent-bordered. Hover state transitions border-color to --color-border-mid (200ms ease-out).</p>
+
+    <div class="flex-row">
+      <div class="state-item">
+        <span class="state-label">Default</span>
+        <div class="cl-card card-demo">
+          <div style="font-family:var(--font-display);font-weight:var(--weight-bold);font-size:var(--text-base);color:var(--color-text-primary);margin-bottom:var(--space-2)">Video Package</div>
+          <div class="card-content">Standard tier with full editing, captions, and 5-day turnaround. Includes 3 videos.</div>
+        </div>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Default — Hover</span>
+        <div class="cl-card card-demo" style="border-color:var(--color-border-mid)">
+          <div style="font-family:var(--font-display);font-weight:var(--weight-bold);font-size:var(--text-base);color:var(--color-text-primary);margin-bottom:var(--space-2)">Video Package</div>
+          <div class="card-content">Standard tier with full editing, captions, and 5-day turnaround. Includes 3 videos.</div>
+        </div>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Raised</span>
+        <div class="cl-card cl-card-raised card-demo">
+          <div style="font-family:var(--font-display);font-weight:var(--weight-bold);font-size:var(--text-base);color:var(--color-text-primary);margin-bottom:var(--space-2)">Video Package</div>
+          <div class="card-content">Standard tier with full editing, captions, and 5-day turnaround. Includes 3 videos.</div>
+        </div>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Accent</span>
+        <div class="cl-card cl-card-accent card-demo">
+          <div style="font-family:var(--font-display);font-weight:var(--weight-bold);font-size:var(--text-base);color:var(--color-text-primary);margin-bottom:var(--space-2)">Video Package</div>
+          <div class="card-content">Standard tier with full editing, captions, and 5-day turnaround. Includes 3 videos.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ClInput / ClTextarea / ClSelect                       -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ClInput / ClTextarea / ClSelect</h2>
+    <p class="section-intro"><!-- Component: ClInput --><!-- Component: ClTextarea --><!-- Component: ClSelect --> All input states: default, focus, error, disabled. With label, helper text, and error messages.</p>
+
+    <div class="flex-row">
+      <!-- Input default -->
+      <div class="state-item">
+        <span class="state-label">Default</span>
+        <div class="cl-field" style="width:240px">
+          <label class="cl-field-label">Full Name</label>
+          <input class="cl-input" type="text" placeholder="Enter your name" />
+          <span class="cl-field-helper">Your legal or brand name</span>
+        </div>
+      </div>
+      <!-- Input focus -->
+      <div class="state-item">
+        <span class="state-label">Focus</span>
+        <div class="cl-field" style="width:240px">
+          <label class="cl-field-label">Full Name</label>
+          <input class="cl-input" type="text" placeholder="Enter your name" style="border-color:var(--color-accent)" value="Adunola Okonkwo" />
+        </div>
+      </div>
+      <!-- Input error -->
+      <div class="state-item">
+        <span class="state-label">Error</span>
+        <div class="cl-field" style="width:240px">
+          <label class="cl-field-label">Email</label>
+          <input class="cl-input error" type="text" placeholder="Enter your email" value="invalid" />
+          <span class="cl-field-error">Please enter a valid email address</span>
+        </div>
+      </div>
+      <!-- Input disabled -->
+      <div class="state-item">
+        <span class="state-label">Disabled</span>
+        <div class="cl-field" style="width:240px">
+          <label class="cl-field-label">Role</label>
+          <input class="cl-input" type="text" placeholder="Creator" disabled />
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--space-6)">
+      <!-- Textarea states -->
+      <div class="flex-row">
+        <div class="state-item">
+          <span class="state-label">Textarea Default</span>
+          <div class="cl-field" style="width:320px">
+            <label class="cl-field-label">Scope Notes</label>
+            <textarea class="cl-textarea" placeholder="Describe your project requirements...">Looking for a content creator to produce 3 short-form videos for our brand's social media campaign. Target audience is Gen Z in Lagos.</textarea>
+          </div>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Char Counter — Near Limit</span>
+          <div class="cl-field" style="width:320px">
+            <label class="cl-field-label">Scope Notes</label>
+            <div class="cl-textarea-wrapper">
+              <textarea class="cl-textarea" style="padding-bottom:var(--space-8)">Looking for a content creator to produce 3 short-form videos for our brand's social media campaign. Targeting Gen Z in Lagos with a focus on lifestyle and fashion content. We need authentic storytelling that resonates with young Nigerian audiences. The videos should be shot in natural light with minimal editing — raw and real. We'd like to explore different formats including behind-the-scenes, product showcases, and day-in-the-life segments. Each video should be 30-60 seconds optimized for Instagram Reels and TikTok. We're open to creative input on the concept and would love to see your previous work in this space. Let us know your availability for a kickoff call next week.</textarea>
+              <span class="cl-char-counter near-limit">280 / 300</span>
+            </div>
+          </div>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Char Counter — At Limit</span>
+          <div class="cl-field" style="width:320px">
+            <label class="cl-field-label">Scope Notes</label>
+            <div class="cl-textarea-wrapper">
+              <textarea class="cl-textarea" style="padding-bottom:var(--space-8)">Looking for a content creator to produce 3 short-form videos for our brand's social media campaign. Targeting Gen Z in Lagos with a focus on lifestyle and fashion content. We need authentic storytelling that resonates with young Nigerian audiences. The videos should be shot in natural light with minimal editing — raw and real. We'd like to explore different formats including behind-the-scenes, product showcases, and day-in-the-life segments. Each video should be 30-60 seconds optimized for Instagram Reels and TikTok. We're open to creative input on your vision for this project. Let us know your rates and availability. We're looking to start ASAP.</textarea>
+              <span class="cl-char-counter at-limit">300 / 300</span>
+            </div>
+          </div>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Textarea Error</span>
+          <div class="cl-field" style="width:320px">
+            <label class="cl-field-label">Scope Notes</label>
+            <textarea class="cl-textarea error" placeholder="Describe your project requirements..."></textarea>
+            <span class="cl-field-error">Scope notes are required</span>
+          </div>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Textarea Disabled</span>
+          <div class="cl-field" style="width:320px">
+            <label class="cl-field-label">Scope Notes</label>
+            <textarea class="cl-textarea" placeholder="Describe your project requirements..." disabled></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--space-6)">
+      <!-- Select states -->
+      <div class="flex-row">
+        <div class="state-item">
+          <span class="state-label">Select Default</span>
+          <div class="cl-field" style="width:200px">
+            <label class="cl-field-label">Category</label>
+            <select class="cl-select">
+              <option>Content Creation</option>
+              <option>Video Production</option>
+            </select>
+          </div>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Select Focus</span>
+          <div class="cl-field" style="width:200px">
+            <label class="cl-field-label">Category</label>
+            <select class="cl-select" style="border-color:var(--color-accent)">
+              <option>Content Creation</option>
+              <option>Video Production</option>
+            </select>
+          </div>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Select Error</span>
+          <div class="cl-field" style="width:200px">
+            <label class="cl-field-label">Category</label>
+            <select class="cl-select error">
+              <option>Select category</option>
+            </select>
+            <span class="cl-field-error">Please select a category</span>
+          </div>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Select Disabled</span>
+          <div class="cl-field" style="width:200px">
+            <label class="cl-field-label">Category</label>
+            <select class="cl-select" disabled>
+              <option>Content Creation</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ClBadge                                               -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ClBadge</h2>
+    <p class="section-intro"><!-- Component: ClBadge --> Category, experience level, status, and special badges.</p>
+
+    <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+      <div>
+        <div class="badge-row">
+          <span class="cl-badge cl-badge-accent">Video Production</span>
+          <span class="cl-badge cl-badge-accent-muted">Content Creation</span>
+          <span class="cl-badge cl-badge-surface">Photography</span>
+          <span class="cl-badge cl-badge-surface">Graphic Design</span>
+          <span class="cl-badge cl-badge-surface">Audio Production</span>
+        </div>
+      </div>
+      <div>
+        <div class="badge-row">
+          <span class="exp-badge emerging">Emerging</span>
+          <span class="exp-badge established">Established</span>
+          <span class="exp-badge veteran">Veteran</span>
+        </div>
+      </div>
+      <div>
+        <div class="badge-row">
+          <span class="cl-badge cl-badge-success">Verified</span>
+          <span class="cl-badge cl-badge-warning">Pending Review</span>
+          <span class="cl-badge cl-badge-error">Suspended</span>
+          <span class="cl-badge cl-badge-info">Featured</span>
+        </div>
+      </div>
+      <div>
+        <div class="badge-row">
+          <span class="cl-badge-new">New</span>
+          <span class="cl-badge-drive">Drive</span>
+          <span class="cl-badge-verified">✓ Verified</span>
+          <span class="cl-badge-popular">Most Popular</span>
+          <span class="cl-badge-sponsored">Sponsored</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ExploreVideoCard                                      -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ExploreVideoCard</h2>
+    <p class="section-intro"><!-- Component: ExploreVideoCard --> The primary content unit of the Explore feed. 4:5 aspect ratio, gradient overlay, provider info. 4 cards at varying heights to demonstrate masonry texture.</p>
+
+    <div class="masonry-row">
+      <!-- Card 1 — 240px height -->
+      <div class="explore-card" style="width:calc(25% - 6px);height:240px;flex-shrink:0">
+        <div class="explore-card-video" style="flex:1">
+          <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <div class="explore-card-gradient"></div>
+          <div class="explore-card-info">
+            <span class="cl-badge cl-badge-accent explore-card-category">Content Creation</span>
+            <span class="explore-card-name">Adunola O.</span>
+            <div class="explore-card-meta">
+              <span class="explore-card-stars">★ 4.9</span>
+              <span class="explore-card-price">from <span class="price-amount">₦45,000</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+      </div>
+
+      <!-- Card 2 — 300px height -->
+      <div class="explore-card" style="width:calc(25% - 6px);height:300px;flex-shrink:0">
+        <div class="explore-card-video" style="flex:1">
+          <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <div class="explore-card-gradient"></div>
+          <div class="explore-card-info">
+            <span class="cl-badge cl-badge-accent explore-card-category">Video Production</span>
+            <span class="explore-card-name">Chidi E.</span>
+            <div class="explore-card-meta">
+              <span class="explore-card-stars">★ 4.8</span>
+              <span class="explore-card-price">from <span class="price-amount">₦85,000</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+      </div>
+
+      <!-- Card 3 — 260px height, with Drive badge -->
+      <div class="explore-card" style="width:calc(25% - 6px);height:260px;flex-shrink:0">
+        <div class="explore-card-video" style="flex:1">
+          <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <div class="explore-card-gradient"></div>
+          <div class="explore-card-info">
+            <span class="cl-badge cl-badge-accent explore-card-category">Photography</span>
+            <span class="explore-card-name">Simi A.</span>
+            <div class="explore-card-meta">
+              <span class="explore-card-stars">★ 5.0</span>
+              <span class="explore-card-price">from <span class="price-amount">₦120,000</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="explore-card-drive-badge">Drive</div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+      </div>
+
+      <!-- Card 4 — 320px height -->
+      <div class="explore-card" style="width:calc(25% - 6px);height:320px;flex-shrink:0">
+        <div class="explore-card-video" style="flex:1">
+          <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <div class="explore-card-gradient"></div>
+          <div class="explore-card-info">
+            <span class="cl-badge cl-badge-accent explore-card-category">Audio</span>
+            <span class="explore-card-name">Femi K.</span>
+            <div class="explore-card-meta">
+              <span class="explore-card-stars">★ 4.7</span>
+              <span class="explore-card-price">from <span class="price-amount">₦35,000</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="explore-card-hover-cta">View Profile →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ServicePackageCard                                    -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ServicePackageCard</h2>
+    <p class="section-intro"><!-- Component: ServicePackageCard --> Three tiers side by side. Standard has accent border-top + "Most Popular" badge. Prices in JetBrains Mono accent colour.</p>
+
+    <div class="pkg-row">
+      <!-- Basic -->
+      <div class="state-item" style="align-items:stretch">
+        <span class="state-label">Basic</span>
+        <div class="pkg-card" style="flex:1">
+          <span class="pkg-tier">Tier</span>
+          <span class="pkg-name">Basic</span>
+          <span class="pkg-price">₦45,000</span>
+          <span class="pkg-turnaround">7-day turnaround</span>
+          <div class="pkg-divider"></div>
+          <ul class="pkg-deliverables">
+            <li>1 video</li>
+            <li>Basic edit</li>
+            <li>7 days</li>
+          </ul>
+          <div class="pkg-cta">
+            <button class="cl-btn cl-btn-outlined cl-btn-default" style="width:100%">Book Basic</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Standard -->
+      <div class="state-item" style="align-items:stretch">
+        <span class="state-label">Standard</span>
+        <div class="pkg-card standard" style="flex:1">
+          <div class="pkg-card-popular">
+            <span class="cl-badge-popular">Most Popular</span>
+          </div>
+          <span class="pkg-tier">Tier</span>
+          <span class="pkg-name">Standard</span>
+          <span class="pkg-price">₦85,000</span>
+          <span class="pkg-turnaround">5-day turnaround</span>
+          <div class="pkg-divider"></div>
+          <ul class="pkg-deliverables">
+            <li>3 videos</li>
+            <li>Full edit</li>
+            <li>Captions</li>
+            <li>5 days</li>
+          </ul>
+          <div class="pkg-cta">
+            <button class="cl-btn cl-btn-primary cl-btn-default" style="width:100%">Book Standard</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Premium -->
+      <div class="state-item" style="align-items:stretch">
+        <span class="state-label">Premium</span>
+        <div class="pkg-card" style="flex:1">
+          <span class="pkg-tier">Tier</span>
+          <span class="pkg-name">Premium</span>
+          <span class="pkg-price">₦150,000</span>
+          <span class="pkg-turnaround">3-day turnaround</span>
+          <div class="pkg-divider"></div>
+          <ul class="pkg-deliverables">
+            <li>5 videos</li>
+            <li>Full edit</li>
+            <li>2 revisions</li>
+            <li>3 days</li>
+          </ul>
+          <div class="pkg-cta">
+            <button class="cl-btn cl-btn-outlined cl-btn-default" style="width:100%">Book Premium</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: EscrowStatusPill                                      -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>EscrowStatusPill</h2>
+    <p class="section-intro"><!-- Component: EscrowStatusPill --> Five escrow states with distinct tinted backgrounds and colour-coded indicator icons.</p>
+
+    <div class="badge-row">
+      <span class="state-label" style="margin-right:var(--space-2)">States:</span>
+      <span class="escrow-pill held">● Funds Held</span>
+      <span class="escrow-pill progress">● In Progress</span>
+      <span class="escrow-pill released">✓ Released</span>
+      <span class="escrow-pill disputed">⚠ Under Review</span>
+      <span class="escrow-pill refunded">↩ Refunded</span>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: AvailabilityBadge                                     -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>AvailabilityBadge</h2>
+    <p class="section-intro"><!-- Component: AvailabilityBadge --> Provider availability states shown on profile and search cards.</p>
+
+    <div class="badge-row">
+      <span class="avail-badge now">● Available Now</span>
+      <span class="avail-badge soon">● Booking in 2 weeks</span>
+      <span class="avail-badge unavail">● Unavailable</span>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ExperienceLevelBadge                                  -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ExperienceLevelBadge</h2>
+    <p class="section-intro"><!-- Component: ExperienceLevelBadge --> Pill badges indicating provider experience tier. Subtle backgrounds drawn from semantic colour families.</p>
+
+    <div class="badge-row">
+      <span class="exp-badge emerging">Emerging</span>
+      <span class="exp-badge established">Established</span>
+      <span class="exp-badge veteran">Veteran</span>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ConsentCheckbox                                       -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ConsentCheckbox</h2>
+    <p class="section-intro"><!-- Component: ConsentCheckbox --> Custom styled checkbox. Unchecked and checked states. 18px, accent background when checked.</p>
+
+    <div class="flex-row">
+      <div class="state-item">
+        <span class="state-label">Unchecked</span>
+        <label class="cl-checkbox">
+          <input type="checkbox" />
+          <span class="cl-checkbox-box"></span>
+          I agree to the Terms of Service
+        </label>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Checked</span>
+        <label class="cl-checkbox checked">
+          <input type="checkbox" checked />
+          <span class="cl-checkbox-box"><span class="cl-checkbox-check">✓</span></span>
+          I agree to the Terms of Service
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: RoleSelectCard                                        -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>RoleSelectCard</h2>
+    <p class="section-intro"><!-- Component: RoleSelectCard --> Provider and Client role selection cards. Selected state: accent border + accent-muted background.</p>
+
+    <div class="flex-row">
+      <div class="state-item" style="align-items:stretch">
+        <span class="state-label">Provider (Selected)</span>
+        <div class="role-card selected" style="flex:1">
+          <div class="role-icon">🎬</div>
+          <div class="role-name">I'm a Creator</div>
+          <div class="role-desc">Showcase your portfolio, get hired by brands, and earn doing what you love. Your work speaks for itself.</div>
+        </div>
+      </div>
+      <div class="state-item" style="align-items:stretch">
+        <span class="state-label">Client (Default)</span>
+        <div class="role-card" style="flex:1">
+          <div class="role-icon">🏢</div>
+          <div class="role-name">I'm a Brand</div>
+          <div class="role-desc">Find talented creators who match your brand's vibe. Browse portfolios, book directly, and pay securely through escrow.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

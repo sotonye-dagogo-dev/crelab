@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="NavBar,PrivacyPolicy,TermsOfService,CookiePolicy,CookieConsentBanner,ToC">
+  <title>Crelab — Legal</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+      min-height: 100vh;
+      padding-top: 64px;
+    }
+
+    /* ---- View toggle ---- */
+    .legal-pill-nav {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 45;
+      display: flex;
+      gap: 6px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      padding: 5px;
+    }
+    .legal-pill-nav button {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 13px;
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+      white-space: nowrap;
+    }
+    .legal-pill-nav button.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .legal-pill-nav button:not(.active):hover {
+      background: var(--color-surface-raised);
+      color: var(--color-text-primary);
+    }
+
+    /* ---- Nav Bar ---- */
+    .nav-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+    }
+    .nav-bar-accent {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: var(--color-accent);
+      z-index: 51;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .nav-logo-mark {
+      width: 12px;
+      height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .nav-logo-text {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+    }
+    .nav-centre {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin: 0 auto;
+    }
+    .nav-centre a {
+      font-family: var(--font-body);
+      font-weight: var(--weight-medium);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .nav-centre a:hover { color: var(--color-text-primary); }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    /* ---- ClButton ---- */
+    .cl-btn {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .cl-btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+    .cl-btn-md { height: 40px; padding: 0 16px; font-size: 14px; }
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .cl-btn-primary:hover {
+      background: var(--color-accent-dim);
+      transform: scale(1.01);
+    }
+    .cl-btn-outlined {
+      background: transparent;
+      border: 1px solid var(--color-border-mid);
+      color: var(--color-text-primary);
+    }
+    .cl-btn-outlined:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    /* ---- Hamburger ---- */
+    .nav-hamburger {
+      display: none;
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      margin-left: auto;
+    }
+    .nav-hamburger span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: var(--color-text-primary);
+      border-radius: 2px;
+      transition: transform var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out);
+    }
+    .nav-overlay {
+      position: fixed;
+      inset: 0;
+      background: #0A0A0A;
+      z-index: 60;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      opacity: 0;
+      transition: opacity var(--duration-base) var(--ease-out);
+    }
+    .nav-overlay.open { display: flex; opacity: 1; }
+    .nav-overlay a {
+      font-family: var(--font-body);
+      font-weight: var(--weight-medium);
+      font-size: 18px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+    }
+
+    /* ---- Page layout ---- */
+    .legal-page {
+      display: none;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 88px 24px 80px;
+      animation: legalFadeIn 200ms var(--ease-out);
+    }
+    .legal-page.active { display: block; }
+    .legal-page.fade-out { animation: legalFadeOut 150ms var(--ease-out) forwards; }
+
+    @keyframes legalFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes legalFadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-6px); }
+    }
+
+    .legal-heading {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 36px;
+      color: var(--color-text-primary);
+      line-height: var(--leading-tight);
+    }
+    .legal-meta {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-tertiary);
+      margin-top: 8px;
+      margin-bottom: 32px;
+    }
+    .legal-intro {
+      font-family: var(--font-body);
+      font-size: 15px;
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .legal-section h2 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: 22px;
+      color: var(--color-text-primary);
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+    .legal-section p {
+      font-family: var(--font-body);
+      font-size: 15px;
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .legal-section ul {
+      margin: 0 0 16px 20px;
+      list-style: none;
+    }
+    .legal-section ul li {
+      font-family: var(--font-body);
+      font-size: 15px;
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+      padding-left: 16px;
+      position: relative;
+    }
+    .legal-section ul li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 5px;
+      height: 5px;
+      background: var(--color-accent);
+      border-radius: 1px;
+      transform: rotate(45deg);
+    }
+
+    /* ---- ToC sidebar ---- */
+    .legal-toc {
+      position: fixed;
+      left: 20px;
+      top: 88px;
+      width: 200px;
+      z-index: 30;
+    }
+    .legal-toc-title {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-bottom: 10px;
+    }
+    .legal-toc a {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      padding: 4px 0 4px 12px;
+      border-left: 2px solid transparent;
+      transition: color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+      line-height: 1.5;
+    }
+    .legal-toc a:hover {
+      color: var(--color-accent);
+    }
+    .legal-toc a.active {
+      border-left-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    /* ---- Cookie table ---- */
+    .cookie-table-wrap {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+    .cookie-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .cookie-table th {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      background: var(--color-surface-raised);
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .cookie-table td {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-text-primary);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .cookie-table td:not(:first-child) {
+      font-family: var(--font-body);
+    }
+    .cookie-table tr:last-child td { border-bottom: none; }
+
+    /* ---- Cookie consent banner ---- */
+    .cookie-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding: 16px 24px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .cookie-banner-text {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      flex: 1;
+      min-width: 240px;
+    }
+    .cookie-banner-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .cookie-banner .cl-btn-ghost {
+      background: transparent;
+      border: none;
+      color: var(--color-text-secondary);
+    }
+    .cookie-banner .cl-btn-ghost:hover { color: var(--color-text-primary); }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 1340px) {
+      .legal-toc { display: none; }
+    }
+    @media (max-width: 640px) {
+      .nav-centre { display: none; }
+      .nav-right .cl-btn-outlined { display: none; }
+      .nav-hamburger { display: flex; }
+      .legal-pill-nav {
+        top: 72px;
+        padding: 4px;
+        gap: 4px;
+        overflow-x: auto;
+        max-width: calc(100vw - 32px);
+      }
+      .legal-pill-nav button {
+        font-size: 12px;
+        padding: 6px 14px;
+      }
+      .legal-heading { font-size: 28px; }
+      .cookie-banner { flex-direction: column; align-items: stretch; }
+      .cookie-banner-actions { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Accent bar -->
+  <div class="nav-bar-accent"></div>
+
+  <!-- Nav -->
+  <nav class="nav-bar">
+    <div class="nav-logo">
+      <div class="nav-logo-mark"></div>
+      <span class="nav-logo-text">Crelab</span>
+      <!-- platformConfig.name — never hardcoded in production -->
+    </div>
+    <div class="nav-centre">
+      <a href="#">Explore</a>
+      <a href="#">For Creators</a>
+      <a href="#">Blog</a>
+    </div>
+    <div class="nav-right">
+      <a href="#" class="cl-btn cl-btn-md cl-btn-outlined">Find Talent</a>
+      <a href="#" class="cl-btn cl-btn-md cl-btn-primary">Get Hired</a>
+    </div>
+    <button class="nav-hamburger" onclick="toggleHamburger()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile nav overlay -->
+  <div class="nav-overlay" id="navOverlay">
+    <a href="#" onclick="toggleHamburger()">Explore</a>
+    <a href="#" onclick="toggleHamburger()">For Creators</a>
+    <a href="#" onclick="toggleHamburger()">Blog</a>
+    <a href="#" onclick="toggleHamburger()" class="cl-btn cl-btn-md cl-btn-outlined" style="margin-top:8px">Find Talent</a>
+    <a href="#" onclick="toggleHamburger()" class="cl-btn cl-btn-md cl-btn-primary">Get Hired</a>
+  </div>
+
+  <!-- View toggle pills -->
+  <nav class="legal-pill-nav" role="tablist" aria-label="Legal pages">
+    <button class="active" data-view="privacy" role="tab" aria-selected="true">Privacy Policy</button>
+    <button data-view="terms" role="tab" aria-selected="false">Terms of Service</button>
+    <button data-view="cookies" role="tab" aria-selected="false">Cookie Policy</button>
+  </nav>
+
+  <!-- ToC sidebar (desktop) -->
+  <nav class="legal-toc" id="legalToC" aria-label="Page contents"></nav>
+
+  <!-- ============================== -->
+  <!-- VIEW: Privacy Policy -->
+  <!-- ============================== -->
+  <div class="legal-page active" id="view-privacy" role="tabpanel">
+    <h1 class="legal-heading">Privacy Policy</h1>
+    <p class="legal-meta">Last updated: July 2026</p>
+    <p class="legal-intro">This Privacy Policy explains how {platformConfig.name} (&apos;we&apos;, &apos;us&apos;, &apos;our&apos;) collects, uses, and protects your personal data under the Nigeria Data Protection Regulation (NDPR) 2023.</p>
+    <!-- platformConfig.name and privacyEmail from config. Never hardcoded. -->
+
+    <div class="legal-section">
+      <h2 id="pp-1" data-toc="Data Controller">1. Data Controller</h2>
+      <p>{platformConfig.name} is the data controller for personal data collected through the platform. Registered address: Lagos, Nigeria. Contact: <span style="color:var(--color-accent)">privacy@crelab.ng</span>.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-2" data-toc="Data We Collect">2. Data We Collect</h2>
+      <p>We collect the following categories of personal data:</p>
+      <ul>
+        <li><strong style="color:var(--color-text-primary)">Account data</strong> — email, phone number, full name, password (hashed)</li>
+        <li><strong style="color:var(--color-text-primary)">Profile data</strong> — bio, location, years active, experience level, niche tags, portfolio items</li>
+        <li><strong style="color:var(--color-text-primary)">Transaction data</strong> — bookings, payments, escrow records, dispute history</li>
+        <li><strong style="color:var(--color-text-primary)">Usage data</strong> — analytics, page views, interactions, device information, log data</li>
+        <li><strong style="color:var(--color-text-primary)">Consent records</strong> — NDPR consent timestamps, scope, withdrawal records</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-3" data-toc="Legal Basis">3. Legal Basis for Processing</h2>
+      <p>We process your personal data under the following legal bases:</p>
+      <ul>
+        <li><strong style="color:var(--color-text-primary)">Consent</strong> — you explicitly opt in for marketing, analytics, and profile visibility</li>
+        <li><strong style="color:var(--color-text-primary)">Contract performance</strong> — processing necessary to facilitate bookings, payments, and escrow</li>
+        <li><strong style="color:var(--color-text-primary)">Legitimate interest</strong> — fraud prevention, platform security, service improvement</li>
+        <li><strong style="color:var(--color-text-primary)">Legal obligation</strong> — records retention, regulatory compliance, dispute resolution</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-4" data-toc="Data Sharing">4. Data Sharing</h2>
+      <p>We share your data only as necessary to provide the platform services:</p>
+      <ul>
+        <li><strong style="color:var(--color-text-primary)">Providers / Clients</strong> — booking-related information shared between parties in context of a booking</li>
+        <li><strong style="color:var(--color-text-primary)">Paystack</strong> — payment processing (card data never touches Crelab servers)</li>
+        <li><strong style="color:var(--color-text-primary)">Cloudinary / Mux</strong> — media hosting, transcoding, and delivery</li>
+        <li><strong style="color:var(--color-text-primary)">Google Drive API</strong> — portfolio sync (public folders only, no OAuth scopes)</li>
+        <li><strong style="color:var(--color-text-primary)">Sanity</strong> — blog content management</li>
+        <li><strong style="color:var(--color-text-primary)">Resend</strong> — transactional email delivery</li>
+        <li><strong style="color:var(--color-text-primary)">Authorities</strong> — when required by law or valid legal process</li>
+      </ul>
+      <p>We never sell your personal data to third parties.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-5" data-toc="Data Retention">5. Data Retention</h2>
+      <p>We retain your personal data only as long as necessary:</p>
+      <ul>
+        <li><strong style="color:var(--color-text-primary)">Account data</strong> — while your account is active, plus 2 years after deletion for audit purposes</li>
+        <li><strong style="color:var(--color-text-primary)">Financial data</strong> — 7 years (statutory audit requirement)</li>
+        <li><strong style="color:var(--color-text-primary)">Analytics data</strong> — 26 months</li>
+        <li><strong style="color:var(--color-text-primary)">Consent records</strong> — permanent record of consent and withdrawal</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-6" data-toc="Your Rights (NDPR)">6. Your Rights Under NDPR</h2>
+      <p>You have the following rights regarding your personal data. To exercise them, visit your account settings or contact us.</p>
+      <ul>
+        <li><strong style="color:var(--color-text-primary)">Right of Access</strong> — request a copy of your data via <span style="color:var(--color-accent)">/api/account/export</span></li>
+        <li><strong style="color:var(--color-text-primary)">Right to Rectification</strong> — correct inaccurate data in your profile settings</li>
+        <li><strong style="color:var(--color-text-primary)">Right to Erasure</strong> — request account deletion via <span style="color:var(--color-accent)">/api/account/delete</span></li>
+        <li><strong style="color:var(--color-text-primary)">Right to Data Portability</strong> — receive your data in a structured, machine-readable format</li>
+        <li><strong style="color:var(--color-text-primary)">Right to Restrict Processing</strong> — limit how we use your data under certain circumstances</li>
+        <li><strong style="color:var(--color-text-primary)">Right to Object</strong> — object to processing based on legitimate interest</li>
+        <li><strong style="color:var(--color-text-primary)">Right to Withdraw Consent</strong> — withdraw consent at any time via <span style="color:var(--color-accent)">/api/account/consent</span></li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-7" data-toc="International Transfers">7. International Transfers</h2>
+      <p>Your data may be transferred to and processed in countries outside Nigeria. When we transfer data internationally, we ensure adequate safeguards are in place through Standard Contractual Clauses (SCCs) or Binding Corporate Rules (BCRs).</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-8" data-toc="Security">8. Security</h2>
+      <p>We implement industry-standard security measures:</p>
+      <ul>
+        <li>Encryption at rest (AES-256) and in transit (TLS 1.3)</li>
+        <li>Row-Level Security (RLS) on all user data queries</li>
+        <li>Strict access controls — no direct database access outside the API layer</li>
+        <li>Regular security audits and penetration testing</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-9" data-toc="Cookies">9. Cookies</h2>
+      <p>We use essential and analytics cookies. You can manage your preferences in the Cookie Policy section. Essential cookies operate on a legitimate interest basis; analytics cookies require your consent.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-10" data-toc="Changes">10. Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. Material changes will be notified via email and in-app notification. Continued use after changes take effect constitutes acceptance of the updated policy.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="pp-11" data-toc="Contact">11. Contact</h2>
+      <p>For privacy-related inquiries, contact our Data Protection Officer at <span style="color:var(--color-accent)">privacy@crelab.ng</span>. You also have the right to lodge a complaint with the Nigeria Data Protection Commission (NDPC).</p>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- VIEW: Terms of Service -->
+  <!-- ============================== -->
+  <div class="legal-page" id="view-terms" role="tabpanel">
+    <h1 class="legal-heading">Terms of Service</h1>
+    <p class="legal-meta">Last updated: July 2026</p>
+    <p class="legal-intro">These Terms of Service govern your use of the {platformConfig.name} platform. By creating an account or using our services, you agree to these terms.</p>
+    <!-- All config values from platformConfig. Never hardcoded. -->
+
+    <div class="legal-section">
+      <h2 id="tos-1" data-toc="Acceptance">1. Acceptance</h2>
+      <p>By accessing or using {platformConfig.name}, you confirm that you have read, understood, and agree to be bound by these Terms. If you do not agree, do not use the platform.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-2" data-toc="Definitions">2. Definitions</h2>
+      <ul>
+        <li><strong style="color:var(--color-text-primary)">Platform</strong> — {platformConfig.name}, the Crelab marketplace connecting Providers and Clients</li>
+        <li><strong style="color:var(--color-text-primary)">Provider</strong> — a creative professional offering services through the platform</li>
+        <li><strong style="color:var(--color-text-primary)">Client</strong> — a person or business hiring creative services through the platform</li>
+        <li><strong style="color:var(--color-text-primary)">Booking</strong> — an agreement between a Provider and Client facilitated through the platform</li>
+        <li><strong style="color:var(--color-text-primary)">Escrow</strong> — payment held by Crelab and released upon confirmed delivery</li>
+        <li><strong style="color:var(--color-text-primary)">Services</strong> — the creative work described in the booking package</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-3" data-toc="Provider Obligations">3. Provider Obligations</h2>
+      <ul>
+        <li>Maintain an accurate and up-to-date profile, including portfolio, pricing, and availability</li>
+        <li>Deliver services in accordance with the agreed scope, timeline, and quality standards</li>
+        <li>Respond to reasonable revision requests within the agreed revision policy</li>
+        <li>Grant Clients a licence to use delivered work for its intended purpose</li>
+        <li>Not solicit Clients off-platform to avoid platform fees</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-4" data-toc="Client Obligations">4. Client Obligations</h2>
+      <ul>
+        <li>Provide a clear, complete brief at the time of booking</li>
+        <li>Provide timely feedback and approvals to avoid delays</li>
+        <li>Make payment into escrow before work begins</li>
+        <li>Not solicit Providers off-platform to avoid platform fees</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-5" data-toc="Booking & Escrow">5. Booking &amp; Escrow</h2>
+      <p>The booking lifecycle follows this sequence:</p>
+      <ol style="list-style:decimal;margin:0 0 16px 20px;color:var(--color-text-secondary);font-size:15px;line-height:1.7">
+        <li style="margin-bottom:4px">Client sends a booking request</li>
+        <li style="margin-bottom:4px">Provider accepts the request</li>
+        <li style="margin-bottom:4px">Client pays the full amount into escrow</li>
+        <li style="margin-bottom:4px">Provider delivers the work</li>
+        <li style="margin-bottom:4px">Client confirms delivery or raises a dispute</li>
+        <li style="margin-bottom:4px">Payment is released to Provider (or refunded if disputed)</li>
+      </ol>
+      <p>If the Client does not confirm or dispute delivery within {platformConfig.escrowReleaseDays} days of delivery, the payment is automatically released to the Provider.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-6" data-toc="Fees">6. Fees</h2>
+      <p>{platformConfig.name} charges a platform fee of {platformConfig.feeRate * 100}% on each booking, deducted from the Provider&apos;s payout at release. Paystack processing fees are borne by the Client at the time of payment.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-7" data-toc="Cancellation & Refunds">7. Cancellation &amp; Refunds</h2>
+      <ul>
+        <li><strong style="color:var(--color-text-primary)">Client cancels more than {platformConfig.cancellationPolicy.clientThresholdHours} hours before service date</strong> — full refund to original payment method</li>
+        <li><strong style="color:var(--color-text-primary)">Client cancels within {platformConfig.cancellationPolicy.clientThresholdHours} hours</strong> — subject to Provider&apos;s cancellation policy</li>
+        <li><strong style="color:var(--color-text-primary)">Provider cancels</strong> — full refund to Client plus a penalty on Provider</li>
+        <li><strong style="color:var(--color-text-primary)">Disputed bookings</strong> — resolved via the dispute resolution process</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-8" data-toc="Intellectual Property">8. Intellectual Property</h2>
+      <p>Providers retain ownership of their creative work. Upon full payment, Clients receive a licence to use the delivered work for the purpose specified in the booking scope. Providers may display commissioned work in their portfolio unless otherwise agreed in writing.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-9" data-toc="Liability">9. Liability</h2>
+      <p>{platformConfig.name}&apos;s liability is limited to the total amount paid for the specific booking giving rise to the claim. In no event shall {platformConfig.name} be liable for consequential, indirect, or incidental damages.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-10" data-toc="Termination">10. Termination</h2>
+      <p>Either party may terminate their account with 30 days&apos; notice. Sections on Fees, Intellectual Property, Liability, and Governing Law survive termination. Terminated accounts retain the right to export their data.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-11" data-toc="Governing Law">11. Governing Law</h2>
+      <p>These Terms are governed by the laws of the Federal Republic of Nigeria. Any disputes arising from these Terms shall be resolved in the courts of Lagos State, Nigeria.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="tos-12" data-toc="Changes">12. Changes to Terms</h2>
+      <p>We may revise these Terms with 30 days&apos; notice. Material changes will be communicated via email and in-app notification. Continued use after the effective date constitutes acceptance of the revised Terms.</p>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- VIEW: Cookie Policy -->
+  <!-- ============================== -->
+  <div class="legal-page" id="view-cookies" role="tabpanel">
+    <h1 class="legal-heading">Cookie Policy</h1>
+    <p class="legal-meta">Last updated: July 2026</p>
+    <p class="legal-intro">We use cookies and similar technologies to operate {platformConfig.name}, understand usage, and improve your experience.</p>
+
+    <div class="legal-section">
+      <h2 id="cp-1" data-toc="What Are Cookies">What Are Cookies?</h2>
+      <p>Cookies are small text files stored on your device when you visit a website. They help us remember your preferences, authenticate your session, and understand how you interact with the platform.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="cp-2" data-toc="Cookies We Use">Cookies We Use</h2>
+      <div class="cookie-table-wrap">
+        <table class="cookie-table">
+          <thead>
+            <tr>
+              <th>Cookie Name</th>
+              <th>Purpose</th>
+              <th>Duration</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>__session</td><td>Authentication session</td><td>Session</td><td style="color:var(--color-success)">Essential</td></tr>
+            <tr><td>__auth</td><td>Auth state persistence</td><td>30 days</td><td style="color:var(--color-success)">Essential</td></tr>
+            <tr><td>cf_clearance</td><td>Cloudflare bot protection</td><td>Session</td><td style="color:var(--color-success)">Essential</td></tr>
+            <tr><td>_ga</td><td>Google Analytics — user tracking</td><td>26 months</td><td style="color:var(--color-warning)">Analytics</td></tr>
+            <tr><td>_gid</td><td>Google Analytics — session tracking</td><td>24 hours</td><td style="color:var(--color-warning)">Analytics</td></tr>
+            <tr><td>sanity_session</td><td>Sanity CMS preview mode</td><td>Session</td><td style="color:var(--color-info)">Functional</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="cp-3" data-toc="Managing Cookies">Managing Cookies</h2>
+      <p>You can manage your cookie preferences at any time using the cookie consent banner (shown below for reference). Essential cookies cannot be disabled as they are necessary for platform operation. Analytics cookies require your opt-in consent.</p>
+      <p>You can also configure your browser to block or delete cookies, but this may affect platform functionality.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="cp-4" data-toc="Third-Party Cookies">Third-Party Cookies</h2>
+      <p>We use cookies from the following third-party services, each subject to their own privacy policies:</p>
+      <ul>
+        <li><strong style="color:var(--color-text-primary)">Google Analytics</strong> — aggregated usage analytics (opt-in)</li>
+        <li><strong style="color:var(--color-text-primary)">Cloudflare</strong> — security and bot detection</li>
+        <li><strong style="color:var(--color-text-primary)">Sanity</strong> — content management (CMS preview auth)</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="cp-5" data-toc="Updates">Updates to This Policy</h2>
+      <p>We may update this Cookie Policy to reflect changes in the cookies we use or regulatory requirements. We will notify you of significant changes via email or in-app notification.</p>
+    </div>
+
+    <div class="legal-section">
+      <h2 id="cp-6" data-toc="Contact">Contact</h2>
+      <p>If you have questions about our use of cookies, contact us at <span style="color:var(--color-accent)">privacy@crelab.ng</span>.</p>
+    </div>
+
+    <!-- Cookie consent banner (reference implementation) -->
+    <h2 style="font-family:var(--font-display);font-weight:var(--weight-bold);font-size:18px;margin-top:48px;margin-bottom:12px">Cookie Consent Banner (Reference)</h2>
+    <p style="font-size:14px;color:var(--color-text-tertiary);margin-bottom:16px">This is the cookie consent banner shown on first visit. It appears at the bottom of every page.</p>
+    <!-- Banner shows on first visit via localStorage flag. Customise opens modal with toggle per category. -->
+  </div>
+
+  <!-- Cookie consent banner (live reference) -->
+  <div class="cookie-banner" id="cookieBanner">
+    <span class="cookie-banner-text">We use cookies to improve your experience. By clicking &apos;Accept&apos;, you consent to analytics cookies.</span>
+    <div class="cookie-banner-actions">
+      <button class="cl-btn cl-btn-sm cl-btn-primary" onclick="acceptCookies()">Accept All</button>
+      <button class="cl-btn cl-btn-sm cl-btn-ghost" onclick="rejectCookies()">Reject Optional</button>
+      <button class="cl-btn cl-btn-sm cl-btn-outlined" onclick="customiseCookies()" style="border-color:var(--color-accent);color:var(--color-accent)">Customise</button>
+    </div>
+  </div>
+
+  <script>
+    // ---- Hamburger toggle ----
+    function toggleHamburger() {
+      var el = document.getElementById('navOverlay');
+      el.classList.toggle('open');
+    }
+
+    // ---- View switching ----
+    var viewButtons = document.querySelectorAll('.legal-pill-nav button');
+    var pages = document.querySelectorAll('.legal-page');
+    var currentView = 'privacy';
+
+    viewButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var target = this.getAttribute('data-view');
+        if (target === currentView) return;
+        switchView(target);
+      });
+    });
+
+    function switchView(target) {
+      // Update pills
+      viewButtons.forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-view') === target);
+        b.setAttribute('aria-selected', b.getAttribute('data-view') === target);
+      });
+      // Fade out current
+      var prev = document.getElementById('view-' + currentView);
+      var next = document.getElementById('view-' + target);
+      if (prev) prev.classList.add('fade-out');
+      setTimeout(function () {
+        if (prev) { prev.classList.remove('active', 'fade-out'); }
+        next.classList.add('active');
+        currentView = target;
+        rebuildToC();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 150);
+    }
+
+    // ---- ToC builder ----
+    function rebuildToC() {
+      var toc = document.getElementById('legalToC');
+      var active = document.getElementById('view-' + currentView);
+      if (!toc || !active) return;
+      var headings = active.querySelectorAll('h2[id]');
+      var html = '<div class="legal-toc-title">Contents</div>';
+      headings.forEach(function (h) {
+        var label = h.getAttribute('data-toc') || h.textContent;
+        html += '<a href="#' + h.id + '" data-target="' + h.id + '">' + label + '</a>';
+      });
+      toc.innerHTML = html;
+      // Click handlers for ToC links
+      toc.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          var id = this.getAttribute('data-target');
+          var el = document.getElementById(id);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          toc.querySelectorAll('a').forEach(function (l) { l.classList.remove('active'); });
+          this.classList.add('active');
+        });
+      });
+    }
+
+    // ToC scroll spy
+    var tocScrollTimeout;
+    document.addEventListener('scroll', function () {
+      clearTimeout(tocScrollTimeout);
+      tocScrollTimeout = setTimeout(function () {
+        var toc = document.getElementById('legalToC');
+        if (!toc || window.innerWidth <= 1340) return;
+        var active = document.getElementById('view-' + currentView);
+        if (!active) return;
+        var headings = active.querySelectorAll('h2[id]');
+        var links = toc.querySelectorAll('a');
+        var scrollY = window.scrollY + 100;
+        var currentId = '';
+        headings.forEach(function (h) {
+          if (h.offsetTop <= scrollY) currentId = h.id;
+        });
+        links.forEach(function (l) {
+          l.classList.toggle('active', l.getAttribute('data-target') === currentId);
+        });
+      }, 100);
+    });
+
+    // ---- Cookie banner ----
+    function acceptCookies() {
+      document.getElementById('cookieBanner').style.display = 'none';
+      // localStorage.setItem('cookieConsent', 'all');
+    }
+    function rejectCookies() {
+      document.getElementById('cookieBanner').style.display = 'none';
+      // localStorage.setItem('cookieConsent', 'essential');
+    }
+    function customiseCookies() {
+      // Opens modal with toggle per category (Essential always on, Analytics optional, Marketing optional)
+      alert('Customise cookies — opens modal with toggle per category in production.');
+    }
+
+    // ---- Init ----
+    rebuildToC();
+  </script>
+</body>
+</html>

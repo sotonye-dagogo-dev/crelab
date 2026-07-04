@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="ClCard,ClButton,EscrowStatusPill,AvailabilityBadge">
+  <title>Crelab — Escrow Timeline</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+      --color-escrow-held:     #FACC15;
+      --color-escrow-progress: #A78BFA;
+      --color-escrow-released: #4ADE80;
+      --color-escrow-disputed: #F87171;
+
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0A0A0A;
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+      padding: 40px 24px;
+    }
+
+    .page-heading {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-xl);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-2);
+    }
+    .page-sub {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-8);
+    }
+
+    /* View toggle */
+    .view-toggle-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: var(--space-3) 0;
+    }
+    .view-toggle {
+      display: inline-flex;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      padding: 3px;
+    }
+    .view-toggle button {
+      padding: 6px 20px;
+      border: none;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      cursor: pointer;
+      background: transparent;
+      color: var(--color-text-secondary);
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+      letter-spacing: 0.04em;
+    }
+    .view-toggle button.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .view-toggle button:hover:not(.active) { color: var(--color-text-primary); }
+
+    /* Instance card */
+    .instance-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-7);
+      max-width: 680px;
+      margin: 0 auto var(--space-8) auto;
+    }
+    .instance-state-label {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Timeline — horizontal on desktop */
+    .tl-horizontal {
+      display: flex;
+      position: relative;
+      justify-content: space-between;
+    }
+    .tl-horizontal .tl-connector {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      height: 2px;
+      background: var(--color-border);
+      z-index: 0;
+    }
+    .tl-horizontal .tl-connector.progress-bg {
+      background: linear-gradient(to right, var(--color-accent) 0%, var(--color-accent) 50%, var(--color-border) 50%, var(--color-border) 100%);
+    }
+
+    /* Vertical on mobile */
+    @media (max-width: 640px) {
+      .tl-horizontal {
+        flex-direction: column;
+        gap: 0;
+        padding-left: 32px;
+      }
+      .tl-horizontal .tl-connector {
+        top: 0;
+        left: 16px;
+        right: auto;
+        width: 2px;
+        height: calc(100% - 0px);
+      }
+    }
+
+    .tl-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      position: relative;
+      z-index: 1;
+      flex: 1;
+    }
+    @media (max-width: 640px) {
+      .tl-node {
+        flex-direction: row;
+        gap: var(--space-3);
+        padding-bottom: var(--space-5);
+        align-items: flex-start;
+      }
+      .tl-node:last-child { padding-bottom: 0; }
+    }
+
+    .tl-node-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+      font-weight: var(--weight-bold);
+      position: relative;
+    }
+    .tl-node-circle.future {
+      border: 1.5px solid var(--color-border);
+      background: transparent;
+    }
+    .tl-node-circle.current {
+      border: 2px solid var(--color-accent);
+      background: var(--color-accent-muted);
+    }
+    .tl-node-circle.current::after {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      animation: pulseDot 2s ease-in-out infinite;
+    }
+    .tl-node-circle.complete {
+      background: var(--color-success);
+      color: white;
+      font-size: 14px;
+    }
+    .tl-node-circle.disputed {
+      background: var(--color-error);
+      color: white;
+      font-size: 14px;
+    }
+    .tl-node-circle.refunded {
+      background: var(--color-info);
+      color: white;
+      font-size: 14px;
+    }
+
+    .tl-node-circle.complete-lg {
+      width: 40px;
+      height: 40px;
+      font-size: 18px;
+    }
+
+    @keyframes pulseDot {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .tl-node-labels {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    @media (max-width: 640px) {
+      .tl-node-labels { align-items: flex-start; }
+    }
+    .tl-node-label {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      text-align: center;
+      white-space: nowrap;
+    }
+    @media (max-width: 640px) {
+      .tl-node-label { text-align: left; white-space: normal; }
+    }
+    .tl-node-sublabel {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    @media (max-width: 640px) {
+      .tl-node-sublabel { text-align: left; white-space: normal; }
+    }
+
+    /* Banners */
+    .info-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      margin-top: var(--space-5);
+    }
+    .info-banner svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .info-banner p {
+      font-family: var(--font-body);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .info-banner.info {
+      background: rgba(96,165,250,0.08);
+      border: 1px solid rgba(96,165,250,0.2);
+    }
+    .info-banner.info svg { color: var(--color-info); }
+    .info-banner.info p { color: var(--color-info); }
+
+    .info-banner.success {
+      background: rgba(74,222,128,0.08);
+      border: 1px solid rgba(74,222,128,0.2);
+    }
+    .info-banner.success svg { color: var(--color-success); }
+    .info-banner.success p { color: var(--color-success); }
+
+    .info-banner.error {
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.2);
+    }
+    .info-banner.error svg { color: var(--color-error); }
+    .info-banner.error p { color: var(--color-error); }
+
+    /* CTAs row */
+    .cta-row {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+    }
+    .cta-row-client {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+
+    /* ClButton */
+    .cl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 13px;
+      text-decoration: none;
+      white-space: nowrap;
+      padding: 8px 16px;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+
+    .cl-btn-outlined {
+      background: transparent;
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border-mid);
+    }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    .cl-btn-danger {
+      background: transparent;
+      color: var(--color-error);
+      border: 1px solid var(--color-error);
+    }
+    .cl-btn-danger:hover { background: rgba(248,113,113,0.08); }
+
+    /* Provider view (client-hidden) */
+    .provider-only {
+      margin-top: var(--space-3);
+    }
+    .provider-only p {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    .provider-only .mono {
+      font-family: var(--font-mono);
+      color: var(--color-text-primary);
+      font-weight: var(--weight-medium);
+    }
+
+    /* Role visibility */
+    .client-visible { }
+    .provider-visible { }
+
+    body.provider-view .client-visible { display: none; }
+    body.client-view .provider-visible { display: none; }
+
+    .mono-num {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .txt-centre { text-align: center; }
+    .mt-2 { margin-top: var(--space-2); }
+    .mt-4 { margin-top: var(--space-4); }
+    .mb-4 { margin-bottom: var(--space-4); }
+
+    /* Live countdown */
+    .countdown-live {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-escrow-progress);
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="client-view" id="bodyEl">
+
+  <div class="page-heading">Escrow Status — All States</div>
+  <div class="page-sub">Toggle CLIENT / PROVIDER view using the switch above each group.</div>
+
+  <div class="view-toggle-wrap">
+    <div class="view-toggle">
+      <button class="active" id="toggleClient" data-view="client">CLIENT VIEW</button>
+      <button id="toggleProvider" data-view="provider">PROVIDER VIEW</button>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Instance 1 — State: HELD                                          -->
+  <!-- ================================================================= -->
+  <div class="instance-card">
+    <div class="instance-state-label"><span class="escrow-pill held">● Funds Held</span> State: HELD</div>
+    <div class="tl-horizontal">
+      <div class="tl-connector"></div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle current"></div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">HELD</span>
+          <span class="tl-node-sublabel" style="color:var(--color-escrow-held)">₦89,250</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle future"></div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">IN PROGRESS</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle future"></div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">RELEASE IN 5d</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle future"></div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">RELEASED</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-banner info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <p>Funds secured. Service scheduled for Aug 12, 2026.</p>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Instance 2 — State: IN PROGRESS                                   -->
+  <!-- ================================================================= -->
+  <div class="instance-card">
+    <div class="instance-state-label"><span class="escrow-pill progress">● In Progress</span> State: IN PROGRESS</div>
+    <div class="tl-horizontal">
+      <div class="tl-connector"></div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">HELD</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle current"></div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">IN PROGRESS</span>
+          <span class="tl-node-sublabel" style="color:var(--color-text-tertiary)">Aug 12, 2026</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle future"></div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">RELEASE IN 3d</span>
+          <span class="countdown-live" id="countdownTimer">3d 14h 22m</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle future"></div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">RELEASED</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Client CTAs -->
+    <div class="cta-row client-visible">
+      <button class="cl-btn cl-btn-primary">Confirm Completion</button>
+      <button class="cl-btn cl-btn-danger">Raise Dispute</button>
+    </div>
+
+    <!-- Provider payout line -->
+    <div class="provider-visible">
+      <p>You'll receive <span class="mono">₦84,987</span> on release</p>
+      <!-- netKobo = amountKobo - feeKobo. Displayed formatted as ₦X,XXX. -->
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Instance 3 — State: RELEASED                                      -->
+  <!-- ================================================================= -->
+  <div class="instance-card">
+    <div class="instance-state-label"><span class="escrow-pill released">✓ Released</span> State: RELEASED</div>
+    <div class="tl-horizontal">
+      <div class="tl-connector"></div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">HELD</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">IN PROGRESS</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">RELEASE IN 3d</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete complete-lg">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">RELEASED</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-banner success">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <p>Payment of <span class="mono-num">₦84,987</span> has been released to Adunola.</p>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Instance 4 — State: DISPUTED                                      -->
+  <!-- ================================================================= -->
+  <div class="instance-card">
+    <div class="instance-state-label"><span class="escrow-pill disputed">⚠ Under Review</span> State: DISPUTED</div>
+    <div class="tl-horizontal">
+      <div class="tl-connector"></div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">HELD</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">IN PROGRESS</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle disputed">!</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label" style="color:var(--color-error);font-weight:var(--weight-bold)">DISPUTED</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle future"></div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">RESOLVED</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-banner error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <p>Dispute raised. An admin will review within 24 hours. Payment is on hold.</p>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- Instance 5 — State: REFUNDED                                      -->
+  <!-- ================================================================= -->
+  <div class="instance-card">
+    <div class="instance-state-label"><span class="escrow-pill refunded">↩ Refunded</span> State: REFUNDED</div>
+    <div class="tl-horizontal">
+      <div class="tl-connector"></div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">HELD</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete">✓</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">IN PROGRESS</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle complete" style="background:var(--color-error)">!</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">DISPUTED</span>
+        </div>
+      </div>
+
+      <div class="tl-node">
+        <div class="tl-node-circle refunded">↩</div>
+        <div class="tl-node-labels">
+          <span class="tl-node-label">REFUNDED</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-banner info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      <p><span class="mono-num">₦89,250</span> has been refunded to your original payment method.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // ---- View toggle
+      var body = document.getElementById('bodyEl');
+      var toggleClient = document.getElementById('toggleClient');
+      var toggleProvider = document.getElementById('toggleProvider');
+
+      if (toggleClient && toggleProvider) {
+        toggleClient.addEventListener('click', function () {
+          body.className = 'client-view';
+          toggleClient.classList.add('active');
+          toggleProvider.classList.remove('active');
+        });
+        toggleProvider.addEventListener('click', function () {
+          body.className = 'provider-view';
+          toggleProvider.classList.add('active');
+          toggleClient.classList.remove('active');
+        });
+      }
+
+      // ---- Live countdown on Instance 2
+      // Target: 3 days 14 hours 22 minutes from page load
+      // We'll use a relative offset for the demo
+      var countdownEl = document.getElementById('countdownTimer');
+      if (countdownEl) {
+        // Set target to ~3 days 14h 22m from now for demo
+        var target = new Date();
+        target.setDate(target.getDate() + 3);
+        target.setHours(target.getHours() + 14);
+        target.setMinutes(target.getMinutes() + 22);
+
+        function padN(n) { return String(n).padStart(2, '0'); }
+
+        function updateCountdown() {
+          var now = new Date();
+          var diff = target.getTime() - now.getTime();
+          if (diff <= 0) {
+            countdownEl.textContent = '0d 0h 0m';
+            return;
+          }
+          var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          countdownEl.textContent = days + 'd ' + padN(hours) + 'h ' + padN(minutes) + 'm ' + padN(seconds) + 's';
+        }
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+      }
+
+    })();
+  </script>
+
+</body>
+</html>
