@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: bootstrap-project
-> - last-verified-against-code: (set on first run)
+> - last-verified-against-code: 2026-07-04
 > - staleness-policy: this file changes rarely — trust unless explicitly flagged
 
 > **Overview:** Defines when the active agent should ask a human for input vs. proceed autonomously. Reduces unnecessary interruptions while preventing costly wrong turns.

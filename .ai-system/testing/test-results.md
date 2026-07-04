@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: (set on first run)
-> - last-verified-against-code: (set after test run)
+> - last-updated-by: bootstrap-project
+> - last-verified-against-code: 2026-07-04
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,8 +11,8 @@
 
 ## Last Run
 
-**Date:** [DATE]
-**Run by:** [Role / Agent]
+**Date:** 2026-07-04
+**Run by:** bootstrap-project
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
@@ -21,15 +21,13 @@
 | Integration | — | — | — |
 | E2E | — | — | — |
 
-**Overall Status:** [ Passing | Failing | Partial ]
+**Overall Status:** No tests yet — greenfield project
 
 ---
 
 ## Active Failures
 
-| Test | Error | Status | Assigned To |
-|------|-------|--------|------------|
-| [test name] | [error message] | [Investigating / Fixed / Wont Fix] | [agent/role] |
+None — no tests have been run yet.
 
 ---
 
@@ -37,4 +35,4 @@
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
-| [date] | [n] | [n] | [notes] |
+| — | — | — | No tests yet |

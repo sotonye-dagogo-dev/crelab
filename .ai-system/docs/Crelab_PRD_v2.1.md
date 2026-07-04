@@ -1,5 +1,6 @@
 # Crelab — Product Requirements Document
 **Version:** 2.1 — Locked  
+**Metadata:** last-verified-against-code: 2026-07-04  
 **Classification:** Confidential — Internal  
 **Technical Lead:** Sotonye Adokiye Dagogo  
 **Co-Founder:** Samson Afolabi  

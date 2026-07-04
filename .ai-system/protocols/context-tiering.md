@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: bootstrap-project
-> - last-verified-against-code: (set on first run)
+> - last-verified-against-code: 2026-07-04
 > - staleness-policy: this file changes rarely — trust unless explicitly flagged
 
 > **Overview:** Defines which files to read based on context budget and task complexity. Prevents small-context models from being overwhelmed and large-context models from skipping orientation. The system degrades gracefully: even reading only the tier-1 core gives enough to be useful.

@@ -1,5 +1,6 @@
 # Crelab — ROADMAP.md
 **Version:** 1.1  
+**Metadata:** last-verified-against-code: 2026-07-04  
 **Pipeline Stage:** PRD -> ROADMAP -> DESIGN -> PROMPTS -> Open Design -> Open Code  
 **Stack:** Next.js 15.3.x · TypeScript 5 · PostgreSQL (Supabase) · Paystack · Cloudinary · Mux · Better Auth · Sanity · Drizzle ORM  
 **Architecture:** Metadata-driven · Config-first · Standalone · .ai-system governed  

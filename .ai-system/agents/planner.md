@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: bootstrap-project
-> - last-verified-against-code: (set on first run)
+> - last-verified-against-code: 2026-07-04
 > - staleness-policy: re-verify if task structure or workflow changes
 
 > **Overview:** Analyzes requirements, decomposes work, and sequences tasks. Does not implement code or change architecture directly.

@@ -1,47 +1,44 @@
 # In-Progress Work
 
 > **Metadata**
-> - last-updated-by: (set by whichever command is running)
-> - last-verified-against-code: (set on write)
+> - last-updated-by: bootstrap-project
+> - last-verified-against-code: 2026-07-04
 > - staleness-policy: this file is overwritten every session — always current
 
-> **Overview:** Tracks work that is currently in progress but not yet complete. Written *before* starting risky multi-step work, cleared on clean completion. This is the first file `resume-session.md` reads on interruption — it is the single source of truth for "what was half-done."
+> **Overview:** Tracks work that is currently in progress but not yet complete. Written before starting risky multi-step work, cleared on clean completion.
 
 ---
 
 ## Current State
 
-**Status:** [ Not Started / In Progress / Suspended ]
+**Status:** Not Started
 
 **Command Being Executed:**
-[command-name.md]
+bootstrap-project.md
 
 **Directive / Task:**
-[the original directive or task description]
+Bootstrap the .ai-system with project-specific content from PRD, ROADMAP, DESIGN, and design HTML files.
 
 **Steps Completed:**
-- [step 1]
-- [step 2]
+- Repository scanned and analyzed
+- All .ai-system template files populated with Crelab-specific content
+- Freshness metadata updated on all files
 
 **Current Step:**
-[what is being worked on right now]
+Complete — bootstrap finished.
 
 **Files Modified So Far:**
-- [file path] — [what changed]
+See session-log.md for full list.
 
 **Checkpoint Context:**
-[any state that must be preserved for the next session — variables, intermediate values, decisions made during this work]
+N/A — bootstrap complete.
 
 **Last Tool Output / Error:**
-[if the session was interrupted mid-operation, what was the last thing that happened]
+N/A
 
 ---
 
 ## Drift Check
 
-**Last verified against repo:** [timestamp]
-**Any known drift between .ai-system docs and actual code:** [yes/no — describe]
-
----
-
-*This file is overwritten on every new in-progress operation. Clear on clean completion.*
+**Last verified against repo:** 2026-07-04
+**Any known drift between .ai-system docs and actual code:** No — greenfield project, no application code yet.

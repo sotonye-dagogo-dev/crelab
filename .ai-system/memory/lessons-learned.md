@@ -1,11 +1,11 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: (set on first entry)
-> - last-verified-against-code: (set after lesson review)
+> - last-updated-by: bootstrap-project
+> - last-verified-against-code: 2026-07-04
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
-> **Overview:** Practical knowledge accumulated during development — things that worked well, things that didn't, and patterns worth repeating. Different from `repair-system.md` (tracks errors); this file tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
+> **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
 
 ---
 
@@ -31,4 +31,4 @@
 
 ## Lessons
 
-[Entries added here as lessons are discovered]
+[Entries added here as lessons are discovered — e.g., "Paystack webhook idempotency", "Drizzle migration rollback patterns", "video autoplay on mobile restrictions"]

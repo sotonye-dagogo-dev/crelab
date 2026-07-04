@@ -1,5 +1,6 @@
 # Crelab — DESIGN.md
 **Version:** 1.1  
+**Metadata:** last-verified-against-code: 2026-07-04  
 **Pipeline Stage:** PRD -> ROADMAP -> DESIGN -> PROMPTS -> Open Design -> Open Code  
 **Design Direction:** Dark-dominant · Video-first · Creative-industry confidence  
 **Reference:** Instagram Explore · Fiverr profile depth · Upwork trust signals · Dating-app first impression  
