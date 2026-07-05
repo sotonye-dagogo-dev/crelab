@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import { SearchClientPage } from "./SearchClientPage";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
 
 export const metadata = {
-  title: "Search Creators | Crelab",
+  title: `Search Creators | ${DEFAULT_CONFIG.name}`,
 };
 
 export default async function SearchPage(props: {

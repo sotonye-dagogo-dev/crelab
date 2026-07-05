@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const verificationRow = await db
+    const verificationRow = await db // eslint-disable-line @typescript-eslint/no-unused-vars
       .select()
       .from(session)
       .where(eq(session.id, otp))

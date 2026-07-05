@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useMemo } from "react";
 
 interface MediaEmbedProps {
   open: boolean;
@@ -23,7 +23,7 @@ export function MediaEmbed({
 }: MediaEmbedProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const currentItems = items ?? [];
+  const currentItems = useMemo(() => items ?? [], [items]);
   const hasMultiple = currentItems.length > 1;
 
   useEffect(() => {
@@ -83,6 +83,7 @@ export function MediaEmbed({
           </p>
           <button
             onClick={onClose}
+            aria-label="Close media viewer"
             className="w-8 h-8 rounded-full bg-[rgba(255,255,255,0.1)] flex items-center justify-center cursor-pointer hover:bg-[rgba(255,255,255,0.15)] transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
@@ -97,6 +98,8 @@ export function MediaEmbed({
               src={displayUrl}
               controls
               autoPlay
+              muted
+              aria-label={displayTitle || "Video preview"}
               className="w-full max-h-[80vh] object-contain"
               style={{ aspectRatio: "16/9" }}
             />
@@ -132,6 +135,7 @@ export function MediaEmbed({
             <button
               onClick={handlePrev}
               disabled={currentIndex === 0}
+              aria-label="Previous item"
               className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.1)] flex items-center justify-center cursor-pointer disabled:opacity-30 hover:bg-[rgba(255,255,255,0.15)] transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
@@ -146,6 +150,7 @@ export function MediaEmbed({
             <button
               onClick={handleNext}
               disabled={currentIndex === currentItems.length - 1}
+              aria-label="Next item"
               className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.1)] flex items-center justify-center cursor-pointer disabled:opacity-30 hover:bg-[rgba(255,255,255,0.15)] transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">

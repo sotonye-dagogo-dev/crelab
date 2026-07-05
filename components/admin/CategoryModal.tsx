@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ClDialog, ClButton, ClInput, ClSelect } from "@/components/ui";
+import { ClDialog, ClButton, ClInput } from "@/components/ui";
 import type { ICategoryConfig, IFieldSchemaField } from "@/types";
 
 interface CategoryModalProps {

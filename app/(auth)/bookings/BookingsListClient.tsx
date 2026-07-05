@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ClBadge, ClButton } from "@/components/ui";
+import { ClBadge } from "@/components/ui";
 import type { IBooking, IPayment } from "@/types";
 
 interface BookingRow {

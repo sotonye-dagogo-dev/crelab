@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { getPostBySlug, getRelatedPosts, urlFor } from "@/lib/sanity";
 import { ArticleBody } from "@/components/blog/ArticleBody";
 import { ToCSidebar } from "@/components/blog/ToCSidebar";
 import { CreatorSpotlightEmbed } from "@/components/blog/CreatorSpotlightEmbed";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -13,12 +15,13 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const { DEFAULT_CONFIG } = await import("@/config/platform.config");
   try {
     const post = await getPostBySlug(slug);
     if (!post) return { title: "Post Not Found" };
 
     return {
-      title: `${post.title} | CreLab`,
+      title: `${post.title} | ${DEFAULT_CONFIG.name}`,
       description: post.metaDescription,
       openGraph: post.heroImage
         ? {
@@ -207,14 +210,14 @@ export default async function BlogPostPage({ params }: Props) {
             Looking for a creator?
           </h3>
           <p className="font-[family-name:var(--font-body)] text-[14px] text-[var(--color-text-secondary)] mt-2">
-            Browse Nigerian creative talent on CreLab →
+            Browse Nigerian creative talent on {DEFAULT_CONFIG.name} →
           </p>
-          <a
+          <Link
             href="/explore"
             className="inline-flex items-center justify-center gap-2 h-12 px-6 text-[15px] font-semibold rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] no-underline whitespace-nowrap mt-5 transition-[background] duration-[150ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]"
           >
             Browse Creators
-          </a>
+          </Link>
         </div>
       </div>
     </div>

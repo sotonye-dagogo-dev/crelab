@@ -53,6 +53,7 @@ export function ExploreFilterBar({
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const val = e.target.value;
       if (!val) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { budgetMin, budgetMax, ...rest } = filters;
         onFiltersChange({ ...rest, cursor: undefined });
         return;

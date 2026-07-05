@@ -14,7 +14,7 @@ export const ClSelect = forwardRef<HTMLSelectElement, ClSelectProps>(
             h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)]
             border text-[14px] text-[var(--color-text-primary)]
             outline-none w-full transition-[border-color] duration-[150ms] ease-[cubic-bezier(0.16,1,0.3,1)]
-            focus:border-[var(--color-accent)]
+            focus:border-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]
             disabled:opacity-40 disabled:cursor-not-allowed
             ${error ? "border-[var(--color-error)]" : "border-[var(--color-border)]"}
             ${className}

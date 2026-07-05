@@ -24,7 +24,7 @@ export interface UseAuthReturn {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<AuthUser | null>;
 }
 
 export function useAuth(): UseAuthReturn {
@@ -60,6 +60,7 @@ export function useAuth(): UseAuthReturn {
       if (result.data?.user) {
         setUser(result.data.user as unknown as AuthUser);
       }
+      return result.data?.user ? (result.data.user as unknown as AuthUser) : null;
     },
     [],
   );

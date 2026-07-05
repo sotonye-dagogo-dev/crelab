@@ -94,7 +94,7 @@ export async function GET() {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="crelab-data-export-${userId.slice(0, 8)}.json"`,
+        "Content-Disposition": `attachment; filename="${config.name.toLowerCase().replace(/\s+/g, "-")}-data-export-${userId.slice(0, 8)}.json"`,
       },
     });
   } catch (err) {

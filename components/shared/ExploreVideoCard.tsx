@@ -23,7 +23,6 @@ export function ExploreVideoCard({
   const [loaded, setLoaded] = useState(false);
 
   const isVideo = item.mimeType.startsWith("video/");
-  const isImage = item.mimeType.startsWith("image/");
   const isPdf = item.mimeType === "application/pdf";
 
   return (

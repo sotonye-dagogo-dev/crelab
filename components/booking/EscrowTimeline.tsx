@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { ClButton } from "@/components/ui";
 import type { IBooking, IPayment } from "@/types";
 
@@ -75,11 +75,11 @@ export function EscrowTimeline({
   const currentState =
     booking.escrowState === "REFUNDED" || booking.escrowState === "DISPUTED"
       ? booking.escrowState
-      : (stateOrder.indexOf(booking.escrowState as any) >= 0
+      : (stateOrder.indexOf(booking.escrowState as typeof stateOrder[number]) >= 0
           ? booking.escrowState
           : "PENDING");
 
-  const currentNodeIndex = stateOrder.indexOf(currentState as any);
+  const currentNodeIndex = stateOrder.indexOf(currentState as typeof stateOrder[number]);
 
   const nodes: TimelineNode[] = [
     {

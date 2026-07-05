@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { bookings, payments, disputes, providers, servicePackages, user } from "@/drizzle/schema";
+import { bookings, payments, providers, servicePackages, user } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { BookingDetailClient } from "./BookingDetailClient";
-import type { IBooking, IPayment, IDispute } from "@/types";
+import type { IBooking, IPayment } from "@/types";
 
 export const dynamic = "force-dynamic";
 

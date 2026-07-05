@@ -11,7 +11,7 @@ import { WorkHistory } from "@/components/profile/WorkHistory";
 import { ReviewsSection } from "@/components/profile/ReviewsSection";
 import { BookingSidebar } from "@/components/profile/BookingSidebar";
 import { BookingBottomBar } from "@/components/profile/BookingBottomBar";
-import type { IProvider, IServicePackage, IPortfolioItem, IReview } from "@/types";
+import type { IProvider, IServicePackage, IPortfolioItem } from "@/types";
 
 interface Props {
   params: Promise<{ slug: string }>;

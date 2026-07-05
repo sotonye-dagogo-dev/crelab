@@ -3,8 +3,12 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformConfig } from "@/lib/config-context";
+import { captureConsent } from "@/lib/consent";
+import { ConsentType } from "@/types";
 
 function RegisterForm() {
+  const platformConfig = usePlatformConfig();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signUp } = useAuth();
@@ -42,7 +46,16 @@ function RegisterForm() {
     setError("");
 
     try {
-      await signUp(name, email, password);
+      const user = await signUp(name, email, password);
+      if (user?.id) {
+        await captureConsent(user.id, ConsentType.TERMS, consentTerms);
+        if (consentMarketing) {
+          await captureConsent(user.id, ConsentType.MARKETING, true);
+        }
+        if (consentAnalytics) {
+          await captureConsent(user.id, ConsentType.ANALYTICS, true);
+        }
+      }
       router.push(
         role === "PROVIDER" ? "/profile/setup" : searchParams.get("returnTo") || "/explore",
       );
@@ -57,7 +70,7 @@ function RegisterForm() {
         <div className="flex items-center justify-center gap-2 mb-6">
           <div className="w-3 h-3 bg-[var(--color-accent)] rotate-45 rounded-sm shrink-0" />
           <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--color-text-primary)]">
-            CreLab
+            {platformConfig.name}
           </span>
         </div>
 
@@ -129,7 +142,7 @@ function RegisterForm() {
               )}
               <button
                 type="submit"
-                className="h-12 px-6 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[15px] w-full mt-1"
+                className="h-12 px-6 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[15px] w-full mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
               >
                 Continue →
               </button>
@@ -244,7 +257,7 @@ function RegisterForm() {
                       Terms of Service &amp; Privacy Policy
                     </span>
                     <span className="text-[12px] text-[var(--color-text-secondary)]">
-                      I&apos;ve read and agree to Crelab&apos;s Terms and Privacy Policy, including data handling under NDPR 2023.
+                      I&apos;ve read and agree to {platformConfig.name}&apos;s Terms and Privacy Policy, including data handling under NDPR 2023.
                     </span>
                   </span>
                 </label>
@@ -273,7 +286,7 @@ function RegisterForm() {
                       Marketing emails
                     </span>
                     <span className="text-[12px] text-[var(--color-text-secondary)]">
-                      Receive tips, updates, and offers from Crelab. Unsubscribe any time.
+                      Receive tips, updates, and offers from {platformConfig.name}. Unsubscribe any time.
                     </span>
                   </span>
                 </label>
@@ -302,7 +315,7 @@ function RegisterForm() {
                       Analytics
                     </span>
                     <span className="text-[12px] text-[var(--color-text-secondary)]">
-                      Help us improve Crelab with anonymous usage data.
+                      Help us improve {platformConfig.name} with anonymous usage data.
                     </span>
                   </span>
                 </label>
@@ -313,7 +326,7 @@ function RegisterForm() {
               )}
 
               <button
-                className={`h-12 px-6 rounded-[8px] font-semibold text-[15px] w-full mt-4 ${
+                className={`h-12 px-6 rounded-[8px] font-semibold text-[15px] w-full mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] ${
                   consentTerms
                     ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)]"
                     : "bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)] cursor-not-allowed"
@@ -326,7 +339,7 @@ function RegisterForm() {
             </div>
 
             <button
-              className="mt-2 text-[14px] text-[var(--color-text-secondary)]"
+              className="mt-2 text-[14px] text-[var(--color-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] rounded-[4px]"
               onClick={() => setStep(1)}
             >
               ← Back

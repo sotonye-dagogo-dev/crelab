@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-05
+> - last-verified-against-code: 2026-07-05 (OC-7 audit)
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -165,6 +165,6 @@ See `memory/architecture-history.md` for full chronology.
 Files not yet implemented despite being in the planned architecture:
 - `services/ReviewService.ts` (interface exists but no implementation)
 - `lib/mux.ts` (Mux streaming integration stubbed but not wired)
-- Blog system (Sanity CMS schema not yet connected)
 - Messages/notifications (Phase 2)
-- `sanity/` directory (CMS config not yet created)
+- Provider Dashboard
+- Client Dashboard

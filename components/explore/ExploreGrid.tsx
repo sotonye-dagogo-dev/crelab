@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExploreVideoCard } from "./ExploreVideoCard";
 import type { IExploreCard } from "@/types";
@@ -66,6 +66,15 @@ export function ExploreGrid({
   isError,
 }: ExploreGridProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const handleIntersection = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -109,6 +118,12 @@ export function ExploreGrid({
           Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
         ) : providers.length === 0 ? (
           <EmptyState />
+        ) : prefersReducedMotion ? (
+          providers.map((provider) => (
+            <div key={provider.id}>
+              <ExploreVideoCard provider={provider} />
+            </div>
+          ))
         ) : (
           <AnimatePresence mode="popLayout">
             {providers.map((provider, i) => (

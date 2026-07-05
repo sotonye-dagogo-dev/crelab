@@ -47,6 +47,7 @@ export const ClSheet = forwardRef<HTMLDivElement, ClSheetProps>(
             fixed z-[1000] bg-[var(--color-surface)]
             border border-[var(--color-border)]
             overflow-y-auto
+            focus-visible:outline-none
             ${positionStyles}
             ${className}
           `.trim()}

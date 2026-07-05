@@ -13,6 +13,7 @@ interface DriveConnectSettingsProps {
 
 export function DriveConnectSettings({
   currentUrl,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   providerId,
   onStateChange,
 }: DriveConnectSettingsProps) {

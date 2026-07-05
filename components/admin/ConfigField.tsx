@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { usePlatformConfig } from "@/lib/config-context";
 
 export interface ConfigFieldProps {
   label: string;
@@ -21,6 +22,7 @@ export function ConfigField({
   unit,
   onChange,
 }: ConfigFieldProps) {
+  const platformConfig = usePlatformConfig();
   const [colorHex, setColorHex] = useState<string>(
     typeof value === "string" ? value : "",
   );
@@ -98,7 +100,7 @@ export function ConfigField({
           <div className="flex items-center gap-2">
             <input
               type="color"
-              value={/^#[0-9a-fA-F]{6}$/.test(colorHex) ? colorHex : "#E8FF47"}
+              value={/^#[0-9a-fA-F]{6}$/.test(colorHex) ? colorHex : platformConfig.primaryColor}
               onChange={handleColorPicker}
               className="w-9 h-9 rounded-[8px] border-none cursor-pointer p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border [&::-webkit-color-swatch]:border-[var(--color-border)] [&::-webkit-color-swatch]:rounded-[8px]"
             />

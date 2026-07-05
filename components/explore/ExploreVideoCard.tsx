@@ -124,6 +124,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
               muted
               loop
               playsInline
+              aria-label={`${provider.displayName} preview video`}
               className={`w-full h-auto object-cover absolute inset-0 transition-opacity duration-[300ms] ${
                 showVideo ? "opacity-100" : "opacity-0"
               }`}

@@ -13,18 +13,6 @@ interface PaystackInitResponse {
   };
 }
 
-interface PaystackVerifyResponse {
-  status: boolean;
-  message: string;
-  data: {
-    status: string;
-    reference: string;
-    amount: number;
-    paid_at: string;
-    channel: string;
-  };
-}
-
 function getHeaders(): Record<string, string> {
   return {
     Authorization: `Bearer ${PAYSTACK_SECRET}`,

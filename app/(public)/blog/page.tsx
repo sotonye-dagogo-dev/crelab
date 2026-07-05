@@ -4,8 +4,9 @@ import { BlogPageClient } from "./BlogPageClient";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
+  const { DEFAULT_CONFIG } = await import("@/config/platform.config");
   return {
-    title: "Blog | CreLab",
+    title: `Blog | ${DEFAULT_CONFIG.name}`,
     description:
       "Hiring guides, pricing tips, and spotlights on the creators making Nigeria's best content.",
   };

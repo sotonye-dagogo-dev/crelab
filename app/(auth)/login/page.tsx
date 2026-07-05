@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformConfig } from "@/lib/config-context";
 
 export default function LoginPage() {
+  const platformConfig = usePlatformConfig();
   const router = useRouter();
   const { signIn } = useAuth();
 
@@ -70,7 +72,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-center gap-2 mb-6">
           <div className="w-3 h-3 bg-[var(--color-accent)] rotate-45 rounded-sm shrink-0" />
           <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--color-text-primary)]">
-            CreLab
+            {platformConfig.name}
           </span>
         </div>
 
@@ -162,7 +164,7 @@ export default function LoginPage() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                 />
-                <button className="h-10 px-4 rounded-[8px] bg-transparent text-[var(--color-accent)] border border-[var(--color-accent)] font-semibold text-[13px] shrink-0 cursor-pointer">
+                <button className="h-10 px-4 rounded-[8px] bg-transparent text-[var(--color-accent)] border border-[var(--color-accent)] font-semibold text-[13px] shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">
                   Send OTP
                 </button>
               </div>

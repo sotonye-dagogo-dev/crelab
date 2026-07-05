@@ -81,8 +81,13 @@ export function BookingDrawer({
       const payJson = await payRes.json();
       if (!payJson.success) throw new Error(payJson.error ?? "Failed to init payment");
 
-      if (typeof window !== "undefined" && (window as any).PaystackPop) {
-        const handler = new (window as any).PaystackPop();
+      interface PaystackPopInstance {
+        resume: (accessCode: string) => void;
+        on: (event: string, cb: () => void) => void;
+      }
+      const PaystackPop = (window as Record<string, unknown>).PaystackPop as unknown as { new(): PaystackPopInstance } | undefined;
+      if (typeof window !== "undefined" && PaystackPop) {
+        const handler = new PaystackPop();
         handler.resume(payJson.data.accessCode);
         handler.on("success", () => {
           setStep("confirmation");
@@ -116,6 +121,7 @@ export function BookingDrawer({
             </h2>
             <button
               onClick={handleClose}
+              aria-label="Close booking drawer"
               className="w-8 h-8 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] cursor-pointer"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

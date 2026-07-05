@@ -7,7 +7,8 @@ import { ClButton, ClInput, ClTextarea, ClSelect } from "@/components/ui";
 import { ExploreVideoCard } from "@/components/shared/ExploreVideoCard";
 import { DriveConnectSettings } from "@/components/profile/DriveConnectSettings";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import type { ICategoryConfig, IFieldSchemaField, IPortfolioItem } from "@/types";
+import { usePlatformConfig } from "@/lib/config-context";
+import type { IFieldSchemaField, IPortfolioItem } from "@/types";
 
 const STORAGE_KEY = "crelab-onboarding-state";
 
@@ -53,9 +54,10 @@ export default function ProfileSetupPage() {
   const { user, isLoading } = useAuth();
 
   const [state, setState] = useState<OnboardingState>(initialState);
-  const [showDriveSettings, setShowDriveSettings] = useState(false);
+  const [showDriveSettings, setShowDriveSettings] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const platformConfig = usePlatformConfig();
 
   const categories = DEFAULT_CONFIG.categories.filter((c) => c.active);
 
@@ -224,7 +226,7 @@ export default function ProfileSetupPage() {
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="w-3 h-3 bg-[var(--color-accent)] rotate-45 rounded-sm" />
           <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--color-text-primary)]">
-            CreLab
+            {platformConfig.name}
           </span>
         </div>
 

@@ -47,6 +47,7 @@ export const ClButton = forwardRef<HTMLButtonElement, ClButtonProps>(
         className={`
           inline-flex items-center justify-center gap-2 border border-transparent rounded-[8px] cursor-pointer
           font-semibold no-underline whitespace-nowrap transition-[background,border-color,color] duration-[150ms] ease-[cubic-bezier(0.16,1,0.3,1)]
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]
           active:scale-[0.98]
           disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100
           ${variantStyles[variant]}

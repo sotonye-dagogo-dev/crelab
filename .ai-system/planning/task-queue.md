@@ -24,7 +24,7 @@
 
 ## Completed Sprint — Milestone 1.0: Foundation
 
-All items completed except Sanity CMS (deferred). Milestones 1.1-1.4 substantially complete.
+All items completed except Provider Dashboard and Client Dashboard (deferred). All Milestones substantially complete.
 
 ---
 
@@ -32,16 +32,11 @@ All items completed except Sanity CMS (deferred). Milestones 1.1-1.4 substantial
 
 | Size | Task | Status |
 |------|------|--------|
-| [XL] | Provider Onboarding Wizard: multi-step form with category-specific fields | [ ] |
-| [M] | Portfolio Upload drag-and-drop UI | [ ] |
-| [M] | Init Sanity CMS project and Next.js integration | [ ] |
-| [S] | Create blog post schema and creator spotlight schema in Sanity | [ ] |
-| [S] | Create /blog and /blog/[slug] routes with ISR | [ ] |
-| [S] | sitemap.xml, robots.txt | [ ] |
 | [M] | Write tests for all services | [ ] |
 | [M] | Provider Dashboard (full) with earnings, kanban pipeline, availability calendar | [ ] |
 | [L] | In-platform messaging (Phase 2) | [ ] |
 | [M] | Notifications: email (Resend) + in-app notification centre | [ ] |
+| [M] | Client Dashboard: active bookings, booking history, payment history | [ ] |
 
 ---
 
@@ -85,6 +80,13 @@ All items completed except Sanity CMS (deferred). Milestones 1.1-1.4 substantial
 | Payment service: init, split payout, refund | 2026-07-05 |
 | BookingDrawer, EscrowTimeline, DisputeModal components | 2026-07-05 |
 | Admin panel: layout, sidebar, config editor, category manager, provider queue, dispute dashboard | 2026-07-05 |
+| OC-7: Wrapper compliance audit (all clean) | 2026-07-05 |
+| OC-7: Config compliance — replaced hardcoded "Crelab"/"CreLab"/"#E8FF47" with config values | 2026-07-05 |
+| OC-7: Money audit (all money arithmetic uses Math.round() on kobo) | 2026-07-05 |
+| OC-7: Performance: N+1 audit, cursor pagination, IntersectionObserver verified | 2026-07-05 |
+| OC-7: Accessibility: focus-visible rings, aria-labels, muted videos, reduced-motion support | 2026-07-05 |
+| OC-7: NDPR compliance: created /privacy, /terms pages, CookieConsentBanner, consent recording on register | 2026-07-05 |
+| OC-7: Production gate: build + tsc + lint pass with zero errors/warnings | 2026-07-05 |
 
 ---
 

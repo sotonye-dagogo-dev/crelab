@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformConfig } from "@/lib/config-context";
 
 export function AuthGate({
   providerName,
@@ -16,6 +17,7 @@ export function AuthGate({
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const platformConfig = usePlatformConfig();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -45,12 +47,12 @@ export function AuthGate({
         <div className="flex items-center justify-center gap-2 mb-6">
           <div className="w-3 h-3 bg-[var(--color-accent)] rotate-45 rounded-sm shrink-0" />
           <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--color-text-primary)]">
-            CreLab
+            {platformConfig.name}
           </span>
         </div>
 
         <h1 className="font-[family-name:var(--font-display)] font-bold text-xl text-center text-[var(--color-text-primary)] max-w-[300px] mx-auto">
-          To book {providerName || "a creator"}, create a free CreLab account
+          To book {providerName || "a creator"}, create a free {platformConfig.name} account
         </h1>
 
         <p className="text-[14px] text-[var(--color-text-secondary)] text-center max-w-[300px] mx-auto mt-2">
@@ -96,7 +98,7 @@ export function AuthGate({
         </p>
 
         <p className="text-[11px] text-[var(--color-text-tertiary)] text-center mt-4 leading-[1.5]">
-          By continuing, you agree to CreLab&apos;s <a href="#" className="underline underline-offset-2 hover:text-[var(--color-text-secondary)]">Terms of Service</a> and <a href="#" className="underline underline-offset-2 hover:text-[var(--color-text-secondary)]">Privacy Policy</a>.
+          By continuing, you agree to {platformConfig.name}&apos;s <a href="#" className="underline underline-offset-2 hover:text-[var(--color-text-secondary)]">Terms of Service</a> and <a href="#" className="underline underline-offset-2 hover:text-[var(--color-text-secondary)]">Privacy Policy</a>.
         </p>
       </div>
     </div>

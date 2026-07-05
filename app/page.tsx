@@ -4,6 +4,7 @@ import { useCallback, useState, useMemo, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
+import Link from "next/link";
 import { ExploreFilterBar } from "@/components/explore/ExploreFilterBar";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
 import type { IExploreFilters, PaginatedResponse, IExploreCard } from "@/types";
@@ -72,18 +73,18 @@ export default function HomePage() {
                 {platformConfig.tagline}
               </h1>
               <div className="flex gap-3 flex-wrap max-[640px]:justify-center">
-                <a
+                <Link
                   href="/register"
                   className="inline-flex items-center justify-center h-11 px-6 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[15px] no-underline gap-2"
                 >
                   Browse Creators
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/register"
                   className="inline-flex items-center justify-center h-11 px-6 rounded-[8px] bg-transparent text-[var(--color-text-primary)] border border-[var(--color-border-mid)] font-semibold text-[15px] no-underline gap-2"
                 >
                   Join as Creator
-                </a>
+                </Link>
               </div>
             </div>
             <div className="w-[360px] h-[200px] rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] flex items-center justify-center flex-shrink-0 max-[640px]:hidden">
