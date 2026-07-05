@@ -7,7 +7,7 @@ on:
     types: [created]
 
 jobs:
-  opencode:
+  opencode-dev:
     if: |
       github.event.comment.body != '' &&
       (
@@ -17,4 +17,18 @@ jobs:
         startsWith(github.event.comment.body, '/opencode')
       )
     uses: my-mobile-dev-hub/.github-workflows/.github/workflows/opencode-runner.yml@main
+    secrets: inherit
+
+  opencode-design:
+    if: |
+      github.event.comment.body != '' &&
+      (
+        contains(github.event.comment.body, ' /design') ||
+        startsWith(github.event.comment.body, '/design') ||
+        contains(github.event.comment.body, ' /od') ||
+        startsWith(github.event.comment.body, '/od') ||
+        contains(github.event.comment.body, ' /opendesign') ||
+        startsWith(github.event.comment.body, '/opendesign')
+      )
+    uses: my-mobile-dev-hub/.github-workflows/.github/workflows/opendesign-runner.yml@main
     secrets: inherit
