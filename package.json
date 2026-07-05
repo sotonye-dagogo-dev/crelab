@@ -12,15 +12,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/my-mobile-dev-hub/crelab.git"
+    "url": "git+https://github.com/sotonye-dagogo-dev/crelab.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Sotonye Dagogo",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/my-mobile-dev-hub/crelab/issues"
+    "url": "https://github.com/sotonye-dagogo-dev/crelab/issues"
   },
-  "homepage": "https://github.com/my-mobile-dev-hub/crelab#readme",
+  "homepage": "https://github.com/sotonye-dagogo-dev/crelab#readme",
   "dependencies": {
     "@portabletext/react": "^6.2.0",
     "@sanity/client": "^6.29.1",
