@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="crelab-design" content="design-system">
-  <meta name="crelab-component" content="ClButton,ClCard,ClInput,ClTextarea,ClSelect,ClBadge,ExploreVideoCard,ServicePackageCard,EscrowStatusPill,AvailabilityBadge,ExperienceLevelBadge,ConsentCheckbox,RoleSelectCard">
+  <meta name="crelab-component" content="ClButton,ClCard,ClInput,ClTextarea,ClSelect,ClBadge,ExploreVideoCard,ServicePackageCard,EscrowStatusPill,AvailabilityBadge,ExperienceLevelBadge,ConsentCheckbox,RoleSelectCard,NavBar,ClFooter">
   <title>Crelab — Design System Components</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
@@ -795,6 +795,282 @@
       gap: var(--space-4);
       align-items: stretch;
     }
+    /* Component: NavBar */
+    .navbar {
+      position: relative;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-height);
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-6);
+    }
+    .navbar-inner {
+      max-width: var(--max-width-content);
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .navbar-logo-mark {
+      width: 12px;
+      height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+    .navbar-logo-text {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+    }
+    /* platformConfig.name — never hardcoded in production */
+    .navbar-center {
+      display: flex;
+      align-items: center;
+      gap: var(--space-8);
+    }
+    .navbar-center a {
+      font-family: var(--font-body);
+      font-weight: var(--weight-medium);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .navbar-center a:hover { color: var(--color-text-primary); }
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .navbar-hamburger {
+      display: none;
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .navbar-hamburger span {
+      display: block;
+      width: 16px;
+      height: 2px;
+      background: currentColor;
+      border-radius: 1px;
+      transition: transform var(--duration-fast) var(--ease-out);
+    }
+    .navbar-overlay {
+      position: fixed;
+      inset: 0;
+      background: #0A0A0A;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-8);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 250ms var(--ease-out);
+    }
+    .navbar-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .navbar-overlay a {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      color: var(--color-text-primary);
+      text-decoration: none;
+      font-weight: var(--weight-bold);
+    }
+    .navbar-overlay-close {
+      position: absolute;
+      top: var(--space-6);
+      right: var(--space-6);
+      width: 44px;
+      height: 44px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-primary);
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .navbar-overlay .overlay-ctas {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-4);
+      margin-top: var(--space-4);
+    }
+
+    @media (max-width: 640px) {
+      .navbar-center { display: none; }
+      .navbar-right { display: none; }
+      .navbar-hamburger { display: flex; }
+    }
+
+    /* Component: ClFooter */
+    .cl-footer {
+      background: var(--color-bg);
+      border-top: 1px solid var(--color-border);
+      padding: var(--space-16) var(--space-6) var(--space-8);
+    }
+    .cl-footer-inner {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+    }
+    .cl-footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: var(--space-10);
+      margin-bottom: var(--space-12);
+    }
+    .cl-footer-brand {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .cl-footer-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .cl-footer-logo-mark {
+      width: 12px;
+      height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+    .cl-footer-logo-text {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+    }
+    .cl-footer-desc {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+      max-width: 320px;
+    }
+    .cl-footer-socials {
+      display: flex;
+      gap: var(--space-3);
+    }
+    .cl-footer-social-link {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: var(--color-text-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      text-decoration: none;
+      transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .cl-footer-social-link:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+    .cl-footer-col-title {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-4);
+    }
+    .cl-footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .cl-footer-col a {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .cl-footer-col a:hover {
+      color: var(--color-text-primary);
+    }
+    .cl-footer-bottom {
+      padding-top: var(--space-8);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+    }
+    .cl-footer-copy {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+    .cl-footer-legal {
+      display: flex;
+      gap: var(--space-6);
+    }
+    .cl-footer-legal a {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .cl-footer-legal a:hover {
+      color: var(--color-text-primary);
+    }
+    /* platformConfig.name — never hardcoded in production */
+
+    @media (max-width: 768px) {
+      .cl-footer-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-8);
+      }
+      .cl-footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+      .cl-footer-legal {
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1411,6 +1687,195 @@
           <div class="role-name">I'm a Brand</div>
           <div class="role-desc">Find talented creators who match your brand's vibe. Browse portfolios, book directly, and pay securely through escrow.</div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: NavBar                                                -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>NavBar</h2>
+    <p class="section-intro"><!-- Component: NavBar --> Fixed-position navigation bar with dark glass effect. Desktop: logo left, links centre, CTAs right. Mobile: hamburger opens full-screen overlay. Logo text sourced from platformConfig.name — never hardcoded in production.</p>
+
+    <!-- Desktop state -->
+    <div class="size-row-label">Desktop — &gt;640px</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <span class="state-label">Default</span>
+        <nav class="navbar" style="position:relative;top:auto;border-radius:var(--radius-md)">
+          <div class="navbar-inner">
+            <div class="navbar-left">
+              <div class="navbar-logo-mark"></div>
+              <!-- platformConfig.name — never hardcoded in production -->
+              <span class="navbar-logo-text">Crelab</span>
+            </div>
+            <div class="navbar-center">
+              <a href="#">Explore</a>
+              <a href="#">For Creators</a>
+              <a href="#">Blog</a>
+            </div>
+            <div class="navbar-right">
+              <button class="cl-btn cl-btn-default cl-btn-outlined">Find Talent</button>
+              <button class="cl-btn cl-btn-default cl-btn-primary">Get Hired</button>
+            </div>
+            <button class="navbar-hamburger" aria-label="Menu">
+              <span></span><span></span><span></span>
+            </button>
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Mobile state -->
+    <div class="size-row-label">Mobile hamburger — &lt;640px</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <span class="state-label">Hamburger Visible</span>
+        <nav class="navbar" style="position:relative;top:auto;border-radius:var(--radius-md);justify-content:space-between">
+          <div class="navbar-inner">
+            <div class="navbar-left">
+              <div class="navbar-logo-mark"></div>
+              <span class="navbar-logo-text">Crelab</span>
+            </div>
+            <div class="navbar-hamburger" style="display:flex">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Mobile overlay -->
+    <div class="size-row-label">Mobile overlay — full-screen nav</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <span class="state-label">Overlay Open</span>
+        <div class="navbar-overlay" style="opacity:1;pointer-events:auto;position:relative;height:360px;border-radius:var(--radius-md);inset:auto">
+          <button class="navbar-overlay-close" aria-label="Close">✕</button>
+          <a href="#">Explore</a>
+          <a href="#">For Creators</a>
+          <a href="#">Blog</a>
+          <div class="overlay-ctas">
+            <button class="cl-btn cl-btn-lg cl-btn-outlined" style="width:200px">Find Talent</button>
+            <button class="cl-btn cl-btn-lg cl-btn-primary" style="width:200px">Get Hired</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ClFooter                                              -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ClFooter</h2>
+    <p class="section-intro"><!-- Component: ClFooter --> Full-width page footer with brand, navigation columns, social links, and legal bar. 4-column grid on desktop, single column on mobile. Platform name sourced from platformConfig.name — never hardcoded.</p>
+
+    <!-- Desktop state -->
+    <div class="size-row-label">Desktop — 4-column grid</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <footer class="cl-footer" style="border-radius:var(--radius-md)">
+          <div class="cl-footer-inner">
+            <div class="cl-footer-grid">
+              <!-- Brand column -->
+              <div class="cl-footer-brand">
+                <div class="cl-footer-logo">
+                  <div class="cl-footer-logo-mark"></div>
+                  <!-- platformConfig.name — never hardcoded in production -->
+                  <span class="cl-footer-logo-text">Crelab</span>
+                </div>
+                <p class="cl-footer-desc">The creative marketplace where quality speaks louder than follower count. Nigerian creators connect with brands that value real talent.</p>
+                <div class="cl-footer-socials">
+                  <a href="#" class="cl-footer-social-link" aria-label="Instagram">IG</a>
+                  <a href="#" class="cl-footer-social-link" aria-label="Twitter">X</a>
+                  <a href="#" class="cl-footer-social-link" aria-label="LinkedIn">in</a>
+                  <a href="#" class="cl-footer-social-link" aria-label="YouTube">YT</a>
+                </div>
+              </div>
+              <!-- Explore column -->
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">Explore</span>
+                <a href="#">Browse Creators</a>
+                <a href="#">Categories</a>
+                <a href="#">Trending</a>
+                <a href="#">Near Me</a>
+              </div>
+              <!-- For Creators column -->
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">For Creators</span>
+                <a href="#">Join as Creator</a>
+                <a href="#">Creator Guide</a>
+                <a href="#">Success Stories</a>
+                <a href="#">Pricing</a>
+              </div>
+              <!-- Company column -->
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">Company</span>
+                <a href="#">About</a>
+                <a href="#">Blog</a>
+                <a href="#">Support</a>
+                <a href="#">Contact</a>
+              </div>
+            </div>
+            <div class="cl-footer-bottom">
+              <span class="cl-footer-copy">© 2026 Crelab. All rights reserved.</span>
+              <div class="cl-footer-legal">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Cookie Policy</a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Mobile state -->
+    <div class="size-row-label">Mobile — stacked single column</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <footer class="cl-footer" style="border-radius:var(--radius-md)">
+          <div class="cl-footer-inner">
+            <div class="cl-footer-grid" style="grid-template-columns:1fr">
+              <div class="cl-footer-brand">
+                <div class="cl-footer-logo">
+                  <div class="cl-footer-logo-mark"></div>
+                  <span class="cl-footer-logo-text">Crelab</span>
+                </div>
+                <p class="cl-footer-desc">The creative marketplace where quality speaks louder than follower count.</p>
+                <div class="cl-footer-socials">
+                  <a href="#" class="cl-footer-social-link" aria-label="Instagram">IG</a>
+                  <a href="#" class="cl-footer-social-link" aria-label="Twitter">X</a>
+                  <a href="#" class="cl-footer-social-link" aria-label="LinkedIn">in</a>
+                </div>
+              </div>
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">Explore</span>
+                <a href="#">Browse Creators</a>
+                <a href="#">Categories</a>
+              </div>
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">For Creators</span>
+                <a href="#">Join as Creator</a>
+                <a href="#">Creator Guide</a>
+              </div>
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">Company</span>
+                <a href="#">About</a>
+                <a href="#">Blog</a>
+              </div>
+            </div>
+            <div class="cl-footer-bottom">
+              <span class="cl-footer-copy">© 2026 Crelab. All rights reserved.</span>
+              <div class="cl-footer-legal">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   </div>
