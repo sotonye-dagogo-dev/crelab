@@ -2,14 +2,12 @@
 
 import { useCallback, useState, useMemo, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
 import { ExploreFilterBar } from "@/components/explore/ExploreFilterBar";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
 import type { IExploreFilters, PaginatedResponse, IExploreCard } from "@/types";
 
-export default function HomePage() {
-  const { isAuthenticated } = useAuth();
+export default function ExplorePage() {
   const platformConfig = usePlatformConfig();
   const [filters, setFilters] = useState<IExploreFilters>({});
   const [scrollY, setScrollY] = useState(0);
@@ -64,37 +62,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
-      {!isAuthenticated && (
-        <section className="w-full min-h-[220px] bg-gradient-to-b from-[var(--color-surface)] to-[var(--color-bg)] flex items-center px-6 py-12">
-          <div className="max-w-[1200px] w-full mx-auto flex flex-row justify-between items-center gap-8 max-[640px]:flex-col max-[640px]:text-center">
-            <div className="flex-1 max-w-[560px]">
-              <h1 className="font-[family-name:var(--font-display)] font-extrabold text-[3rem] max-[640px]:text-[1.875rem] text-[var(--color-text-primary)] leading-[1.15] tracking-[-0.02em] mb-6">
-                {platformConfig.tagline}
-              </h1>
-              <div className="flex gap-3 flex-wrap max-[640px]:justify-center">
-                <a
-                  href="/register"
-                  className="inline-flex items-center justify-center h-11 px-6 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[15px] no-underline gap-2"
-                >
-                  Browse Creators
-                </a>
-                <a
-                  href="/register"
-                  className="inline-flex items-center justify-center h-11 px-6 rounded-[8px] bg-transparent text-[var(--color-text-primary)] border border-[var(--color-border-mid)] font-semibold text-[15px] no-underline gap-2"
-                >
-                  Join as Creator
-                </a>
-              </div>
-            </div>
-            <div className="w-[360px] h-[200px] rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] flex items-center justify-center flex-shrink-0 max-[640px]:hidden">
-              <svg className="w-9 h-9 text-[rgba(255,255,255,0.4)]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </div>
-          </div>
-        </section>
-      )}
-
       <ExploreFilterBar
         categories={platformConfig.categories}
         filters={filters}

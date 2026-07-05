@@ -103,6 +103,7 @@ export const providers = pgTable("providers", {
   avatarUrl: text("avatar_url"),
   active: boolean("active").notNull().default(false),
   verified: boolean("verified").notNull().default(false),
+  featured: boolean("featured").notNull().default(false),
   driveFolderUrl: text("drive_folder_url"),
   /** Money in kobo - profile view count */
   profileViews: integer("profile_views").notNull().default(0),

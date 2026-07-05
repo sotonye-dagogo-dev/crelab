@@ -234,6 +234,9 @@ export interface IPlatformConfig {
 
 /* ── API Wrappers ── */
 
+export type { IExploreCard, IExploreFilters } from "./explore";
+export { ExploreSort } from "./explore";
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T | null;
