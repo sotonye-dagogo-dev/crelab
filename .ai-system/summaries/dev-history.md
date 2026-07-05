@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-05
+> - last-verified-against-code: 2026-07-05 (OC-7 reconciliation)
 > - staleness-policy: historical entries do not go stale
 
 > **Overview:** Chronological log of completed development work. Each sprint ends with a summary entry. Agents add entries after completing tasks.
@@ -49,12 +49,44 @@ Full-stack build sprint completing the majority of MVP scope. Started from green
 - `lib/` — 8 modules: auth, cloudinary, config-context, consent, db, drive, paystack, toast
 
 **Still Missing:**
-- Sanity CMS / Blog system
 - Provider Onboarding Wizard UI
 - Portfolio drag-and-drop upload UI
-- sitemap.xml, robots.txt
 - Tests
-- Phase 2 features (messaging, notifications, client dashboard)
+- Phase 2 features (messaging, notifications, provider dashboard, client dashboard)
 
 **Next Sprint Focus:**
-Blog system, onboarding wizard, testing, and remaining MVP polish.
+Testing, Phase 2 features (dashboards, messaging, notifications).
+
+---
+
+## 2026-07-05 — OC-7 Production Readiness Audit
+
+**Summary:**
+Full production readiness audit across 7 domains. Wrapper compliance audit (zero violations — no raw shadcn/ui imports in feature code). Config compliance: replaced 15+ hardcoded strings with `usePlatformConfig()` values. Money audit: all arithmetic uses `Math.round()` on kobo integers — zero floating point violations. Performance: N+1 query audit passed, cursor pagination verified, IntersectionObserver pattern confirmed. Accessibility: focus-visible rings on all interactive elements, aria-labels on icon buttons and videos, prefers-reduced-motion branching. NDPR compliance: created /privacy and /terms pages, CookieConsentBanner component, consent recording on register. Sanity CMS blog system built with ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar components. sitemap.ts and robots.ts generated. Build + tsc + lint all pass with zero errors/warnings.
+
+**Completed:**
+- OC-7: Design-to-code delta closed (NDPR pages, cookie consent, config-driven text)
+- OC-7: Wrapper compliance audit — zero violations
+- OC-7: Config compliance — all hardcoded strings replaced with config values
+- OC-7: Money audit — zero floating point arithmetic violations
+- OC-7: Performance audit — N+1 queries, cursor pagination, IntersectionObserver all verified
+- OC-7: Accessibility — focus-visible rings, aria-labels, muted video, reduced-motion support
+- OC-7: NDPR compliance — /privacy, /terms, CookieConsentBanner, consent on register
+- Sanity CMS blog system: schema, config, blog route, article route, blog components
+- sitemap.ts + robots.ts (Next.js generated)
+
+**Key Changes:**
+- `sanity/` — Sanity CMS project config + blog/spotlight schemas
+- `lib/sanity.ts` — Sanity CMS client wrapper
+- `components/blog/` — 4 components: ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar
+- `app/(public)/blog/` — Blog index + [slug] article pages
+- `app/(public)/privacy/` — NDPR-compliant privacy policy page
+- `app/(public)/terms/` — Terms of service page
+- `components/shared/CookieConsentBanner.tsx` — Cookie consent UI
+- `app/sitemap.ts`, `app/robots.ts` — SEO generation
+- `.eslintrc.json` — Created with lint rules
+
+**Build Status:** ✅ Production build passes (40 pages, 0 errors). TypeScript compiles with zero errors. ESLint passes with zero warnings.
+
+**Next Sprint Focus:**
+Testing, Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications).

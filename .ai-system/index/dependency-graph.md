@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-05
+> - last-verified-against-code: 2026-07-05 (OC-7 reconciliation)
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -78,7 +78,8 @@ Drizzle
 | tailwindcss | Styling | app/, components/ |
 | shadcn/ui (via Cl* wrappers) | UI primitives (wrapped) | components/ui/ |
 | zod | Schema validation (package.json) | — |
-| Not yet wired: Paystack SDK, Cloudinary SDK, Mux SDK, googleapis, @sanity/client, resend | — | — |
+| Not yet wired: Paystack SDK, Cloudinary SDK, Mux SDK, googleapis, resend | — | — |
+| @sanity/client, @sanity/image-url | Sanity CMS content fetching + image URL builder | lib/sanity.ts, sanity/, app/(public)/blog/ |
 
 ---
 

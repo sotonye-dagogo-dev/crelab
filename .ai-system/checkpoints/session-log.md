@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05 (OC-7 reconciliation)
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -229,3 +229,40 @@ Provider Dashboard, tests, messaging (Phase 2)
 - `@next/next/no-img-element` rule disabled globally as `<img>` is used intentionally in portfolio/video cards for dynamic content
 
 **OC-7 COMPLETE — Production ready.**
+
+---
+
+## Session 5 — 2026-07-05 (Update AI System — Reconciliation)
+
+**Completed:**
+Full `.ai-system/` reconciliation against post-OC-7 repository state. Detected and fixed drift across 15 files. Key findings:
+
+1. **repo-map.md** — Missing blog route, privacy/terms pages, sanity/ directory, components/blog/, app/api/account/ + app/api/profile/, lib/sanity.ts, CookieConsentBanner. All added.
+2. **system-architecture.md** — Blog/Sanity CMS no longer pending; removed from "Files not yet implemented" section.
+3. **project-plan.md** — Milestone 1.0 updated to 7/7, Milestone 1.4 updated to 3/3 (blog + sitemap/robots completed).
+4. **dev-history.md** — Added OC-7 QA sprint summary entry.
+5. **architecture-history.md** — Added OC-7 architecture entry documenting blog system completion.
+6. **project-context.md** — Updated active sprint focus (no longer blog/Sanity).
+7. **.ai-context.md** — Updated remaining items (blog + sitemap removed from pending).
+8. **entry-protocol.md**, **design-system.md**, **repair-system.md**, **project-decisions.md** — Metadata freshness bumped.
+9. **dependency-graph.md** — Added `@sanity/client` and `@sanity/image-url` to external dependencies.
+
+**Files Modified:**
+- `.ai-context.md`
+- `.ai-system/index/repo-map.md`
+- `.ai-system/index/dependency-graph.md`
+- `.ai-system/system-architecture.md`
+- `.ai-system/project-context.md`
+- `.ai-system/project-plan.md`
+- `.ai-system/planning/project-plan.md`
+- `.ai-system/planning/task-queue.md`
+- `.ai-system/summaries/dev-history.md`
+- `.ai-system/memory/architecture-history.md`
+- `.ai-system/memory/project-decisions.md`
+- `.ai-system/protocols/entry-protocol.md`
+- `.ai-system/design-system.md`
+- `.ai-system/repair-system.md`
+- `.ai-system/checkpoints/session-log.md`
+
+**Next Task:**
+Testing, Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications).**

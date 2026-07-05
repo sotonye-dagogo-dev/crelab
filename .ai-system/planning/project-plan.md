@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-05
+> - last-verified-against-code: 2026-07-05 (OC-7 reconciliation)
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -19,7 +19,7 @@
 - [x] Drizzle Schema & Migrations: 329-line schema with enums, relations, audit_log, migrations applied
 - [x] Auth: Better Auth, register/login/signout, role selection, NDPR consent capture, middleware
 - [x] Cl* Component Wrapper Layer: ClButton, ClCard, ClInput, ClSelect, ClTextarea, ClBadge, ClAvatar, ClTabs, ClDialog, ClSheet
-- [ ] Sanity CMS Init: blog schema, creator spotlight schema, /blog routes — **not yet implemented**
+- [x] Sanity CMS Init: blog schema, creator spotlight schema, /blog routes, article components (ArticleBody, BlogCard, ToCSidebar)
 
 ### Milestone 1.1 — Provider Supply Side (Week 2)
 
@@ -47,8 +47,8 @@
 ### Milestone 1.4 — Admin & SEO (Week 5)
 
 - [x] Admin Panel: config editor, category manager (with CategoryModal), provider review queue, dispute dashboard, admin layout + sidebar
-- [ ] Blog System: Sanity CMS, /blog, /blog/[slug], creator spotlights, SEO meta — **not yet implemented**
-- [ ] sitemap.xml, robots.txt
+- [x] Blog System: Sanity CMS, /blog, /blog/[slug], creator spotlights, ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar
+- [x] sitemap.ts, robots.ts (Next.js generated sitemap.xml + robots.txt)
 
 ---
 
@@ -79,8 +79,8 @@
 - [x] .ai-system governance structure initialized with bootstrap-project
 - [x] Project documentation (PRD, ROADMAP, DESIGN) populated
 - [x] 19 HTML design system screens completed
-- [x] Milestone 1.0 Foundation — 6/7 items (all except Sanity CMS)
+- [x] Milestone 1.0 Foundation — 7/7 items (Sanity CMS completed)
 - [x] Milestone 1.1 Provider Supply Side — 4/5 items (no onboarding wizard)
 - [x] Milestone 1.2 Discovery & Client Side — 3/3 items
 - [x] Milestone 1.3 Booking & Payment — 6/6 items
-- [x] Milestone 1.4 Admin & SEO — 1/3 items (admin panel done; blog + SEO pending)
+- [x] Milestone 1.4 Admin & SEO — 3/3 items (admin panel, blog system, sitemap/robots)

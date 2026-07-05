@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-05
+> - last-verified-against-code: 2026-07-05 (OC-7 reconciliation)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -22,9 +22,9 @@
 
 ---
 
-## Completed Sprint — Milestone 1.0: Foundation
+## Completed Sprint — MVP Core (Milestones 1.0-1.4)
 
-All items completed except Provider Dashboard and Client Dashboard (deferred). All Milestones substantially complete.
+All Milestones substantially complete. Blog system, sitemap/robots completed. Remaining: onboarding wizard UI, tests, Phase 2 features (dashboards, messaging, notifications).
 
 ---
 
@@ -34,9 +34,9 @@ All items completed except Provider Dashboard and Client Dashboard (deferred). A
 |------|------|--------|
 | [M] | Write tests for all services | [ ] |
 | [M] | Provider Dashboard (full) with earnings, kanban pipeline, availability calendar | [ ] |
+| [M] | Client Dashboard: active bookings, booking history, payment history | [ ] |
 | [L] | In-platform messaging (Phase 2) | [ ] |
 | [M] | Notifications: email (Resend) + in-app notification centre | [ ] |
-| [M] | Client Dashboard: active bookings, booking history, payment history | [ ] |
 
 ---
 
@@ -87,6 +87,8 @@ All items completed except Provider Dashboard and Client Dashboard (deferred). A
 | OC-7: Accessibility: focus-visible rings, aria-labels, muted videos, reduced-motion support | 2026-07-05 |
 | OC-7: NDPR compliance: created /privacy, /terms pages, CookieConsentBanner, consent recording on register | 2026-07-05 |
 | OC-7: Production gate: build + tsc + lint pass with zero errors/warnings | 2026-07-05 |
+| Sanity CMS blog system: schema, config, /blog, /blog/[slug], blog components | 2026-07-05 |
+| sitemap.ts + robots.ts (Next.js generated SEO) | 2026-07-05 |
 
 ---
 

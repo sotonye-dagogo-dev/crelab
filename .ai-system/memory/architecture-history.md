@@ -38,9 +38,32 @@ Milestones 1.0-1.4 substantially built in a single sprint. Application code now 
 
 **Drift from original architecture:**
 - `app/admin/` not `app/(admin)/` — no route group wrapping for admin
-- No `sanity/` directory or Sanity CMS integration yet
 - `services/ReviewService.ts` not implemented (reviews handled inline in schema)
 - `lib/mux.ts` stub only
-- `components/blog/` directory present but empty
+
+---
+
+### 2026-07-05 — OC-7 Production Readiness + Blog System
+
+**State:**
+OC-7 full audit completed. All 7 domains clean: wrapper compliance, config compliance, money audit, performance, accessibility, NDPR compliance, build gate. Sanity CMS blog system built with 4 blog components, 2 content schemas (blog post + creator spotlight), /blog and /blog/[slug] routes, sitemap.ts + robots.ts. NDPR compliance pages (/privacy, /terms) and CookieConsentBanner added. 40 pages building with zero errors/warnings.
+
+**Key architectural changes:**
+- `sanity/` directory added: config + schemas for Sanity CMS
+- `lib/sanity.ts` — Sanity client wrapper
+- `components/blog/` — ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar
+- `app/sitemap.ts`, `app/robots.ts` — Next.js SEO generation
+- `components/shared/CookieConsentBanner.tsx` — NDPR compliance UI
+
+**Drift resolved:**
+- Sanity CMS integration — **complete** (previously listed as drift)
+- Blog components — **complete** (previously empty directory)
+- sitemap/robots — **complete** (previously missing)
+
+**Remaining drift:**
+- `app/admin/` not `app/(admin)/` — minor, no route group wrapping
+- `services/ReviewService.ts` not implemented (reviews handled inline)
+- `lib/mux.ts` stub only
+- Provider Dashboard and Client Dashboard (Phase 2)
 
 ---

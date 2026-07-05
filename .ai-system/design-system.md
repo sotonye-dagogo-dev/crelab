@@ -1,8 +1,8 @@
 # Design System
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05 (OC-7 reconciliation)
 > - staleness-policy: re-verify if UI components or styling dependencies change
 
 > **Overview:** Dark-dominant, video-first design direction. Electric yellow-green accent (#E8FF47) on near-black (#0A0A0A). All tokens defined as CSS custom properties with platform config overridability. The colour, typography, and spacing tables below are the single source of truth for design tokens — components must consume these tokens via Cl* wrappers rather than redeclaring values.

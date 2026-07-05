@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-05
+> - last-verified-against-code: 2026-07-05 (OC-7 reconciliation)
 > - staleness-policy: re-verify if >10 sessions old or after major scope changes
 
 > **Overview:** Crelab is a standalone, video-first creative services marketplace for Nigeria that connects creative professionals (content creators, cinematographers) with brands and businesses. Providers win jobs based on the quality of their work, not follower count. Payments are protected by Paystack escrow with a hybrid auto-release mechanism.
@@ -40,7 +40,7 @@ Nigeria's $15B creative industry operates through informal, trust-deficit channe
 
 Phase: Active Development — MVP Build Sprint
 
-Active sprint focus: Complete remaining MVP items (Sanity CMS blog, onboarding wizard, testing), then prepare for Phase 2 (messaging, notifications, dashboards).
+Active sprint focus: Testing, Provider Dashboard, Client Dashboard, and Phase 2 features (messaging, notifications).
 
 ---
 
