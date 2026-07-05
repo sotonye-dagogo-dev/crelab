@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -23,12 +23,13 @@ Next.js App Router (app/)
     |
     v
 Service Layer (services/)
-    |-- BookingService       -- Booking lifecycle (REQUESTED -> RELEASED/REFUNDED)
-    |-- EscrowService        -- Escrow state machine (PENDING -> HELD -> IN_PROGRESS -> RELEASED/DISPUTED)
-    |-- PortfolioService     -- Portfolio CRUD, reorder, hide/show
-    |-- DriveService         -- Google Drive folder sync, validate, ingest
-    |-- PaymentService       -- Paystack integration, subaccount split
-    |-- ReviewService        -- Post-booking mutual reviews
+    |-- BookingService          -- Booking lifecycle (REQUESTED -> RELEASED/REFUNDED)
+    |-- EscrowService           -- Escrow state machine (PENDING -> HELD -> IN_PROGRESS -> RELEASED/DISPUTED)
+    |-- PortfolioService        -- Portfolio CRUD, reorder, hide/show
+    |-- DriveService            -- Google Drive folder sync, validate, ingest
+    |-- PaymentService          -- Paystack integration, subaccount split
+    |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
+    |-- ExploreService          -- Provider search, filter, sort, cursor pagination
     |
     v
 Data Access Layer
@@ -50,17 +51,17 @@ Data Stores
 
 | Module | Responsibility | Key Files | Dependencies |
 |--------|---------------|-----------|--------------|
-| Public Routes | Guest-accessible pages: landing, explore, profiles, blog | `app/(public)/` | Components, Services |
-| Auth Routes | Authenticated pages: dashboards, bookings, messages | `app/(auth)/` | AuthGate, Services |
-| Admin Routes | ADMIN-only: config, categories, disputes, analytics | `app/(admin)/` | requireRole('ADMIN'), Services |
-| API Routes | Backend handlers: CRUD, webhooks, cron | `app/api/` | Services, Lib |
+| Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search | `app/(public)/` | Components, Services |
+| Auth Routes | Authenticated pages: booking, profile/edit, register, login | `app/(auth)/` | AuthGate, Services |
+| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes | `app/admin/` | requireRole('ADMIN'), Services |
+| API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, webhooks, cron | `app/api/` | Services, Lib |
 | UI Wrappers | Cl* wrappers around shadcn/ui primitives | `components/ui/` | shadcn/ui, Tailwind |
-| Feature Components | Domain-specific UI: explore cards, profile sections, booking drawer | `components/` | UI Wrappers, Types |
-| Services | Business logic: booking, escrow, payment, portfolio, drive, reviews | `services/` | Lib, Types, Drizzle |
-| Types | Global TS interfaces: entities, API responses, enums | `types/` | None |
-| Config | Platform config with DB override capability | `config/` | Supabase |
-| Lib | Third-party wrappers: auth, db, paystack, cloudinary, mux, drive | `lib/` | SDK packages |
-| Drizzle | Database schema, migrations, RLS policies | `drizzle/` | Supabase |
+| Feature Components | Domain-specific UI: explore cards, profile sections, booking drawer, admin panels | `components/` | UI Wrappers, Types |
+| Services | Business logic: booking, escrow, payment, portfolio, drive, config, explore | `services/` | Lib, Types, Drizzle |
+| Types | Global TS interfaces: entities, API responses, enums, explore types | `types/` | None |
+| Config | Platform config with DB override capability | `config/` | Types |
+| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, mux, drive, consent, config-context, toast | `lib/` | SDK packages |
+| Drizzle | Database schema, migrations, RLS policies | `drizzle/` | Supabase, postgres |
 
 ---
 
@@ -150,7 +151,6 @@ All config points have hardcoded fallback values in `config/platform.config.ts` 
 
 ## Known Constraints & Technical Debt
 
-- Greenfield project — no code written yet beyond .ai-system governance
 - All monetary values stored in kobo (integer) — no floating point arithmetic on money
 - Privacy by design: consent records, data minimisation, Supabase RLS from first migration
 - NDPR compliance required for Nigerian market
@@ -161,3 +161,10 @@ All config points have hardcoded fallback values in `config/platform.config.ts` 
 ## Architecture History
 
 See `memory/architecture-history.md` for full chronology.
+
+Files not yet implemented despite being in the planned architecture:
+- `services/ReviewService.ts` (interface exists but no implementation)
+- `lib/mux.ts` (Mux streaming integration stubbed but not wired)
+- Blog system (Sanity CMS schema not yet connected)
+- Messages/notifications (Phase 2)
+- `sanity/` directory (CMS config not yet created)

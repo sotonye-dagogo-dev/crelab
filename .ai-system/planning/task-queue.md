@@ -1,8 +1,8 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -22,46 +22,26 @@
 
 ---
 
-## Current Sprint — Milestone 1.0: Foundation (Week 1)
+## Completed Sprint — Milestone 1.0: Foundation
 
-| Size | Task | Status |
-|------|------|--------|
-| [S] | Init Next.js 15 App Router with TypeScript strict mode + Tailwind CSS v4 | [ ] |
-| [S] | Configure Vercel deployment (preview + production environments) | [ ] |
-| [S] | Set up ESLint, Prettier, Husky pre-commit hooks | [ ] |
-| [M] | Create config/platform.config.ts with all hardcoded fallback values | [ ] |
-| [M] | Create PlatformConfigService (class, static methods) + ConfigContext | [ ] |
-| [S] | Create Supabase table: platform_config (key TEXT UNIQUE, value JSONB, updated_at) | [ ] |
-| [M] | Define all entity interfaces in /types (IUser, IProvider, IBooking, etc.) | [ ] |
-| [M] | Define enums (BookingStatus, EscrowState, UserRole, ExperienceLevel) | [ ] |
-| [S] | Create ApiResponse<T> and PaginatedResponse<T> wrapper types | [ ] |
-| [M] | Define full Drizzle schema in drizzle/schema.ts | [ ] |
-| [M] | Apply initial migration via drizzle-kit | [ ] |
-| [M] | Enable Supabase RLS on all tables (policy migrations) | [ ] |
-| [S] | Seed initial categories: content-creator, cinematographer | [ ] |
-| [M] | Install and configure Better Auth v1.6 with Supabase adapter | [ ] |
-| [S] | Create app/api/auth/[...all]/route.ts — Better Auth API handler | [ ] |
-| [M] | Create lib/auth.ts: auth instance, getSession(), requireAuth(), requireRole() | [ ] |
-| [S] | Create Next.js middleware — protect dashboard, bookings, admin routes | [ ] |
-| [M] | Create hooks/useAuth.ts — client-side auth hook | [ ] |
-| [M] | Implement registration flow: email + phone + role selection + consent | [ ] |
-| [M] | Create Cl* wrappers for all shadcn/ui primitives (ClButton, ClCard, etc.) | [ ] |
-| [S] | Create shared AuthGate.tsx component | [ ] |
-| [M] | Init Sanity CMS project and Next.js integration | [ ] |
-| [S] | Create blog post schema and creator spotlight schema in Sanity | [ ] |
-| [S] | Create /blog and /blog/[slug] routes with ISR | [ ] |
+All items completed except Sanity CMS (deferred). Milestones 1.1-1.4 substantially complete.
 
 ---
 
-## Up Next — Milestone 1.1: Provider Supply Side (Week 2)
+## Current Tasks — Remaining Work
 
-| Size | Task |
-|------|------|
-| [XL] | Provider Onboarding Wizard: multi-step form with category-specific fields |
-| [L] | Provider Profile Page: cover video hero, identity bar, portfolio, packages, reviews |
-| [M] | Portfolio Upload: drag-and-drop, Cloudinary, thumbnails, reorder |
-| [L] | Google Drive Portfolio Sync: URL validation, ingest, cron, UI |
-| [M] | Provider Dashboard (basic) |
+| Size | Task | Status |
+|------|------|--------|
+| [XL] | Provider Onboarding Wizard: multi-step form with category-specific fields | [ ] |
+| [M] | Portfolio Upload drag-and-drop UI | [ ] |
+| [M] | Init Sanity CMS project and Next.js integration | [ ] |
+| [S] | Create blog post schema and creator spotlight schema in Sanity | [ ] |
+| [S] | Create /blog and /blog/[slug] routes with ISR | [ ] |
+| [S] | sitemap.xml, robots.txt | [ ] |
+| [M] | Write tests for all services | [ ] |
+| [M] | Provider Dashboard (full) with earnings, kanban pipeline, availability calendar | [ ] |
+| [L] | In-platform messaging (Phase 2) | [ ] |
+| [M] | Notifications: email (Resend) + in-app notification centre | [ ] |
 
 ---
 
@@ -69,28 +49,49 @@
 
 | Size | Task |
 |------|------|
-| [L] | Explore Feed: masonry grid, video autoplay, infinite scroll, filter bar, search |
-| [M] | Category Browse page |
-| [S] | Search Results page |
-| [XL] | Booking Request Flow + Paystack Integration + Escrow State Machine |
-| [M] | Admin Panel |
-| [M] | Blog System from Sanity |
+| [M] | Client Dashboard: active bookings, booking history, payment history |
+| [M] | Reviews & ratings: mutual post-service, "Verified Booking" badge |
+| [M] | Pricing guidance widget: anonymised aggregate rates by category |
+| [L] | Identity verification: BVN/NIN check via Dojah or Smile Identity |
+| [L] | Algorithm & personalisation: personalised Explore feed, saved searches |
+| [M] | Promoted listings: paid featured placement, "Sponsored" label |
+| [L] | Video analytics: per-video play counts, view duration, conversion rate |
+| [S] | PWA as interim mobile experience |
+| [XL] | API / white-label embed: booking widget, public provider discovery API |
 
 ---
 
-## Completed This Sprint
+## Completed
 
 | Task | Completed |
 |------|-----------|
 | .ai-system bootstrap and project documentation population | 2026-07-04 |
-| 19 HTML design system screens | Complete (pre-bootstrap) |
+| 19 HTML design system screens | 2026-07-04 |
+| Init Next.js 15 with TypeScript strict + Tailwind v4 | 2026-07-05 |
+| Platform config shell + PlatformConfigService + ConfigContext | 2026-07-05 |
+| Global types: entity interfaces, enums, API wrappers, explore types | 2026-07-05 |
+| Drizzle schema (329 lines, all tables/enums/relations) + migrations | 2026-07-05 |
+| Better Auth: instance, API handler, middleware, client hook | 2026-07-05 |
+| Cl* component wrappers (10 primitives) | 2026-07-05 |
+| AuthGate shared component | 2026-07-05 |
+| NDPR consent capture server action | 2026-07-05 |
+| Provider Profile page + components (Hero, PortfolioGrid, ServicePackages, Reviews, WorkHistory) | 2026-07-05 |
+| Portfolio service CRUD + reorder + hide | 2026-07-05 |
+| Google Drive sync: URL validation, fetch files, ingest, cron, service | 2026-07-05 |
+| Explore feed: service, API, filter bar, masonry grid, infinite scroll | 2026-07-05 |
+| Category browse + search results pages | 2026-07-05 |
+| Booking service + state machine + legal transitions | 2026-07-05 |
+| Escrow service: initiate, webhook handler, setInProgress, release, dispute, resolution | 2026-07-05 |
+| Payment service: init, split payout, refund | 2026-07-05 |
+| BookingDrawer, EscrowTimeline, DisputeModal components | 2026-07-05 |
+| Admin panel: layout, sidebar, config editor, category manager, provider queue, dispute dashboard | 2026-07-05 |
 
 ---
 
 ## Notes
 
-- Greenfield project — no application code exists yet
-- First task: npm init Next.js 15 with TypeScript strict mode
 - All monetary values must be stored as integers (kobo) — never floating point
 - All UI must use Cl* wrappers, never raw shadcn/ui imports
 - Config before code: define config structure before building features
+- Paystack webhook uses raw-body + HMAC-SHA512 verification
+- Booking state transitions validated by LEGAL_TRANSITIONS map

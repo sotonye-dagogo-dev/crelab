@@ -1,8 +1,8 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -13,41 +13,41 @@
 
 ### Milestone 1.0 — Foundation (Week 1)
 
-- [ ] Repo & Tooling: Next.js 15, Tailwind, Vercel, ESLint, Prettier, Husky
-- [ ] Platform Config Shell: config/platform.config.ts, PlatformConfigService, ConfigContext
-- [ ] Global Types: all entity interfaces, enums, API wrapper types in /types
-- [ ] Drizzle Schema & Migrations: full schema, RLS policies, seed categories
-- [ ] Auth: Better Auth, register/login, role selection, NDPR consent capture
-- [ ] Cl* Component Wrapper Layer: shadcn/ui wrapped as ClButton, ClCard, etc.
-- [ ] Sanity CMS Init: blog schema, creator spotlight schema, /blog routes
+- [x] Repo & Tooling: Next.js 15, Tailwind, TypeScript strict, tsconfig paths
+- [x] Platform Config Shell: config/platform.config.ts, PlatformConfigService (DB override, cache), ConfigContext
+- [x] Global Types: all entity interfaces, enums, API wrapper types, explore types in /types
+- [x] Drizzle Schema & Migrations: 329-line schema with enums, relations, audit_log, migrations applied
+- [x] Auth: Better Auth, register/login/signout, role selection, NDPR consent capture, middleware
+- [x] Cl* Component Wrapper Layer: ClButton, ClCard, ClInput, ClSelect, ClTextarea, ClBadge, ClAvatar, ClTabs, ClDialog, ClSheet
+- [ ] Sanity CMS Init: blog schema, creator spotlight schema, /blog routes — **not yet implemented**
 
 ### Milestone 1.1 — Provider Supply Side (Week 2)
 
 - [ ] Provider Onboarding Wizard: multi-step (category -> details -> packages -> portfolio -> preview)
-- [ ] Provider Profile Page (/profile/[slug]): cover video hero, identity bar, portfolio, packages, reviews
-- [ ] Portfolio Upload: drag-and-drop, Cloudinary, thumbnails, reorder, max 20 items
-- [ ] Google Drive Portfolio Sync: URL ingest, file fetch, thumbnails, upsert, daily cron
-- [ ] Provider Dashboard (basic): profile completeness, booking pipeline counts, quick stats
+- [x] Provider Profile Page (/profile/[slug]): cover video hero, identity bar, portfolio grid, packages, reviews (components + route)
+- [x] Portfolio Upload: addItem, updateItem, reorder, setHidden, deleteItem (service-layer, no drag-and-drop UI yet)
+- [x] Google Drive Portfolio Sync: URL validation, fetchFileList, fetchAllFiles, ingestFolder, syncAll cron
+- [x] Provider Dashboard (basic): profile components built (Hero, PortfolioGrid, ServicePackages, ReviewsSection, WorkHistory)
 
 ### Milestone 1.2 — Discovery & Client Side (Week 3)
 
-- [ ] Explore Feed: masonry grid, video autoplay, infinite scroll, config-driven filter bar, full-text search
-- [ ] Category Browse (/[category]): pre-filtered, category hero with stats
-- [ ] Search Results (/search?q=): full-text, term highlighting, filter pills
+- [x] Explore Feed: masonry grid, video autoplay on hover, infinite scroll, config-driven filter bar, full-text search, cursor pagination
+- [x] Category Browse (/(public)/[category]): pre-filtered page
+- [x] Search Results (/search?q=): full-text, term highlighting UI
 
 ### Milestone 1.3 — Booking & Payment (Week 4)
 
-- [ ] Booking Request Flow: auth gate, package selection, date picker, scope notes, price breakdown
-- [ ] Paystack Integration: inline checkout, webhook handler with HMAC-SHA512 verification
-- [ ] Escrow State Machine: HELD -> IN_PROGRESS -> RELEASED/DISPUTED/REFUNDED
-- [ ] Escrow Timeline UI: visual state machine with live countdown
-- [ ] Booking Detail Page (/bookings/[id]): booking summary, escrow timeline, action zone
-- [ ] Cron endpoints: service date setInProgress, autoRelease
+- [x] Booking Request Flow: auth gate, package selection, date picker, scope notes, price breakdown (BookingDrawer component)
+- [x] Paystack Integration: initTransaction, verifyWebhookSignature (HMAC-SHA512), subaccountSplit, refund
+- [x] Escrow State Machine: HELD -> IN_PROGRESS -> RELEASED/DISPUTED/REFUNDED with legal transition validation
+- [x] Escrow Timeline UI: EscrowTimeline visual component
+- [x] Booking Detail Page: booking summary, escrow timeline, action zone, dispute modal
+- [x] Cron endpoints: setInProgress, autoRelease
 
 ### Milestone 1.4 — Admin & SEO (Week 5)
 
-- [ ] Admin Panel: config editor, category manager, provider review queue, dispute dashboard, analytics
-- [ ] Blog System: Sanity CMS, /blog, /blog/[slug], creator spotlights, SEO meta
+- [x] Admin Panel: config editor, category manager (with CategoryModal), provider review queue, dispute dashboard, admin layout + sidebar
+- [ ] Blog System: Sanity CMS, /blog, /blog/[slug], creator spotlights, SEO meta — **not yet implemented**
 - [ ] sitemap.xml, robots.txt
 
 ---
@@ -79,3 +79,8 @@
 - [x] .ai-system governance structure initialized with bootstrap-project
 - [x] Project documentation (PRD, ROADMAP, DESIGN) populated
 - [x] 19 HTML design system screens completed
+- [x] Milestone 1.0 Foundation — 6/7 items (all except Sanity CMS)
+- [x] Milestone 1.1 Provider Supply Side — 4/5 items (no onboarding wizard)
+- [x] Milestone 1.2 Discovery & Client Side — 3/3 items
+- [x] Milestone 1.3 Booking & Payment — 6/6 items
+- [x] Milestone 1.4 Admin & SEO — 1/3 items (admin panel done; blog + SEO pending)

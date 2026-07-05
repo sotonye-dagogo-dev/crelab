@@ -1,8 +1,8 @@
 # Test Plan
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05
 > - staleness-policy: re-verify if new features are added
 
 > **Overview:** Defines what needs to be tested and at what level for Crelab. Referenced by verify-work.md during the quality gate. Updated as new features are added.

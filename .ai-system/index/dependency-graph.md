@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -13,48 +13,54 @@
 
 ```
 Page / Route Components
-  → Feature Components (explore/, profile/, booking/, blog/)
+  → Feature Components (explore/, profile/, booking/, admin/, shared/)
   → UI Wrappers (components/ui/Cl*)
-  → Services (via server components or API routes)
   → Hooks (useAuth, TanStack Query)
+  → Services (via server components or API routes)
+  → Config (via ConfigContext from lib/)
 
 UI Wrappers (Cl*)
   → shadcn/ui primitives (isolated behind Cl* interface)
-  → ConfigContext (platform config via React context)
   → Tailwind CSS (design tokens via CSS custom properties)
 
+Feature Components (explore, profile, booking, admin)
+  → UI Wrappers (Cl*)
+  → Types
+  → lib/config-context.tsx (ConfigContext)
+
 Services
-  → Lib (DB client, third-party wrappers)
+  → lib/db.ts (Drizzle + postgres client)
   → Types (interfaces, enums)
-  → Drizzle ORM (database operations)
+  → Drizzle ORM (drizzle/schema.ts — database operations)
+  → Lib wrappers (paystack, cloudinary, drive)
+  → PlatformConfigService (config lookups)
 
 API Routes
   → Services (business logic)
-  → Lib (auth helpers, third-party wrappers)
+  → Lib (auth helpers)
   → Types (request/response types)
 
-Config Module
-  → platform.config.ts (hardcoded fallback)
-  → Supabase (DB override at runtime)
-  → ConfigContext (React context for frontend consumption)
+PlatformConfigService
+  → lib/db.ts (DB client)
+  → config/platform.config.ts (fallback default)
+  → Drizzle schema (platform_config + audit_log tables)
+  → Next.js unstable_cache / revalidateTag
 
 Auth (Better Auth)
-  → Supabase adapter (session storage)
-  → lib/auth.ts (auth instance, helpers)
+  → Better Auth standalone instance (lib/auth.ts)
+  → Drizzle adapter → drizzle/schema.ts (user, session, account, verification)
   → hooks/useAuth.ts (client-side hook)
+  → middleware.ts (route protection)
 
 Lib Module
-  → Third-party SDKs (Paystack, Cloudinary, Mux, Google Drive, Supabase, Sanity, Resend)
+  → Third-party SDKs (Paystack, Cloudinary, Google Drive, postgres, Supabase)
   → Types (input/output types)
+  → crypto (HMAC-SHA512 webhook verification)
 
 Drizzle
-  → drizzle/schema.ts (single source of truth)
-  → Supabase (database connection)
-  → Migrations (drizzle-kit)
-
-Sanity CMS
-  → Sanity client SDK
-  → Blog schema, Creator spotlight schema
+  → drizzle/schema.ts (329 lines, single source of truth — exports all tables, enums, relations)
+  → postgres driver (lib/db.ts)
+  → drizzle-kit (migrations)
 ```
 
 ---
@@ -63,20 +69,16 @@ Sanity CMS
 
 | Package | Purpose | Used In |
 |---------|---------|---------|
-| next | Framework | app/, pages |
-| @supabase/supabase-js | Database, auth sessions | lib/db.ts, lib/auth.ts |
-| drizzle-orm | ORM, schema, migrations | drizzle/, services/ |
-| better-auth | Authentication | lib/auth.ts |
-| paystack | Payment processing | lib/paystack.ts, services/PaymentService |
-| @cloudinary/next | Image/video upload | lib/cloudinary.ts, components/ |
-| @mux/mux-node | Video streaming | lib/mux.ts |
-| googleapis | Google Drive File API | lib/drive.ts, services/DriveService |
-| @sanity/client | CMS content | sanity/, components/blog/ |
-| resend | Email delivery | lib/email.ts |
+| next | Framework | app/, pages, middleware |
+| postgres | PostgreSQL driver | lib/db.ts |
+| drizzle-orm | ORM, schema, relations | drizzle/, services/ |
+| better-auth | Authentication + plugins | lib/auth.ts |
+| @tanstack/react-query | Client data fetching | hooks/useAuth.ts, app/page.tsx |
 | framer-motion | Animation | components/ |
-| @tanstack/react-query | Data fetching | hooks/ |
 | tailwindcss | Styling | app/, components/ |
-| shadcn/ui | UI primitives (wrapped) | components/ui/ |
+| shadcn/ui (via Cl* wrappers) | UI primitives (wrapped) | components/ui/ |
+| zod | Schema validation (package.json) | — |
+| Not yet wired: Paystack SDK, Cloudinary SDK, Mux SDK, googleapis, @sanity/client, resend | — | — |
 
 ---
 

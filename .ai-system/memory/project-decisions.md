@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -143,3 +143,51 @@
 **Alternatives Considered:** Decimal type in PostgreSQL; float with rounding. Both rejected as error-prone.
 
 **Implications:** All DB columns are INTEGER with JSDoc comments specifying kobo. Services format to Naira for display only. Display layer divides by 100 for user-facing values.
+
+---
+
+## Cursor-Based Pagination for Explore Feed
+
+**Decision:** Use composite cursor pagination with `(createdAt, id)` pair encoded in base64url. No offset-based pagination. Limit = 20, fetch limit+1 to determine hasMore.
+**Date:** 2026-07-05
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:** Avoids offset drift when new providers are added during pagination. Cursor is stable and efficient with composite index on `(created_at, id)`.
+
+**Alternatives Considered:** Offset-based (drift problem), keyset with single field (collisions possible).
+
+**Implications:** All paginated endpoints should use cursor pattern. Explore endpoint must return `cursor` and `hasMore`.
+
+---
+
+## PlatformConfigService: Config Context + DB Override + Cache
+
+**Decision:** PlatformConfigService loads from DB, merges with DEFAULT_CONFIG, wraps in Next.js `unstable_cache` with 5-minute revalidation. Admin writes go through `set()` which revalidates the cache tag.
+**Date:** 2026-07-05
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:** Config must be hot-reloadable by admin without deploy. DB override with fallback default gives flexibility. Cache prevents DB hit on every request.
+
+**Alternatives Considered:** Server-only config file (requires deploy); no cache (DB every request).
+
+**Implications:** PlatformConfigProvider wraps root layout. All components consuming config use `usePlatformConfig()` hook.
+
+---
+
+## Booking State Machine: Explicit Legal Transition Map
+
+**Decision:** `LEGAL_TRANSITIONS` map in `BookingService.ts` defines exactly which state transitions are allowed. Illegal transitions throw `BookingStateError`.
+**Date:** 2026-07-05
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:** Prevents business logic bugs where bookings skip required states (e.g., REQUESTED -> HELD without ACCEPTED). Explicit map makes state machine auditable and testable.
+
+**Alternatives Considered:** State machine library (overhead for 9 states, 7 transitions).
+
+**Implications:** Any booking state change must go through `validateTransition`. Adding new states requires updating the map.

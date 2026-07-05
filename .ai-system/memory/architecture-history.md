@@ -1,8 +1,8 @@
 # Architecture History
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-04
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-05
 > - staleness-policy: historical entries do not go stale — only the current architecture (in system-architecture.md) needs re-verification
 
 > **Overview:** Chronological record of how Crelab's system architecture has evolved.
@@ -23,4 +23,24 @@ Metadata-driven, config-first architecture chosen so platform name, colours, fee
 
 ---
 
-[New entries added here as architecture evolves]
+### 2026-07-05 — Full MVP Build Sprint
+
+**State:**
+Milestones 1.0-1.4 substantially built in a single sprint. Application code now exists across the full stack: Next.js routes (public, auth, admin, API), 7 OOP services, 329-line Drizzle schema with migrations, Better Auth integration, 30+ React components, 8 lib wrappers, middleware route protection, and admin panel.
+
+**Key architectural decisions realized in code:**
+- PlatformConfigService with DB override + `unstable_cache` + `revalidateTag` pattern
+- BookingService with LEGAL_TRANSITIONS map for state validation
+- EscrowService with `setInProgress`/`autoRelease` cron endpoints and Paystack webhook HMAC-SHA512 verification
+- ExploreService with cursor-based pagination via composite `(createdAt, id)` keys encoded in base64url
+- DriveService with folder URL validation, paginated file fetch, supported MIME type filtering
+- All monetary values in kobo (integer) — no float arithmetic
+
+**Drift from original architecture:**
+- `app/admin/` not `app/(admin)/` — no route group wrapping for admin
+- No `sanity/` directory or Sanity CMS integration yet
+- `services/ReviewService.ts` not implemented (reviews handled inline in schema)
+- `lib/mux.ts` stub only
+- `components/blog/` directory present but empty
+
+---
