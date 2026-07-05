@@ -85,7 +85,7 @@ export function BookingDrawer({
         resume: (accessCode: string) => void;
         on: (event: string, cb: () => void) => void;
       }
-      const PaystackPop = (window as Record<string, unknown>).PaystackPop as unknown as { new(): PaystackPopInstance } | undefined;
+      const PaystackPop = (window as unknown as Record<string, unknown>).PaystackPop as unknown as { new(): PaystackPopInstance } | undefined;
       if (typeof window !== "undefined" && PaystackPop) {
         const handler = new PaystackPop();
         handler.resume(payJson.data.accessCode);
