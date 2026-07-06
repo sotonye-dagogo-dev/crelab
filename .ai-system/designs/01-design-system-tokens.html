@@ -89,6 +89,29 @@
       --duration-slower: 600ms;
     }
 
+    [data-theme="light"] {
+      --color-bg:              #F8F8F8;
+      --color-surface:         #FFFFFF;
+      --color-surface-raised:  #F0F0F0;
+      --color-border:          #E0E0E0;
+      --color-border-mid:      #CCCCCC;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #D4F03A;
+      --color-accent-muted:    #F2FFB8;
+      --color-text-primary:    #1A1A1A;
+      --color-text-secondary:  #666666;
+      --color-text-tertiary:   #999999;
+      --color-text-inverse:    #FFFFFF;
+      --color-success:         #16A34A;
+      --color-warning:         #CA8A04;
+      --color-error:           #DC2626;
+      --color-info:            #2563EB;
+      --color-escrow-held:     #CA8A04;
+      --color-escrow-progress: #7C3AED;
+      --color-escrow-released: #16A34A;
+      --color-escrow-disputed: #DC2626;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -401,11 +424,126 @@
       color: var(--color-text-secondary);
       margin-bottom: var(--space-8);
     }
+
+    /* Theme toggler */
+    .theme-toggler {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-10);
+      padding: var(--space-2);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      width: fit-content;
+    }
+    .theme-toggler button {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .theme-toggler button.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .theme-toggler button:hover:not(.active) {
+      color: var(--color-text-primary);
+    }
+
+    /* Light theme swatch section */
+    .theme-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-8);
+      margin-bottom: var(--space-8);
+    }
+    .theme-col {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+    }
+    .theme-col-title {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-sm);
+      margin-bottom: var(--space-4);
+      padding-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .compact-swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: var(--space-3);
+    }
+    .compact-swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .compact-swatch-box {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-1);
+      border: 1px solid var(--color-border);
+    }
+    .compact-swatch-token {
+      font-family: var(--font-body);
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      line-height: 1.2;
+      word-break: break-all;
+      max-width: 80px;
+    }
+    .compact-swatch-hex {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      margin-top: 1px;
+    }
+
+    @media (max-width: 640px) {
+      .theme-comparison {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
+
+  <!-- Theme toggler -->
+  <div class="theme-toggler" role="group" aria-label="Theme">
+    <button class="active" data-theme-btn="dark" onclick="switchTheme('dark')">Dark</button>
+    <button data-theme-btn="light" onclick="switchTheme('light')">Light</button>
+  </div>
+
+  <script>
+    function switchTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.querySelectorAll('[data-theme-btn]').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-theme-btn') === theme);
+      });
+    }
+    // Restore saved preference
+    (function() {
+      var saved = localStorage.getItem('crelab-theme');
+      if (saved === 'light' || saved === 'dark') {
+        switchTheme(saved);
+      }
+    })();
+  </script>
 
   <!-- DESIGN.md §1 -->
   <h1>Crelab Design Tokens</h1>
@@ -415,7 +553,101 @@
   <!-- Token group: COLOUR TOKENS                                       -->
   <!-- ================================================================ -->
   <h2>1. Colour Tokens</h2>
-  <p class="intro-text">All colours defined as CSS custom properties on <code style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent)">:root</code>. Every swatch uses the exact hex value from DESIGN.md §Colour Palette.</p>
+  <p class="intro-text">All colours defined as CSS custom properties on <code style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent)">:root</code> (dark) or <code style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent)">[data-theme="light"]</code> (light). Use the toggler above to switch between themes live.</p>
+
+  <!-- Theme comparison -->
+  <div class="theme-comparison">
+    <div class="theme-col">
+      <div class="theme-col-title" style="color:var(--color-text-primary)">Dark Theme <span style="font-weight:var(--weight-regular);color:var(--color-text-tertiary)">(default)</span></div>
+      <div class="compact-swatch-grid">
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#0A0A0A"></div>
+          <span class="compact-swatch-token">--color-bg</span>
+          <span class="compact-swatch-hex">#0A0A0A</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#141414;border-color:#3D3D3D"></div>
+          <span class="compact-swatch-token">--color-surface</span>
+          <span class="compact-swatch-hex">#141414</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#1C1C1C;border-color:#3D3D3D"></div>
+          <span class="compact-swatch-token">--color-surface-raised</span>
+          <span class="compact-swatch-hex">#1C1C1C</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#2A2A2A"></div>
+          <span class="compact-swatch-token">--color-border</span>
+          <span class="compact-swatch-hex">#2A2A2A</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#3D3D3D"></div>
+          <span class="compact-swatch-token">--color-border-mid</span>
+          <span class="compact-swatch-hex">#3D3D3D</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#E8FF47;border-color:transparent"></div>
+          <span class="compact-swatch-token">--color-accent</span>
+          <span class="compact-swatch-hex">#E8FF47</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#F2F2F2"></div>
+          <span class="compact-swatch-token">--color-text-primary</span>
+          <span class="compact-swatch-hex">#F2F2F2</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#9A9A9A"></div>
+          <span class="compact-swatch-token">--color-text-secondary</span>
+          <span class="compact-swatch-hex">#9A9A9A</span>
+        </div>
+      </div>
+    </div>
+    <div class="theme-col">
+      <div class="theme-col-title" style="color:var(--color-text-primary)">Light Theme</div>
+      <div class="compact-swatch-grid">
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#F8F8F8"></div>
+          <span class="compact-swatch-token">--color-bg</span>
+          <span class="compact-swatch-hex">#F8F8F8</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#FFFFFF;border-color:#CCCCCC"></div>
+          <span class="compact-swatch-token">--color-surface</span>
+          <span class="compact-swatch-hex">#FFFFFF</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#F0F0F0;border-color:#CCCCCC"></div>
+          <span class="compact-swatch-token">--color-surface-raised</span>
+          <span class="compact-swatch-hex">#F0F0F0</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#E0E0E0"></div>
+          <span class="compact-swatch-token">--color-border</span>
+          <span class="compact-swatch-hex">#E0E0E0</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#CCCCCC"></div>
+          <span class="compact-swatch-token">--color-border-mid</span>
+          <span class="compact-swatch-hex">#CCCCCC</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#E8FF47;border-color:transparent"></div>
+          <span class="compact-swatch-token">--color-accent</span>
+          <span class="compact-swatch-hex">#E8FF47</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#1A1A1A"></div>
+          <span class="compact-swatch-token">--color-text-primary</span>
+          <span class="compact-swatch-hex">#1A1A1A</span>
+        </div>
+        <div class="compact-swatch">
+          <div class="compact-swatch-box" style="background:#666666"></div>
+          <span class="compact-swatch-token">--color-text-secondary</span>
+          <span class="compact-swatch-hex">#666666</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- DESIGN.md §Colour Palette — Base -->
   <div class="swatch-group">

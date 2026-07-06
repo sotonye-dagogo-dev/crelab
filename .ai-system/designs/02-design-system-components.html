@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="crelab-design" content="design-system">
-  <meta name="crelab-component" content="ClButton,ClCard,ClInput,ClTextarea,ClSelect,ClBadge,ExploreVideoCard,ServicePackageCard,EscrowStatusPill,AvailabilityBadge,ExperienceLevelBadge,ConsentCheckbox,RoleSelectCard,NavBar,ClFooter">
+  <meta name="crelab-component" content="ClButton,ClCard,ClInput,ClTextarea,ClSelect,ClBadge,ExploreVideoCard,ServicePackageCard,EscrowStatusPill,AvailabilityBadge,ExperienceLevelBadge,ConsentCheckbox,RoleSelectCard,NavBar,ClFooter,ClThemeToggle">
   <title>Crelab — Design System Components</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
@@ -83,6 +83,29 @@
       --duration-base:   250ms;
       --duration-slow:   400ms;
       --duration-slower: 600ms;
+    }
+
+    [data-theme="light"] {
+      --color-bg:              #F8F8F8;
+      --color-surface:         #FFFFFF;
+      --color-surface-raised:  #F0F0F0;
+      --color-border:          #E0E0E0;
+      --color-border-mid:      #CCCCCC;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #D4F03A;
+      --color-accent-muted:    #F2FFB8;
+      --color-text-primary:    #1A1A1A;
+      --color-text-secondary:  #666666;
+      --color-text-tertiary:   #999999;
+      --color-text-inverse:    #FFFFFF;
+      --color-success:         #16A34A;
+      --color-warning:         #CA8A04;
+      --color-error:           #DC2626;
+      --color-info:            #2563EB;
+      --color-escrow-held:     #CA8A04;
+      --color-escrow-progress: #7C3AED;
+      --color-escrow-released: #16A34A;
+      --color-escrow-disputed: #DC2626;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -765,6 +788,77 @@
       margin-bottom: var(--space-6);
     }
 
+    /* Theme toggler */
+    .theme-toggler {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      width: fit-content;
+    }
+    .theme-toggler button {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .theme-toggler button.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .theme-toggler button:hover:not(.active) {
+      color: var(--color-text-primary);
+    }
+
+    /* ClThemeToggle — tabbed three-way toggler embedded in nav/footer */
+    .cl-theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      width: fit-content;
+    }
+    .cl-theme-toggle button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 36px;
+      height: 30px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: transparent;
+      color: var(--color-text-tertiary);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .cl-theme-toggle button.cl-theme-toggle-active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .cl-theme-toggle button:hover:not(.cl-theme-toggle-active) {
+      color: var(--color-text-primary);
+    }
+    .cl-theme-toggle .theme-label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      margin-left: 2px;
+    }
+
     /* Card content placeholder */
     .card-content {
       font-family: var(--font-body);
@@ -1077,8 +1171,30 @@
 
 <div class="container">
 
-  <h1>Crelab Components</h1>
-  <p class="subtitle">Full-fidelity reference of every reusable component in the Crelab design system</p>
+  <!-- Theme toggler row -->
+  <div class="flex-row" style="margin-bottom:var(--space-8);align-items:center;justify-content:space-between;flex-wrap:wrap">
+    <div>
+      <h1>Crelab Components</h1>
+      <p class="subtitle">Full-fidelity reference of every reusable component in the Crelab design system</p>
+    </div>
+    <div class="theme-toggler">
+      <button class="active" data-theme-btn="dark" onclick="switchTheme('dark')">Dark</button>
+      <button data-theme-btn="light" onclick="switchTheme('light')">Light</button>
+    </div>
+  </div>
+
+  <script>
+    function switchTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.querySelectorAll('[data-theme-btn]').forEach(function(btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-theme-btn') === theme);
+      });
+    }
+    (function() {
+      var saved = localStorage.getItem('crelab-theme');
+      if (saved === 'light' || saved === 'dark') switchTheme(saved);
+    })();
+  </script>
 
   <!-- ================================================================ -->
   <!-- Component: ClButton                                              -->
@@ -1761,6 +1877,137 @@
             <button class="cl-btn cl-btn-lg cl-btn-primary" style="width:200px">Get Hired</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: ClThemeToggle                                         -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>ClThemeToggle</h2>
+    <p class="section-intro"><!-- Component: ClThemeToggle --> Tabbed three-way theme toggler. System mode respects OS preference via <code style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent)">prefers-color-scheme</code>. Persists choice in <code style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent)">localStorage</code>. Places <code style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent)">data-theme="light|dark"</code> on <code style="font-family:var(--font-mono);font-size:12px;color:var(--color-accent)">&lt;html&gt;</code>.</p>
+
+    <div class="size-row-label">Three-way toggle — system / light / dark</div>
+    <div class="state-row">
+      <div class="state-item">
+        <span class="state-label">Default (system)</span>
+        <div class="cl-theme-toggle">
+          <button class="cl-theme-toggle-active">🖥</button>
+          <button>☀️</button>
+          <button>🌙</button>
+        </div>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Light selected</span>
+        <div class="cl-theme-toggle">
+          <button>🖥</button>
+          <button class="cl-theme-toggle-active">☀️</button>
+          <button>🌙</button>
+        </div>
+      </div>
+      <div class="state-item">
+        <span class="state-label">Dark selected</span>
+        <div class="cl-theme-toggle">
+          <button>🖥</button>
+          <button>☀️</button>
+          <button class="cl-theme-toggle-active">🌙</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="size-row-label">With visible labels (for footers, settings panels)</div>
+    <div class="state-row">
+      <div class="state-item">
+        <div class="cl-theme-toggle">
+          <button class="cl-theme-toggle-active"><span class="theme-label">System</span></button>
+          <button><span class="theme-label">Light</span></button>
+          <button><span class="theme-label">Dark</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="size-row-label">Usage in NavBar (compact, right-aligned)</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <nav class="navbar" style="position:relative;top:auto;border-radius:var(--radius-md)">
+          <div class="navbar-inner">
+            <div class="navbar-left">
+              <div class="navbar-logo-mark"></div>
+              <span class="navbar-logo-text">Crelab</span>
+            </div>
+            <div class="navbar-center">
+              <a href="#">Explore</a>
+              <a href="#">For Creators</a>
+              <a href="#">Blog</a>
+            </div>
+            <div class="navbar-right">
+              <div class="cl-theme-toggle" style="margin-right:var(--space-3)">
+                <button>🖥</button>
+                <button class="cl-theme-toggle-active">☀️</button>
+                <button>🌙</button>
+              </div>
+              <button class="cl-btn cl-btn-default cl-btn-outlined">Find Talent</button>
+              <button class="cl-btn cl-btn-default cl-btn-primary">Get Hired</button>
+            </div>
+            <button class="navbar-hamburger" aria-label="Menu">
+              <span></span><span></span><span></span>
+            </button>
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    <div class="size-row-label">Usage in ClFooter (between socials and legal)</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <footer class="cl-footer" style="border-radius:var(--radius-md)">
+          <div class="cl-footer-inner">
+            <div class="cl-footer-grid">
+              <div class="cl-footer-brand">
+                <div class="cl-footer-logo">
+                  <div class="cl-footer-logo-mark"></div>
+                  <span class="cl-footer-logo-text">Crelab</span>
+                </div>
+                <p class="cl-footer-desc">The creative marketplace where quality speaks louder than follower count.</p>
+                <div class="cl-footer-socials">
+                  <a href="#" class="cl-footer-social-link" aria-label="Instagram">IG</a>
+                  <a href="#" class="cl-footer-social-link" aria-label="Twitter">X</a>
+                </div>
+                <div style="margin-top:var(--space-3)">
+                  <div class="cl-theme-toggle">
+                    <button>🖥</button>
+                    <button>☀️</button>
+                    <button class="cl-theme-toggle-active">🌙</button>
+                  </div>
+                </div>
+              </div>
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">Explore</span>
+                <a href="#">Browse Creators</a>
+                <a href="#">Categories</a>
+              </div>
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">For Creators</span>
+                <a href="#">Join as Creator</a>
+                <a href="#">Creator Guide</a>
+              </div>
+              <div class="cl-footer-col">
+                <span class="cl-footer-col-title">Company</span>
+                <a href="#">About</a>
+                <a href="#">Team</a>
+                <a href="#">Blog</a>
+              </div>
+            </div>
+            <div class="cl-footer-bottom">
+              <span class="cl-footer-copy">© 2026 Crelab. All rights reserved.</span>
+              <div class="cl-footer-legal">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   </div>

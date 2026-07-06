@@ -311,6 +311,19 @@ export const consentRecordsRelations = relations(consentRecords, ({ one }) => ({
   user: one(user, { fields: [consentRecords.userId], references: [user.id] }),
 }));
 
+export const teamMembers = pgTable("team_members", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  role: text("role").notNull(),
+  bio: text("bio").notNull(),
+  avatarUrl: text("avatar_url"),
+  socialLinks: jsonb("social_links").notNull().default([]),
+  orderIndex: integer("order_index").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const auditLog = pgTable("audit_log", {
   id: text("id").primaryKey(),
   userId: text("user_id").references(() => user.id),
@@ -323,6 +336,8 @@ export const auditLog = pgTable("audit_log", {
 });
 
 export const platformConfigRelations = relations(platformConfig, () => ({}));
+
+export const teamMembersRelations = relations(teamMembers, () => ({}));
 
 export const auditLogRelations = relations(auditLog, ({ one }) => ({
   user: one(user, { fields: [auditLog.userId], references: [user.id] }),

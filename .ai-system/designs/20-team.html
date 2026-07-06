@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="crelab-design" content="design-system">
+  <meta name="crelab-component" content="NavBar,ClFooter,ClCard,ClBadge,ClButton,ClThemeToggle,TeamMemberCard">
+  <title>Crelab — Team / About</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --color-bg:              #0A0A0A;
+      --color-surface:         #141414;
+      --color-surface-raised:  #1C1C1C;
+      --color-border:          #2A2A2A;
+      --color-border-mid:      #3D3D3D;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #C8DF3C;
+      --color-accent-muted:    #1E2200;
+      --color-text-primary:    #F2F2F2;
+      --color-text-secondary:  #9A9A9A;
+      --color-text-tertiary:   #5C5C5C;
+      --color-text-inverse:    #0A0A0A;
+      --color-success:         #4ADE80;
+      --color-warning:         #FACC15;
+      --color-error:           #F87171;
+      --color-info:            #60A5FA;
+
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+
+      --text-xs:   0.75rem;
+      --text-sm:   0.875rem;
+      --text-base: 1rem;
+      --text-lg:   1.125rem;
+      --text-xl:   1.25rem;
+      --text-2xl:  1.5rem;
+      --text-3xl:  1.875rem;
+      --text-4xl:  2.25rem;
+      --text-5xl:  3rem;
+
+      --weight-regular:   400;
+      --weight-medium:    500;
+      --weight-semibold:  600;
+      --weight-bold:      700;
+      --weight-extrabold: 800;
+
+      --leading-tight:   1.2;
+      --leading-normal:  1.5;
+      --leading-relaxed: 1.7;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-5:  1.25rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-2xl:  24px;
+      --radius-full: 9999px;
+
+      --max-width-content: 1200px;
+
+      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast:   150ms;
+      --duration-base:   250ms;
+      --duration-slow:   400ms;
+      --duration-slower: 600ms;
+    }
+
+    [data-theme="light"] {
+      --color-bg:              #F8F8F8;
+      --color-surface:         #FFFFFF;
+      --color-surface-raised:  #F0F0F0;
+      --color-border:          #E0E0E0;
+      --color-border-mid:      #CCCCCC;
+      --color-accent:          #E8FF47;
+      --color-accent-dim:      #D4F03A;
+      --color-accent-muted:    #F2FFB8;
+      --color-text-primary:    #1A1A1A;
+      --color-text-secondary:  #666666;
+      --color-text-tertiary:   #999999;
+      --color-text-inverse:    #FFFFFF;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: var(--leading-normal);
+    }
+
+    .container {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+      padding: var(--space-12) var(--space-6);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: var(--text-5xl);
+      letter-spacing: -0.02em;
+      line-height: var(--leading-tight);
+      margin-bottom: var(--space-2);
+    }
+
+    .subtitle {
+      font-family: var(--font-body);
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-12);
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-weight: var(--weight-bold);
+      font-size: var(--text-3xl);
+      margin-top: var(--space-16);
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-3);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .component-section {
+      margin-bottom: var(--space-12);
+    }
+
+    .section-intro {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-6);
+    }
+
+    .size-row-label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: var(--space-2) 0;
+      margin-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .state-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      align-items: flex-end;
+      margin-bottom: var(--space-6);
+    }
+
+    .state-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .state-label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      white-space: nowrap;
+    }
+
+    /* Theme toggler */
+    .theme-toggler {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      width: fit-content;
+    }
+    .theme-toggler button {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: var(--weight-medium);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .theme-toggler button.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .theme-toggler button:hover:not(.active) {
+      color: var(--color-text-primary);
+    }
+
+    /* NavBar (reusable component) */
+    .navbar {
+      position: relative;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-6);
+    }
+    .navbar-inner {
+      max-width: var(--max-width-content);
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .navbar-logo-mark {
+      width: 12px;
+      height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+    .navbar-logo-text {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+      letter-spacing: -0.01em;
+    }
+    .navbar-center {
+      display: flex;
+      align-items: center;
+      gap: var(--space-8);
+    }
+    .navbar-center a {
+      font-family: var(--font-body);
+      font-weight: var(--weight-medium);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .navbar-center a:hover { color: var(--color-text-primary); }
+    .navbar-center a.active { color: var(--color-accent); }
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    /* ClFooter */
+    .cl-footer {
+      background: var(--color-bg);
+      border-top: 1px solid var(--color-border);
+      padding: var(--space-16) var(--space-6) var(--space-8);
+    }
+    .cl-footer-inner {
+      max-width: var(--max-width-content);
+      margin: 0 auto;
+    }
+    .cl-footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: var(--space-10);
+      margin-bottom: var(--space-12);
+    }
+    .cl-footer-brand { display: flex; flex-direction: column; gap: var(--space-4); }
+    .cl-footer-logo { display: flex; align-items: center; gap: var(--space-3); }
+    .cl-footer-logo-mark {
+      width: 12px; height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+    .cl-footer-logo-text {
+      font-family: var(--font-display);
+      font-weight: var(--weight-extrabold);
+      font-size: 18px;
+      color: var(--color-text-primary);
+    }
+    .cl-footer-desc {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+      max-width: 320px;
+    }
+    .cl-footer-col-title {
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-4);
+    }
+    .cl-footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .cl-footer-col a {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+    .cl-footer-col a:hover { color: var(--color-text-primary); }
+    .cl-footer-bottom {
+      padding-top: var(--space-8);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+    }
+    .cl-footer-copy {
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* ClButton */
+    .cl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: var(--weight-semibold);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-out),
+                  border-color var(--duration-fast) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+    }
+    .cl-btn:active { transform: scale(0.98); }
+    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+    .cl-btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+    .cl-btn-outlined {
+      background: transparent;
+      color: var(--color-text-primary);
+      border-color: var(--color-border-mid);
+    }
+    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    /* ClBadge */
+    .cl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: var(--weight-medium);
+      white-space: nowrap;
+      line-height: 1.5;
+    }
+    .cl-badge-accent { background: var(--color-accent); color: var(--color-text-inverse); }
+    .cl-badge-surface { background: var(--color-surface-raised); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+
+    /* ClCard */
+    .cl-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+    }
+
+    /* ClThemeToggle */
+    .cl-theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      width: fit-content;
+    }
+    .cl-theme-toggle button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 36px;
+      height: 30px;
+      border-radius: var(--radius-full);
+      border: none;
+      background: transparent;
+      color: var(--color-text-tertiary);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .cl-theme-toggle button.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+
+    /* ================================================================ */
+    /* TEAM PAGE LAYOUT                                                  */
+    /* ================================================================ */
+
+    /* Hero section */
+    .team-hero {
+      text-align: center;
+      padding: var(--space-20) 0 var(--space-16);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .team-hero h1 {
+      font-size: var(--text-5xl);
+      margin-bottom: var(--space-4);
+    }
+    .team-hero p {
+      font-family: var(--font-body);
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-relaxed);
+    }
+
+    /* Stats bar */
+    .team-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-6);
+      margin-bottom: var(--space-16);
+    }
+    .team-stat {
+      text-align: center;
+      padding: var(--space-6);
+    }
+    .team-stat-value {
+      font-family: var(--font-display);
+      font-size: var(--text-4xl);
+      font-weight: var(--weight-extrabold);
+      color: var(--color-accent);
+      line-height: var(--leading-tight);
+    }
+    .team-stat-label {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-top: var(--space-1);
+    }
+
+    /* Team grid */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: var(--space-6);
+      margin-bottom: var(--space-16);
+    }
+
+    /* Team member card */
+    .team-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: var(--space-4);
+      transition: border-color var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
+    }
+    .team-card:hover {
+      border-color: var(--color-border-mid);
+      transform: translateY(-2px);
+    }
+    .team-card-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-full);
+      background: var(--color-surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--weight-bold);
+      color: var(--color-text-tertiary);
+      border: 2px solid var(--color-border);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .team-card-avatar.has-image {
+      border-color: var(--color-accent-muted);
+      font-size: 0;
+    }
+    .team-card-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .team-card-name {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: var(--weight-bold);
+      color: var(--color-text-primary);
+      line-height: var(--leading-tight);
+    }
+    .team-card-role {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-accent);
+      font-weight: var(--weight-medium);
+    }
+    .team-card-bio {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+    }
+    .team-card-socials {
+      display: flex;
+      gap: var(--space-2);
+      margin-top: auto;
+    }
+    .team-card-social-link {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: var(--color-text-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      text-decoration: none;
+      transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+    }
+    .team-card-social-link:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    /* Values section */
+    .values-section {
+      margin-bottom: var(--space-16);
+    }
+    .values-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-6);
+    }
+    .value-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .value-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: var(--color-accent-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .value-title {
+      font-family: var(--font-display);
+      font-size: var(--text-base);
+      font-weight: var(--weight-bold);
+      color: var(--color-text-primary);
+    }
+    .value-desc {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: var(--leading-normal);
+    }
+
+    /* CTA section */
+    .team-cta {
+      text-align: center;
+      padding: var(--space-16) 0;
+      border-top: 1px solid var(--color-border);
+      margin-bottom: var(--space-12);
+    }
+    .team-cta h2 {
+      margin-top: 0;
+      border-bottom: none;
+    }
+    .team-cta p {
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-6);
+    }
+
+    /* Skeleton loader */
+    .team-skeleton {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: var(--space-6);
+    }
+    .team-skeleton-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    .skeleton-pulse {
+      background: var(--color-surface-raised);
+      border-radius: var(--radius-sm);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .skeleton-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-full);
+    }
+    .skeleton-line {
+      height: 12px;
+      width: 60%;
+    }
+    .skeleton-line.short { width: 40%; }
+    .skeleton-line.long { width: 80%; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .team-hero h1 { font-size: var(--text-3xl); }
+      .team-stats { grid-template-columns: 1fr; gap: var(--space-4); }
+      .values-grid { grid-template-columns: 1fr; }
+      .team-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .team-grid { grid-template-columns: 1fr; }
+      .cl-footer-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Theme toggler -->
+  <div class="theme-toggler" role="group" aria-label="Theme" style="margin-bottom:var(--space-8)">
+    <button class="active" data-theme-btn="dark" onclick="switchTheme('dark')">Dark</button>
+    <button data-theme-btn="light" onclick="switchTheme('light')">Light</button>
+  </div>
+
+  <script>
+    function switchTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      document.querySelectorAll('[data-theme-btn]').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-theme-btn') === t);
+      });
+    }
+    (function() {
+      var s = localStorage.getItem('crelab-theme');
+      if (s === 'light' || s === 'dark') switchTheme(s);
+    })();
+  </script>
+
+  <h1>Team / About</h1>
+  <p class="subtitle">Public-facing team page — config-driven member cards, company values, and stats. Fully manageable from the admin panel.</p>
+
+  <!-- ================================================================ -->
+  <!-- Page: Team Hero + Stats                                          -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>Page Layout</h2>
+    <p class="section-intro"><!-- Component: TeamPage --> Full team page composed from NavBar (top) + Hero + Stats + Grid + Values + CTA + Footer (bottom). Admin-managed team members render as cards in a responsive auto-fill grid.</p>
+
+    <!-- NavBar -->
+    <div class="size-row-label">NavBar — "Team" link active</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <nav class="navbar" style="position:relative;top:auto;border-radius:var(--radius-md)">
+          <div class="navbar-inner">
+            <div class="navbar-left">
+              <div class="navbar-logo-mark"></div>
+              <span class="navbar-logo-text">Crelab</span>
+            </div>
+            <div class="navbar-center">
+              <a href="#">Explore</a>
+              <a href="#">For Creators</a>
+              <a href="#">Blog</a>
+              <a href="#" class="active">Team</a>
+            </div>
+            <div class="navbar-right">
+              <div class="cl-theme-toggle">
+                <button>🖥</button>
+                <button class="active">☀️</button>
+                <button>🌙</button>
+              </div>
+              <button class="cl-btn cl-btn-default cl-btn-outlined">Find Talent</button>
+              <button class="cl-btn cl-btn-default cl-btn-primary">Get Hired</button>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="size-row-label">Hero section</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <div class="team-hero" style="border:1px dashed var(--color-border-mid);border-radius:var(--radius-lg);padding:var(--space-10) var(--space-6)">
+          <h1>Meet the Team</h1>
+          <p>We are builders, creators, and problem-solvers on a mission to transform how Nigerian creatives connect with opportunity. Every line of code, every design decision, and every partnership reflects our belief that talent is universal but access is not — and we are here to fix that.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="size-row-label">Stats bar (config-driven)</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <div class="team-stats">
+          <div class="team-stat cl-card">
+            <div class="team-stat-value">12</div>
+            <div class="team-stat-label">Team Members</div>
+          </div>
+          <div class="team-stat cl-card">
+            <div class="team-stat-value">4</div>
+            <div class="team-stat-label">Countries</div>
+          </div>
+          <div class="team-stat cl-card">
+            <div class="team-stat-value">3+</div>
+            <div class="team-stat-label">Years Building</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Component: TeamMemberCard                                        -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>TeamMemberCard</h2>
+    <p class="section-intro"><!-- Component: TeamMemberCard --> Individual member card with avatar (initials fallback), name, role, bio, and social links. Admin-managed via platform config or dedicated team_members table.</p>
+
+    <!-- 4-card grid -->
+    <div class="size-row-label">4-card grid — filled state</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <div class="team-grid">
+          <!-- Card 1 -->
+          <div class="team-card">
+            <div class="team-card-avatar has-image" style="background:var(--color-accent-muted);color:var(--color-accent);font-size:var(--text-2xl)">
+              SO
+            </div>
+            <div>
+              <div class="team-card-name">Sotonye D.</div>
+              <div class="team-card-role">Founder &amp; Product Lead</div>
+            </div>
+            <div class="team-card-bio">Building the future of creative hiring in Africa. Previously led product at two YC-backed startups.</div>
+            <div class="team-card-socials">
+              <a href="#" class="team-card-social-link" aria-label="Twitter">X</a>
+              <a href="#" class="team-card-social-link" aria-label="LinkedIn">in</a>
+              <a href="#" class="team-card-social-link" aria-label="GitHub">GH</a>
+            </div>
+          </div>
+          <!-- Card 2 -->
+          <div class="team-card">
+            <div class="team-card-avatar has-image" style="background:rgba(96,165,250,0.15);color:var(--color-info);font-size:var(--text-2xl)">
+              AK
+            </div>
+            <div>
+              <div class="team-card-name">Aminat K.</div>
+              <div class="team-card-role">Lead Engineer</div>
+            </div>
+            <div class="team-card-bio">Full-stack engineer passionate about building scalable marketplaces. Open-source contributor.</div>
+            <div class="team-card-socials">
+              <a href="#" class="team-card-social-link" aria-label="Twitter">X</a>
+              <a href="#" class="team-card-social-link" aria-label="GitHub">GH</a>
+            </div>
+          </div>
+          <!-- Card 3 -->
+          <div class="team-card">
+            <div class="team-card-avatar has-image" style="background:rgba(250,204,21,0.12);color:var(--color-warning);font-size:var(--text-2xl)">
+              TO
+            </div>
+            <div>
+              <div class="team-card-name">Tunde O.</div>
+              <div class="team-card-role">Design Lead</div>
+            </div>
+            <div class="team-card-bio">Product designer with a keen eye for motion and brand. Previously at Flutterwave.</div>
+            <div class="team-card-socials">
+              <a href="#" class="team-card-social-link" aria-label="Dribbble">Dr</a>
+              <a href="#" class="team-card-social-link" aria-label="LinkedIn">in</a>
+            </div>
+          </div>
+          <!-- Card 4 -->
+          <div class="team-card">
+            <div class="team-card-avatar has-image" style="background:rgba(74,222,128,0.12);color:var(--color-success);font-size:var(--text-2xl)">
+              CN
+            </div>
+            <div>
+              <div class="team-card-name">Chidi N.</div>
+              <div class="team-card-role">Community &amp; Growth</div>
+            </div>
+            <div class="team-card-bio">Building the creator community from the ground up. Creator economy strategist.</div>
+            <div class="team-card-socials">
+              <a href="#" class="team-card-social-link" aria-label="Twitter">X</a>
+              <a href="#" class="team-card-social-link" aria-label="LinkedIn">in</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="size-row-label">Empty state — no team members configured</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <div class="cl-card" style="text-align:center;padding:var(--space-12) var(--space-6)">
+          <div style="font-size:48px;margin-bottom:var(--space-4);opacity:0.3">👥</div>
+          <div style="font-family:var(--font-display);font-weight:var(--weight-bold);font-size:var(--text-lg);margin-bottom:var(--space-2);color:var(--color-text-primary)">
+            Meet the Team — Coming Soon
+          </div>
+          <div style="font-family:var(--font-body);font-size:var(--text-sm);color:var(--color-text-secondary);max-width:400px;margin:0 auto">
+            We are assembling the team behind the product. Member profiles will appear here once configured by the admin.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div class="size-row-label">Loading skeleton</div>
+    <div class="state-row">
+      <div class="state-item" style="width:100%">
+        <div class="team-skeleton">
+          <div class="team-skeleton-card">
+            <div class="skeleton-pulse skeleton-avatar"></div>
+            <div class="skeleton-pulse skeleton-line"></div>
+            <div class="skeleton-pulse skeleton-line short"></div>
+            <div class="skeleton-pulse skeleton-line long"></div>
+          </div>
+          <div class="team-skeleton-card">
+            <div class="skeleton-pulse skeleton-avatar"></div>
+            <div class="skeleton-pulse skeleton-line"></div>
+            <div class="skeleton-pulse skeleton-line short"></div>
+            <div class="skeleton-pulse skeleton-line long"></div>
+          </div>
+          <div class="team-skeleton-card">
+            <div class="skeleton-pulse skeleton-avatar"></div>
+            <div class="skeleton-pulse skeleton-line"></div>
+            <div class="skeleton-pulse skeleton-line short"></div>
+            <div class="skeleton-pulse skeleton-line long"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Section: Company Values                                           -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>Company Values</h2>
+    <p class="section-intro">Config-driven value cards that communicate the company mission. Can be managed from admin panel alongside the team data.</p>
+
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="value-icon">🎯</div>
+        <div class="value-title">Talent First</div>
+        <div class="value-desc">We believe great work speaks for itself. Our platform is built to surface quality, not follower counts.</div>
+      </div>
+      <div class="value-card">
+        <div class="value-icon">🤝</div>
+        <div class="value-title">Trust Matters</div>
+        <div class="value-desc">Every transaction is protected by escrow. We earn trust by putting creators and brands first.</div>
+      </div>
+      <div class="value-card">
+        <div class="value-icon">🌍</div>
+        <div class="value-title">Made in Africa</div>
+        <div class="value-desc">Built by Nigerians for the world. We design for the unique needs of the African creative economy.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- CTA Section                                                       -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>Call to Action</h2>
+    <p class="section-intro">Bottom-of-page CTA encouraging visitors to join the platform.</p>
+
+    <div class="team-cta" style="border:1px dashed var(--color-border-mid);border-radius:var(--radius-lg)">
+      <h2>Join the Movement</h2>
+      <p>Whether you're a creator looking for your next gig or a brand searching for authentic talent, we've got you covered.</p>
+      <div style="display:flex;gap:var(--space-3);justify-content:center;flex-wrap:wrap">
+        <button class="cl-btn cl-btn-default cl-btn-primary">Find Talent</button>
+        <button class="cl-btn cl-btn-default cl-btn-outlined">Get Hired</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <!-- Footer                                                            -->
+  <!-- ================================================================ -->
+  <div class="component-section">
+    <h2>Footer</h2>
+    <p class="section-intro">Standard ClFooter with Team link in the Company column.</p>
+
+    <footer class="cl-footer" style="border-radius:var(--radius-md)">
+      <div class="cl-footer-inner">
+        <div class="cl-footer-grid">
+          <div class="cl-footer-brand">
+            <div class="cl-footer-logo">
+              <div class="cl-footer-logo-mark"></div>
+              <span class="cl-footer-logo-text">Crelab</span>
+            </div>
+            <p class="cl-footer-desc">The creative marketplace where quality speaks louder than follower count.</p>
+            <div style="display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap">
+              <div class="cl-theme-toggle">
+                <button>🖥</button>
+                <button class="active">☀️</button>
+                <button>🌙</button>
+              </div>
+            </div>
+          </div>
+          <div class="cl-footer-col">
+            <span class="cl-footer-col-title">Explore</span>
+            <a href="#">Browse Creators</a>
+            <a href="#">Categories</a>
+          </div>
+          <div class="cl-footer-col">
+            <span class="cl-footer-col-title">For Creators</span>
+            <a href="#">Join as Creator</a>
+            <a href="#">Creator Guide</a>
+          </div>
+          <div class="cl-footer-col">
+            <span class="cl-footer-col-title">Company</span>
+            <a href="#">About</a>
+            <a href="#">Team</a>
+            <a href="#">Blog</a>
+            <a href="#">Contact</a>
+          </div>
+        </div>
+        <div class="cl-footer-bottom">
+          <span class="cl-footer-copy">© 2026 Crelab. All rights reserved.</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+</div>
+</body>
+</html>
