@@ -59,6 +59,44 @@ All tokens defined as CSS custom properties on :root. Overridable by platform co
 
 Palette rationale: The near-black base is the creative industry's natural habitat — cinema, photography, and design all live in dark environments. The electric yellow-green (#E8FF47) is the only bold colour in the system. It does not appear on Nigerian competitors or generic marketplaces. It reads confident, modern, and creative. It is used with discipline: CTAs, badges, active states only.
 
+#### Light Theme Alternative
+
+```css
+[data-theme="light"] {
+  /* Base */
+  --color-bg:              #F8F8F8;   /* Off-white — main background */
+  --color-surface:         #FFFFFF;   /* Cards, panels, modals */
+  --color-surface-raised:  #F0F0F0;   /* Elevated cards, hover states */
+  --color-border:          #E0E0E0;   /* Subtle dividers */
+  --color-border-mid:      #CCCCCC;   /* Medium-emphasis borders */
+
+  /* Brand — shared accent colour for consistency across themes */
+  --color-accent:          #E8FF47;
+  --color-accent-dim:      #D4F03A;
+  --color-accent-muted:    #F2FFB8;
+
+  /* Text */
+  --color-text-primary:    #1A1A1A;   /* Headings, primary content */
+  --color-text-secondary:  #666666;   /* Body copy, labels */
+  --color-text-tertiary:   #999999;   /* Placeholders, disabled */
+  --color-text-inverse:    #FFFFFF;   /* Text on accent buttons */
+
+  /* Semantic */
+  --color-success:         #16A34A;
+  --color-warning:         #CA8A04;
+  --color-error:           #DC2626;
+  --color-info:            #2563EB;
+
+  /* Escrow states */
+  --color-escrow-held:     #CA8A04;
+  --color-escrow-progress: #7C3AED;
+  --color-escrow-released: #16A34A;
+  --color-escrow-disputed: #DC2626;
+}
+```
+
+**Theme switching:** Add `data-theme="light|dark"` attribute on `<html>`. Unset / `data-theme="dark"` uses the `:root` defaults above. Toggling is handled by a `ClThemeToggle` component that swaps the attribute and persists preference via `localStorage`. For "system" mode, it reads `matchMedia('(prefers-color-scheme: dark)')` and subscribes to OS-level changes. The accent colour is shared across themes — only backgrounds, surfaces, and text colours invert. Semantic colours shift toward higher-contrast values for light-background readability.
+
 ### Typography
 
 ```css

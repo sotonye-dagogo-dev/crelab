@@ -221,6 +221,22 @@ export interface IFeatureFlags {
   blogEnabled: boolean;
 }
 
+export interface ITeamMember {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  avatarUrl: string | null;
+  socialLinks: {
+    platform: string;
+    url: string;
+  }[];
+  orderIndex: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
