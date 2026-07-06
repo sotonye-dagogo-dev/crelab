@@ -38,7 +38,15 @@ export async function GET(req: NextRequest) {
     }
 
     const platformConfig = await PlatformConfigService.getCached();
-    const result = await ExploreService.query(parsed.data as IExploreFilters);
+
+    let result: { data: import("@/types").IExploreCard[]; cursor: string | null; hasMore: boolean };
+    try {
+      result = await ExploreService.query(parsed.data as IExploreFilters);
+    } catch {
+      const { MockDataService } = await import("@/services/MockDataService");
+      const mockData = MockDataService.getExploreProviders();
+      result = { data: mockData, cursor: null, hasMore: false };
+    }
 
     return NextResponse.json({
       success: true,

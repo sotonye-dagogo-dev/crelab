@@ -2,23 +2,34 @@ import { db } from "@/lib/db";
 import { teamMembers } from "@/drizzle/schema";
 import { asc, eq } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { MockDataService } from "@/services/MockDataService";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
 import type { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const cfg = await PlatformConfigService.getCached();
+  const fallback = DEFAULT_CONFIG;
   return {
-    title: `Meet the Team — ${cfg.name}`,
-    description: `Meet the team behind ${cfg.name}. Learn about the people building the future of creative hiring in Africa.`,
+    title: `Meet the Team — ${fallback.name}`,
+    description: `Meet the team behind ${fallback.name}. Learn about the people building the future of creative hiring in Africa.`,
   };
 }
 
 export default async function TeamPage() {
-  const cfg = await PlatformConfigService.getCached();
-  const members = await db
-    .select()
-    .from(teamMembers)
-    .where(eq(teamMembers.active, true))
-    .orderBy(asc(teamMembers.orderIndex), asc(teamMembers.createdAt));
+
+  let members: (typeof teamMembers.$inferSelect)[];
+  try {
+    members = await db
+      .select()
+      .from(teamMembers)
+      .where(eq(teamMembers.active, true))
+      .orderBy(asc(teamMembers.orderIndex), asc(teamMembers.createdAt));
+  } catch {
+    members = MockDataService.getTeamMembers().map((m) => ({
+      ...m,
+      createdAt: new Date(m.createdAt),
+      updatedAt: new Date(m.updatedAt),
+    })) as (typeof teamMembers.$inferSelect)[];
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">

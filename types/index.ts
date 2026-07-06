@@ -237,6 +237,11 @@ export interface ITeamMember {
   updatedAt: string;
 }
 
+export interface IDevCredit {
+  text: string;
+  url: string;
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
@@ -246,6 +251,7 @@ export interface IPlatformConfig {
   cancellationPolicy: ICancellationPolicy;
   categories: ICategoryConfig[];
   features: IFeatureFlags;
+  devCredit?: IDevCredit;
 }
 
 export interface IAuditLogEntry {
