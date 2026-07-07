@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClSheet, ClButton, ClDialog, ClTextarea } from "@/components/ui";
 import { usePlatformConfig } from "@/lib/config-context";
+import { X, Check, ChevronRight } from "lucide-react";
 import type { IServicePackage, IProvider } from "@/types";
 
 export type BookingStep = "details" | "payment" | "confirmation";
@@ -95,8 +96,7 @@ export function BookingDrawer({
       } else {
         setStep("confirmation");
       }
-    } catch (err) {
-      console.error("Booking error:", err);
+    } catch {
     } finally {
       setIsSubmitting(false);
     }
@@ -124,9 +124,7 @@ export function BookingDrawer({
               aria-label="Close booking drawer"
               className="w-8 h-8 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] cursor-pointer"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
+              <X size={14} strokeWidth={2} />
             </button>
           </div>
 
@@ -154,16 +152,7 @@ export function BookingDrawer({
                           key={i}
                           className="text-[13px] text-[var(--color-text-secondary)] flex items-center gap-2"
                         >
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="var(--color-accent)"
-                            strokeWidth="2.5"
-                          >
-                            <polyline points="20,6 9,17 4,12" />
-                          </svg>
+                          <Check size={12} strokeWidth={2.5} color="var(--color-accent)" />
                           {item}
                         </span>
                       ),
@@ -231,15 +220,7 @@ export function BookingDrawer({
 
                 <details className="mb-5 group">
                   <summary className="text-[12px] text-[var(--color-text-tertiary)] cursor-pointer list-none flex items-center gap-1 select-none">
-                    <svg
-                      className="w-3 h-3 transition-transform group-open:rotate-90"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
+                    <ChevronRight size={12} strokeWidth={2} className="transition-transform group-open:rotate-90" />
                     How escrow works
                   </summary>
                   <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2 leading-relaxed">
@@ -297,18 +278,7 @@ export function BookingDrawer({
                   }}
                   className="w-16 h-16 rounded-full bg-[rgba(74,222,128,0.15)] flex items-center justify-center mx-auto mb-4"
                 >
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--color-success)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20,6 9,17 4,12" />
-                  </svg>
+                  <Check size={28} strokeWidth={2.5} color="var(--color-success)" />
                 </motion.div>
 
                 <h3 className="font-[family-name:var(--font-display)] font-bold text-[20px] text-[var(--color-text-primary)] mb-2">
@@ -317,7 +287,7 @@ export function BookingDrawer({
 
                 {bookingId && (
                   <p className="text-[13px] text-[var(--color-text-secondary)] font-mono mb-5">
-                    Booking ID: {bookingId.slice(0, 8).toUpperCase()}
+                    Ref: {bookingId.split("-").slice(-2).join("").toUpperCase().slice(0, 8)}
                   </p>
                 )}
 

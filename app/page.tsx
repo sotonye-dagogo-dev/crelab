@@ -5,6 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
 import Link from "next/link";
+import { ChevronUp, Play } from "lucide-react";
 import { ExploreFilterBar } from "@/components/explore/ExploreFilterBar";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
 import type { IExploreFilters, PaginatedResponse, IExploreCard } from "@/types";
@@ -88,9 +89,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="w-[360px] h-[200px] rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] flex items-center justify-center flex-shrink-0 max-[640px]:hidden">
-              <svg className="w-9 h-9 text-[rgba(255,255,255,0.4)]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
+              <Play size={36} className="text-[rgba(255,255,255,0.4)]" fill="currentColor" />
             </div>
           </div>
         </section>
@@ -118,9 +117,7 @@ export default function HomePage() {
           scrollY > 300 ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       >
-        <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" width="20" height="20">
-          <path d="M18 15l-6-6-6 6" />
-        </svg>
+        <ChevronUp size={20} strokeWidth={2.5} />
       </button>
     </div>
   );

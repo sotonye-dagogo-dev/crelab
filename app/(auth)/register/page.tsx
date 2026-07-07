@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
 import { captureConsent } from "@/lib/consent";
 import { ConsentType } from "@/types";
+import { Check, Camera, Briefcase } from "lucide-react";
 
 function RegisterForm() {
   const platformConfig = usePlatformConfig();
@@ -163,9 +164,7 @@ function RegisterForm() {
           <>
             <div className="flex items-center justify-center gap-[6px] mb-5">
               <span className="w-2 h-2 rounded-full bg-[var(--color-success)] flex items-center justify-center">
-                <svg width="6" height="6" viewBox="0 0 12 12" fill="none" stroke="var(--color-text-inverse)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 6l3 3 5-5" />
-                </svg>
+                <Check size={8} strokeWidth={3} color="var(--color-text-inverse)" />
               </span>
               <span className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
             </div>
@@ -187,10 +186,7 @@ function RegisterForm() {
                   onClick={() => setRole("PROVIDER")}
                 >
                   <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface)] flex items-center justify-center shrink-0">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                      <circle cx="12" cy="13" r="4" />
-                    </svg>
+                    <Camera size={24} strokeWidth={1.8} color="var(--color-accent)" />
                   </div>
                   <span className="font-[family-name:var(--font-display)] font-bold text-[15px] text-[var(--color-text-primary)]">
                     A Creator
@@ -208,10 +204,7 @@ function RegisterForm() {
                   onClick={() => setRole("CLIENT")}
                 >
                   <div className="w-10 h-10 rounded-[8px] bg-[var(--color-surface)] flex items-center justify-center shrink-0">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                    </svg>
+                    <Briefcase size={24} strokeWidth={1.8} color="var(--color-accent)" />
                   </div>
                   <span className="font-[family-name:var(--font-display)] font-bold text-[15px] text-[var(--color-text-primary)]">
                     A Brand / Client
@@ -247,9 +240,7 @@ function RegisterForm() {
                     }`}
                   >
                     {consentTerms && (
-                      <span className="text-[var(--color-text-inverse)] text-[12px] font-bold leading-none">
-                        ✓
-                      </span>
+                      <Check size={12} strokeWidth={3} color="var(--color-text-inverse)" />
                     )}
                   </span>
                   <span className="flex flex-col gap-[2px]">
@@ -276,9 +267,7 @@ function RegisterForm() {
                     }`}
                   >
                     {consentMarketing && (
-                      <span className="text-[var(--color-text-inverse)] text-[12px] font-bold leading-none">
-                        ✓
-                      </span>
+                      <Check size={12} strokeWidth={3} color="var(--color-text-inverse)" />
                     )}
                   </span>
                   <span className="flex flex-col gap-[2px]">
@@ -305,9 +294,7 @@ function RegisterForm() {
                     }`}
                   >
                     {consentAnalytics && (
-                      <span className="text-[var(--color-text-inverse)] text-[12px] font-bold leading-none">
-                        ✓
-                      </span>
+                      <Check size={12} strokeWidth={3} color="var(--color-text-inverse)" />
                     )}
                   </span>
                   <span className="flex flex-col gap-[2px]">

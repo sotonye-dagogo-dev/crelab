@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { Play } from "lucide-react";
 import type { IExploreCard, IPortfolioItem } from "@/types";
 
 interface ExploreVideoCardProps {
@@ -100,13 +101,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
               className="w-full bg-[var(--color-surface-raised)] flex items-center justify-center"
               style={{ aspectRatio: "4/5" }}
             >
-              <svg
-                className="w-6 h-6 text-[rgba(255,255,255,0.5)]"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
+              <Play size={24} className="text-[rgba(255,255,255,0.5)]" fill="currentColor" />
             </div>
           )}
 

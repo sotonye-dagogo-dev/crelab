@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { ClButton, ClBadge } from "@/components/ui";
+import { Check } from "lucide-react";
 import { EscrowTimeline } from "@/components/booking/EscrowTimeline";
 import { DisputeModal } from "@/components/booking/DisputeModal";
 import { useAuth } from "@/hooks/useAuth";
@@ -65,8 +66,7 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
       if (json.success) {
         window.location.reload();
       }
-    } catch (err) {
-      console.error("Failed to confirm release:", err);
+    } catch {
     }
   }, [data.booking.id]);
 
@@ -118,16 +118,7 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
                     key={i}
                     className="text-[13px] text-[var(--color-text-secondary)] flex items-center gap-2"
                   >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--color-accent)"
-                      strokeWidth="2.5"
-                    >
-                      <polyline points="20,6 9,17 4,12" />
-                    </svg>
+                    <Check size={12} strokeWidth={2.5} color="var(--color-accent)" />
                     {item}
                   </li>
                 ))}

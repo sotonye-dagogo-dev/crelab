@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-const COOKIE_CONSENT_KEY = "crelab-cookie-consent";
+const COOKIE_CONSENT_KEY = "app-cookie-consent";
 
 export function CookieConsentBanner() {
   const [show, setShow] = useState(false);

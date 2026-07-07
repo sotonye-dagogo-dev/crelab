@@ -254,6 +254,26 @@ export interface IPlatformConfig {
   devCredit?: IDevCredit;
 }
 
+export interface IBugReport {
+  id: string;
+  userId: string | null;
+  title: string;
+  description: string;
+  stepsToReproduce: string | null;
+  expectedBehavior: string | null;
+  actualBehavior: string | null;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+  pageUrl: string | null;
+  userAgent: string | null;
+  attachments: unknown[];
+  adminNotes: string | null;
+  resolvedAt: string | null;
+  resolvedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface IAuditLogEntry {
   id: string;
   userId: string | null;

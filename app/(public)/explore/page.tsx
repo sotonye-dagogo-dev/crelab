@@ -2,6 +2,7 @@
 
 import { useCallback, useState, useMemo, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { ChevronUp } from "lucide-react";
 import { usePlatformConfig } from "@/lib/config-context";
 import { ExploreFilterBar } from "@/components/explore/ExploreFilterBar";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
@@ -84,9 +85,7 @@ export default function ExplorePage() {
           scrollY > 300 ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       >
-        <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" width="20" height="20">
-          <path d="M18 15l-6-6-6 6" />
-        </svg>
+        <ChevronUp size={20} strokeWidth={2.5} />
       </button>
     </div>
   );

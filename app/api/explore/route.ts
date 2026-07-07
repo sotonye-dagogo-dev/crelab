@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ExploreService } from "@/services/ExploreService";
-import { PlatformConfigService } from "@/services/PlatformConfigService";
 import type { IExploreFilters } from "@/types";
 
 const exploreQuerySchema = z.object({
@@ -37,15 +36,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const platformConfig = await PlatformConfigService.getCached();
-
     let result: { data: import("@/types").IExploreCard[]; cursor: string | null; hasMore: boolean };
-    try {
-      result = await ExploreService.query(parsed.data as IExploreFilters);
-    } catch {
-      const { MockDataService } = await import("@/services/MockDataService");
-      const mockData = MockDataService.getExploreProviders();
-      result = { data: mockData, cursor: null, hasMore: false };
+
+    const { MockDataService } = await import("@/services/MockDataService");
+    if (MockDataService.isEnabled()) {
+      result = { data: MockDataService.getExploreProviders(), cursor: null, hasMore: false };
+    } else {
+      try {
+        result = await ExploreService.query(parsed.data as IExploreFilters);
+      } catch {
+        result = { data: [], cursor: null, hasMore: false };
+      }
     }
 
     return NextResponse.json({
@@ -54,9 +55,6 @@ export async function GET(req: NextRequest) {
       cursor: result.cursor,
       hasMore: result.hasMore,
       error: null,
-      platformConfig: {
-        feeRate: platformConfig.feeRate,
-      },
     });
   } catch (err) {
     return NextResponse.json(
@@ -65,7 +63,7 @@ export async function GET(req: NextRequest) {
         data: [],
         cursor: null,
         hasMore: false,
-        error: err instanceof Error ? err.message : "Internal server error",
+        error: "An unexpected error occurred",
       },
       { status: 500 },
     );

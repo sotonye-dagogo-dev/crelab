@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicPaths = ["/", "/explore", "/api/auth", "/register", "/login"];
+const publicPaths = ["/", "/explore", "/api/auth", "/register", "/login", "/forgot-password"];
 
 function isPublic(path: string): boolean {
   return publicPaths.some((p) => path === p || path.startsWith(p + "/"));
@@ -26,6 +26,10 @@ export default async function middleware(req: NextRequest) {
   const isAdmin = pathname.startsWith(adminPrefix);
 
   if (!isProtected && !isAdmin) return NextResponse.next();
+
+  if (process.env.NEXT_PUBLIC_MOCK_DATA === "true") {
+    return NextResponse.next();
+  }
 
   const sessionRes = await fetch(
     new URL("/api/auth/get-session", req.url),

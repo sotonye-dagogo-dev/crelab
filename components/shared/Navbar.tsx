@@ -4,8 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { usePlatformConfig } from "@/lib/config-context";
 import { useAuth } from "@/hooks/useAuth";
-import { ThemeToggler } from "./ThemeToggler";
-
 const navLinks = [
   { href: "/", label: "Explore" },
   { href: "/blog", label: "Blog" },
@@ -52,7 +50,6 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <ThemeToggler />
           {isAuthenticated ? (
             <Link
               href="/profile"
@@ -63,7 +60,7 @@ export function Navbar() {
           ) : (
             <>
               <Link
-                href="/auth/login"
+                href="/login"
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[var(--color-border-mid)] bg-transparent px-4 text-sm font-semibold text-[var(--color-text-primary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
               >
                 Sign In

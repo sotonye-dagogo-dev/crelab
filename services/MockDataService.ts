@@ -1,8 +1,58 @@
-import type { ITeamMember, IExploreCard } from "@/types";
+import type {
+  ITeamMember,
+  IExploreCard,
+  IUser,
+  IProvider,
+  IBooking,
+  IPortfolioItem,
+  IServicePackage,
+  IReview,
+} from "@/types";
+import { BookingStatus, EscrowState, ExperienceLevel, PortfolioItemSource, UserRole } from "@/types";
 
 export class MockDataService {
   static isEnabled(): boolean {
     return process.env.NEXT_PUBLIC_MOCK_DATA === "true";
+  }
+
+  static getMockUser(): IUser {
+    return {
+      id: "mock-user-1",
+      name: "Demo Creator",
+      email: "demo@crelab.test",
+      emailVerified: true,
+      image: null,
+      phone: "+234 800 000 0000",
+      role: UserRole.PROVIDER,
+      createdAt: new Date("2025-06-01").toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  static getMockSession() {
+    return {
+      user: {
+        id: "mock-user-1",
+        name: "Demo Creator",
+        email: "demo@crelab.test",
+        emailVerified: true,
+        image: null,
+        phone: "+234 800 000 0000",
+        phoneNumber: "+234 800 000 0000",
+        phoneNumberVerified: true,
+        role: "PROVIDER",
+      },
+      session: {
+        id: "mock-session-1",
+        userId: "mock-user-1",
+        expiresAt: new Date(Date.now() + 86400000 * 7).toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        token: "mock-token",
+        ipAddress: null,
+        userAgent: null,
+      },
+    };
   }
 
   static getTeamMembers(): ITeamMember[] {
@@ -153,6 +203,350 @@ export class MockDataService {
         yearsActive: 2,
         experienceLevel: "EMERGING",
       },
+      {
+        id: "mock-provider-4",
+        displayName: "Tunde Films",
+        slug: "tunde-films",
+        categorySlug: "cinematographer",
+        categoryLabel: "Cinematographer / Videographer",
+        avatarUrl: null,
+        previewVideoUrl: null,
+        location: "Ibadan, Nigeria",
+        packagePriceFromKobo: 60000,
+        rating: 4.7,
+        reviewCount: 15,
+        featured: true,
+        verified: true,
+        yearsActive: 4,
+        experienceLevel: "ESTABLISHED",
+      },
+      {
+        id: "mock-provider-5",
+        displayName: "Zara Creative",
+        slug: "zara-creative",
+        categorySlug: "content-creator",
+        categoryLabel: "Content Creator",
+        avatarUrl: null,
+        previewVideoUrl: null,
+        location: "Lagos, Nigeria",
+        packagePriceFromKobo: 25000,
+        rating: 4.5,
+        reviewCount: 42,
+        featured: false,
+        verified: true,
+        yearsActive: 1,
+        experienceLevel: "EMERGING",
+      },
+      {
+        id: "mock-provider-6",
+        displayName: "Lens Collective",
+        slug: "lens-collective",
+        categorySlug: "cinematographer",
+        categoryLabel: "Cinematographer / Videographer",
+        avatarUrl: null,
+        previewVideoUrl: null,
+        location: "Abuja, Nigeria",
+        packagePriceFromKobo: 100000,
+        rating: 5.0,
+        reviewCount: 8,
+        featured: true,
+        verified: true,
+        yearsActive: 7,
+        experienceLevel: "VETERAN",
+      },
+    ];
+  }
+
+  static getMockProviders(): IProvider[] {
+    if (!this.isEnabled()) return [];
+    return [
+      {
+        id: "mock-provider-1",
+        userId: "mock-user-1",
+        categorySlug: "content-creator",
+        displayName: "Amara Studios",
+        bio: "We craft compelling visual narratives for brands that want to stand out. Specialising in UGC, lifestyle content, and brand storytelling.",
+        location: "Lagos, Nigeria",
+        yearsActive: 3,
+        experienceLevel: ExperienceLevel.ESTABLISHED,
+        categoryFields: {
+          nicheTags: ["Lifestyle", "Fashion", "Food", "Travel"],
+          activePlatforms: ["Instagram", "TikTok", "YouTube"],
+          bio: "We craft compelling visual narratives for brands that want to stand out.",
+        },
+        coverVideoUrl: null,
+        avatarUrl: null,
+        active: true,
+        verified: true,
+        driveFolderUrl: null,
+        profileViews: 1247,
+        createdAt: new Date("2025-01-15").toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "mock-provider-2",
+        userId: "mock-user-2",
+        categorySlug: "cinematographer",
+        displayName: "Lens & Light",
+        bio: "Cinematic storytelling for events, commercials, and documentaries. Based in Abuja, available nationwide.",
+        location: "Abuja, Nigeria",
+        yearsActive: 5,
+        experienceLevel: ExperienceLevel.VETERAN,
+        categoryFields: {
+          equipment: ["Sony A7S III", "DJI RS3 Pro", "Sennheiser MKH416"],
+          shootingStyle: ["Documentary", "Cinematic", "Run & Gun"],
+          coverageType: "EVENTS",
+        },
+        coverVideoUrl: null,
+        avatarUrl: null,
+        active: true,
+        verified: true,
+        driveFolderUrl: null,
+        profileViews: 893,
+        createdAt: new Date("2024-08-01").toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "mock-provider-3",
+        userId: "mock-user-3",
+        categorySlug: "content-creator",
+        displayName: "Kelechi Media",
+        bio: "Authentic UGC and short-form content that drives engagement. Trusted by 30+ brands across Nigeria.",
+        location: "Port Harcourt, Nigeria",
+        yearsActive: 2,
+        experienceLevel: ExperienceLevel.EMERGING,
+        categoryFields: {
+          nicheTags: ["UGC", "Short-form", "TikTok", "Instagram Reels"],
+          activePlatforms: ["TikTok", "Instagram", "Snapchat"],
+          bio: "Authentic UGC and short-form content that drives engagement.",
+        },
+        coverVideoUrl: null,
+        avatarUrl: null,
+        active: true,
+        verified: true,
+        driveFolderUrl: null,
+        profileViews: 2156,
+        createdAt: new Date("2025-03-10").toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+  }
+
+  static getMockServicePackages(providerId: string): IServicePackage[] {
+    if (!this.isEnabled()) return [];
+    const packages: Record<string, IServicePackage[]> = {
+      "mock-provider-1": [
+        {
+          id: "mock-pkg-1-1",
+          providerId,
+          tier: "BASIC",
+          label: "Starter Pack",
+          price: 50000,
+          deliverables: ["1 edited video (60s max)", "Behind-the-scenes photos (5)", "Usage rights (30 days)"],
+          turnaroundDays: 3,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "mock-pkg-1-2",
+          providerId,
+          tier: "STANDARD",
+          label: "Pro Pack",
+          price: 120000,
+          deliverables: ["2 edited videos (90s each)", "Behind-the-scenes photos (15)", "Usage rights (90 days)", "1 revision round"],
+          turnaroundDays: 5,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "mock-pkg-1-3",
+          providerId,
+          tier: "PREMIUM",
+          label: "Premium Pack",
+          price: 250000,
+          deliverables: ["3 edited videos (120s each)", "Behind-the-scenes photos (30)", "Unlimited usage rights", "3 revision rounds", "Dedicated account manager"],
+          turnaroundDays: 7,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      "mock-provider-2": [
+        {
+          id: "mock-pkg-2-1",
+          providerId,
+          tier: "BASIC",
+          label: "Event Coverage",
+          price: 150000,
+          deliverables: ["4-hour event coverage", "1 edited highlight reel (3-5 min)", "Raw footage", "50 edited photos"],
+          turnaroundDays: 7,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "mock-pkg-2-2",
+          providerId,
+          tier: "STANDARD",
+          label: "Commercial Shoot",
+          price: 350000,
+          deliverables: ["Full-day shoot (8 hours)", "2 edited commercials (60s each)", "Behind-the-scenes reel", "Usage rights (6 months)", "2 revision rounds"],
+          turnaroundDays: 10,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "mock-pkg-2-3",
+          providerId,
+          tier: "PREMIUM",
+          label: "Documentary Package",
+          price: 750000,
+          deliverables: ["3-day shooting", "Full documentary (15-20 min)", "Trailer cut (60s)", "Raw footage archive", "Unlimited revisions", "Broadcast rights"],
+          turnaroundDays: 21,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      "mock-provider-3": [
+        {
+          id: "mock-pkg-3-1",
+          providerId,
+          tier: "BASIC",
+          label: "Quick UGC Pack",
+          price: 25000,
+          deliverables: ["1 UGC video (30-60s)", "Usage rights (30 days)", "1 revision"],
+          turnaroundDays: 2,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "mock-pkg-3-2",
+          providerId,
+          tier: "STANDARD",
+          label: "Content Bundle",
+          price: 65000,
+          deliverables: ["3 UGC videos (30-60s each)", "Usage rights (90 days)", "2 revision rounds", "Thumbnail + caption templates"],
+          turnaroundDays: 4,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "mock-pkg-3-3",
+          providerId,
+          tier: "PREMIUM",
+          label: "Campaign Package",
+          price: 150000,
+          deliverables: ["5 UGC videos (60s each)", "Unlimited usage rights", "3 revision rounds", "A/B test variants", "Performance report"],
+          turnaroundDays: 7,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    };
+    return packages[providerId] ?? [];
+  }
+
+  static getMockPortfolioItems(providerId: string): IPortfolioItem[] {
+    if (!this.isEnabled()) return [];
+    const items: Record<string, IPortfolioItem[]> = {
+      "mock-provider-1": [
+        { id: "mock-port-1-1", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "Lifestyle Brand Campaign", caption: "Summer collection shoot for Lagos-based fashion label", driveFileId: null, mimeType: "video/mp4", orderIndex: 0, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "mock-port-1-2", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "Food Content Series", caption: "Recipe videos for a popular Nigerian food brand", driveFileId: null, mimeType: "video/mp4", orderIndex: 1, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "mock-port-1-3", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "Travel Vlog - Calabar", caption: "Weekend getaway content for tourism board", driveFileId: null, mimeType: "video/mp4", orderIndex: 2, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      ],
+      "mock-provider-2": [
+        { id: "mock-port-2-1", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "Corporate Event Coverage", caption: "Annual general meeting for fintech company", driveFileId: null, mimeType: "video/mp4", orderIndex: 0, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "mock-port-2-2", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "Music Video - Emerging Artist", caption: "Official music video shot in Abuja", driveFileId: null, mimeType: "video/mp4", orderIndex: 1, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "mock-port-2-3", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "Documentary Short", caption: "Life in the Makoko floating community", driveFileId: null, mimeType: "video/mp4", orderIndex: 2, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      ],
+      "mock-provider-3": [
+        { id: "mock-port-3-1", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "UGC - Skincare Review", caption: "Authentic product review for beauty brand", driveFileId: null, mimeType: "video/mp4", orderIndex: 0, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "mock-port-3-2", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "TikTok Campaign", caption: "Viral challenge campaign for beverage brand", driveFileId: null, mimeType: "video/mp4", orderIndex: 1, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "mock-port-3-3", providerId, source: PortfolioItemSource.DIRECT, url: "#", thumbnailUrl: null, title: "Unboxing Video", caption: "Product unboxing for tech gadget launch", driveFileId: null, mimeType: "video/mp4", orderIndex: 2, visible: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      ],
+    };
+    return items[providerId] ?? [];
+  }
+
+  static getMockBookings(): IBooking[] {
+    if (!this.isEnabled()) return [];
+    const now = new Date();
+    return [
+      {
+        id: "mock-booking-1",
+        providerId: "mock-provider-1",
+        clientId: "mock-client-1",
+        packageId: "mock-pkg-1-1",
+        status: BookingStatus.HELD,
+        escrowState: EscrowState.HELD,
+        subtotal: 50000,
+        fee: 2500,
+        total: 52500,
+        serviceDate: new Date(now.getTime() + 7 * 86400000).toISOString(),
+        scopeNotes: "Lifestyle shoot for new clothing line launch. Need 3 outfits covered.",
+        releaseDeadline: new Date(now.getTime() + 14 * 86400000).toISOString(),
+        paystackRef: "mock-ref-001",
+        createdAt: new Date(now.getTime() - 3 * 86400000).toISOString(),
+        updatedAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
+      },
+      {
+        id: "mock-booking-2",
+        providerId: "mock-provider-2",
+        clientId: "mock-client-1",
+        packageId: "mock-pkg-2-1",
+        status: BookingStatus.IN_PROGRESS,
+        escrowState: EscrowState.IN_PROGRESS,
+        subtotal: 150000,
+        fee: 7500,
+        total: 157500,
+        serviceDate: new Date(now.getTime() - 2 * 86400000).toISOString(),
+        scopeNotes: "Corporate event coverage - AGM in Abuja.",
+        releaseDeadline: new Date(now.getTime() + 5 * 86400000).toISOString(),
+        paystackRef: "mock-ref-002",
+        createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
+        updatedAt: new Date(now.getTime() - 2 * 86400000).toISOString(),
+      },
+      {
+        id: "mock-booking-3",
+        providerId: "mock-provider-3",
+        clientId: "mock-client-2",
+        packageId: "mock-pkg-3-2",
+        status: BookingStatus.REQUESTED,
+        escrowState: EscrowState.PENDING,
+        subtotal: 65000,
+        fee: 3250,
+        total: 68250,
+        serviceDate: null,
+        scopeNotes: "Need 3 UGC videos for Instagram campaign. Niche: fitness/wellness.",
+        releaseDeadline: null,
+        paystackRef: null,
+        createdAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
+        updatedAt: new Date(now.getTime() - 1 * 86400000).toISOString(),
+      },
+      {
+        id: "mock-booking-4",
+        providerId: "mock-provider-1",
+        clientId: "mock-client-2",
+        packageId: "mock-pkg-1-2",
+        status: BookingStatus.RELEASED,
+        escrowState: EscrowState.RELEASED,
+        subtotal: 120000,
+        fee: 6000,
+        total: 126000,
+        serviceDate: new Date(now.getTime() - 20 * 86400000).toISOString(),
+        scopeNotes: "Completed - delivery accepted.",
+        releaseDeadline: new Date(now.getTime() - 14 * 86400000).toISOString(),
+        paystackRef: "mock-ref-003",
+        createdAt: new Date(now.getTime() - 30 * 86400000).toISOString(),
+        updatedAt: new Date(now.getTime() - 14 * 86400000).toISOString(),
+      },
+    ];
+  }
+
+  static getMockReviews(): IReview[] {
+    if (!this.isEnabled()) return [];
+    return [
+      { id: "mock-review-1", bookingId: "mock-booking-4", reviewerId: "mock-client-2", providerId: "mock-provider-1", rating: 5, body: "Amazing work! Exceeded our expectations. Will definitely work with Amara Studios again.", createdAt: new Date().toISOString() },
+      { id: "mock-review-2", bookingId: "mock-booking-2", reviewerId: "mock-client-1", providerId: "mock-provider-2", rating: 4, body: "Great coverage of our event. Delivery was on time.", createdAt: new Date().toISOString() },
+      { id: "mock-review-3", bookingId: "mock-booking-4", reviewerId: "mock-client-2", providerId: "mock-provider-1", rating: 5, body: "Professional from start to finish.", createdAt: new Date().toISOString() },
     ];
   }
 }

@@ -22,7 +22,7 @@ export function useTheme(): ThemeContextValue {
 
 function getStoredMode(): ThemeMode {
   if (typeof window === "undefined") return "system";
-  return (localStorage.getItem("crelab-theme") as ThemeMode) ?? "system";
+  return (localStorage.getItem("app-theme") as ThemeMode) ?? "system";
 }
 
 function getSystemPreference(): "light" | "dark" {
@@ -62,7 +62,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setMode = useCallback((newMode: ThemeMode) => {
     setModeState(newMode);
-    localStorage.setItem("crelab-theme", newMode);
+    localStorage.setItem("app-theme", newMode);
   }, []);
 
   return (

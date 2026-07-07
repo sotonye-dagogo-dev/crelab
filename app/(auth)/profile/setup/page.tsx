@@ -6,8 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { ClButton, ClInput, ClTextarea, ClSelect } from "@/components/ui";
 import { ExploreVideoCard } from "@/components/shared/ExploreVideoCard";
 import { DriveConnectSettings } from "@/components/profile/DriveConnectSettings";
-import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { usePlatformConfig } from "@/lib/config-context";
+import { Check, X } from "lucide-react";
 import type { IFieldSchemaField, IPortfolioItem } from "@/types";
 
 const STORAGE_KEY = "crelab-onboarding-state";
@@ -59,7 +59,7 @@ export default function ProfileSetupPage() {
   const [error, setError] = useState("");
   const platformConfig = usePlatformConfig();
 
-  const categories = DEFAULT_CONFIG.categories.filter((c) => c.active);
+  const categories = platformConfig.categories.filter((c) => c.active);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -244,9 +244,7 @@ export default function ProfileSetupPage() {
                 onClick={() => s < state.step && goToStep(s)}
               >
                 {s < state.step ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                  </svg>
+                  <Check size={14} fill="currentColor" />
                 ) : (
                   s
                 )}
@@ -639,9 +637,7 @@ function FieldRenderer({
                     onChange(tags.filter((_, j) => j !== i))
                   }
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  <X size={12} strokeWidth={2} />
                 </button>
               </span>
             ))}

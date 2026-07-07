@@ -19,7 +19,7 @@ The theme is managed via a React context (`ThemeProvider`) that reads from:
 - `prefers-color-scheme` media query (system)
 - Fallback to dark
 
-A tabbed **ThemeToggler** with `system / light / dark` options is available in the navbar.
+A tabbed **ThemeToggler** with `system / light / dark` options is available in the footer.
 
 ---
 
@@ -69,12 +69,12 @@ A tabbed **ThemeToggler** with `system / light / dark` options is available in t
 
 ## Layout
 
-- **Navbar**: Fixed top, contains logo + nav links + theme toggler + auth buttons  
-- **Footer**: Contained at bottom, contains links + social + dev credit  
+- **Navbar**: Fixed top, contains logo + nav links + auth buttons  
+- **Footer**: Contained at bottom, contains links + theme toggler + dev credit  
 - Both are rendered in `RootLayout` and visible on all pages.
 
 ---
 
 ## Icons
 
-Use inline SVGs (no icon library). See `components/ui/` for examples.
+Use **lucide-react** for all iconography. Import individual icons (`import { X, Check } from "lucide-react"`) — the library is tree-shakeable so only used icons are bundled.

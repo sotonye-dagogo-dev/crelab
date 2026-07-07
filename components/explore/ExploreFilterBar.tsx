@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { Search } from "lucide-react";
 import type { IExploreFilters, ICategoryConfig } from "@/types";
 import { ExploreSort } from "@/types";
 
@@ -87,16 +88,7 @@ export function ExploreFilterBar({
       <div className="max-w-[1200px] w-full mx-auto flex flex-row gap-3 items-center h-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {showSearch && (
           <div className="relative flex-1 min-w-[120px]">
-            <svg
-              className="absolute left-[10px] top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)] pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="10.5" cy="10.5" r="7.5" />
-              <path d="M16 16l4 4" />
-            </svg>
+            <Search className="absolute left-[10px] top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-tertiary)] pointer-events-none" />
             <input
               type="text"
               placeholder="Search creators..."

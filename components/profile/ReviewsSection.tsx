@@ -1,5 +1,6 @@
 "use client";
 
+import { Star } from "lucide-react";
 import type { IReview } from "@/types";
 
 interface ReviewWithMeta extends IReview {
@@ -26,17 +27,13 @@ export function ReviewsSection({ reviews }: ReviewsSectionProps) {
         </h2>
         <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
-            <svg
+            <Star
               key={star}
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
+              size={14}
               fill={star <= Math.round(avgRating) ? "var(--color-accent)" : "var(--color-border)"}
-              stroke="var(--color-accent)"
-              strokeWidth="1"
-            >
-              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-            </svg>
+              color="var(--color-accent)"
+              strokeWidth={1}
+            />
           ))}
           <span className="text-[13px] text-[var(--color-text-secondary)] ml-1">
             {avgRating.toFixed(1)} ({reviews.length})
@@ -70,15 +67,13 @@ export function ReviewsSection({ reviews }: ReviewsSectionProps) {
                 </div>
                 <div className="flex items-center gap-0.5 mt-1">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <svg
+                    <Star
                       key={star}
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
+                      size={12}
                       fill={star <= review.rating ? "var(--color-accent)" : "var(--color-border)"}
-                    >
-                      <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-                    </svg>
+                      color="var(--color-accent)"
+                      strokeWidth={1}
+                    />
                   ))}
                 </div>
                 {review.body && (

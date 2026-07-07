@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ClButton } from "@/components/ui";
+import { Check } from "lucide-react";
 import type { IBooking, IPayment } from "@/types";
 
 interface EscrowTimelineProps {
@@ -152,16 +153,7 @@ export function EscrowTimeline({
             style={{ borderColor: color }}
           >
             {node.isCompleted && (
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={color}
-                strokeWidth="3"
-              >
-                <polyline points="20,6 9,17 4,12" />
-              </svg>
+              <Check size={10} strokeWidth={3} color={color} />
             )}
             {node.isCurrent && !node.isCompleted && (
               <div

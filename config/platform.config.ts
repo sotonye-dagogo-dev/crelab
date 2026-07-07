@@ -127,7 +127,7 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     blogEnabled: true,
   },
   devCredit: {
-    text: "built by S.D.",
+    text: "Built for African creativity, by S.D.",
     url: "https://sotonye-dagogo.is-a.dev",
   },
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import { ClButton } from "@/components/ui";
+import { Check } from "lucide-react";
 import type { IServicePackage } from "@/types";
 
 interface ServicePackagesProps {
@@ -65,9 +66,7 @@ export function ServicePackages({
                 </span>
                 {isSelected && (
                   <span className="w-5 h-5 rounded-full bg-[var(--color-accent)] flex items-center justify-center">
-                    <svg width="10" height="10" viewBox="0 0 12 12" fill="var(--color-text-inverse)">
-                      <path d="M2 6l3 3 5-5" />
-                    </svg>
+                    <Check size={10} strokeWidth={2.5} color="var(--color-text-inverse)" />
                   </span>
                 )}
               </div>
@@ -92,19 +91,7 @@ export function ServicePackages({
                     key={i}
                     className="flex items-start gap-2 text-[13px] text-[var(--color-text-secondary)]"
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--color-accent)"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mt-0.5 shrink-0"
-                    >
-                      <polyline points="20,6 9,17 4,12" />
-                    </svg>
+                    <Check size={14} strokeWidth={2.5} color="var(--color-accent)" className="mt-0.5 shrink-0" />
                     {item}
                   </li>
                 ))}

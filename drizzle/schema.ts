@@ -342,3 +342,31 @@ export const teamMembersRelations = relations(teamMembers, () => ({}));
 export const auditLogRelations = relations(auditLog, ({ one }) => ({
   user: one(user, { fields: [auditLog.userId], references: [user.id] }),
 }));
+
+export const bugReportStatusEnum = pgEnum("bug_report_status", ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]);
+export const bugReportSeverityEnum = pgEnum("bug_report_severity", ["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
+
+export const bugReports = pgTable("bug_reports", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => user.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  stepsToReproduce: text("steps_to_reproduce"),
+  expectedBehavior: text("expected_behavior"),
+  actualBehavior: text("actual_behavior"),
+  severity: bugReportSeverityEnum("severity").notNull().default("MEDIUM"),
+  status: bugReportStatusEnum("status").notNull().default("OPEN"),
+  pageUrl: text("page_url"),
+  userAgent: text("user_agent"),
+  attachments: jsonb("attachments").default([]),
+  adminNotes: text("admin_notes"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  resolvedById: text("resolved_by_id").references(() => user.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const bugReportsRelations = relations(bugReports, ({ one }) => ({
+  user: one(user, { fields: [bugReports.userId], references: [user.id] }),
+  resolvedBy: one(user, { fields: [bugReports.resolvedById], references: [user.id] }),
+}));

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState, useMemo } from "react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface MediaEmbedProps {
   open: boolean;
@@ -86,9 +87,7 @@ export function MediaEmbed({
             aria-label="Close media viewer"
             className="w-8 h-8 rounded-full bg-[rgba(255,255,255,0.1)] flex items-center justify-center cursor-pointer hover:bg-[rgba(255,255,255,0.15)] transition-colors"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <X size={16} strokeWidth={2} color="white" />
           </button>
         </div>
 
@@ -138,9 +137,7 @@ export function MediaEmbed({
               aria-label="Previous item"
               className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.1)] flex items-center justify-center cursor-pointer disabled:opacity-30 hover:bg-[rgba(255,255,255,0.15)] transition-colors"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
+              <ChevronLeft size={18} strokeWidth={2} color="white" />
             </button>
 
             <span className="text-[13px] text-[var(--color-text-tertiary)]">
@@ -153,9 +150,7 @@ export function MediaEmbed({
               aria-label="Next item"
               className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.1)] flex items-center justify-center cursor-pointer disabled:opacity-30 hover:bg-[rgba(255,255,255,0.15)] transition-colors"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+              <ChevronRight size={18} strokeWidth={2} color="white" />
             </button>
           </div>
         )}

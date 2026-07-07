@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Play } from "lucide-react";
 import type { IPortfolioItem } from "@/types";
 
 interface ExploreVideoCardProps {
@@ -55,9 +56,7 @@ export function ExploreVideoCard({
       {(isVideo || isPdf) && (
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.6)] backdrop-blur-[2px] flex items-center justify-center border border-[rgba(255,255,255,0.15)]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-              <polygon points="8,5 19,12 8,19" />
-            </svg>
+            <Play size={18} fill="white" color="white" />
           </div>
         </div>
       )}

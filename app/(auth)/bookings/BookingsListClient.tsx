@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ClBadge } from "@/components/ui";
+import { ChevronRight } from "lucide-react";
 import type { IBooking, IPayment } from "@/types";
 
 interface BookingRow {
@@ -96,16 +97,7 @@ export function BookingsListClient({ groups }: BookingsListClientProps) {
                       <ClBadge variant={statusBadgeVariant(item.booking.status)}>
                         {item.booking.status.replace("_", " ")}
                       </ClBadge>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="var(--color-text-tertiary)"
-                        strokeWidth="2"
-                      >
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
+                      <ChevronRight size={16} strokeWidth={2} color="var(--color-text-tertiary)" />
                     </div>
                   </div>
                 </Link>

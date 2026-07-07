@@ -36,7 +36,7 @@ export async function GET() {
     });
   } catch (err) {
     return NextResponse.json(
-      { success: false, error: err instanceof Error ? err.message : "Internal server error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
@@ -91,9 +91,9 @@ export async function POST(req: NextRequest) {
         createdAt: record.createdAt.toISOString(),
       },
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
-      { success: false, error: err instanceof Error ? err.message : "Internal server error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }

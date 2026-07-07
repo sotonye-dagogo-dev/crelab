@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { FooterClient } from "./FooterClient";
 
 export async function Footer() {
   let config;
@@ -10,9 +11,9 @@ export async function Footer() {
     config = DEFAULT_CONFIG;
   }
 
-  const devCredit = config.devCredit ?? {
-    text: "built by S.D.",
-    url: "https://sotonye-dagogo.is-a.dev",
+  const devCredit = config.devCredit ?? DEFAULT_CONFIG.devCredit ?? {
+    text: "Powered by creativity",
+    url: "#",
   };
 
   return (
@@ -88,17 +89,17 @@ export async function Footer() {
 
         <div className="mt-6 flex items-center justify-between border-t border-[var(--color-border)] pt-4 text-[12px] text-[var(--color-text-tertiary)]">
           <span>&copy; {new Date().getFullYear()} {config.name}. All rights reserved.</span>
-          <span className="footer-dev-credit">
-            {devCredit.text}{" "}
+          <div className="flex items-center gap-4">
+            <FooterClient />
             <a
               href={devCredit.url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[var(--color-accent)] no-underline hover:underline"
             >
-              {devCredit.url.replace("https://", "")}
+              {devCredit.text}
             </a>
-          </span>
+          </div>
         </div>
       </div>
     </footer>

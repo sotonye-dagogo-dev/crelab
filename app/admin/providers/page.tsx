@@ -3,6 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton } from "@/components/ui";
 import { useToast } from "@/lib/toast";
+import { useBatchSelect, BatchToolbar } from "@/components/admin/BatchOperations";
+import { Check, AlertTriangle } from "lucide-react";
 
 interface ProviderReviewItem {
   id: string;
@@ -15,6 +17,7 @@ interface ProviderReviewItem {
 export default function ProvidersPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { selectedIds, toggleSelect, selectAll, invertSelect, clearSelection } = useBatchSelect<string>();
 
   const { data: providers = [], isLoading } = useQuery<ProviderReviewItem[]>({
     queryKey: ["admin-providers-pending"],
@@ -64,6 +67,21 @@ export default function ProvidersPage() {
     },
   });
 
+  const batchMutation = useMutation({
+    mutationFn: async (body: { action: string; ids: string[] }) => {
+      const res = await fetch("/api/admin/providers/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Batch action failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-providers-pending"] });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="text-[var(--color-text-secondary)] text-[14px]">
@@ -71,6 +89,8 @@ export default function ProvidersPage() {
       </div>
     );
   }
+
+  const providerIds = providers.map((p) => p.id);
 
   return (
     <div>
@@ -85,10 +105,50 @@ export default function ProvidersPage() {
         </div>
       </div>
 
+      <BatchToolbar
+        ids={providerIds}
+        selectedIds={selectedIds}
+        onToggle={toggleSelect}
+        onSelectAll={() => selectAll(providerIds)}
+        onInvert={() => invertSelect(providerIds)}
+        onClear={clearSelection}
+        actions={[
+          {
+            label: "Approve All",
+            variant: "outlined",
+            confirmTitle: "Approve Selected",
+            confirmMessage: "Are you sure you want to approve all selected providers? They will be marked as verified.",
+            execute: async (ids) => { await batchMutation.mutateAsync({ action: "approve", ids }); },
+            undo: async (ids) => {
+              await batchMutation.mutateAsync({ action: "flag", ids });
+              toast("Approval undone — providers re-flagged", "info");
+            },
+          },
+          {
+            label: "Flag All",
+            variant: "outlined",
+            confirmTitle: "Flag Selected",
+            confirmMessage: "Flag the selected providers for review (sets active=false).",
+            execute: async (ids) => { await batchMutation.mutateAsync({ action: "flag", ids }); },
+          },
+        ]}
+      />
+
       <div className="bg-[var(--color-surface)] rounded-[12px] overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-[var(--color-surface-raised)]">
+              <th className="w-[40px] px-[14px] py-[10px] text-left">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === providerIds.length && providerIds.length > 0}
+                  onChange={() => {
+                    if (selectedIds.size === providerIds.length) clearSelection();
+                    else selectAll(providerIds);
+                  }}
+                  className="cursor-pointer accent-[var(--color-accent)]"
+                />
+              </th>
               <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
                 Name
               </th>
@@ -109,7 +169,7 @@ export default function ProvidersPage() {
           <tbody>
             {providers.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
+                <td colSpan={6} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
                   No providers pending review.
                 </td>
               </tr>
@@ -117,8 +177,18 @@ export default function ProvidersPage() {
             {providers.map((provider) => (
               <tr
                 key={provider.id}
-                className="border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)]"
+                className={`border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)] ${
+                  selectedIds.has(provider.id) ? "bg-[var(--color-accent-muted)]" : ""
+                }`}
               >
+                <td className="w-[40px] px-[14px] py-[10px]">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(provider.id)}
+                    onChange={() => toggleSelect(provider.id)}
+                    className="cursor-pointer accent-[var(--color-accent)]"
+                  />
+                </td>
                 <td className="px-[14px] py-[10px] text-[12px]">
                   {provider.displayName}
                 </td>
@@ -140,7 +210,8 @@ export default function ProvidersPage() {
                       loading={approveMutation.isPending}
                       className="!text-[var(--color-success)] !border-[var(--color-success)] hover:!bg-[rgba(74,222,128,0.08)]"
                     >
-                      ✓ Approve
+                      <Check size={14} strokeWidth={2.5} />
+                      Approve
                     </ClButton>
                     <ClButton
                       variant="outlined"
@@ -149,7 +220,8 @@ export default function ProvidersPage() {
                       loading={flagMutation.isPending}
                       className="!text-[var(--color-warning)] !border-[var(--color-warning)] hover:!bg-[rgba(250,204,21,0.08)]"
                     >
-                      ⚠ Flag
+                      <AlertTriangle size={14} strokeWidth={2.5} />
+                      Flag
                     </ClButton>
                   </div>
                 </td>

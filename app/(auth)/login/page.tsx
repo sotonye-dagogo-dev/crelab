@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
 
@@ -123,9 +124,12 @@ export default function LoginPage() {
                 <label className="font-semibold text-xs text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">
                   Password
                 </label>
-                <span className="text-[12px] text-[var(--color-accent)] cursor-pointer">
+                <Link
+                  href="/forgot-password"
+                  className="text-[12px] text-[var(--color-accent)] no-underline hover:underline"
+                >
                   Forgot password?
-                </span>
+                </Link>
               </div>
               <div className="relative">
                 <input

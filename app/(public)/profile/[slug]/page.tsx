@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { providers, portfolioItems, servicePackages, reviews, user, bookings } from "@/drizzle/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { ProviderHero } from "@/components/profile/ProviderHero";
 import { PortfolioGrid } from "@/components/profile/PortfolioGrid";
 import { DrivePortfolioSection } from "@/components/profile/DrivePortfolioSection";
@@ -137,7 +138,12 @@ async function getWorkHistory(providerId: string) {
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const platformConfig = await PlatformConfigService.getCached();
+  let platformConfig: import("@/types").IPlatformConfig;
+  try {
+    platformConfig = await PlatformConfigService.getCached();
+  } catch {
+    platformConfig = DEFAULT_CONFIG;
+  }
   const provider = await getProvider(slug);
 
   if (!provider) return { title: "Profile Not Found" };

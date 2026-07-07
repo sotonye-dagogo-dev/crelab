@@ -99,7 +99,7 @@ export async function GET() {
     });
   } catch (err) {
     return NextResponse.json(
-      { success: false, error: err instanceof Error ? err.message : "Internal server error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }

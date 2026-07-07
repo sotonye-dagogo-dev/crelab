@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClDialog, ClButton, ClTextarea } from "@/components/ui";
+import { AlertCircle } from "lucide-react";
 
 interface DisputeModalProps {
   open: boolean;
@@ -112,18 +113,7 @@ export function DisputeModal({
             className="text-center"
           >
             <div className="w-12 h-12 rounded-full bg-[rgba(248,113,113,0.15)] flex items-center justify-center mx-auto mb-4">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--color-escrow-disputed)"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 8v4M12 16h.01" />
-              </svg>
+              <AlertCircle size={22} strokeWidth={2} color="var(--color-escrow-disputed)" />
             </div>
 
             <h3 className="font-[family-name:var(--font-display)] font-bold text-[16px] text-[var(--color-text-primary)] mb-2">

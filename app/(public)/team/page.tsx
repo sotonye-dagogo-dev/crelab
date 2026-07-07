@@ -4,13 +4,19 @@ import { asc, eq } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { MockDataService } from "@/services/MockDataService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { Users } from "lucide-react";
 import type { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const fallback = DEFAULT_CONFIG;
+  let config;
+  try {
+    config = await PlatformConfigService.getCached();
+  } catch {
+    config = DEFAULT_CONFIG;
+  }
   return {
-    title: `Meet the Team — ${fallback.name}`,
-    description: `Meet the team behind ${fallback.name}. Learn about the people building the future of creative hiring in Africa.`,
+    title: `Meet the Team — ${config.name}`,
+    description: `Meet the team behind ${config.name}. Learn about the people building the future of creative hiring in Africa.`,
   };
 }
 
@@ -125,7 +131,9 @@ export default async function TeamPage() {
           </>
         ) : (
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-center py-16 px-6">
-            <div className="text-5xl mb-4 opacity-30">👥</div>
+            <div className="mb-4 opacity-30">
+              <Users size={48} strokeWidth={1.5} />
+            </div>
             <div className="font-[family-name:var(--font-display)] font-bold text-lg mb-2">
               Meet the Team — Coming Soon
             </div>

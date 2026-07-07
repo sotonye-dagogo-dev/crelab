@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { ClDialog, ClButton, ClInput, ClTextarea } from "@/components/ui";
+import { X } from "lucide-react";
 import type { ITeamMember } from "@/types";
 
 interface TeamMemberModalProps {
@@ -234,9 +235,10 @@ export function TeamMemberModal({
             />
             <button
               onClick={() => removeSocial(index)}
-              className="text-[var(--color-error)] text-[20px] leading-none cursor-pointer bg-transparent border-none p-0 flex-shrink-0 hover:opacity-70"
+              className="text-[var(--color-error)] cursor-pointer bg-transparent border-none p-1 flex-shrink-0 hover:opacity-70"
+              aria-label="Remove social link"
             >
-              ✕
+              <X size={16} strokeWidth={2.5} />
             </button>
           </div>
         ))}

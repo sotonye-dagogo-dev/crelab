@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton } from "@/components/ui";
 import { TeamMemberModal } from "@/components/admin/TeamMemberModal";
 import { useToast } from "@/lib/toast";
+import { useBatchSelect, BatchToolbar } from "@/components/admin/BatchOperations";
 import type { ITeamMember } from "@/types";
 
 export default function AdminTeamPage() {
@@ -12,6 +13,7 @@ export default function AdminTeamPage() {
   const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<ITeamMember | null>(null);
+  const { selectedIds, toggleSelect, selectAll, invertSelect, clearSelection } = useBatchSelect<string>();
 
   const { data: members = [], isLoading } = useQuery<ITeamMember[]>({
     queryKey: ["admin-team"],
@@ -57,6 +59,21 @@ export default function AdminTeamPage() {
     },
   });
 
+  const batchMutation = useMutation({
+    mutationFn: async (body: { action: string; ids: string[] }) => {
+      const res = await fetch("/api/admin/team/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Batch action failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-team"] });
+    },
+  });
+
   const handleAdd = () => {
     setEditingMember(null);
     setModalOpen(true);
@@ -79,6 +96,8 @@ export default function AdminTeamPage() {
     );
   }
 
+  const memberIds = members.map((m) => m.id);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -97,10 +116,47 @@ export default function AdminTeamPage() {
         </div>
       </div>
 
+      <BatchToolbar
+        ids={memberIds}
+        selectedIds={selectedIds}
+        onToggle={toggleSelect}
+        onSelectAll={() => selectAll(memberIds)}
+        onInvert={() => invertSelect(memberIds)}
+        onClear={clearSelection}
+        actions={[
+          {
+            label: "Delete",
+            variant: "outlined",
+            confirmTitle: "Delete Members",
+            confirmMessage: "Are you sure you want to delete the selected team members? This cannot be undone.",
+            danger: true,
+            execute: async (ids) => { await batchMutation.mutateAsync({ action: "delete", ids }); },
+          },
+          {
+            label: "Toggle Active",
+            variant: "outlined",
+            confirmTitle: "Toggle Active Status",
+            confirmMessage: "Toggle the active status of selected team members.",
+            execute: async (ids) => { await batchMutation.mutateAsync({ action: "toggle", ids }); },
+          },
+        ]}
+      />
+
       <div className="bg-[var(--color-surface)] rounded-[12px] overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-[var(--color-surface-raised)]">
+              <th className="w-[40px] px-[14px] py-[10px] text-left">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === memberIds.length && memberIds.length > 0}
+                  onChange={() => {
+                    if (selectedIds.size === memberIds.length) clearSelection();
+                    else selectAll(memberIds);
+                  }}
+                  className="cursor-pointer accent-[var(--color-accent)]"
+                />
+              </th>
               <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
                 Name
               </th>
@@ -124,7 +180,7 @@ export default function AdminTeamPage() {
           <tbody>
             {members.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
+                <td colSpan={7} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
                   No team members found. Add your first member to get started.
                 </td>
               </tr>
@@ -132,8 +188,18 @@ export default function AdminTeamPage() {
             {members.map((member) => (
               <tr
                 key={member.id}
-                className="border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)]"
+                className={`border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)] ${
+                  selectedIds.has(member.id) ? "bg-[var(--color-accent-muted)]" : ""
+                }`}
               >
+                <td className="w-[40px] px-[14px] py-[10px]">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(member.id)}
+                    onChange={() => toggleSelect(member.id)}
+                    className="cursor-pointer accent-[var(--color-accent)]"
+                  />
+                </td>
                 <td className="px-[14px] py-[10px] text-[12px]">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-[var(--color-surface-raised)] flex items-center justify-center text-[10px] font-bold text-[var(--color-text-tertiary)] flex-shrink-0">

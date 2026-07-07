@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Cloud } from "lucide-react";
 import { ExploreVideoCard } from "@/components/shared/ExploreVideoCard";
 import type { IPortfolioItem } from "@/types";
 
@@ -25,10 +26,7 @@ export function DrivePortfolioSection({
   return (
     <section className="mt-10">
       <div className="flex items-center gap-2 mb-4">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="1,18 12,2 23,18" />
-          <polygon points="1,18 12,22 23,18" />
-        </svg>
+        <Cloud size={18} strokeWidth={1.5} color="var(--color-accent)" />
         <h2 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)]">
           Google Drive Portfolio
         </h2>

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton } from "@/components/ui";
 import { CategoryModal } from "@/components/admin/CategoryModal";
 import { useToast } from "@/lib/toast";
+import { useBatchSelect, BatchToolbar } from "@/components/admin/BatchOperations";
 import type { ICategoryConfig } from "@/types";
 
 export default function CategoriesPage() {
@@ -12,6 +13,7 @@ export default function CategoriesPage() {
   const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ICategoryConfig | null>(null);
+  const { selectedIds, toggleSelect, selectAll, invertSelect, clearSelection } = useBatchSelect<string>();
 
   const { data: categories = [], isLoading } = useQuery<ICategoryConfig[]>({
     queryKey: ["admin-categories"],
@@ -40,6 +42,21 @@ export default function CategoriesPage() {
     },
   });
 
+  const batchMutation = useMutation({
+    mutationFn: async (body: { action: string; ids: string[] }) => {
+      const res = await fetch("/api/admin/categories/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Batch action failed");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+    },
+  });
+
   const handleAdd = () => {
     setEditingCategory(null);
     setModalOpen(true);
@@ -62,6 +79,8 @@ export default function CategoriesPage() {
     );
   }
 
+  const categorySlugs = categories.map((c) => c.slug);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -80,10 +99,46 @@ export default function CategoriesPage() {
         </div>
       </div>
 
+      <BatchToolbar
+        ids={categorySlugs}
+        selectedIds={selectedIds}
+        onToggle={toggleSelect}
+        onSelectAll={() => selectAll(categorySlugs)}
+        onInvert={() => invertSelect(categorySlugs)}
+        onClear={clearSelection}
+        actions={[
+          {
+            label: "Disable",
+            variant: "outlined",
+            confirmTitle: "Disable Categories",
+            confirmMessage: "Are you sure you want to disable the selected categories? They will no longer appear on the public site.",
+            execute: async (ids) => { await batchMutation.mutateAsync({ action: "disable", ids }); },
+          },
+          {
+            label: "Enable",
+            variant: "outlined",
+            confirmTitle: "Enable Categories",
+            confirmMessage: "Enable the selected categories.",
+            execute: async (ids) => { await batchMutation.mutateAsync({ action: "enable", ids }); },
+          },
+        ]}
+      />
+
       <div className="bg-[var(--color-surface)] rounded-[12px] overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-[var(--color-surface-raised)]">
+              <th className="w-[40px] px-[14px] py-[10px] text-left">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === categorySlugs.length && categorySlugs.length > 0}
+                  onChange={() => {
+                    if (selectedIds.size === categorySlugs.length) clearSelection();
+                    else selectAll(categorySlugs);
+                  }}
+                  className="cursor-pointer accent-[var(--color-accent)]"
+                />
+              </th>
               <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
                 Slug
               </th>
@@ -104,7 +159,7 @@ export default function CategoriesPage() {
           <tbody>
             {categories.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
+                <td colSpan={6} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
                   No categories found.
                 </td>
               </tr>
@@ -112,8 +167,18 @@ export default function CategoriesPage() {
             {categories.map((cat) => (
               <tr
                 key={cat.slug}
-                className="border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)]"
+                className={`border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)] ${
+                  selectedIds.has(cat.slug) ? "bg-[var(--color-accent-muted)]" : ""
+                }`}
               >
+                <td className="w-[40px] px-[14px] py-[10px]">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(cat.slug)}
+                    onChange={() => toggleSelect(cat.slug)}
+                    className="cursor-pointer accent-[var(--color-accent)]"
+                  />
+                </td>
                 <td className="px-[14px] py-[10px] text-[12px] font-[family-name:var(--font-mono)]">
                   {cat.slug}
                 </td>

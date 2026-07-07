@@ -3,59 +3,38 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
+import { Settings, Grid3X3, UserCheck, AlertTriangle, Users, Bug } from "lucide-react";
 
 const navItems = [
   {
     label: "Config",
     href: "/admin/config",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="3" y="11" width="18" height="11" rx="2" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </svg>
-    ),
+    icon: <Settings size={16} strokeWidth={1.5} />,
   },
   {
     label: "Categories",
     href: "/admin/categories",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M4 4h7v7H4zM15 4h5v5h-5zM4 15h5v5H4zM15 15h5v5h-5z" />
-      </svg>
-    ),
+    icon: <Grid3X3 size={16} strokeWidth={1.5} />,
   },
   {
     label: "Providers",
     href: "/admin/providers",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
+    icon: <UserCheck size={16} strokeWidth={1.5} />,
   },
   {
     label: "Disputes",
     href: "/admin/disputes",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-    ),
+    icon: <AlertTriangle size={16} strokeWidth={1.5} />,
   },
   {
     label: "Team",
     href: "/admin/team",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
+    icon: <Users size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "Bug Reports",
+    href: "/admin/bug-reports",
+    icon: <Bug size={16} strokeWidth={1.5} />,
   },
 ];
 
