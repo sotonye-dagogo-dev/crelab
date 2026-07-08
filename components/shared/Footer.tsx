@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { FooterClient } from "./FooterClient";
+import { ThemeToggler } from "./ThemeToggler";
 
 export async function Footer() {
   let config;
@@ -20,15 +20,19 @@ export async function Footer() {
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-8">
         <div className="grid gap-8 grid-cols-2 lg:grid-cols-4">
-          <div>
-            <h4 className="mb-3 font-[family-name:var(--font-display)] text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-              {config.name}
-            </h4>
-            <p className="text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
-              {config.tagline}
-            </p>
+          <div className="flex gap-4">
+            <div className="w-full flex-1">
+              <h4 className="mb-3 font-[family-name:var(--font-display)] text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
+                {config.name}
+              </h4>
+              <p className="text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
+                {config.tagline}
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <ThemeToggler />
+            </div>
           </div>
-          <FooterClient />
           <div>
             <h4 className="mb-3 font-[family-name:var(--font-display)] text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
               Platform
