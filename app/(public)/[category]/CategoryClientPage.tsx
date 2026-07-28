@@ -110,7 +110,7 @@ export function CategoryClientPage({
           </div>
           <div>
             <div className="font-[family-name:var(--font-mono)] text-[2.25rem] font-bold leading-[1] tabular-nums text-[var(--color-warning)]">
-              {stats.avgRating.toFixed(1)}★
+              {Number(stats.avgRating).toFixed(1)}★
             </div>
             <div className="font-[family-name:var(--font-body)] text-[13px] text-[var(--color-text-secondary)] mt-0.5">
               Average rating

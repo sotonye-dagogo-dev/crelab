@@ -36,7 +36,7 @@ export function ReviewsSection({ reviews }: ReviewsSectionProps) {
             />
           ))}
           <span className="text-[13px] text-[var(--color-text-secondary)] ml-1">
-            {avgRating.toFixed(1)} ({reviews.length})
+            {Number(avgRating).toFixed(1)} ({reviews.length})
           </span>
         </div>
       </div>

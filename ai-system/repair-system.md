@@ -172,8 +172,37 @@ Keep `next` dependency at the latest stable 15.x version. Run `npm outdated` reg
 
 ---
 
+---
+
 **Config Value Not Updating After Admin Change**
 - Symptom: Frontend still shows old platform name/colour after admin update
 - Cause: `ConfigContext` not re-fetching after DB update; stale cache
 - Fix: Invalidate `platform-config` cache tag on config update; add re-fetch interval or revalidation trigger
 - Prevention: Use `revalidateTag('platform-config')` in admin API; set reasonable `staleTimes` in TanStack Query
+
+---
+
+### rating.toFixed Is Not a Function — Numeric Rating Received as String from API/DB
+
+**Symptom:**
+`Uncaught TypeError: s.rating.toFixed is not a function` when the webapp loads. Rating values displayed as ★ NaN or crash entirely.
+
+**Root Cause:**
+PostgreSQL `numeric` type can be deserialized as a string by certain API layers (e.g., Supabase). The `IExploreCard.rating` field was typed as `number | null`, but the actual runtime value was a string, so `.toFixed()` threw a TypeError. The same issue existed in `CategoryClientPage` (`stats.avgRating`) and `ReviewsSection` (`avgRating`).
+
+**Fix Applied:**
+Wrapped all `.toFixed()` calls with `Number()` coercion:
+- `provider.rating.toFixed(1)` → `Number(provider.rating).toFixed(1)` in `ExploreVideoCard.tsx`
+- `stats.avgRating.toFixed(1)` → `Number(stats.avgRating).toFixed(1)` in `CategoryClientPage.tsx`
+- `avgRating.toFixed(1)` → `Number(avgRating).toFixed(1)` in `ReviewsSection.tsx`
+
+**Prevention:**
+Always wrap API/DB-derived numeric values with `Number()` before calling `.toFixed()`, `.toLocaleString()`, or any `Number.prototype` method. Add a Zod schema on the API boundary to coerce `numeric` fields to actual JS numbers.
+
+**Files Affected:**
+- `components/explore/ExploreVideoCard.tsx`
+- `app/(public)/[category]/CategoryClientPage.tsx`
+- `components/profile/ReviewsSection.tsx`
+
+**Date:** 2026-07-28
+**Status:** Active
