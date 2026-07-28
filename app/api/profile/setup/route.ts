@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     }
 
     const providerId = crypto.randomUUID();
-    const slug = `${session.user.name?.toLowerCase().replace(/\s+/g, "-")}-${providerId.slice(0, 8)}`;
+    const slug = `${session.user.name?.toLowerCase().replace(/\s+/g, "-")}--${providerId.slice(0, 8)}`;
 
     const fields = categoryFields as Record<string, unknown> | undefined;
 

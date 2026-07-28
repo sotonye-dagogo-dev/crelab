@@ -1,8 +1,8 @@
 # Verification Rules
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: this file changes rarely — trust unless explicitly flagged
 
 > **Overview:** Pre-emptive verification procedures to run *before* declaring work complete. These are the concrete mechanisms behind the quality gate — how to actually check each criterion.

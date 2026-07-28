@@ -1,8 +1,8 @@
 # Reviewer Role
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if review criteria or conventions change
 
 > **Overview:** Reviews code and documentation for quality, architecture consistency, and overfitting. Flags issues for remediation but does not fix them directly.

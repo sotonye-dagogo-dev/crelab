@@ -50,12 +50,12 @@ describe("MockDataService", () => {
   it("getExploreProviders includes all expected slugs", async () => {
     const { MockDataService } = await import("@/services/MockDataService");
     const slugs = MockDataService.getExploreProviders().map((p) => p.slug);
-    expect(slugs).toContain("amara-studios");
-    expect(slugs).toContain("lens-and-light");
-    expect(slugs).toContain("kelechi-media");
-    expect(slugs).toContain("tunde-films");
-    expect(slugs).toContain("zara-creative");
-    expect(slugs).toContain("lens-collective");
+    expect(slugs).toContain("amara-studios--mock-pro");
+    expect(slugs).toContain("lens-and-light--mock-pro");
+    expect(slugs).toContain("kelechi-media--mock-pro");
+    expect(slugs).toContain("tunde-films--mock-pro");
+    expect(slugs).toContain("zara-creative--mock-pro");
+    expect(slugs).toContain("lens-collective--mock-pro");
   });
 
   it("getMockProviders returns 3 providers", async () => {
@@ -69,7 +69,7 @@ describe("MockDataService", () => {
 
   it("getMockProviderBySlug matches explore card slug", async () => {
     const { MockDataService } = await import("@/services/MockDataService");
-    const provider = MockDataService.getMockProviderBySlug("amara-studios");
+    const provider = MockDataService.getMockProviderBySlug("amara-studios--mock-pro");
     expect(provider).not.toBeNull();
     expect(provider!.id).toBe("mock-provider-1");
     expect(provider!.displayName).toBe("Amara Studios");

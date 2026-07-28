@@ -1,8 +1,8 @@
 # Implementer Role
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if coding conventions or tooling change
 
 > **Overview:** Writes code per specification. Implements tasks from the task queue following the architecture and design system. Does not change architecture or design scope.

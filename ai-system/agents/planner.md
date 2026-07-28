@@ -1,8 +1,8 @@
 # Planner Role
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if task structure or workflow changes
 
 > **Overview:** Analyzes requirements, decomposes work, and sequences tasks. Does not implement code or change architecture directly.

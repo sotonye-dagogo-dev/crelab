@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-22
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if new features are added
 
 > **Overview:** Defines what needs to be tested and at what level for Crelab. Referenced by verify-work.md during the quality gate. Updated as new features are added.

@@ -1,7 +1,7 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: fix-build
+> - last-updated-by: update-ai-system
 > - last-verified-against-code: 2026-07-28
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 

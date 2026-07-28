@@ -148,7 +148,7 @@ export class ExploreService {
     const data: IExploreCard[] = slice.map((row) => ({
       id: row.id,
       displayName: row.displayName,
-      slug: `${row.displayName.toLowerCase().replace(/\s+/g, "-")}-${row.id.slice(0, 8)}`,
+      slug: `${row.displayName.toLowerCase().replace(/\s+/g, "-")}--${row.id.slice(0, 8)}`,
       categorySlug: row.categorySlug,
       categoryLabel: "",
       location: row.location,

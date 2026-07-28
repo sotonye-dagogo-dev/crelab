@@ -155,7 +155,7 @@ export class MockDataService {
       {
         id: "mock-provider-1",
         displayName: "Amara Studios",
-        slug: "amara-studios",
+        slug: "amara-studios--mock-pro",
         categorySlug: "content-creator",
         categoryLabel: "Content Creator",
         avatarUrl: null,
@@ -172,7 +172,7 @@ export class MockDataService {
       {
         id: "mock-provider-2",
         displayName: "Lens & Light",
-        slug: "lens-and-light",
+        slug: "lens-and-light--mock-pro",
         categorySlug: "cinematographer",
         categoryLabel: "Cinematographer / Videographer",
         avatarUrl: null,
@@ -189,7 +189,7 @@ export class MockDataService {
       {
         id: "mock-provider-3",
         displayName: "Kelechi Media",
-        slug: "kelechi-media",
+        slug: "kelechi-media--mock-pro",
         categorySlug: "content-creator",
         categoryLabel: "Content Creator",
         avatarUrl: null,
@@ -206,7 +206,7 @@ export class MockDataService {
       {
         id: "mock-provider-4",
         displayName: "Tunde Films",
-        slug: "tunde-films",
+        slug: "tunde-films--mock-pro",
         categorySlug: "cinematographer",
         categoryLabel: "Cinematographer / Videographer",
         avatarUrl: null,
@@ -223,7 +223,7 @@ export class MockDataService {
       {
         id: "mock-provider-5",
         displayName: "Zara Creative",
-        slug: "zara-creative",
+        slug: "zara-creative--mock-pro",
         categorySlug: "content-creator",
         categoryLabel: "Content Creator",
         avatarUrl: null,
@@ -240,7 +240,7 @@ export class MockDataService {
       {
         id: "mock-provider-6",
         displayName: "Lens Collective",
-        slug: "lens-collective",
+        slug: "lens-collective--mock-pro",
         categorySlug: "cinematographer",
         categoryLabel: "Cinematographer / Videographer",
         avatarUrl: null,
