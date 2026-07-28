@@ -270,7 +270,6 @@ export default async function ProfilePage({ params }: Props) {
 
       <BookingBottomBar
         selectedPackage={packages[0] ?? null}
-        onBook={() => {}}
       />
     </div>
   );

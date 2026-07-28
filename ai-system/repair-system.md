@@ -206,3 +206,29 @@ Always wrap API/DB-derived numeric values with `Number()` before calling `.toFix
 
 **Date:** 2026-07-28
 **Status:** Active
+
+### Server Component Passing Event Handler to Client Component
+
+**Symptom:**
+Next.js build error: `Error: Event handlers cannot be passed to Client Component props. {selectedPackage: ..., onBook: function onBook}` on the profile page.
+
+**Root Cause:**
+`app/(public)/profile/[slug]/page.tsx` is a Server Component (default in Next.js App Router) but was passing `onBook={() => {}}` — a function — to `BookingBottomBar`, which is a Client Component (`"use client"`). Server Components cannot pass functions as props to Client Components because functions can't be serialized over the server/client boundary.
+
+**Fix Applied:**
+- Removed `onBook` from `BookingBottomBar`'s props interface
+- Removed `onClick={onBook}` from the button inside `BookingBottomBar`
+- Removed `onBook={() => {}}` from the `<BookingBottomBar>` usage in the profile page
+
+**Prevention:**
+Never pass function props from Server Components to Client Components. Either:
+- Handle events entirely inside the Client Component
+- Use Next.js Server Actions (`"use server"`) instead of event handlers
+- If the entire page needs client interactivity, add `"use client"` to the page component
+
+**Files Affected:**
+- `components/profile/BookingBottomBar.tsx` — removed `onBook` prop and `onClick`
+- `app/(public)/profile/[slug]/page.tsx` — removed `onBook={() => {}}` prop
+
+**Date:** 2026-07-28
+**Status:** Active

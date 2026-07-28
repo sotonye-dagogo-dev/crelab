@@ -551,3 +551,25 @@ Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications
 
 **Notes / Blockers:**
 - Both bugs were production-blocking: profile pages returned 404 for all providers, blog crashed on fallback data with "Unknown block type block" error.
+
+---
+
+## Session 14 — 2026-07-28 (Fix Build — Event Handler in Server Component)
+
+**Completed:**
+Fixed Next.js build error: "Event handlers cannot be passed to Client Component props" on the profile page.
+
+**Root Cause:**
+`app/(public)/profile/[slug]/page.tsx` (Server Component) passed `onBook={() => {}}` to `BookingBottomBar` (Client Component). Server Components cannot serialize function props over the server/client boundary.
+
+**Files Modified:**
+| File | Change |
+|------|--------|
+| components/profile/BookingBottomBar.tsx | Removed `onBook` prop and `onClick` from button |
+| app/(public)/profile/[slug]/page.tsx | Removed `onBook={() => {}}` from BookingBottomBar usage |
+| ai-system/repair-system.md | Logged error entry |
+
+**Build Status:** ✅ Build compiles successfully. 80 tests pass.
+
+**Next Task:**
+Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications, tests).
