@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { providers, portfolioItems, servicePackages, reviews, user, bookings } from "@/drizzle/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { MockDataService } from "@/services/MockDataService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { ProviderHero } from "@/components/profile/ProviderHero";
 import { PortfolioGrid } from "@/components/profile/PortfolioGrid";
@@ -22,118 +23,158 @@ async function getProvider(slug: string) {
   const id = slug.split("-").pop();
   if (!id) return null;
 
-  const provider = await db
-    .select()
-    .from(providers)
-    .where(and(eq(providers.id, id), eq(providers.active, true)))
-    .then((rows) => rows[0]);
+  try {
+    const provider = await db
+      .select()
+      .from(providers)
+      .where(and(eq(providers.id, id), eq(providers.active, true)))
+      .then((rows) => rows[0]);
 
-  if (!provider) return null;
+    if (!provider) return MockDataService.getMockProviderBySlug(slug);
 
-  return {
-    ...provider,
-    createdAt: provider.createdAt.toISOString(),
-    updatedAt: provider.updatedAt.toISOString(),
-  } as IProvider;
+    return {
+      ...provider,
+      createdAt: provider.createdAt.toISOString(),
+      updatedAt: provider.updatedAt.toISOString(),
+    } as IProvider;
+  } catch {
+    return MockDataService.getMockProviderBySlug(slug);
+  }
 }
 
 async function getPortfolioItems(providerId: string) {
-  const rows = await db
-    .select()
-    .from(portfolioItems)
-    .where(
-      and(
-        eq(portfolioItems.providerId, providerId),
-        eq(portfolioItems.visible, true),
-      ),
-    )
-    .orderBy(asc(portfolioItems.orderIndex));
+  try {
+    const rows = await db
+      .select()
+      .from(portfolioItems)
+      .where(
+        and(
+          eq(portfolioItems.providerId, providerId),
+          eq(portfolioItems.visible, true),
+        ),
+      )
+      .orderBy(asc(portfolioItems.orderIndex));
 
-  return rows.map(
-    (row) =>
-      ({
-        ...row,
-        createdAt: row.createdAt.toISOString(),
-        updatedAt: row.updatedAt.toISOString(),
-      }) as IPortfolioItem,
-  );
+    return rows.map(
+      (row) =>
+        ({
+          ...row,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+        }) as IPortfolioItem,
+    );
+  } catch {
+    return MockDataService.getMockPortfolioItems(providerId);
+  }
 }
 
 async function getServicePackages(providerId: string) {
-  const rows = await db
-    .select()
-    .from(servicePackages)
-    .where(eq(servicePackages.providerId, providerId));
+  try {
+    const rows = await db
+      .select()
+      .from(servicePackages)
+      .where(eq(servicePackages.providerId, providerId));
 
-  return rows.map(
-    (row) =>
-      ({
-        ...row,
-        createdAt: row.createdAt.toISOString(),
-        updatedAt: row.updatedAt.toISOString(),
-      }) as IServicePackage,
-  );
+    return rows.map(
+      (row) =>
+        ({
+          ...row,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+        }) as IServicePackage,
+    );
+  } catch {
+    return MockDataService.getMockServicePackages(providerId);
+  }
 }
 
 async function getReviews(providerId: string) {
-  const reviewRows = await db
-    .select({
-      id: reviews.id,
-      bookingId: reviews.bookingId,
-      reviewerId: reviews.reviewerId,
-      providerId: reviews.providerId,
-      rating: reviews.rating,
-      body: reviews.body,
-      createdAt: reviews.createdAt,
-      reviewerName: user.name,
-      reviewerAvatar: user.image,
-    })
-    .from(reviews)
-    .innerJoin(user, eq(reviews.reviewerId, user.id))
-    .where(eq(reviews.providerId, providerId))
-    .orderBy(asc(reviews.createdAt));
+  try {
+    const reviewRows = await db
+      .select({
+        id: reviews.id,
+        bookingId: reviews.bookingId,
+        reviewerId: reviews.reviewerId,
+        providerId: reviews.providerId,
+        rating: reviews.rating,
+        body: reviews.body,
+        createdAt: reviews.createdAt,
+        reviewerName: user.name,
+        reviewerAvatar: user.image,
+      })
+      .from(reviews)
+      .innerJoin(user, eq(reviews.reviewerId, user.id))
+      .where(eq(reviews.providerId, providerId))
+      .orderBy(asc(reviews.createdAt));
 
-  return reviewRows.map((row) => ({
-    id: row.id,
-    bookingId: row.bookingId,
-    reviewerId: row.reviewerId,
-    providerId: row.providerId,
-    rating: row.rating,
-    body: row.body,
-    createdAt: row.createdAt.toISOString(),
-    reviewerName: row.reviewerName,
-    reviewerAvatar: row.reviewerAvatar,
-    verifiedBooking: true,
-  }));
+    if (reviewRows.length === 0 && MockDataService.isEnabled()) {
+      const mock = MockDataService.getMockReviewsForProvider(providerId);
+      return mock.map((r) => ({
+        ...r,
+        reviewerName: "Verified Client",
+        reviewerAvatar: null,
+        verifiedBooking: true,
+      }));
+    }
+
+    return reviewRows.map((row) => ({
+      id: row.id,
+      bookingId: row.bookingId,
+      reviewerId: row.reviewerId,
+      providerId: row.providerId,
+      rating: row.rating,
+      body: row.body,
+      createdAt: row.createdAt.toISOString(),
+      reviewerName: row.reviewerName,
+      reviewerAvatar: row.reviewerAvatar,
+      verifiedBooking: true,
+    }));
+  } catch {
+    const mock = MockDataService.getMockReviewsForProvider(providerId);
+    return mock.map((r) => ({
+      ...r,
+      reviewerName: "Verified Client",
+      reviewerAvatar: null,
+      verifiedBooking: true,
+    }));
+  }
 }
 
 async function getWorkHistory(providerId: string) {
-  const bookingRows = await db
-    .select({
-      id: bookings.id,
-      title: servicePackages.label,
-      clientName: user.name,
-      completedAt: bookings.updatedAt,
-      description: bookings.scopeNotes,
-    })
-    .from(bookings)
-    .innerJoin(servicePackages, eq(bookings.packageId, servicePackages.id))
-    .innerJoin(user, eq(bookings.clientId, user.id))
-    .where(
-      and(
-        eq(bookings.providerId, providerId),
-        eq(bookings.status, "RELEASED"),
-      ),
-    )
-    .orderBy(asc(bookings.updatedAt));
+  try {
+    const bookingRows = await db
+      .select({
+        id: bookings.id,
+        title: servicePackages.label,
+        clientName: user.name,
+        completedAt: bookings.updatedAt,
+        description: bookings.scopeNotes,
+      })
+      .from(bookings)
+      .innerJoin(servicePackages, eq(bookings.packageId, servicePackages.id))
+      .innerJoin(user, eq(bookings.clientId, user.id))
+      .where(
+        and(
+          eq(bookings.providerId, providerId),
+          eq(bookings.status, "RELEASED"),
+        ),
+      )
+      .orderBy(asc(bookings.updatedAt));
 
-  return bookingRows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    clientName: row.clientName,
-    completedAt: row.completedAt.toISOString(),
-    description: row.description ?? "",
-  }));
+    if (bookingRows.length === 0 && MockDataService.isEnabled()) {
+      return MockDataService.getMockWorkHistoryForProvider(providerId);
+    }
+
+    return bookingRows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      clientName: row.clientName,
+      completedAt: row.completedAt.toISOString(),
+      description: row.description ?? "",
+    }));
+  } catch {
+    return MockDataService.getMockWorkHistoryForProvider(providerId);
+  }
 }
 
 export async function generateMetadata({ params }: Props) {

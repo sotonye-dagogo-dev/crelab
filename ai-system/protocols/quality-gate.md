@@ -1,8 +1,8 @@
 # Quality Gate — Anti-Slop Verification Protocol
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: this file changes rarely — trust unless explicitly flagged
 
 > **Overview:** The mandatory QA checklist that every command must run before declaring work complete. This is the most important protocol in the system — it prevents overconfident output, premature completion, scope-padding, hallucinated file references, and solutions overfit to one example rather than the actual requirement.

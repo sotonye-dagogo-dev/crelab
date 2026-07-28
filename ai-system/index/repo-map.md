@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -13,6 +13,9 @@
 
 ```
 crelab/
+├── __tests__/               # Vitest test files for all services
+├── .env                    # Environment variables (DB, auth, Paystack keys, mock data toggle)
+├── .env.example            # Template with all required vars (recommended defaults)
 ├── .github/                 # GitHub Actions workflows
 ├── .ai-system/              # AI-assisted development governance
 ├── app/                     # Next.js 15 App Router
@@ -87,6 +90,7 @@ crelab/
 │   └── platform.config.ts   # Hardcoded fallback, DB overrides at runtime
 ├── lib/
 │   ├── auth.ts             # Better Auth instance + getSession/requireAuth/requireRole
+│   ├── blog-fallback.ts    # Hardcoded fallback blog posts when Sanity is unavailable
 │   ├── cloudinary.ts       # Video/image upload, thumbnail generation
 │   ├── config-context.tsx  # PlatformConfig React context provider
 │   ├── consent.ts          # NDPR consent capture server action
@@ -106,6 +110,8 @@ crelab/
 │   ├── seed.ts             # DB seed: creates users via Better Auth API + inserts all seed data
 │   ├── seed-rollback.ts    # Rollback: deletes all seed data in FK-safe reverse order
 │   └── _test-bcrypt.mjs    # Scratch: bcryptjs hash testing (can be removed)
+├── checkpoints/             # Session logs (in-progress, session-log)
+├── testing/                 # Test results
 ├── middleware.ts            # Route protection (auth + admin gate)
 └── public/                 # Static assets (icon.png, primary-logo.png)
 ```
@@ -117,6 +123,8 @@ crelab/
 | Directory | Purpose | Key Files |
 |-----------|---------|-----------|
 | `app/` | Next.js 15 App Router: route groups for public, auth, admin, and API | `layout.tsx`, `page.tsx`, `sitemap.ts`, `robots.ts`, route handlers |
+| `checkpoints/` | Session tracking: in-progress and session logs | `in-progress.md`, `session-log.md` |
+| `testing/` | Test results tracking | `test-results.md` |
 | `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes | `page.tsx`, `layout.tsx` |
 | `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx` |
 | `components/explore/` | Explore feed: filter bar, masonry grid, video cards | ExploreFilterBar, ExploreGrid |
@@ -129,10 +137,11 @@ crelab/
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `config-context.tsx`, `consent.ts` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (463 lines, 14 tables + 6 enums + relations), `migrations/` |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
+| `__tests__/` | Vitest test files for all services | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts` |
 
 ---
 

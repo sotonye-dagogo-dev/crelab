@@ -1,4 +1,5 @@
 import { getAllPosts } from "@/lib/sanity";
+import { getFallbackPosts } from "@/lib/blog-fallback";
 import { BlogPageClient } from "./BlogPageClient";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ export default async function BlogPage() {
     const posts = await getAllPosts();
     return <BlogPageClient posts={posts} />;
   } catch {
-    return <BlogPageClient posts={[]} />;
+    const fallback = getFallbackPosts();
+    return <BlogPageClient posts={fallback} />;
   }
 }

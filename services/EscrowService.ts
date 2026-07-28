@@ -14,6 +14,15 @@ import type {
 } from "@/types";
 import { BookingService } from "@/services/BookingService";
 
+export const LEGAL_ESCROW_TRANSITIONS: Record<EscrowState, EscrowState[]> = {
+  [EscrowState.PENDING]: [EscrowState.HELD],
+  [EscrowState.HELD]: [EscrowState.IN_PROGRESS, EscrowState.REFUNDED],
+  [EscrowState.IN_PROGRESS]: [EscrowState.RELEASED, EscrowState.DISPUTED],
+  [EscrowState.DISPUTED]: [EscrowState.RELEASED, EscrowState.REFUNDED],
+  [EscrowState.RELEASED]: [],
+  [EscrowState.REFUNDED]: [],
+};
+
 function mapPayment(row: typeof payments.$inferSelect): IPayment {
   return {
     id: row.id,

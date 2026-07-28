@@ -261,6 +261,20 @@ async function main() {
   }
   console.log(`   ${seedUsers.length * 3} consent records created`);
 
+  console.log("\nCreating team members...");
+  const teamMemberData = [
+    { id: "team-1", name: "Sotonye Dagogo", role: "Founder & Product Lead", bio: "Building the future of creative hiring in Africa. Product, design, and strategy.", socialLinks: JSON.stringify([{ platform: "Twitter", url: "https://x.com" }, { platform: "LinkedIn", url: "https://linkedin.com" }]), orderIndex: 0 },
+    { id: "team-2", name: "Chioma Okafor", role: "Lead Engineer", bio: "Full-stack engineer passionate about developer experience and African tech ecosystems.", socialLinks: JSON.stringify([{ platform: "GitHub", url: "https://github.com" }, { platform: "LinkedIn", url: "https://linkedin.com" }]), orderIndex: 1 },
+    { id: "team-3", name: "Emeka Nwosu", role: "Design Lead", bio: "Crafting cinematic interfaces that feel as good as they look.", socialLinks: JSON.stringify([{ platform: "Dribbble", url: "https://dribbble.com" }, { platform: "X", url: "https://x.com" }]), orderIndex: 2 },
+    { id: "team-4", name: "Amina Bello", role: "Operations", bio: "Ensuring creators and clients have a seamless experience from first click to final delivery.", socialLinks: JSON.stringify([{ platform: "LinkedIn", url: "https://linkedin.com" }]), orderIndex: 3 },
+    { id: "team-5", name: "Tunde Balogun", role: "Community Lead", bio: "Building the community that powers Nigeria's creative economy.", socialLinks: JSON.stringify([{ platform: "Twitter", url: "https://x.com" }, { platform: "LinkedIn", url: "https://linkedin.com" }]), orderIndex: 4 },
+    { id: "team-6", name: "Zainab Ibrahim", role: "Growth & Marketing", bio: "Driving adoption and telling the Crellab story across Africa.", socialLinks: JSON.stringify([{ platform: "LinkedIn", url: "https://linkedin.com" }]), orderIndex: 5 },
+  ];
+  for (const m of teamMemberData) {
+    await db.insert(s.teamMembers).values({ ...m, active: true, createdAt: now30, updatedAt: now30 });
+  }
+  console.log(`   ${teamMemberData.length} team members created`);
+
   console.log("\nWriting seed marker...");
   await db.insert(s.platformConfig).values({
     id: "cfg-seed-marker",

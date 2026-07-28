@@ -1,8 +1,8 @@
 # Fix Build Command
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: (set on first run)
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if diagnostic processes change
 
 > **Overview:** Self-healing loop. Diagnoses build and test failures, applies the minimal fix, verifies resolution, and logs in the repair system. Merges the old fix-build and self-heal into one command.
