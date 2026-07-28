@@ -143,7 +143,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
             <div className="flex items-center gap-2">
               {provider.rating !== null && (
                 <span className="font-[family-name:var(--font-mono)] text-[12px] font-medium text-[var(--color-warning)] tabular-nums">
-                  ★ {provider.rating.toFixed(1)}
+                  ★ {Number(provider.rating).toFixed(1)}
                 </span>
               )}
               {provider.packagePriceFromKobo !== null && (
