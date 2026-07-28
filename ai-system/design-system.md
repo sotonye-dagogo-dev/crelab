@@ -1,8 +1,8 @@
 # Design System
 
 > **Metadata**
-> - last-updated-by: opencode (execute-feature)
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if UI components or styling dependencies change
 
 > **Overview:** Dark-dominant, video-first design direction with a full light theme alternative. Electric yellow-green accent (#E8FF47) on near-black (#0A0A0A) for dark mode, earthier olive accent (#A3B800) on near-white (#FAFAF9) for light mode. Theme switching via tabbed toggler (System/Light/Dark) with localStorage persistence. All tokens defined as CSS custom properties with platform config overridability. The colour, typography, and spacing tables below are the single source of truth for design tokens — components must consume these tokens via Cl* wrappers rather than redeclaring values.

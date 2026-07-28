@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-22
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -23,7 +23,7 @@
 
 ### Milestone 1.1 — Provider Supply Side (Week 2)
 
-- [ ] Provider Onboarding Wizard: multi-step (category -> details -> packages -> portfolio -> preview)
+- [x] Provider Onboarding Wizard: multi-step (category -> details -> packages -> portfolio -> preview)
 - [x] Provider Profile Page (/profile/[slug]): cover video hero, identity bar, portfolio grid, packages, reviews (components + route)
 - [x] Portfolio Upload: addItem, updateItem, reorder, setHidden, deleteItem (service-layer, no drag-and-drop UI yet)
 - [x] Google Drive Portfolio Sync: URL validation, fetchFileList, fetchAllFiles, ingestFolder, syncAll cron
@@ -80,9 +80,10 @@
 - [x] Project documentation (PRD, ROADMAP, DESIGN) populated
 - [x] 20 HTML design system screens completed (incl. 20-team.html light-theme refinement)
 - [x] Milestone 1.0 Foundation — 7/7 items (Sanity CMS completed)
-- [x] Milestone 1.1 Provider Supply Side — 4/5 items (no onboarding wizard)
+- [x] Milestone 1.1 Provider Supply Side — 5/5 items (onboarding wizard confirmed complete)
 - [x] Milestone 1.2 Discovery & Client Side — 3/3 items
 - [x] Milestone 1.3 Booking & Payment — 6/6 items
 - [x] Milestone 1.4 Admin & SEO — 3/3 items (admin panel, blog system, sitemap/robots)
 - [x] Better Auth Dash plugin + Supabase schema sync — DB tables applied, all auth endpoints verified
 - [x] DB Seed System — 10 users via Better Auth API (working passwords), 100+ seed records, rollback with FK-safe cascade
+- [x] Prototype Interactivity — mock data mode enabled, profile page mock fallback, 6 blog fallback posts, team member seeding

@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -56,6 +56,7 @@ Lib Module
   → Third-party SDKs (Paystack, Cloudinary, Google Drive, postgres, Supabase)
   → Types (input/output types)
   → crypto (HMAC-SHA512 webhook verification)
+  → blog-fallback.ts is a standalone leaf module — no dependencies beyond types/blog.ts
 
 Drizzle
    → drizzle/schema.ts (463 lines, single source of truth — exports all tables, enums, relations)

@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import type { IBlogPost } from "@/types/blog";
 import { getPostBySlug, getRelatedPosts, urlFor } from "@/lib/sanity";
+import { getFallbackPostBySlug, getFallbackRelatedPosts } from "@/lib/blog-fallback";
 import { ArticleBody } from "@/components/blog/ArticleBody";
 import { ToCSidebar } from "@/components/blog/ToCSidebar";
 import { CreatorSpotlightEmbed } from "@/components/blog/CreatorSpotlightEmbed";
@@ -18,7 +20,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { DEFAULT_CONFIG } = await import("@/config/platform.config");
   try {
     const post = await getPostBySlug(slug);
-    if (!post) return { title: "Post Not Found" };
+    if (!post) {
+      const fallback = getFallbackPostBySlug(slug);
+      if (!fallback) return { title: "Post Not Found" };
+      return {
+        title: `${fallback.title} | ${DEFAULT_CONFIG.name}`,
+        description: fallback.metaDescription,
+      };
+    }
 
     return {
       title: `${post.title} | ${DEFAULT_CONFIG.name}`,
@@ -30,7 +39,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         : undefined,
     };
   } catch {
-    return { title: "Post Not Found" };
+    const fallback = getFallbackPostBySlug(slug);
+    if (!fallback) return { title: "Post Not Found" };
+    return {
+      title: `${fallback.title} | ${DEFAULT_CONFIG.name}`,
+      description: fallback.metaDescription,
+    };
   }
 }
 
@@ -92,13 +106,26 @@ function formatDate(iso: string): string {
 
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  let post;
+  try {
+    post = await getPostBySlug(slug);
+    if (!post) {
+      post = getFallbackPostBySlug(slug);
+    }
+  } catch {
+    post = getFallbackPostBySlug(slug);
+  }
 
   if (!post) notFound();
 
   const tocItems = extractToC(post.content as unknown[]);
   const readTime = getReadTime(post.content as unknown[]);
-  const relatedPosts = await getRelatedPosts(post.category, slug);
+  let relatedPosts: IBlogPost[] = [];
+  try {
+    relatedPosts = await getRelatedPosts(post.category, slug);
+  } catch {
+    relatedPosts = getFallbackRelatedPosts(post.category, slug);
+  }
 
   return (
     <div className="article-page pt-14 max-sm:pt-12">

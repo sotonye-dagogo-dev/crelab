@@ -5,7 +5,7 @@ import { PlatformConfigService } from "@/services/PlatformConfigService";
 import type { IBooking } from "@/types";
 import { BookingStatus, PaymentMode } from "@/types";
 
-const LEGAL_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
+export const LEGAL_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   [BookingStatus.REQUESTED]: [BookingStatus.ACCEPTED, BookingStatus.DECLINED, BookingStatus.CANCELLED],
   [BookingStatus.ACCEPTED]: [BookingStatus.HELD, BookingStatus.CANCELLED],
   [BookingStatus.DECLINED]: [],

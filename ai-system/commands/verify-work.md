@@ -1,8 +1,8 @@
 # Verify Work Command
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: (set on first run)
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if QA criteria change
 
 > **Overview:** Standalone quality gate invocation. Runs the full QA checklist from `protocols/quality-gate.md` against a given piece of work. Can be invoked on its own or as a required internal step of `execute-feature.md` and `dev-cycle.md`.

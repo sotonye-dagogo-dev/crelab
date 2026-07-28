@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-22
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -126,6 +126,58 @@
 5. After pushing schema, verify by hitting `POST /api/auth/sign-up/email` — should return 200, not 500
 
 **Apply When:** Setting up a new Supabase project or troubleshooting 500 errors on auth endpoints.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## PostgreSQL Numeric Type Returns String via Supabase API
+
+**Context:** `rating.toFixed is not a function` error — PostgreSQL `numeric` columns were deserialized as strings through the Supabase REST API layer, causing `.toFixed()` to throw.
+
+**What We Learned:**
+1. PostgreSQL `numeric` type values can arrive as strings in the browser through certain API layers (Supabase REST, postgres.js edge cases)
+2. Always wrap API-derived numeric values with `Number()` before calling `.toFixed()`, `.toLocaleString()`, or any `Number.prototype` method
+3. TypeScript's `number` type annotation does not guarantee a runtime number value
+4. The safest pattern: `Number(value).toFixed(1)` instead of `value.toFixed(1)`
+
+**Apply When:** Rendering any numeric value that originates from a DB query (ratings, prices, percentages). Coerce with `Number()` before calling number methods.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Mock Fallback Pattern for Profile Pages
+
+**Context:** Profile pages returned 404 when the DB had no matching provider because the slug-to-ID extraction didn't match mock provider slugs.
+
+**What We Learned:**
+1. When the DB query returns null, check `MockDataService.isEnabled()` and fall back to `getMockProviderBySlug(slug)` — the slug is matched against explore card slugs (not the raw ID extraction logic)
+2. All data fetches on the profile page (portfolio, packages, reviews, work history) should also have try/catch with mock fallback
+3. The mock reviews need metadata (`reviewerName`, `reviewerAvatar`, `verifiedBooking`) to match the `ReviewWithMeta` interface expected by the ReviewsSection component
+4. The team page pattern (DB → catch → MockDataService) is the canonical pattern to copy
+
+**Apply When:** Adding mock/fallback support to any page that currently queries the DB directly.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Blog Fallback Content When CMS Is Unavailable
+
+**Context:** Sanity CMS env vars were not configured, causing both blog listing and detail pages to show empty/404.
+
+**What We Learned:**
+1. Create a separate `lib/blog-fallback.ts` file with hardcoded posts matching the `IBlogPost` interface
+2. Blog pages should try the CMS first, then fall back to hardcoded content (try/catch pattern)
+3. Fallback blog posts need simple `{_type: "block"}` content structure that the existing `ArticleBody` component can render — no Sanity-specific block types
+4. The `slug` in fallback posts uses `{ current: string }` format matching Sanity's slug type
+5. `generateMetadata` also needs the fallback path so meta tags work when CMS is down
+
+**Apply When:** Implementing any CMS-dependent page that needs to work without the CMS being configured.
 
 **Supersedes:** None
 **Superseded by:** None

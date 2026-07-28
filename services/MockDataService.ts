@@ -553,4 +553,28 @@ export class MockDataService {
       { id: "mock-review-3", bookingId: "mock-booking-4", reviewerId: "mock-client-2", providerId: "mock-provider-1", rating: 5, body: "Professional from start to finish.", createdAt: new Date().toISOString() },
     ];
   }
+
+  static getMockProviderBySlug(slug: string): IProvider | null {
+    if (!this.isEnabled()) return null;
+    const card = this.getExploreProviders().find((p) => p.slug === slug);
+    if (!card) return null;
+    return this.getMockProviders().find((p) => p.id === card.id) ?? null;
+  }
+
+  static getMockReviewsForProvider(providerId: string): IReview[] {
+    if (!this.isEnabled()) return [];
+    return this.getMockReviews().filter((r) => r.providerId === providerId);
+  }
+
+  static getMockWorkHistoryForProvider(providerId: string): { id: string; title: string; clientName: string; completedAt: string; description: string }[] {
+    if (!this.isEnabled()) return [];
+    const bookings = this.getMockBookings().filter((b) => b.providerId === providerId && b.status === "RELEASED");
+    return bookings.map((b) => ({
+      id: b.id,
+      title: "Completed Project",
+      clientName: "Client",
+      completedAt: b.updatedAt,
+      description: b.scopeNotes ?? "",
+    }));
+  }
 }

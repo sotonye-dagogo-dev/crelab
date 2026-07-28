@@ -10,11 +10,11 @@ interface CursorPayload {
   id: string;
 }
 
-function encodeCursor(payload: CursorPayload): string {
+export function encodeCursor(payload: CursorPayload): string {
   return Buffer.from(JSON.stringify(payload)).toString("base64url");
 }
 
-function decodeCursor(cursor: string): CursorPayload | null {
+export function decodeCursor(cursor: string): CursorPayload | null {
   try {
     return JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
   } catch {

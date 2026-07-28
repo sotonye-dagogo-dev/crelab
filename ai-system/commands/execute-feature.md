@@ -1,8 +1,8 @@
 # Execute Feature Command
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: (set on first run)
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if pipeline steps or quality criteria change
 
 > **Overview:** The full end-to-end feature pipeline. Takes a feature directive, runs an internal planning pass, gets explicit go/no-go confirmation, implements, runs the QA gate, updates docs, and only then marks complete. This is the "do the whole thing properly, without needing a re-prompt" command.
