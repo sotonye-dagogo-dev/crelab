@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-22
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -526,3 +526,50 @@ To change the logo/brand:
    name: "Your Brand",
    ```
 3. Rebuild and redeploy. Zero component changes needed.
+
+---
+
+## Session 13 — 2026-07-28 (Bug Fixes)
+
+**Completed:**
+1. Fixed profile page 404 — Changed slug delimiter from `-` to `--` in ExploreService.ts, setup API route, and mock data slugs. Updated profile page to split on `--` and look up mock data first.
+2. Fixed Blog PortableText error — Added missing `_type: "span"` to all 38 children entries across 6 fallback blog posts.
+
+**Files Modified:**
+| File | Change |
+|------|--------|
+| services/ExploreService.ts:151 | Changed slug delimiter `-` to `--` |
+| app/(public)/profile/[slug]/page.tsx:22-43 | Rewrote getProvider to split on `--`, try mock first |
+| app/api/profile/setup/route.ts:51 | Changed slug delimiter `-` to `--` |
+| services/MockDataService.ts:158,175,192,209,226,243 | Updated mock slugs with `--mock-pro` suffix |
+| lib/blog-fallback.ts | Added `_type: "span"` to all 38 children objects |
+
+**Build Status:** ✅ Build passes. TypeScript compiles with zero errors.
+
+**Next Task:**
+Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications, tests).
+
+**Notes / Blockers:**
+- Both bugs were production-blocking: profile pages returned 404 for all providers, blog crashed on fallback data with "Unknown block type block" error.
+
+---
+
+## Session 14 — 2026-07-28 (Fix Build — Event Handler in Server Component)
+
+**Completed:**
+Fixed Next.js build error: "Event handlers cannot be passed to Client Component props" on the profile page.
+
+**Root Cause:**
+`app/(public)/profile/[slug]/page.tsx` (Server Component) passed `onBook={() => {}}` to `BookingBottomBar` (Client Component). Server Components cannot serialize function props over the server/client boundary.
+
+**Files Modified:**
+| File | Change |
+|------|--------|
+| components/profile/BookingBottomBar.tsx | Removed `onBook` prop and `onClick` from button |
+| app/(public)/profile/[slug]/page.tsx | Removed `onBook={() => {}}` from BookingBottomBar usage |
+| ai-system/repair-system.md | Logged error entry |
+
+**Build Status:** ✅ Build compiles successfully. 80 tests pass.
+
+**Next Task:**
+Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications, tests).

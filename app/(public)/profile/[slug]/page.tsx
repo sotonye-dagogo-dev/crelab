@@ -20,17 +20,21 @@ interface Props {
 }
 
 async function getProvider(slug: string) {
-  const id = slug.split("-").pop();
-  if (!id) return null;
+  const mock = MockDataService.getMockProviderBySlug(slug);
+  if (mock) return mock;
+
+  const parts = slug.split("--");
+  if (parts.length !== 2) return null;
+  const idPrefix = parts[1];
 
   try {
     const provider = await db
       .select()
       .from(providers)
-      .where(and(eq(providers.id, id), eq(providers.active, true)))
+      .where(and(eq(providers.id, idPrefix), eq(providers.active, true)))
       .then((rows) => rows[0]);
 
-    if (!provider) return MockDataService.getMockProviderBySlug(slug);
+    if (!provider) return null;
 
     return {
       ...provider,
@@ -38,7 +42,7 @@ async function getProvider(slug: string) {
       updatedAt: provider.updatedAt.toISOString(),
     } as IProvider;
   } catch {
-    return MockDataService.getMockProviderBySlug(slug);
+    return null;
   }
 }
 
@@ -266,7 +270,6 @@ export default async function ProfilePage({ params }: Props) {
 
       <BookingBottomBar
         selectedPackage={packages[0] ?? null}
-        onBook={() => {}}
       />
     </div>
   );

@@ -5,12 +5,10 @@ import type { IServicePackage } from "@/types";
 
 interface BookingBottomBarProps {
   selectedPackage: IServicePackage | null;
-  onBook: () => void;
 }
 
 export function BookingBottomBar({
   selectedPackage,
-  onBook,
 }: BookingBottomBarProps) {
   if (!selectedPackage) return null;
 
@@ -29,7 +27,7 @@ export function BookingBottomBar({
           {selectedPackage.turnaroundDays} day delivery
         </span>
       </div>
-      <ClButton variant="primary" fullWidth onClick={onBook}>
+      <ClButton variant="primary" fullWidth>
         Continue to Booking
       </ClButton>
     </div>

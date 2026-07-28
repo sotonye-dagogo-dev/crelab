@@ -22,6 +22,20 @@ The prototype was not interactable — profile pages returned 404, blog showed e
 ### Status
 Conditional pass — type checks verify, build blocked by SWC platform issue on Windows.
 
+## Sprint 2026-07-28 — Bug Fixes: Profile 404 & Blog PortableText
+
+### Bug 1: Profile Page 404
+- Root cause: `slug.split("-").pop()` extracted `"2"` instead of `"prov-2"` from slug `"femi-adeyemi-films-prov-2"`
+- Fix: Changed slug delimiter from single hyphen `-` to double hyphen `--` in ExploreService.ts line 151
+- Updated profile page (`app/(public)/profile/[slug]/page.tsx`) to split on `--` and try mock data first
+- Updated setup API route (`app/api/profile/setup/route.ts`) to use `--` delimiter  
+- Updated all 6 mock explore slugs in MockDataService.ts to use `--mock-pro` suffix matching production format
+
+### Bug 2: Blog PortableText Unknown Block Type
+- Root cause: Fallback blog data in `lib/blog-fallback.ts` was missing `_type: "span"` on all children objects
+- Fix: Added `_type: "span"` to all 38 children entries across 6 fallback blog posts
+- This caused `isPortableTextBlock()` validation to fail, triggering the "Unknown block type block" error
+
 ## Sprint 2026-07-28 — Service Tests & State Machine Verification
 
 - Exported LEGAL_TRANSITIONS from BookingService and added LEGAL_ESCROW_TRANSITIONS to EscrowService for testability

@@ -1,8 +1,8 @@
 # Tester / QA Role
 
 > **Metadata**
-> - last-updated-by: bootstrap-project
-> - last-verified-against-code: 2026-07-22
+> - last-updated-by: update-ai-system
+> - last-verified-against-code: 2026-07-28
 > - staleness-policy: re-verify if test framework or coverage targets change
 
 > **Overview:** Writes and runs tests, verifies quality, reports failures. Does not patch production code — escalates failures to the Implementer or Repair roles.
