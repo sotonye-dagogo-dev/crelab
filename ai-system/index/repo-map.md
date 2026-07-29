@@ -47,6 +47,7 @@ crelab/
 │   │   ├── categories/     # Category manager
 │   │   ├── config/         # Platform config editor
 │   │   ├── disputes/       # Dispute resolution dashboard
+│   │   ├── email-templates/ # Admin-editable email templates
 │   │   └── providers/      # Provider review queue
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
@@ -56,19 +57,20 @@ crelab/
 │       ├── cron/           # Escrow cron endpoints
 │       ├── explore/        # Provider search/filter/sort
 │       ├── milestones/     # Milestone CRUD
+│       ├── email/          # Email sending endpoints (welcome, booking, payment)
 │       ├── portfolio/      # Portfolio CRUD
 │       ├── profile/        # Profile management (setup)
 │       ├── wallet/         # Wallet: topup (card + bank DVA), withdraw, balance, transactions
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
-│   ├── ui/                  # Cl* wrappers around shadcn/ui
+│   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput added)
 │   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard
 │   ├── profile/            # ProviderHero, PortfolioGrid, ServicePackages, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
 │   ├── blog/               # ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar
 │   ├── admin/              # AdminSidebar, CategoryModal, ConfigField, TeamMemberModal, BatchOperations
 │   ├── wallet/             # WalletBalanceCard, TopUpModal, WithdrawModal
-│   └── shared/             # Providers, AuthGate, MediaEmbed, CookieConsentBanner, ThemeToggler
+│   └── shared/             # AuthGate, MediaEmbed, CookieConsentBanner, ThemeToggler, EmailSimulation
 ├── sanity/                  # Sanity CMS config + schemas
 │   ├── sanity.config.ts     # Sanity project configuration
 │   └── schemas/             # Blog post + creator spotlight schemas
@@ -76,6 +78,7 @@ crelab/
 │   ├── BookingService.ts
 │   ├── DriveService.ts
 │   ├── EscrowService.ts
+│   ├── EmailService.ts       # Resend transactional emails with simulation fallback
 │   ├── ExploreService.ts
 │   ├── MilestoneService.ts
 │   ├── MockDataService.ts

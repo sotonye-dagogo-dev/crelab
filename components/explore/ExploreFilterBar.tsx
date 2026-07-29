@@ -81,7 +81,7 @@ export function ExploreFilterBar({
 
   return (
     <div
-      className={`w-full h-14 bg-[rgba(10,10,10,0.95)] backdrop-blur-[8px] border-b border-[var(--color-border)] z-40 flex items-center px-6 ${
+      className={`w-full h-14 bg-[var(--color-bg)] backdrop-blur-[8px] border-b border-[var(--color-border)] z-40 flex items-center px-6 ${
         sticky ? "sticky top-[var(--nav-height,69px)]" : ""
       }`}
     >

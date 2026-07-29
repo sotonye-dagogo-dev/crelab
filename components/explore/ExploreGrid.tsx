@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExploreVideoCard } from "./ExploreVideoCard";
 import type { IExploreCard } from "@/types";
+import { ClEmptyState, ClErrorState } from "@/components/ui";
 
 const shimmerBase = "bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.05)] to-transparent bg-[length:200%_100%] animate-shimmer";
 
@@ -35,15 +36,14 @@ function SkeletonCard() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ className }: { className?: string }) {
   return (
-    <div className="text-center py-16 px-6">
-      <div className="font-[family-name:var(--font-display)] text-[20px] font-bold text-[var(--color-text-primary)]">
-        No creators found
-      </div>
-      <div className="font-[family-name:var(--font-body)] text-[14px] text-[var(--color-text-secondary)] mt-2">
-        Try adjusting your filters or search terms
-      </div>
+    <div>
+      <ClEmptyState
+        title="No creators found"
+        message="Try adjusting your filters or search terms"
+        className={className}
+      />
     </div>
   );
 }
@@ -100,25 +100,19 @@ export function ExploreGrid({
 
   if (isError) {
     return (
-      <div className="text-center py-16 px-6">
-        <div className="font-[family-name:var(--font-display)] text-[20px] font-bold text-[var(--color-error)]">
-          Something went wrong
-        </div>
-        <div className="font-[family-name:var(--font-body)] text-[14px] text-[var(--color-text-secondary)] mt-2">
-          Please try again later
-        </div>
-      </div>
+      <ClErrorState />
     );
   }
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 pt-6">
-      <div className="[column-count:2] [column-gap:0.5rem] sm:[column-count:3] lg:[column-count:4] xl:[column-count:5]">
-        {isLoading ? (
-          Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
-        ) : providers.length === 0 ? (
-          <EmptyState />
-        ) : prefersReducedMotion ? (
+      {!isLoading && providers.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="[column-count:2] [column-gap:0.5rem] sm:[column-count:3] lg:[column-count:4] xl:[column-count:5]">
+          {isLoading ? (
+            Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+          ) : prefersReducedMotion ? (
           providers.map((provider) => (
             <div key={provider.id}>
               <ExploreVideoCard provider={provider} />
@@ -140,7 +134,8 @@ export function ExploreGrid({
             ))}
           </AnimatePresence>
         )}
-      </div>
+        </div>
+      )}
 
       <div ref={sentinelRef} className="h-4" />
 

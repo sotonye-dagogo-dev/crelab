@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-verified-against-code: 2026-07-29
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -33,6 +33,7 @@ Service Layer (services/)
     |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
     |-- MockDataService         -- Mock data fallback when DB unavailable
+    |-- EmailService            -- Resend transactional emails with simulation fallback
     |
     v
 Data Access Layer
@@ -56,7 +57,7 @@ Data Stores
 |--------|---------------|-----------|--------------|
 | Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search | `app/(public)/` | Components, Services |
 | Auth Routes | Authenticated pages: booking, profile/edit, register, login | `app/(auth)/` | AuthGate, Services |
-| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes | `app/admin/` | requireRole('ADMIN'), Services |
+| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, email templates | `app/admin/` | requireRole('ADMIN'), Services |
 | API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, webhooks, cron | `app/api/` | Services, Lib |
 | UI Wrappers | Cl* wrappers around shadcn/ui primitives | `components/ui/` | shadcn/ui, Tailwind |
 | Feature Components | Domain-specific UI: explore cards, profile sections, booking drawer, admin panels | `components/` | UI Wrappers, Types |
@@ -202,3 +203,13 @@ Files not yet implemented despite being in the planned architecture:
 - `lib/blog-fallback.ts` — hardcoded blog posts that render when Sanity CMS is unavailable (Sanity env vars not yet configured)
 - Profile page (`app/(public)/profile/[slug]/page.tsx`) — all DB queries wrapped in try/catch with MockDataService fallback
 - Seed script expanded to include `team_members` table
+
+### 2026-07-29 — UI Consolidation & Email Infrastructure
+- `ClLogo` component: config-driven logo rendering (full/icon/auto variants, optional name display), replaced all inline Image+name patterns
+- `ClErrorState` / `ClEmptyState`: reusable global error and empty state components, replaced inline definitions in ExploreGrid, BlogPageClient, TeamPage
+- `ClPasswordInput`: password input with visibility toggle (Eye/EyeOff icons), used in login + register pages
+- `ThemeToggler`: now accepts `displayMode` prop (`text`/`icon`/`both`) with lucide icons (Monitor/Sun/Moon)
+- `EmailService`: Resend-based transactional email service with simulation fallback when `RESEND_API_KEY` is absent
+- Email templates: config-driven via `platformConfig.emailConfig.templates`, admin-editable at `/admin/email-templates`
+- API endpoints: `POST /api/email/welcome`, `POST /api/email/send` for transactional emails
+- Welcome email wired into signup flow via `useAuth` hook
