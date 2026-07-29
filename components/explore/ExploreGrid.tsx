@@ -37,7 +37,7 @@ function SkeletonCard() {
 
 function EmptyState() {
   return (
-    <div className="text-center py-16 px-6">
+    <div className="text-center py-16 px-6 flex flex-col gap-4 justify-center items-center">
       <div className="font-[family-name:var(--font-display)] text-[20px] font-bold text-[var(--color-text-primary)]">
         No creators found
       </div>

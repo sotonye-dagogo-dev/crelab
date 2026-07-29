@@ -12,30 +12,33 @@ export async function Footer() {
     config = DEFAULT_CONFIG;
   }
 
-  const devCredit = config.devCredit ?? DEFAULT_CONFIG.devCredit ?? {
-    text: "Powered by creativity",
-    url: "#",
-  };
+  const devCredit = config.devCredit ??
+    DEFAULT_CONFIG.devCredit ?? {
+      text: "Powered by creativity",
+      url: "#",
+    };
 
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="mx-auto max-w-[1200px] px-6 pb-6 pt-8">
         <div className="grid gap-8 grid-cols-2 lg:grid-cols-4">
-          <div className="flex gap-4">
+          <div className="flex gap-4 col-span-2 lg:col-span-1">
             <div className="w-full flex-1">
-              <Image
-                src={config.logoPath ?? DEFAULT_CONFIG.logoPath}
-                alt={config.name}
-                width={120}
-                height={32}
-                className="mb-3 h-8 w-auto"
-              />
+              <div className="flex gap-4">
+                <Image
+                  src={config.logoPath ?? DEFAULT_CONFIG.logoPath}
+                  alt={config.name}
+                  width={120}
+                  height={32}
+                  className="mb-3 h-8 w-auto rounded-lg"
+                />
+                <div className="flex-shrink-0">
+                  <ThemeToggler />
+                </div>
+              </div>
               <p className="text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
                 {config.tagline}
               </p>
-            </div>
-            <div className="flex-shrink-0">
-              <ThemeToggler />
             </div>
           </div>
           <div>
@@ -44,14 +47,12 @@ export async function Footer() {
             </h4>
             <Link
               href="/"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]"
-            >
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Explore
             </Link>
             <Link
               href="/blog"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]"
-            >
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Blog
             </Link>
           </div>
@@ -61,20 +62,17 @@ export async function Footer() {
             </h4>
             <Link
               href="/team"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]"
-            >
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Team
             </Link>
             <Link
               href="/privacy"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]"
-            >
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Privacy
             </Link>
             <Link
               href="/terms"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]"
-            >
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Terms
             </Link>
           </div>
@@ -84,28 +82,28 @@ export async function Footer() {
             </h4>
             <Link
               href="/privacy"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]"
-            >
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Privacy Policy
             </Link>
             <Link
               href="/terms"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]"
-            >
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Terms of Service
             </Link>
           </div>
         </div>
 
         <div className="mt-6 flex items-center justify-between border-t border-[var(--color-border)] pt-4 text-[12px] text-[var(--color-text-tertiary)]">
-          <span>&copy; {new Date().getFullYear()} {config.name}. All rights reserved.</span>
+          <span>
+            &copy; {new Date().getFullYear()} {config.name}. All rights
+            reserved.
+          </span>
           <div className="flex items-center gap-4">
             <a
               href={devCredit.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[var(--color-accent)] no-underline hover:underline"
-            >
+              className="text-[var(--color-accent)] no-underline hover:underline">
               {devCredit.text}
             </a>
           </div>

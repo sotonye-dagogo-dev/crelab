@@ -56,16 +56,9 @@ export function Navbar() {
           <Image
             src={iconPath}
             alt={name}
-            width={28}
-            height={28}
-            className="block sm:hidden"
-          />
-          <Image
-            src={logoPath}
-            alt={name}
             width={120}
             height={32}
-            className="hidden sm:block h-8 w-auto"
+            className="h-8 w-auto rounded-xl"
             priority
           />
         </Link>
@@ -140,7 +133,7 @@ export function Navbar() {
         }`}
       >
         <div className="absolute top-6 left-6 flex items-center gap-3">
-          <Image src={iconPath} alt={name} width={32} height={32} />
+          <Image src={iconPath} alt={name} width={32} height={32} className="rounded-xl" />
           <span className="font-[family-name:var(--font-display)] text-lg font-extrabold text-[var(--color-text-primary)]">
             {name}
           </span>

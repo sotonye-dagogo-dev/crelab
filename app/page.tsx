@@ -68,17 +68,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       {!isAuthenticated && (
-        <section className="w-full min-h-[220px] bg-gradient-to-b from-[var(--color-surface)] to-[var(--color-bg)] flex items-center px-6 py-12">
-          <div className="max-w-[1200px] w-full mx-auto flex flex-row justify-between items-center gap-8 max-[640px]:flex-col max-[640px]:text-center">
+        <section className="w-full min-h-[220px] bg-gradient-to-b from-[var(--color-surface)] to-[var(--color-bg)] flex items-center px-3 py-6">
+          <div className="max-w-[1200px] w-full mx-auto flex flex-row justify-between items-center gap-4 max-[640px]:flex-col-reverse max-[640px]:text-center">
             <div className="flex-1 max-w-[560px]">
-              <Image
-                src={platformConfig.logoPath}
-                alt={platformConfig.name}
-                width={160}
-                height={40}
-                className="mb-5 h-10 w-auto"
-                priority
-              />
               <h1 className="font-[family-name:var(--font-display)] font-extrabold text-[3rem] max-[640px]:text-[1.875rem] text-[var(--color-text-primary)] leading-[1.15] tracking-[-0.02em] mb-6">
                 {platformConfig.tagline}
               </h1>
@@ -97,8 +89,15 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="w-[360px] h-[200px] rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] flex items-center justify-center flex-shrink-0 max-[640px]:hidden">
-              <Play size={36} className="text-[rgba(255,255,255,0.4)]" fill="currentColor" />
+            <div className="">
+              <Image
+                src={platformConfig.logoPath}
+                alt={platformConfig.name}
+                width={540}
+                height={180}
+                className="mb-5 w-auto rounded-xl object-cover"
+                priority
+              />
             </div>
           </div>
         </section>
