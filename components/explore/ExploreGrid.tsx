@@ -36,12 +36,15 @@ function SkeletonCard() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ className }: { className?: string }) {
   return (
-    <ClEmptyState
-      title="No creators found"
-      message="Try adjusting your filters or search terms"
-    />
+    <div>
+      <ClEmptyState
+        title="No creators found"
+        message="Try adjusting your filters or search terms"
+        className={className}
+      />
+    </div>
   );
 }
 
@@ -103,12 +106,13 @@ export function ExploreGrid({
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 pt-6">
-      <div className="[column-count:2] [column-gap:0.5rem] sm:[column-count:3] lg:[column-count:4] xl:[column-count:5]">
-        {isLoading ? (
-          Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
-        ) : providers.length === 0 ? (
-          <EmptyState />
-        ) : prefersReducedMotion ? (
+      {!isLoading && providers.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="[column-count:2] [column-gap:0.5rem] sm:[column-count:3] lg:[column-count:4] xl:[column-count:5]">
+          {isLoading ? (
+            Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+          ) : prefersReducedMotion ? (
           providers.map((provider) => (
             <div key={provider.id}>
               <ExploreVideoCard provider={provider} />
@@ -130,7 +134,8 @@ export function ExploreGrid({
             ))}
           </AnimatePresence>
         )}
-      </div>
+        </div>
+      )}
 
       <div ref={sentinelRef} className="h-4" />
 

@@ -25,13 +25,13 @@ export function ClEmptyState({
       <div className="opacity-30">
         {icon ?? <Inbox size={48} strokeWidth={1.5} />}
       </div>
-      <div>
-        <div className="font-[family-name:var(--font-display)] text-[20px] font-bold text-[var(--color-text-primary)]">
+      <div className="flex flex-col gap-1">
+        <span className="font-[family-name:var(--font-display)] text-[20px] font-bold text-[var(--color-text-primary)]">
           {title}
-        </div>
-        <div className="font-[family-name:var(--font-body)] text-[14px] text-[var(--color-text-secondary)] mt-2">
+        </span>
+        <span className="font-[family-name:var(--font-body)] text-[14px] text-[var(--color-text-secondary)] mt-2">
           {message}
-        </div>
+        </span>
       </div>
       {action && (
         <button

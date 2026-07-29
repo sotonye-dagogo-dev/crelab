@@ -40,7 +40,7 @@ export function ClLogo({
           alt={name}
           width={isFull ? logoWidth : iconWidth}
           height={isFull ? logoHeight : iconHeight}
-          className={`${isFull ? "h-8 w-auto rounded-lg" : "rounded-xl"}`}
+          className={`${isFull ? "w-auto rounded-lg" : "rounded-xl"}`}
           priority={priority}
         />
       )}
