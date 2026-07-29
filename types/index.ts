@@ -297,6 +297,19 @@ export interface IFeatureFlags {
   guestBrowse: boolean;
   googleDriveSync: boolean;
   blogEnabled: boolean;
+  emailNotifications?: boolean;
+}
+
+export interface IEmailTemplate {
+  subject: string;
+  bodyHtml: string;
+  enabled: boolean;
+}
+
+export interface IEmailConfig {
+  fromName: string;
+  fromEmail: string;
+  templates: Record<string, IEmailTemplate>;
 }
 
 export interface ITeamMember {
@@ -349,6 +362,7 @@ export interface IPlatformConfig {
   features: IFeatureFlags;
   milestonePayments: IMilestonePaymentsConfig;
   wallet: IWalletConfig;
+  emailConfig?: IEmailConfig;
   devCredit?: IDevCredit;
 }
 

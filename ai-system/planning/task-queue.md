@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-verified-against-code: 2026-07-29
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -42,7 +42,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [M] | Provider Dashboard (full) with earnings, kanban pipeline, availability calendar | [ ] |
 | [M] | Client Dashboard: active bookings, booking history, payment history | [ ] |
 | [L] | In-platform messaging (Phase 2) | [ ] |
-| [M] | Notifications: email (Resend) + in-app notification centre | [ ] |
+| [M] | Notifications: email (Resend) + in-app notification centre | [x] |
 | [M] | Provider Onboarding Wizard UI | [x] |
 | [M] | Prototype interactivity: mock data, profile fallback, blog fallback | [x] |
 | [S] | Seed team_members in seed script | [x] |

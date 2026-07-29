@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { usePlatformConfig } from "@/lib/config-context";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
+import { ClLogo } from "@/components/ui";
 
 const navLinks = [
   { href: "/", label: "Explore" },
@@ -15,7 +15,7 @@ const navLinks = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { name, logoPath, iconPath, features } = usePlatformConfig();
+  const { features } = usePlatformConfig();
   const { isAuthenticated } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -53,14 +53,7 @@ export function Navbar() {
           href="/"
           className="flex items-center gap-[10px] no-underline"
         >
-          <Image
-            src={iconPath}
-            alt={name}
-            width={120}
-            height={32}
-            className="h-8 w-auto rounded-xl"
-            priority
-          />
+          <ClLogo variant="full" logoWidth={120} logoHeight={32} priority />
         </Link>
 
         {/* Desktop nav */}
@@ -133,10 +126,7 @@ export function Navbar() {
         }`}
       >
         <div className="absolute top-6 left-6 flex items-center gap-3">
-          <Image src={iconPath} alt={name} width={32} height={32} className="rounded-xl" />
-          <span className="font-[family-name:var(--font-display)] text-lg font-extrabold text-[var(--color-text-primary)]">
-            {name}
-          </span>
+          <ClLogo variant="icon" showName iconWidth={32} iconHeight={32} />
         </div>
 
         <button

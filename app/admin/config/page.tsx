@@ -25,6 +25,9 @@ const configFields = [
   { key: "features.guestBrowse", label: "Guest Browse", type: "toggle" as const, section: "Features" },
   { key: "features.googleDriveSync", label: "Google Drive Sync", type: "toggle" as const, section: "Features" },
   { key: "features.blogEnabled", label: "Blog", type: "toggle" as const, section: "Features" },
+  { key: "features.emailNotifications", label: "Email Notifications", type: "toggle" as const, section: "Features" },
+  { key: "emailConfig.fromName", label: "Email From Name", type: "text" as const, section: "Email" },
+  { key: "emailConfig.fromEmail", label: "Email From Address", type: "text" as const, section: "Email" },
 ];
 
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
@@ -144,7 +147,7 @@ export default function ConfigPage() {
     }
   }, [data, toast]);
 
-  const sections = ["Branding", "Fees & Escrow", "Features"] as const;
+  const sections = ["Branding", "Fees & Escrow", "Features", "Email"] as const;
 
   if (isLoading) {
     return (

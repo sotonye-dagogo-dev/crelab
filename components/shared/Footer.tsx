@@ -1,8 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { ThemeToggler } from "./ThemeToggler";
+import { ClLogo } from "@/components/ui";
 
 export async function Footer() {
   let config;
@@ -25,15 +25,9 @@ export async function Footer() {
           <div className="flex gap-4 col-span-2 lg:col-span-1">
             <div className="w-full flex-1">
               <div className="flex gap-4">
-                <Image
-                  src={config.logoPath ?? DEFAULT_CONFIG.logoPath}
-                  alt={config.name}
-                  width={120}
-                  height={32}
-                  className="mb-3 h-8 w-auto rounded-lg"
-                />
+                <ClLogo variant="full" logoWidth={120} logoHeight={32} />
                 <div className="flex-shrink-0">
-                  <ThemeToggler />
+                  <ThemeToggler displayMode="both" />
                 </div>
               </div>
               <p className="text-[13px] leading-relaxed text-[var(--color-text-secondary)]">

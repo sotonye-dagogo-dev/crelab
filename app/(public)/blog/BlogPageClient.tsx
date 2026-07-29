@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { IBlogPost, BlogCategory } from "@/types/blog";
 import { BlogCard } from "@/components/blog/BlogCard";
+import { ClEmptyState } from "@/components/ui";
 
 interface BlogPageClientProps {
   posts: IBlogPost[];
@@ -75,9 +76,10 @@ export function BlogPageClient({ posts }: BlogPageClientProps) {
         </div>
 
         {filteredPosts.length === 0 && (
-          <div className="text-center py-16 text-[var(--color-text-tertiary)]">
-            No posts in this category yet.
-          </div>
+          <ClEmptyState
+            title="No posts in this category yet"
+            message="Check back later for new content."
+          />
         )}
       </div>
     </div>

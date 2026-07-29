@@ -5,11 +5,11 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
 import Link from "next/link";
-import Image from "next/image";
-import { ChevronUp, Play } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 import { ExploreFilterBar } from "@/components/explore/ExploreFilterBar";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
 import type { IExploreFilters, PaginatedResponse, IExploreCard } from "@/types";
+import { ClLogo } from "@/components/ui";
 
 export default function HomePage() {
   const { isAuthenticated } = useAuth();
@@ -90,14 +90,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="">
-              <Image
-                src={platformConfig.logoPath}
-                alt={platformConfig.name}
-                width={540}
-                height={180}
-                className="mb-5 w-auto rounded-xl object-cover"
-                priority
-              />
+              <ClLogo variant="full" logoWidth={540} logoHeight={180} priority />
             </div>
           </div>
         </section>

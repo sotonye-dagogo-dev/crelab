@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-verified-against-code: 2026-07-29
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -191,3 +191,19 @@
 **Alternatives Considered:** State machine library (overhead for 9 states, 7 transitions).
 
 **Implications:** Any booking state change must go through `validateTransition`. Adding new states requires updating the map.
+
+---
+
+## Email Service: Resend + Simulation Fallback
+
+**Decision:** Use Resend for transactional emails with a simulation fallback that shows an HTML preview modal when `RESEND_API_KEY` is not set. Email templates are config-driven via `platformConfig.emailConfig.templates`, admin-editable through `/admin/email-templates`.
+**Date:** 2026-07-29
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:** Resend is the simplest transactional email provider with a generous free tier. The simulation fallback allows development and testing without sending actual emails. Config-driven templates allow non-engineer admins to modify email copy without code deploys.
+
+**Alternatives Considered:** Nodemailer (more complex SMTP setup, no free tier); SendGrid (heavier SDK, more complex API); custom SMTP (operational overhead). Resend's REST API is the simplest to integrate.
+
+**Implications:** EmailService wraps Resend behind an internal interface. All transactional email goes through `EmailService.send()` which handles template lookup, variable substitution, and Resend API calls. If `RESEND_API_KEY` is not set, the service returns a preview HTML instead of sending. Admin changes to templates via `/admin/email-templates` or config API apply immediately via PlatformConfigService cache invalidation.

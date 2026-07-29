@@ -99,19 +99,33 @@ export function useAuth(): UseAuthReturn {
 
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
+      let userResult: AuthUser | null = null;
+
       if (mockMode) {
         const mockUser = { ...MOCK_USER, name, email };
         setUser(mockUser);
-        return mockUser;
+        userResult = mockUser;
+      } else {
+        const result = await authClient.signUp.email({ name, email, password });
+        if (result.data?.user) {
+          const u = result.data.user as unknown as AuthUser;
+          setUser(u);
+          userResult = u;
+        }
+        if (result.error) {
+          throw new Error(result.error.message || result.error.statusText || "Sign up failed");
+        }
       }
-      const result = await authClient.signUp.email({ name, email, password });
-      if (result.data?.user) {
-        setUser(result.data.user as unknown as AuthUser);
+
+      if (userResult) {
+        fetch("/api/email/welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: userResult.email, name: userResult.name }),
+        }).catch(() => {});
       }
-      if (result.error) {
-        throw new Error(result.error.message || result.error.statusText || "Sign up failed");
-      }
-      return result.data?.user ? (result.data.user as unknown as AuthUser) : null;
+
+      return userResult;
     },
     [mockMode],
   );

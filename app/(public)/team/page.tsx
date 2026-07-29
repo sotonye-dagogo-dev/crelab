@@ -4,8 +4,8 @@ import { asc, eq } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { MockDataService } from "@/services/MockDataService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { Users } from "lucide-react";
 import type { Metadata } from "next";
+import { ClEmptyState } from "@/components/ui";
 
 export async function generateMetadata(): Promise<Metadata> {
   let config;
@@ -130,18 +130,10 @@ export default async function TeamPage() {
             </div>
           </>
         ) : (
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-center py-16 px-6">
-            <div className="mb-4 opacity-30">
-              <Users size={48} strokeWidth={1.5} />
-            </div>
-            <div className="font-[family-name:var(--font-display)] font-bold text-lg mb-2">
-              Meet the Team — Coming Soon
-            </div>
-            <p className="text-sm text-[var(--color-text-secondary)] max-w-[400px] mx-auto">
-              We are assembling the team behind the product. Member profiles will
-              appear here once configured.
-            </p>
-          </div>
+          <ClEmptyState
+            title="Meet the Team — Coming Soon"
+            message="We are assembling the team behind the product. Member profiles will appear here once configured."
+          />
         )}
       </div>
     </div>

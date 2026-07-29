@@ -3,12 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
-import { usePlatformConfig } from "@/lib/config-context";
+import { ClLogo, ClPasswordInput } from "@/components/ui";
 
 export default function LoginPage() {
-  const platformConfig = usePlatformConfig();
   const router = useRouter();
   const { signIn, signInWithGoogle } = useAuth();
 
@@ -71,16 +69,8 @@ export default function LoginPage() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[rgba(10,10,10,0.85)] p-4">
       <div className="w-full max-w-[420px] max-h-[90vh] overflow-y-auto rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] p-8">
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <Image
-            src={platformConfig.iconPath}
-            alt={platformConfig.name}
-            width={28}
-            height={28}
-          />
-          <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--color-text-primary)]">
-            {platformConfig.name}
-          </span>
+        <div className="flex items-center justify-center mb-6">
+          <ClLogo variant="icon" showName iconWidth={28} iconHeight={28} />
         </div>
 
         <h1 className="font-[family-name:var(--font-display)] font-bold text-xl text-center text-[var(--color-text-primary)]">
@@ -159,9 +149,7 @@ export default function LoginPage() {
                 </Link>
               </div>
               <div className="relative">
-                <input
-                  className="h-10 px-3 pr-[44px] rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none w-full focus:border-[var(--color-accent)]"
-                  type="password"
+                <ClPasswordInput
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

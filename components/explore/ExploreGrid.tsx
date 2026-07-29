@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExploreVideoCard } from "./ExploreVideoCard";
 import type { IExploreCard } from "@/types";
+import { ClEmptyState, ClErrorState } from "@/components/ui";
 
 const shimmerBase = "bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.05)] to-transparent bg-[length:200%_100%] animate-shimmer";
 
@@ -37,14 +38,10 @@ function SkeletonCard() {
 
 function EmptyState() {
   return (
-    <div className="text-center py-16 px-6 flex flex-col gap-4 justify-center items-center">
-      <div className="font-[family-name:var(--font-display)] text-[20px] font-bold text-[var(--color-text-primary)]">
-        No creators found
-      </div>
-      <div className="font-[family-name:var(--font-body)] text-[14px] text-[var(--color-text-secondary)] mt-2">
-        Try adjusting your filters or search terms
-      </div>
-    </div>
+    <ClEmptyState
+      title="No creators found"
+      message="Try adjusting your filters or search terms"
+    />
   );
 }
 
@@ -100,14 +97,7 @@ export function ExploreGrid({
 
   if (isError) {
     return (
-      <div className="text-center py-16 px-6">
-        <div className="font-[family-name:var(--font-display)] text-[20px] font-bold text-[var(--color-error)]">
-          Something went wrong
-        </div>
-        <div className="font-[family-name:var(--font-body)] text-[14px] text-[var(--color-text-secondary)] mt-2">
-          Please try again later
-        </div>
-      </div>
+      <ClErrorState />
     );
   }
 

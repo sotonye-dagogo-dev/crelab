@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-verified-against-code: 2026-07-29
 
 ## 2026-07-28 — Prototype Interactivity & Fallback Content
 
@@ -49,3 +49,26 @@ Conditional pass — type checks verify, build blocked by SWC platform issue on 
   - Errors.test.ts — 8 tests (all 6 business error classes: defaults, custom messages, instanceof checks)
 - Updated vitest.config.ts (node environment)
 - Marked "Write tests for all services" task as completed in task-queue.md
+
+## Sprint 2026-07-29 — UI Consolidation & Email Infrastructure
+
+### What
+Consolidated UI components (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput), added password visibility toggle, updated ThemeToggler with icon mode, and built end-to-end email infrastructure with admin-editable templates and simulation fallback.
+
+### Why
+Password inputs lacked visibility controls, error/empty states were duplicated inline, theme toggler was text-only, no email system existed for transactional notifications, and logo usage was inconsistent.
+
+### Key Changes
+- **ClLogo**: Config-driven component with `variant` (full/icon/auto) + `showName`, replaces all inline Image+name patterns
+- **ClErrorState** / **ClEmptyState**: Global reusable components replacing inline definitions in ExploreGrid, BlogPageClient, TeamPage
+- **ClPasswordInput**: Eye/EyeOff visibility toggle, used in login + register pages
+- **ThemeToggler**: Now accepts `displayMode` with lucide icons (Monitor/Sun/Moon)
+- **EmailService**: Resend-based with simulation fallback when RESEND_API_KEY is absent
+- **Admin email templates**: `/admin/email-templates` page for editing template subjects/HTML/active status
+- **Email API**: `POST /api/email/welcome`, `POST /api/email/send` endpoints
+- **Welcome email**: Wired into signup flow via useAuth hook (fire-and-forget)
+- **Config**: `emailConfig` added to platform config with template defaults
+- **Admin Sidebar**: Added "Email Templates" nav item
+
+### Status
+Pass — type check passes, lint passes (no new warnings), all components follow Cl* conventions.
