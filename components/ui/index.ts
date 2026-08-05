@@ -1,4 +1,5 @@
 export { ClButton } from "./ClButton";
+export { ClSpinner } from "./ClSpinner";
 export { ClCard } from "./ClCard";
 export { ClInput } from "./ClInput";
 export { ClTextarea } from "./ClTextarea";

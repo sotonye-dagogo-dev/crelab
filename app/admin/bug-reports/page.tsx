@@ -115,6 +115,7 @@ export default function AdminBugReportsPage() {
                   <span className="text-[12px] font-medium text-[var(--color-text-tertiary)]">Status</span>
                   <ClSelect
                     defaultValue={report.status}
+                    disabled={patchMutation.isPending}
                     onChange={(e) => patchMutation.mutate({ id: report.id, status: e.target.value })}
                   >
                     <option value="OPEN">Open</option>
@@ -137,6 +138,8 @@ export default function AdminBugReportsPage() {
                 <ClButton
                   variant="ghost"
                   size="sm"
+                  loading={patchMutation.isPending}
+                  disabled={patchMutation.isPending}
                   onClick={() => {
                     patchMutation.mutate({
                       id: report.id,

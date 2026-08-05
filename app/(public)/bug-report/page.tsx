@@ -125,8 +125,8 @@ export default function BugReportPage() {
           </label>
 
           <div className="flex gap-3 pt-4">
-            <ClButton type="submit" disabled={submitting}>
-              {submitting ? "Submitting..." : "Submit Report"}
+            <ClButton type="submit" loading={submitting} disabled={submitting}>
+              Submit Report
             </ClButton>
             <ClButton type="button" variant="ghost" onClick={() => router.back()}>
               Cancel
