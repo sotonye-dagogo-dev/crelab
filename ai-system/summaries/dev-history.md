@@ -90,3 +90,22 @@ The server-side Google provider and a login-page button existed, but the registe
 
 ### Status
 Pass — typecheck clean, 92 tests pass, lint has no new warnings, production build passes (55 pages).
+
+## Sprint 2026-08-05 — Button Loading States + Footer Bug-Report Link
+
+### What
+Implemented the button states that existed in the design system but weren't wired into the app: loading spinners on every async action (sign-up, sign-in, password reset, milestone/escrow actions, payment, admin mutations, sign-out), plus an accessible footer link to the bug-report page.
+
+### Why
+Buttons running network/async operations gave no in-flight feedback and were re-clickable (double-submit risk). The design files define a `cl-btn-loading` spinner state that ClButton didn't actually render (its spinner was `border-transparent` = invisible).
+
+### Key Changes
+- **`ClSpinner`** (new ui primitive) + fixed **`ClButton`** loading rendering (centered `currentColor` ring spinner, label hidden, auto-disable)
+- **Auth**: Google + email submit loading states on register, login, forgot-password
+- **Booking**: per-milestone `loadingId` and escrow `releaseLoading` wired to Fund/Submit/Approve/Confirm Release; Add Payment loading
+- **Admin**: categories Disable, team toggle/Delete, bug-reports Save, sidebar Sign out — all wired to mutation pending states
+- **Footer**: "Report a Bug" link → `/bug-report` under Platform
+- Public bug-report Submit now uses `loading` prop
+
+### Status
+Pass — typecheck clean, 92 tests pass, lint has no new warnings, production build passes.

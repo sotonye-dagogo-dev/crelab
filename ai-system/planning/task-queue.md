@@ -46,6 +46,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [M] | Provider Onboarding Wizard UI | [x] |
 | [M] | Prototype interactivity: mock data, profile fallback, blog fallback | [x] |
 | [S] | Seed team_members in seed script | [x] |
+| [S] | Button loading states across auth/booking/admin flows + footer bug-report link | [x] |
 
 ---
 

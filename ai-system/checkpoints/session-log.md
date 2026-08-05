@@ -614,3 +614,49 @@ Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications
 **Notes / Blockers:**
 - Google OAuth requires `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in production env vars and the callback URI `{BETTER_AUTH_URL}/api/auth/callback/google` registered in the Google Cloud console (already documented in Session 11).
 - `npm install` was run to verify typecheck/build/tests; `package-lock.json` incidental changes were reverted (no dependency changes).
+
+---
+
+## Session 16 — 2026-08-05 (Execute Feature — Button Loading States + Footer Bug-Report Link)
+
+**Completed:**
+Implemented design-system button loading states across all async user flows (things that were styled in the design files but not yet wired up), and added an accessible link to the bug-report page in the footer.
+
+1. **`components/ui/ClSpinner.tsx` (new)** — Reusable spinner matching the design-system `.btn-spinner` (2px ring, `border-top-color: currentColor`, 0.6s spin). Exported from `components/ui/index.ts`.
+2. **`components/ui/ClButton.tsx`** — Fixed the previously invisible loading spinner (`border-2 border-transparent` = nothing rendered). Now uses `ClSpinner` centered absolutely; label hidden while loading; button auto-disabled.
+3. **Auth loading states** — `register/page.tsx` (Continue with Google + Create Account), `login/page.tsx` (Sign in with Google + Sign In), `forgot-password/page.tsx` (Send Reset Link). Each shows a centered spinner, disables the button, and guards against double-submit.
+4. **Booking flows** — `BookingDetailClient.tsx` added per-action pending state (`actionLoading`, `releasing`, `addingPayment`); `MilestoneTimeline` takes `loadingId` and applies `loading` to Fund/Submit/Approve buttons; `EscrowTimeline` takes `releaseLoading` for Confirm Release; Add Payment button gets `loading`.
+5. **Admin flows** — categories Disable, team toggle/Delete, bug-reports Save (`loading={patchMutation.isPending}`), and AdminSidebar Sign out all wired to their mutation pending states.
+6. **`components/shared/Footer.tsx`** — Added a "Report a Bug" link (→ `/bug-report`) under the Platform column, alongside Explore/Blog.
+7. **`app/(public)/bug-report/page.tsx`** — Submit button now uses the shared `loading` prop instead of a manual label swap.
+
+**Files Modified/Created:**
+- `components/ui/ClSpinner.tsx` (new)
+- `components/ui/ClButton.tsx`
+- `components/ui/index.ts`
+- `app/(auth)/register/page.tsx`
+- `app/(auth)/login/page.tsx`
+- `app/(auth)/forgot-password/page.tsx`
+- `app/(auth)/bookings/[id]/BookingDetailClient.tsx`
+- `components/booking/MilestoneTimeline.tsx`
+- `components/booking/EscrowTimeline.tsx`
+- `app/admin/categories/page.tsx`
+- `app/admin/team/page.tsx`
+- `app/admin/bug-reports/page.tsx`
+- `components/admin/AdminSidebar.tsx`
+- `components/shared/Footer.tsx`
+- `app/(public)/bug-report/page.tsx`
+- `ai-system/planning/task-queue.md`, `ai-system/summaries/dev-history.md`, `ai-system/checkpoints/session-log.md`, `ai-system/checkpoints/in-progress.md`
+
+**Build Status:** ✅ Production build passes. TypeScript compiles with zero errors. ESLint passes (only pre-existing warnings elsewhere). 92 tests pass.
+
+**Next Task:**
+Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications).
+
+**Assumptions Made:**
+- Generic spinner colors (`currentColor` top ring + translucent grey) work on all button variants (primary, outlined, ghost, accent-outlined) in both dark and light themes.
+- Per-row admin mutations may all share one pending flag (only one row is actionable at a time); the label swap + disable is sufficient feedback for text-link buttons.
+
+**Notes / Blockers:**
+- Antivirus / security scanner flag (stakeholder-reported RAV Endpoint Protection "malicious URL detected") is noted but there is no actionable code fix — see final summary.
+- `npm install` was run to verify typecheck/build/tests; `package-lock.json` incidental changes were reverted (no dependency changes).

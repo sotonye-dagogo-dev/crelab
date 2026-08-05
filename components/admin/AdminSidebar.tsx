@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Settings, Grid3X3, UserCheck, AlertTriangle, Users, Bug, Mail } from "lucide-react";
@@ -47,6 +48,16 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <aside className="fixed top-0 left-0 w-[240px] h-screen bg-[var(--color-surface)] border-r border-[var(--color-border)] flex flex-col z-30">
@@ -89,10 +100,11 @@ export function AdminSidebar() {
           </div>
         </div>
         <button
-          onClick={signOut}
-          className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer bg-transparent border-none"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer bg-transparent border-none disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Sign out
+          {signingOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
     </aside>

@@ -54,6 +54,9 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
   const { user } = useAuth();
   const [showDispute, setShowDispute] = useState(false);
   const [milestones, setMilestones] = useState<IBookingMilestone[]>([]);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [releasing, setReleasing] = useState(false);
+  const [addingPayment, setAddingPayment] = useState(false);
 
   const viewerRole =
     user?.id === data.client?.id ? "CLIENT" : "PROVIDER";
@@ -61,6 +64,7 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
   const isProvider = viewerRole === "PROVIDER";
 
   const handleConfirmRelease = useCallback(async () => {
+    setReleasing(true);
     try {
       const res = await fetch(
         `/api/bookings/${data.booking.id}/release`,
@@ -71,6 +75,8 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
         window.location.reload();
       }
     } catch {
+    } finally {
+      setReleasing(false);
     }
   }, [data.booking.id]);
 
@@ -84,6 +90,7 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
   }, [data.booking.id]);
 
   const handleFundMilestone = useCallback(async (milestoneId: string) => {
+    setActionLoading(milestoneId);
     try {
       const res = await fetch("/api/milestones", {
         method: "POST",
@@ -93,10 +100,13 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
       const json = await res.json();
       if (json.success) fetchMilestones();
     } catch {
+    } finally {
+      setActionLoading(null);
     }
   }, [fetchMilestones]);
 
   const handleSubmitMilestone = useCallback(async (milestoneId: string) => {
+    setActionLoading(milestoneId);
     try {
       const res = await fetch("/api/milestones", {
         method: "POST",
@@ -106,10 +116,13 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
       const json = await res.json();
       if (json.success) fetchMilestones();
     } catch {
+    } finally {
+      setActionLoading(null);
     }
   }, [fetchMilestones]);
 
   const handleApproveMilestone = useCallback(async (milestoneId: string) => {
+    setActionLoading(milestoneId);
     try {
       const res = await fetch("/api/milestones", {
         method: "POST",
@@ -119,6 +132,8 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
       const json = await res.json();
       if (json.success) fetchMilestones();
     } catch {
+    } finally {
+      setActionLoading(null);
     }
   }, [fetchMilestones]);
 
@@ -211,6 +226,7 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
             milestones={milestones}
             isClient={isClient}
             isProvider={isProvider}
+            loadingId={actionLoading}
             onFund={isClient ? handleFundMilestone : undefined}
             onSubmit={isProvider ? handleSubmitMilestone : undefined}
             onApprove={isClient ? handleApproveMilestone : undefined}
@@ -221,6 +237,7 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
             booking={data.booking}
             payment={data.payment}
             viewerRole={viewerRole}
+            releaseLoading={releasing}
             onConfirmRelease={handleConfirmRelease}
             onRaiseDispute={() => setShowDispute(true)}
           />
@@ -231,7 +248,9 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
             <ClButton
               variant="primary"
               fullWidth
+              loading={addingPayment}
               onClick={async () => {
+                setAddingPayment(true);
                 try {
                   const res = await fetch("/api/wallet/topup/card", {
                     method: "POST",
@@ -243,6 +262,8 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
                     window.location.href = json.data.authorizationUrl;
                   }
                 } catch {
+                } finally {
+                  setAddingPayment(false);
                 }
               }}
             >

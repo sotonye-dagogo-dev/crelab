@@ -7,6 +7,7 @@ interface MilestoneTimelineProps {
   milestones: IBookingMilestone[];
   isClient: boolean;
   isProvider: boolean;
+  loadingId?: string | null;
   onFund?: (milestoneId: string) => void;
   onSubmit?: (milestoneId: string) => void;
   onApprove?: (milestoneId: string) => void;
@@ -29,6 +30,7 @@ export function MilestoneTimeline({
   milestones,
   isClient,
   isProvider,
+  loadingId = null,
   onFund,
   onSubmit,
   onApprove,
@@ -116,19 +118,19 @@ export function MilestoneTimeline({
                 {isCurrent && (
                   <div className="flex gap-2 mt-3">
                     {isClient && milestone.status === "PENDING" && onFund && (
-                      <ClButton size="sm" variant="primary" onClick={() => onFund(milestone.id)}>
+                      <ClButton size="sm" variant="primary" loading={loadingId === milestone.id} onClick={() => onFund(milestone.id)}>
                         Fund Milestone
                       </ClButton>
                     )}
 
                     {isProvider && milestone.status === "FUNDED" && onSubmit && (
-                      <ClButton size="sm" variant="primary" onClick={() => onSubmit(milestone.id)}>
+                      <ClButton size="sm" variant="primary" loading={loadingId === milestone.id} onClick={() => onSubmit(milestone.id)}>
                         Submit Work
                       </ClButton>
                     )}
 
                     {isClient && milestone.status === "SUBMITTED" && onApprove && (
-                      <ClButton size="sm" variant="primary" onClick={() => onApprove(milestone.id)}>
+                      <ClButton size="sm" variant="primary" loading={loadingId === milestone.id} onClick={() => onApprove(milestone.id)}>
                         Approve & Release
                       </ClButton>
                     )}

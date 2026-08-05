@@ -1,4 +1,5 @@
 import { ButtonHTMLAttributes, forwardRef } from "react";
+import { ClSpinner } from "./ClSpinner";
 
 type Variant = "primary" | "outlined" | "ghost" | "accent-outlined";
 type Size = "sm" | "default" | "lg";
@@ -60,7 +61,7 @@ export const ClButton = forwardRef<HTMLButtonElement, ClButtonProps>(
         {...props}
       >
         {loading && (
-          <span className="absolute w-4 h-4 border-2 border-transparent rounded-full animate-spin" />
+          <ClSpinner className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
         )}
         <span className={loading ? "invisible" : ""}>{children}</span>
       </button>

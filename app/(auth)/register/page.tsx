@@ -7,7 +7,7 @@ import { usePlatformConfig } from "@/lib/config-context";
 import { captureConsent } from "@/lib/consent";
 import { ConsentType } from "@/types";
 import { Check, Camera, Briefcase } from "lucide-react";
-import { ClLogo, ClPasswordInput } from "@/components/ui";
+import { ClLogo, ClPasswordInput, ClSpinner } from "@/components/ui";
 import {
   OAUTH_CALLBACK_URL,
   OAUTH_NEW_USER_CALLBACK_URL,
@@ -45,6 +45,8 @@ function RegisterForm() {
   const [consentMarketing, setConsentMarketing] = useState(false);
   const [consentAnalytics, setConsentAnalytics] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const oAuthReturn = isOAuthCallbackDone(searchParams);
   const oAuthNewUser = isNewOAuthUser(searchParams);
@@ -65,6 +67,7 @@ function RegisterForm() {
 
   const handleGoogleSignUp = async () => {
     setError("");
+    setGoogleLoading(true);
     try {
       await signInWithGoogle({
         callbackURL: OAUTH_CALLBACK_URL,
@@ -73,6 +76,8 @@ function RegisterForm() {
       });
     } catch {
       setError("Could not start Google sign-up. Please try again.");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -104,6 +109,7 @@ function RegisterForm() {
     }
     setError("");
 
+    setSubmitting(true);
     try {
       let userId: string;
 
@@ -157,6 +163,8 @@ function RegisterForm() {
       router.replace(resolvePostSignupRoute(role, searchParams.get("returnTo")));
     } catch {
       setError("Registration failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -179,10 +187,16 @@ function RegisterForm() {
 
             <button
               onClick={handleGoogleSignUp}
-              className="flex items-center justify-center gap-3 h-11 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[13px] font-semibold text-[var(--color-text-primary)] w-full mt-5 cursor-pointer hover:border-[var(--color-border-mid)] transition-colors"
+              disabled={googleLoading}
+              className="relative flex items-center justify-center gap-3 h-11 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[13px] font-semibold text-[var(--color-text-primary)] w-full mt-5 cursor-pointer hover:border-[var(--color-border-mid)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <GoogleIcon />
-              Continue with Google
+              {googleLoading && (
+                <ClSpinner className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+              )}
+              <span className={googleLoading ? "invisible flex items-center gap-3" : "flex items-center gap-3"}>
+                <GoogleIcon />
+                Continue with Google
+              </span>
             </button>
 
             <div className="flex items-center gap-3 my-5">
@@ -443,15 +457,20 @@ function RegisterForm() {
               )}
 
               <button
-                className={`h-12 px-6 rounded-[8px] font-semibold text-[15px] w-full mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] ${
+                className={`relative h-12 px-6 rounded-[8px] font-semibold text-[15px] w-full mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] ${
                   consentTerms
                     ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)]"
                     : "bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)] cursor-not-allowed"
-                }`}
-                disabled={!consentTerms}
+                } ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
+                disabled={!consentTerms || submitting}
                 onClick={handleSubmit}
               >
-                Create Account
+                {submitting && (
+                  <ClSpinner className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+                )}
+                <span className={submitting ? "invisible" : ""}>
+                  Create Account
+                </span>
               </button>
             </div>
 
