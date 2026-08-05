@@ -1,1 +1,3 @@
-No feature currently in progress.
+# In Progress
+
+*(No active work — cleared after completion)*

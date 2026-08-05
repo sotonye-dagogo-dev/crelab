@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-verified-against-code: 2026-08-05
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -39,7 +39,7 @@ crelab/
 │   │   ├── forgot-password/ # Password reset page
 │   │   ├── login/          # Sign in page (email/password + phone/OTP + Google OAuth)
 │   │   ├── profile/        # Profile edit/setup
-│   │   ├── register/       # Sign up page (multi-step)
+│   │   ├── register/       # Sign up page (multi-step email/password + Google OAuth)
 │   │   └── wallet/         # Wallet page (balance, topup, withdraw, transactions)
 │   ├── admin/               # ADMIN role only
 │   │   ├── page.tsx        # Dashboard
@@ -52,7 +52,7 @@ crelab/
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
 │       ├── admin/          # Admin CRUD endpoints
-│       ├── auth/           # Better Auth handler
+│       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission
 │       ├── cron/           # Escrow cron endpoints
 │       ├── explore/        # Provider search/filter/sort
@@ -100,6 +100,7 @@ crelab/
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
 │   ├── mux.ts              # Mux streaming (stub — not wired)
+│   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
 │   ├── paystack.ts         # Init transaction, verify webhook, split, refund, DVA, transfer
 │   ├── sanity.ts           # Sanity CMS client + helpers
 │   ├── theme-context.tsx   # Theme provider (System/Light/Dark) + useTheme hook
@@ -108,7 +109,7 @@ crelab/
 │   ├── schema.ts           # Drizzle schema (single source of truth for DB shape)
 │   └── migrations/         # Generated SQL migrations
 ├── hooks/
-│   └── useAuth.ts          # Client-side auth hook (signIn, signOut, signUp)
+│   └── useAuth.ts          # Client-side auth hook (signIn, signInWithGoogle, signOut, signUp)
 ├── scripts/                 # Database seeding + utility scripts
 │   ├── seed.ts             # DB seed: creates users via Better Auth API + inserts all seed data
 │   ├── seed-rollback.ts    # Rollback: deletes all seed data in FK-safe reverse order
@@ -140,11 +141,11 @@ crelab/
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (463 lines, 14 tables + 6 enums + relations), `migrations/` |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
-| `__tests__/` | Vitest test files for all services | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts` |
+| `__tests__/` | Vitest test files for all services | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `oauth.test.ts` |
 
 ---
 

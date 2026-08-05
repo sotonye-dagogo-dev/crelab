@@ -18,12 +18,18 @@ export interface AuthUser {
   role: string;
 }
 
+export interface GoogleSignInOptions {
+  callbackURL?: string;
+  newUserCallbackURL?: string;
+  errorCallbackURL?: string;
+}
+
 export interface UseAuthReturn {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (options?: GoogleSignInOptions) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<AuthUser | null>;
 }
@@ -79,12 +85,17 @@ export function useAuth(): UseAuthReturn {
     }
   }, [mockMode]);
 
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (options?: GoogleSignInOptions) => {
     if (mockMode) {
       setUser(MOCK_USER);
       return;
     }
-    await authClient.signIn.social({ provider: "google" });
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: options?.callbackURL,
+      newUserCallbackURL: options?.newUserCallbackURL,
+      errorCallbackURL: options?.errorCallbackURL,
+    });
   }, [mockMode]);
 
   const signOut = useCallback(async () => {
