@@ -61,7 +61,7 @@ describe("config/platform.config — DEFAULT_CONFIG", () => {
   });
 
   it("has dev credit text and url", () => {
-    expect(DEFAULT_CONFIG.devCredit.text).toBe("Built for African creativity, by S.D.");
-    expect(DEFAULT_CONFIG.devCredit.url).toBe("https://sotonye-dagogo.is-a.dev");
+    expect(DEFAULT_CONFIG.devCredit?.text).toBe("Built for African creativity, by S.D.");
+    expect(DEFAULT_CONFIG.devCredit?.url).toBe("https://sotonye-dagogo.is-a.dev");
   });
 });

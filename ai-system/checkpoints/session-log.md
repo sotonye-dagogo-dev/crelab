@@ -573,3 +573,44 @@ Fixed Next.js build error: "Event handlers cannot be passed to Client Component 
 
 **Next Task:**
 Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications, tests).
+
+---
+
+## Session 15 — 2026-08-05 (Execute Feature — Google OAuth in Sign-Up + Onboarding Handoff)
+
+**Completed:**
+Wired Google OAuth into the register/sign-up process as a first-class alternative to email/password, with seamless handoff to the onboarding phase mirroring the email/password flow.
+
+1. **`lib/oauth.ts` (new)** — Pure helpers: `OAUTH_CALLBACK_URL` / `OAUTH_NEW_USER_CALLBACK_URL` / `OAUTH_ERROR_CALLBACK_URL`, callback-return detection, self-assignable role guard (`CLIENT`/`PROVIDER` only — `ADMIN` blocked), and open-redirect-safe `resolvePostSignupRoute()` (rejects absolute + protocol-relative `returnTo`).
+2. **`hooks/useAuth.ts`** — `signInWithGoogle()` now accepts `{ callbackURL, newUserCallbackURL, errorCallbackURL }` so new Google users land on the register finalize screen and existing users land on `/explore`.
+3. **`app/api/auth/role/route.ts` (new)** — Authenticated users may self-assign `CLIENT`/`PROVIDER` (never `ADMIN`). Uses the direct-Drizzle pattern already established by `scripts/seed.ts` (Better Auth `role` field is `input: false`).
+4. **`app/(auth)/register/page.tsx`** — Added "Continue with Google" button + divider. Detects `?oauth=done` callback: new users (`&new=1`) get the role/consent step (step 2) with Google-supplied name/avatar banner; existing users are routed to `returnTo` or `/explore`. Finalize captures NDPR consent, self-assigns `PROVIDER` role when chosen, sends the welcome email, and routes to `/profile/setup` (provider) or `/explore` (client). Also fixed pre-existing gap: email/password provider signups now set `role = PROVIDER` via the new endpoint.
+5. **`app/(auth)/login/page.tsx`** — Google button passes `callbackURL: "/explore"` (existing users straight in) + `newUserCallbackURL` → register finalize (new users get onboarded).
+6. **`__tests__/oauth.test.ts` (new)** — 12 tests: constants, role guard, callback detection, route resolution + open-redirect guards.
+7. **QA pre-existing fixes** — `MockDataService.test.ts` missing `afterEach` import; `PlatformConfigService.test.ts` `devCredit` optional chaining. Both were failing `tsc` on the base commit.
+
+**Files Modified/Created:**
+- `lib/oauth.ts` (new)
+- `hooks/useAuth.ts`
+- `app/api/auth/role/route.ts` (new)
+- `app/(auth)/register/page.tsx`
+- `app/(auth)/login/page.tsx`
+- `__tests__/oauth.test.ts` (new)
+- `__tests__/services/MockDataService.test.ts` (afterEach import)
+- `__tests__/services/PlatformConfigService.test.ts` (optional chaining)
+- `ai-system/index/repo-map.md`, `ai-system/system-architecture.md`, `ai-system/planning/task-queue.md`, `ai-system/memory/project-decisions.md`, `ai-system/summaries/dev-history.md`, `ai-system/checkpoints/session-log.md`, `ai-system/checkpoints/in-progress.md`
+
+**Build Status:** ✅ Production build passes (55 pages, middleware). TypeScript compiles with zero errors. ESLint passes (only pre-existing warnings elsewhere). 92 tests pass (80 existing + 12 new).
+
+**Next Task:**
+Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications).
+
+**Assumptions Made:**
+- `signIn.social({ provider, callbackURL, newUserCallbackURL, errorCallbackURL })` behaves as documented for better-auth 1.6 (verified against docs).
+- Existing Google users land straight on `/explore` (no re-onboarding).
+- Role self-assignment is consistent with the product's open register flow (anyone may choose Creator). `ADMIN` is deliberately excluded from the endpoint's allow-list.
+- `DATABASE_URL` connection used by `lib/db.ts` permits the direct role update (same pattern as `scripts/seed.ts`).
+
+**Notes / Blockers:**
+- Google OAuth requires `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in production env vars and the callback URI `{BETTER_AUTH_URL}/api/auth/callback/google` registered in the Google Cloud console (already documented in Session 11).
+- `npm install` was run to verify typecheck/build/tests; `package-lock.json` incidental changes were reverted (no dependency changes).

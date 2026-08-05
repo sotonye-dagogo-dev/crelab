@@ -72,3 +72,21 @@ Password inputs lacked visibility controls, error/empty states were duplicated i
 
 ### Status
 Pass — type check passes, lint passes (no new warnings), all components follow Cl* conventions.
+## Sprint 2026-08-05 — Google OAuth in Sign-Up + Onboarding Handoff
+
+### What
+Completed the OAuth story for registration: "Continue with Google" on the register page as an alternative to email/password (Google supplies name + email), with new users flowing seamlessly into the onboarding phase just like the email/password flow.
+
+### Why
+The server-side Google provider and a login-page button existed, but the register/sign-up process had no OAuth entry point, and new Google users had no path into role selection, NDPR consent, or the provider onboarding wizard.
+
+### Key Changes
+- **`lib/oauth.ts`** (new): OAuth callback URL constants, return detection, self-assignable role guard (CLIENT/PROVIDER, never ADMIN), open-redirect-safe route resolution
+- **Register page**: Google button + divider; `?oauth=done` callback handling; new users complete role/consent then route to `/profile/setup` (provider) or `/explore` (client)
+- **Login page**: new Google users routed to register finalize; existing users straight to `/explore`
+- **`useAuth.signInWithGoogle`**: accepts `callbackURL` / `newUserCallbackURL` / `errorCallbackURL`
+- **`POST /api/auth/role`** (new): self-assignable CLIENT/PROVIDER role; also wired into email signup so provider signups actually set `role = PROVIDER` in DB (pre-existing gap)
+- **Tests**: 12 new tests in `__tests__/oauth.test.ts`
+
+### Status
+Pass — typecheck clean, 92 tests pass, lint has no new warnings, production build passes (55 pages).

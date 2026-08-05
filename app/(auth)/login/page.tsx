@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { ClLogo, ClPasswordInput } from "@/components/ui";
+import {
+  OAUTH_NEW_USER_CALLBACK_URL,
+  OAUTH_ERROR_CALLBACK_URL,
+} from "@/lib/oauth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -78,7 +82,13 @@ export default function LoginPage() {
         </h1>
 
         <button
-          onClick={() => signInWithGoogle()}
+          onClick={() =>
+            signInWithGoogle({
+              callbackURL: "/explore",
+              newUserCallbackURL: OAUTH_NEW_USER_CALLBACK_URL,
+              errorCallbackURL: OAUTH_ERROR_CALLBACK_URL,
+            })
+          }
           className="flex items-center justify-center gap-3 h-11 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[13px] font-semibold text-[var(--color-text-primary)] w-full mt-5 cursor-pointer hover:border-[var(--color-border-mid)] transition-colors"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
