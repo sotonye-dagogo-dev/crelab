@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-29
+> - last-verified-against-code: 2026-08-05
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -207,3 +207,26 @@
 **Alternatives Considered:** Nodemailer (more complex SMTP setup, no free tier); SendGrid (heavier SDK, more complex API); custom SMTP (operational overhead). Resend's REST API is the simplest to integrate.
 
 **Implications:** EmailService wraps Resend behind an internal interface. All transactional email goes through `EmailService.send()` which handles template lookup, variable substitution, and Resend API calls. If `RESEND_API_KEY` is not set, the service returns a preview HTML instead of sending. Admin changes to templates via `/admin/email-templates` or config API apply immediately via PlatformConfigService cache invalidation.
+
+---
+
+## Google OAuth Sign-Up: Role + Consent Finalize Step Before Onboarding
+
+**Decision:** Google OAuth is offered on the register page as a first-class alternative to email/password. New Google users land on the existing role-selection + NDPR-consent step (step 2 of the register flow), then move to onboarding exactly like email/password users. Users may self-assign `CLIENT` or `PROVIDER` via `POST /api/auth/role`; `ADMIN` is never assignable.
+**Date:** 2026-08-05
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:** Better Auth creates the user at the Google consent callback, before the user has chosen a role or granted consent. Routing new users through the existing step-2 finalize keeps the onboarding experience identical to the email/password flow ("handling it successfully then moving to the onboarding phase seamlessly") and preserves NDPR consent capture for OAuth signups. Role self-assignment mirrors the product's open register flow (anyone may choose "A Creator"); restricting ADMIN requires no product change.
+
+**Alternatives Considered:**
+- Straight-to-`/explore` on OAuth success — rejected: skips role selection + NDPR consent and never routes new providers into the onboarding wizard.
+- Setting role during the OAuth callback via Better Auth hooks — rejected: `role` is `input: false`, and the callback cannot ask the user for a role choice.
+- Popup-based OAuth — rejected: Better Auth's full-page redirect flow with `newUserCallbackURL` is simpler and already available.
+
+**Implications:**
+- New Google users landing on the register page (or from the login page's Google button) always complete role + consent before onboarding.
+- `POST /api/auth/role` must keep its allow-list to `CLIENT`/`PROVIDER` to prevent ADMIN escalation.
+- The email/password provider signup path also calls the role endpoint, fixing the pre-existing gap where providers stayed `CLIENT` in the DB.
+- Google OAuth requires `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and the `/api/auth/callback/google` redirect URI registered in Google Cloud.

@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Send } from "lucide-react";
-import { ClLogo } from "@/components/ui";
+import { ClLogo, ClSpinner } from "@/components/ui";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,6 +20,7 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    setSubmitting(true);
     try {
       const res = await fetch("/api/auth/forget-password", {
         method: "POST",
@@ -34,6 +36,8 @@ export default function ForgotPasswordPage() {
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -101,9 +105,15 @@ export default function ForgotPasswordPage() {
 
           <button
             type="submit"
-            className="h-12 px-6 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[15px] w-full mt-1"
+            disabled={submitting}
+            className="relative h-12 px-6 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[15px] w-full mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Send Reset Link →
+            {submitting && (
+              <ClSpinner className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+            )}
+            <span className={submitting ? "invisible" : ""}>
+              Send Reset Link →
+            </span>
           </button>
         </form>
 

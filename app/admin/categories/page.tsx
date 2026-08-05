@@ -202,9 +202,10 @@ export default function CategoriesPage() {
                     {cat.active && (
                       <button
                         onClick={() => disableMutation.mutate(cat.slug)}
-                        className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0"
+                        disabled={disableMutation.isPending}
+                        className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Disable
+                        {disableMutation.isPending ? "Disabling…" : "Disable"}
                       </button>
                     )}
                   </div>

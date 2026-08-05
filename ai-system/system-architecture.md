@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-29
+> - last-verified-against-code: 2026-08-05
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -82,11 +82,16 @@ Data Stores
 
 ### Authentication Flow
 ```
-1. User signs up/logs in via Better Auth (email/phone + OTP)
-2. Better Auth stores session in Supabase adapter (httpOnly cookies)
-3. Next.js middleware checks session on protected routes
-4. Server components use getSession() / requireAuth() / requireRole()
-5. Client-side: useAuth() hook provides { user, role, isAuthenticated, signIn, signOut }
+1. User signs up/logs in via Better Auth (email/password, phone OTP, or Google OAuth)
+2. Google OAuth (signup): "Continue with Google" -> Google consent -> callback
+   -> new users land on /register?oauth=done&new=1 (role + NDPR consent)
+   -> existing users land on /explore (login) or returnTo (register)
+3. OAuth finalize: capture consent, self-assign PROVIDER role via POST /api/auth/role,
+   send welcome email, then route to /profile/setup (provider) or /explore (client)
+4. Better Auth stores session in Supabase adapter (httpOnly cookies)
+5. Next.js middleware checks session on protected routes
+6. Server components use getSession() / requireAuth() / requireRole()
+7. Client-side: useAuth() hook provides { user, role, isAuthenticated, signIn, signInWithGoogle, signOut }
 ```
 
 ### Booking & Payment Flow
@@ -197,6 +202,14 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-08-05 — Google OAuth in Sign-Up + Onboarding Handoff
+- `lib/oauth.ts` (new): callback URL constants, OAuth return detection, self-assignable role guard (CLIENT/PROVIDER only), open-redirect-safe post-signup route resolution
+- `app/(auth)/register/page.tsx`: "Continue with Google" button + divider; `?oauth=done` callback handling; new Google users finish role/consent step then move to `/profile/setup` (provider) or `/explore` (client) — matching the email/password flow
+- `app/(auth)/login/page.tsx`: Google button now sends new users to the register finalize screen and existing users straight to `/explore`
+- `hooks/useAuth.ts`: `signInWithGoogle()` accepts `{ callbackURL, newUserCallbackURL, errorCallbackURL }`
+- `app/api/auth/role/route.ts` (new): authenticated users may self-assign CLIENT/PROVIDER (ADMIN blocked); also wired into the email/password register flow so providers get `role = PROVIDER` in DB
+- `__tests__/oauth.test.ts` (new): 12 tests for oauth helpers
 
 ### 2026-07-28 — Mock Fallback & Blog Fallback
 - `NEXT_PUBLIC_MOCK_DATA=true` in `.env` — explore, profile, team, and bookings pages now use mock data when DB is unavailable

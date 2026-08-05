@@ -227,7 +227,8 @@ export default function AdminTeamPage() {
                     onClick={() =>
                       toggleMutation.mutate({ id: member.id, active: member.active })
                     }
-                    className={`inline-flex items-center w-9 h-5 rounded-[9999px] relative transition-colors cursor-pointer border-none ${
+                    disabled={toggleMutation.isPending || deleteMutation.isPending}
+                    className={`inline-flex items-center w-9 h-5 rounded-[9999px] relative transition-colors cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed ${
                       member.active
                         ? "bg-[var(--color-accent)]"
                         : "bg-[var(--color-border-mid)]"
@@ -254,9 +255,10 @@ export default function AdminTeamPage() {
                           deleteMutation.mutate(member.id);
                         }
                       }}
-                      className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0"
+                      disabled={deleteMutation.isPending || toggleMutation.isPending}
+                      className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Delete
+                      {deleteMutation.isPending ? "Deleting…" : "Delete"}
                     </button>
                   </div>
                 </td>

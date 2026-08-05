@@ -9,6 +9,7 @@ interface EscrowTimelineProps {
   booking: IBooking;
   payment: IPayment | null;
   viewerRole: "CLIENT" | "PROVIDER";
+  releaseLoading?: boolean;
   onConfirmRelease?: () => void;
   onRaiseDispute?: () => void;
 }
@@ -34,6 +35,7 @@ export function EscrowTimeline({
   booking,
   payment,
   viewerRole,
+  releaseLoading = false,
   onConfirmRelease,
   onRaiseDispute,
 }: EscrowTimelineProps) {
@@ -239,7 +241,7 @@ export function EscrowTimeline({
 
       {viewerRole === "CLIENT" && currentState === "IN_PROGRESS" && (
         <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex gap-3">
-          <ClButton variant="primary" size="sm" onClick={onConfirmRelease}>
+          <ClButton variant="primary" size="sm" loading={releaseLoading} onClick={onConfirmRelease}>
             Confirm Release
           </ClButton>
           <ClButton

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 
 describe("MockDataService", () => {
   const ORIGINAL_ENV = process.env.NEXT_PUBLIC_MOCK_DATA;
