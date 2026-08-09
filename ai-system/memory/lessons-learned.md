@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-updated-by: update-ai-system (Session 18)
+> - last-verified-against-code: 2026-08-09
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -149,6 +149,40 @@
 
 ---
 
+## Naira/Kobo Conversion Must Happen Exactly Once, at the API Boundary
+
+**Context:** The onboarding review step displayed ₦75,000 as ₦7,500,000 because the preview multiplied entered naira by 100 (as if converting to kobo) during display.
+
+**What We Learned:**
+1. Users enter money in naira; the DB stores kobo (integer). Convert exactly once — at the API boundary — via `nairaToKobo(parseFloat(input))`
+2. Display paths must NEVER multiply by 100. Stored kobo divides by 100 (`kobo / 100`); entered naira renders as-is
+3. Centralize conversions in `lib/currency.ts` (`nairaToKobo`, `formatNaira`, `formatKobo`) so the double-conversion class of bug cannot recur
+4. The seed data (`scripts/seed.ts`) confirms the convention: package `price: 75000` means ₦75,000 (kobo), and display uses `price / 100`
+
+**Apply When:** Any form collecting money, any price display, or any kobo/naira conversion.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Optional Integrations Need an Availability Guard + Graceful Degradation
+
+**Context:** Cloudinary uploads were only reachable by pasting a "Cloudinary URL", and silently broke when `NEXT_PUBLIC_CLOUDINARY_*` env vars were absent. The Drive connect failed during onboarding because it called a sync endpoint before a provider row existed.
+
+**What We Learned:**
+1. For any third-party integration, gate the feature on a capability check: config flags AND env-presence (`isCloudinaryConfigured()` reads env at call time, not module load — module-load captures are untestable)
+2. Expose capability to the client (`GET /api/media/status`) so the UI can hide/offer alternatives instead of failing at submit time
+3. Present storage-agnostic UX: "Upload your work or provide a link" — users should never need to know the underlying provider (Cloudinary vs Drive)
+4. Don't call endpoints that require a resource before it exists (Drive sync needs a provider row → use collect-mode during onboarding and ingest after creation)
+
+**Apply When:** Adding any external service (Cloudinary, Drive, Paystack, Resend, Mux) or any upload/link flow.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
 ## Mock Fallback Pattern for Profile Pages
 
 **Context:** Profile pages returned 404 when the DB had no matching provider because the slug-to-ID extraction didn't match mock provider slugs.
@@ -178,6 +212,39 @@
 5. `generateMetadata` also needs the fallback path so meta tags work when CMS is down
 
 **Apply When:** Implementing any CMS-dependent page that needs to work without the CMS being configured.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Pipeline Columns Live in One Place — Shared by Mock and Real Services
+
+**Context:** The dashboard renders a kanban pipeline (Requested → Confirmed → In Progress → Completed) for both providers and clients, with different status→stage mappings per role. Duplicating the status lists in the UI, mock data, and query layer risks drift (a status added to one but not the other).
+
+**What We Learned:**
+1. Define the column→status mapping once as `static readonly` arrays on the service (`DashboardService.PROVIDER_COLUMNS` / `CLIENT_COLUMNS`) and reuse it from every build path — real query and mock fallback both feed the same column defs, so shapes can't diverge
+2. Every `BookingStatus` must map to exactly one provider column (RELEASED is the only "completed" provider stage); clients additionally see REFUNDED under completed. Exception/terminal states (DECLINED, CANCELLED, DISPUTED) intentionally do not appear in the active pipeline — assert that explicitly in tests rather than asserting "all statuses covered"
+3. Derive mock "percent" values the same way the real service does (`Math.round(completed/total*100)`) so tests can assert consistency instead of hardcoded values
+4. Keep money in the mock layer as integer kobo and assert `Number.isInteger(rawValue)` + `value.match(/^₦/)` — the same invariants the real service guarantees
+
+**Apply When:** Adding any new pipeline/column UI, new booking statuses, or a new role dashboard.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## TypeScript 7 Removed `baseUrl`
+
+**Context:** `npx tsc --noEmit` failed with `Option 'baseUrl' has been removed` after the toolchain picked up TypeScript 7, blocking the QA gate.
+
+**What We Learned:**
+1. TypeScript 7 removes the `baseUrl` compiler option entirely; `paths` entries that are relative (e.g. `"@/*": ["./*"]`) resolve against the tsconfig directory without it
+2. When a bare `npx tsc` reports module-not-found errors for every package (vitest, next, lucide-react), the project's `node_modules` is missing — install first (`npm install`) before diagnosing TS config
+3. Verify the actual compiler version with `npx tsc --version` — a global/pinned newer tsc can surface errors the project's own toolchain would not
+
+**Apply When:** Upgrading TypeScript, triaging bulk "module not found" typecheck noise, or editing tsconfig.
 
 **Supersedes:** None
 **Superseded by:** None

@@ -143,6 +143,102 @@ Always pass `secret` and `baseURL` to Better Auth config when initializing. Ensu
 
 ---
 
+### Provider Profile 404 for Newly Onboarded Creators (UUID Slug Mismatch)
+
+**Symptom:**
+After completing onboarding, "Create Account" redirects to `/profile/{slug}` and the page returns 404 — Page Not Found. Seeded providers work, but newly registered providers always 404.
+
+**Root Cause:**
+The slug embeds only the first 8 characters of the provider id: `{name}--{id.slice(0,8)}`. Seeded providers use short ids (`prov-1`) so `eq(providers.id, 'prov-1')` matched. Real providers get a 36-char UUID, and the profile page compared `providers.id = 'abc12345'` (exact `eq`) against the full stored UUID → never matched → `notFound()`.
+
+**Fix Applied:**
+- Resolve slugs via prefix match: `like(providers.id, `${idPrefix}%`)`
+- Parse slugs with `lastIndexOf("--")` so display names containing `--` still work
+- Extracted `lib/slug.ts` (`buildProviderSlug` / `parseProviderSlug`) shared by the setup API, sitemap, ExploreService, and profile page
+- Fixed `app/sitemap.ts` which used a single `-` separator instead of `--`
+
+**Prevention:**
+Never store a truncated id in a URL and then compare it with an exact `eq()`. Either store a dedicated slug column or resolve with a prefix query. Route all slug construction/parsing through `lib/slug.ts`.
+
+**Files Affected:**
+- `app/(public)/profile/[slug]/page.tsx`
+- `app/sitemap.ts`
+- `app/api/profile/setup/route.ts`
+- `services/ExploreService.ts`
+- `lib/slug.ts` (new)
+
+**Date:** 2026-08-09
+**Status:** Active
+
+### Pricing Displayed ×100 Too High in Onboarding Review
+
+**Symptom:**
+Entering ₦75,000 shows ₦7,500,000 at the "Review Profile" step. The input retains the correct value; only the preview is wrong.
+
+**Root Cause:**
+`app/(auth)/profile/setup/page.tsx` step-5 preview computed `(parseFloat(pkg.price) * 100).toLocaleString()`. The input is naira, but the preview multiplied by 100 again (as if converting naira→kobo for display), inflating the value 100×.
+
+**Fix Applied:**
+Display the entered naira as-is via `formatNaira(parseFloat(pkg.price))`. Extracted `lib/currency.ts` (`nairaToKobo` converts once at submit; `formatNaira`/`formatKobo` render).
+
+**Prevention:**
+Convert naira→kobo exactly once, at the API boundary. Never multiply by 100 in a display path. Route all money formatting through `lib/currency.ts`.
+
+**Files Affected:**
+- `app/(auth)/profile/setup/page.tsx`
+- `lib/currency.ts` (new)
+
+**Date:** 2026-08-09
+**Status:** Active
+
+### Google Drive Connect Broken During Onboarding
+
+**Symptom:**
+The "Connect & Sync" Drive control during profile setup reports inactive/failure. Post-onboarding Drive works.
+
+**Root Cause:**
+The wizard's `DriveConnectSettings` called `POST /api/portfolio/drive` while `providerId="pending"` — before any provider row existed for the user. The API requires an existing provider (returns 404 "Provider profile not found"), so onboarding Drive sync always failed.
+
+**Fix Applied:**
+- Added `mode="collect"` to `DriveConnectSettings`: during onboarding it only validates and saves the folder URL (no server call)
+- `app/api/profile/setup/route.ts` ingests the Drive folder server-side after creating the provider (non-fatal if sync fails; surfaced as an info toast)
+
+**Prevention:**
+Do not call endpoints that require a resource before that resource exists. Gate Drive sync behind an existing provider; collect-and-defer during onboarding.
+
+**Files Affected:**
+- `components/profile/DriveConnectSettings.tsx`
+- `app/api/profile/setup/route.ts`
+- `app/(auth)/profile/setup/page.tsx`
+
+**Date:** 2026-08-09
+**Status:** Active
+
+### Cloudinary Upload Failures / Undefined URL When Env Missing
+
+**Symptom:**
+Upload features silently break or throw `undefined` errors when `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` / `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` are absent.
+
+**Root Cause:**
+`lib/cloudinary.ts` used non-null assertions on module-load env captures, so missing env vars produced `undefined` constants and cryptic failures.
+
+**Fix Applied:**
+- Env read at call time; `isCloudinaryConfigured()` returns false when either var is missing
+- `assertCloudinaryConfigured()` throws `CloudinaryNotConfiguredError` (503)
+- Upload capability gated by config (`mediaUpload.enabled` + `cloudinaryEnabled`) AND env presence, exposed via `GET /api/media/status`; UI falls back to paste-link mode
+
+**Prevention:**
+Always gate optional-integration features on an availability check that degrades gracefully; document required env vars in `.env.example` and the config (`config/platform.config.ts` `mediaUpload`).
+
+**Files Affected:**
+- `lib/cloudinary.ts`
+- `app/api/media/upload/route.ts` (new)
+- `app/api/media/status/route.ts` (new)
+- `components/profile/MediaUpload.tsx` (new)
+
+**Date:** 2026-08-09
+**Status:** Active
+
 ### Next.js 15.3.1 — Vulnerable Version Blocking Vercel Deployment
 
 **Symptom:**

@@ -3,13 +3,24 @@
 import { useState } from "react";
 import { ClButton, ClInput } from "@/components/ui";
 import { Cloud, CheckCircle, AlertCircle } from "lucide-react";
+import { validateFolderUrl } from "@/lib/drive";
 
-type DriveState = "DISCONNECTED" | "SYNCING" | "SYNCED" | "ERROR_PRIVATE" | "ERROR_EMPTY";
+type DriveState =
+  | "DISCONNECTED"
+  | "SYNCING"
+  | "SYNCED"
+  | "ERROR_PRIVATE"
+  | "ERROR_EMPTY"
+  | "ERROR_INVALID";
 
 interface DriveConnectSettingsProps {
   currentUrl: string | null;
   providerId: string;
   onStateChange?: (state: DriveState) => void;
+  /** "live" syncs immediately (requires an existing provider). "collect" only
+   *  saves the folder URL — used during onboarding when no provider row exists yet. */
+  mode?: "live" | "collect";
+  onUrlChange?: (url: string) => void;
 }
 
 export function DriveConnectSettings({
@@ -17,6 +28,8 @@ export function DriveConnectSettings({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   providerId,
   onStateChange,
+  mode = "live",
+  onUrlChange,
 }: DriveConnectSettingsProps) {
   const [folderUrl, setFolderUrl] = useState(currentUrl ?? "");
   const [state, setState] = useState<DriveState>(
@@ -69,9 +82,35 @@ export function DriveConnectSettings({
       setState("SYNCED");
       setResult(json.data);
       onStateChange?.("SYNCED");
+      onUrlChange?.(folderUrl.trim());
     } catch {
       setState("DISCONNECTED");
       setError("Network error. Please try again.");
+      onStateChange?.("DISCONNECTED");
+    }
+  };
+
+  const handleCollect = () => {
+    const url = folderUrl.trim();
+    if (!url) return;
+
+    if (!validateFolderUrl(url)) {
+      setState("ERROR_INVALID");
+      setError("That doesn't look like a public Google Drive folder link.");
+      onStateChange?.("ERROR_INVALID");
+      return;
+    }
+
+    setError("");
+    setState("SYNCED");
+    onStateChange?.("SYNCED");
+    onUrlChange?.(url);
+  };
+
+  const handleInputChange = (value: string) => {
+    setFolderUrl(value);
+    if (state === "SYNCED") {
+      setState("DISCONNECTED");
       onStateChange?.("DISCONNECTED");
     }
   };
@@ -82,6 +121,7 @@ export function DriveConnectSettings({
     setError("");
     setResult(null);
     onStateChange?.("DISCONNECTED");
+    onUrlChange?.("");
   };
 
   return (
@@ -94,7 +134,9 @@ export function DriveConnectSettings({
       </div>
 
       <p className="text-[13px] text-[var(--color-text-secondary)] mb-4">
-        Connect a Google Drive folder to automatically sync your portfolio. Supported formats: MP4, WebM, MOV, AVI, JPEG, PNG, WebP, PDF.
+        {mode === "collect"
+          ? "Connect a publicly accessible Google Drive folder to auto-sync your portfolio. We'll pull it in once your profile is published. Supported formats: MP4, WebM, MOV, AVI, JPEG, PNG, WebP, PDF."
+          : "Connect a Google Drive folder to automatically sync your portfolio. Supported formats: MP4, WebM, MOV, AVI, JPEG, PNG, WebP, PDF."}
       </p>
 
       {state === "DISCONNECTED" && (
@@ -102,18 +144,28 @@ export function DriveConnectSettings({
           <ClInput
             placeholder="https://drive.google.com/drive/folders/..."
             value={folderUrl}
-            onChange={(e) => setFolderUrl(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
           />
           {error && (
             <p className="text-[12px] text-[var(--color-error)]">{error}</p>
           )}
-          <ClButton
-            variant="primary"
-            onClick={handleSync}
-            disabled={!folderUrl.trim()}
-          >
-            Connect & Sync
-          </ClButton>
+          {mode === "collect" ? (
+            <ClButton
+              variant="primary"
+              onClick={handleCollect}
+              disabled={!folderUrl.trim()}
+            >
+              Save folder
+            </ClButton>
+          ) : (
+            <ClButton
+              variant="primary"
+              onClick={handleSync}
+              disabled={!folderUrl.trim()}
+            >
+              Connect & Sync
+            </ClButton>
+          )}
         </div>
       )}
 
@@ -126,41 +178,50 @@ export function DriveConnectSettings({
         </div>
       )}
 
-      {state === "SYNCED" && result && (
+      {state === "SYNCED" && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle size={16} fill="var(--color-success)" color="var(--color-surface)" />
             <span className="text-[13px] font-medium text-[var(--color-success)]">
-              Sync complete
+              {mode === "collect"
+                ? "Folder saved"
+                : "Sync complete"}
             </span>
           </div>
 
-          <div className="flex gap-3 mb-4">
-            <div className="flex-1 rounded-[8px] bg-[var(--color-surface-raised)] p-3 text-center">
-              <p className="text-[20px] font-bold text-[var(--color-text-primary)]">
-                {result.added}
-              </p>
-              <p className="text-[11px] text-[var(--color-text-tertiary)]">
-                Added
-              </p>
+          {mode === "collect" ? (
+            <p className="text-[12px] text-[var(--color-text-tertiary)] mb-4">
+              We&apos;ll sync your Drive folder into your portfolio when your
+              profile is published.
+            </p>
+          ) : result ? (
+            <div className="flex gap-3 mb-4">
+              <div className="flex-1 rounded-[8px] bg-[var(--color-surface-raised)] p-3 text-center">
+                <p className="text-[20px] font-bold text-[var(--color-text-primary)]">
+                  {result.added}
+                </p>
+                <p className="text-[11px] text-[var(--color-text-tertiary)]">
+                  Added
+                </p>
+              </div>
+              <div className="flex-1 rounded-[8px] bg-[var(--color-surface-raised)] p-3 text-center">
+                <p className="text-[20px] font-bold text-[var(--color-text-primary)]">
+                  {result.updated}
+                </p>
+                <p className="text-[11px] text-[var(--color-text-tertiary)]">
+                  Updated
+                </p>
+              </div>
+              <div className="flex-1 rounded-[8px] bg-[var(--color-surface-raised)] p-3 text-center">
+                <p className="text-[20px] font-bold text-[var(--color-text-primary)]">
+                  {result.total}
+                </p>
+                <p className="text-[11px] text-[var(--color-text-tertiary)]">
+                  Total
+                </p>
+              </div>
             </div>
-            <div className="flex-1 rounded-[8px] bg-[var(--color-surface-raised)] p-3 text-center">
-              <p className="text-[20px] font-bold text-[var(--color-text-primary)]">
-                {result.updated}
-              </p>
-              <p className="text-[11px] text-[var(--color-text-tertiary)]">
-                Updated
-              </p>
-            </div>
-            <div className="flex-1 rounded-[8px] bg-[var(--color-surface-raised)] p-3 text-center">
-              <p className="text-[20px] font-bold text-[var(--color-text-primary)]">
-                {result.total}
-              </p>
-              <p className="text-[11px] text-[var(--color-text-tertiary)]">
-                Total
-              </p>
-            </div>
-          </div>
+          ) : null}
 
           <ClButton variant="outlined" onClick={handleDisconnect}>
             Disconnect
@@ -168,12 +229,18 @@ export function DriveConnectSettings({
         </div>
       )}
 
-      {(state === "ERROR_PRIVATE" || state === "ERROR_EMPTY") && (
+      {(state === "ERROR_PRIVATE" ||
+        state === "ERROR_EMPTY" ||
+        state === "ERROR_INVALID") && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <AlertCircle size={16} fill="var(--color-error)" color="var(--color-surface)" />
             <span className="text-[13px] font-medium text-[var(--color-error)]">
-              {state === "ERROR_PRIVATE" ? "Access Error" : "Empty Folder"}
+              {state === "ERROR_PRIVATE"
+                ? "Access Error"
+                : state === "ERROR_EMPTY"
+                  ? "Empty Folder"
+                  : "Invalid Link"}
             </span>
           </div>
           <p className="text-[12px] text-[var(--color-text-tertiary)] mb-3">

@@ -660,3 +660,73 @@ Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications
 **Notes / Blockers:**
 - Antivirus / security scanner flag (stakeholder-reported RAV Endpoint Protection "malicious URL detected") is noted but there is no actionable code fix — see final summary.
 - `npm install` was run to verify typecheck/build/tests; `package-lock.json` incidental changes were reverted (no dependency changes).
+
+---
+
+## Session 17 — 2026-08-09 (Execute Feature — Alpha Testing Feedback Fixes)
+
+**Completed:**
+Resolved the four issues raised by the in-house alpha tester: no direct media upload option, inactive/broken Google Drive connect during onboarding, wrong pricing display at the review step, and a 404 after the final "Create Account" action.
+
+1. **Pricing display fix** — The step-5 review preview multiplied the naira price by 100 again (`(parseFloat(pkg.price) * 100)`), showing ₦75,000 as ₦7,500,000. Now uses `formatNaira(nairaToKobo(...))` via the new `lib/currency.ts` helpers (single conversion point; kobo stored, naira displayed).
+2. **404 on post-signup redirect** — Provider slugs are `name--first8UUIDchars`, but the profile page did `eq(providers.id, first8chars)` on a full 36-char UUID → never matched → `notFound()`. Now resolves via prefix `LIKE` match and robust last-`--` parsing. Also fixed `app/sitemap.ts` which used a single `-` separator. Extracted `lib/slug.ts` (`buildProviderSlug`/`parseProviderSlug`) used by the setup API, sitemap, ExploreService, and profile page.
+3. **Config-driven Cloudinary pipeline** — Added `mediaUpload` config block (`enabled`, `cloudinaryEnabled`, `maxFileSizeMb`, `videoTypes`, `imageTypes`) to `IPlatformConfig` + defaults. Hardened `lib/cloudinary.ts`: env vars read at call time, `isCloudinaryConfigured()` + `CloudinaryNotConfiguredError`, server-side `uploadFile()` helper. New `POST /api/media/upload` (auth + config + env + type/size validation) and public `GET /api/media/status`.
+4. **Media upload UX** — New `components/profile/MediaUpload.tsx` ("Upload your work or provide a link"): Upload tab (Cloudinary file upload with progress/error/success preview) + Paste-link tab (Google Drive or any public URL). Gracefully falls back to link-only when Cloudinary is unconfigured or disabled.
+5. **Google Drive handling during onboarding** — Root cause: the wizard called the live sync endpoint before a provider row existed (→ 404 "Provider profile not found"), so Drive connect was always broken in onboarding. Added `mode="collect"` to `DriveConnectSettings` (validates + saves the folder URL only). The setup API now ingests the Drive folder server-side after creating the provider (non-fatal on failure).
+6. **Success/failure feedback** — Publish now shows a success toast; a Drive-sync failure surfaces an info toast while still publishing. Post-publish redirect now lands on the (working) profile page.
+
+**Files Modified/Created:**
+- `app/(auth)/profile/setup/page.tsx`
+- `app/(public)/profile/[slug]/page.tsx`
+- `app/sitemap.ts`
+- `app/api/profile/setup/route.ts`
+- `components/profile/DriveConnectSettings.tsx`
+- `components/profile/MediaUpload.tsx` (new)
+- `app/api/media/upload/route.ts` (new)
+- `app/api/media/status/route.ts` (new)
+- `lib/cloudinary.ts`
+- `lib/media.ts` (new)
+- `lib/slug.ts` (new)
+- `lib/currency.ts` (new)
+- `config/platform.config.ts`
+- `types/index.ts`
+- `services/ExploreService.ts`
+- `__tests__/media.test.ts`, `__tests__/slug.test.ts`, `__tests__/currency.test.ts`, `__tests__/cloudinary.test.ts` (new)
+- `ai-system/planning/task-queue.md`, `ai-system/summaries/dev-history.md`, `ai-system/checkpoints/session-log.md`, `ai-system/checkpoints/in-progress.md`, `ai-system/repair-system.md`, `ai-system/system-architecture.md`
+
+**Build Status:** ✅ Production build passes. TypeScript compiles with zero errors. ESLint passes (only pre-existing warnings elsewhere). 124 tests pass (112 existing + 12 new).
+
+**Next Task:**
+Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.
+
+---
+
+## Session 18 — 2026-08-09 (Execute Feature — Provider & Client Dashboards)
+
+**Completed:**
+Built the Phase 2 role-aware dashboard surface: a single `/dashboard` route backed by one API endpoint serving either role's payload, with full mock fallback and 15 new tests.
+
+1. **Types** — New `types/dashboard.ts`: `IProviderDashboard`, `IClientDashboard`, `IDashboardStat`, `IDashboardPipelineColumn`, `IDashboardAvailabilitySlot`, `IPortfolioPerformanceRow`, `IClientPaymentRecord`, `IProfileCompleteness`; re-exported via `types/index.ts`.
+2. **`services/DashboardService.ts`** — Role-aware query layer: provider stats/earnings (integer kobo), 4-column booking pipeline, profile completeness, config-driven availability slots, client payment history (newest-first, `netAmount = amount - fee`), discover rail via ExploreService. Static `PROVIDER_COLUMNS`/`CLIENT_COLUMNS` are the single source of truth for status→stage mapping, shared by the real query and mock fallback so shapes can't drift. Graceful MockDataService fallback on DB errors.
+3. **`services/MockDataService.ts`** — Added `getMockProviderDashboard`, `getMockClientDashboard`, `getMockAvailability`, `getMockPortfolioPerformance`, `getMockWorkHistoryForProvider`; empty-safe shapes when mock mode is off; completeness percent derived with the same rounding as the real service.
+4. **`app/api/dashboard/route.ts`** — Single `GET` endpoint, 401 when unauthenticated, serves provider or client payload by session role.
+5. **`app/(auth)/dashboard/`** — Server page + `DashboardClient` (role switch via `useRole`, refetch on change) + `components/`: `ProviderDashboardView`, `ClientDashboardView`, `PipelineColumn`, `StatCard`, `ProfileCompleteness`, `AvailabilityCalendar`, `PaymentHistoryList`, `DiscoverRail`.
+6. **Navbar** — Brand + Dashboard link rendered for authenticated users in both nav variants; `/dashboard` added to the middleware-protected route list.
+7. **Config** — `dashboard.availabilityLookaheadDays` (30) + `dashboard.quickActions` keys, DB-overridable like the rest of `platform.config.ts`.
+8. **Tests** — `__tests__/services/DashboardService.test.ts` (15 tests): each provider status maps to exactly one pipeline stage, active client statuses covered, mock dashboard shapes, kobo integer invariants, sorted payment history, empty-safe fallback shapes.
+
+**Files Modified/Created:**
+- `types/dashboard.ts` (new), `types/index.ts`
+- `services/DashboardService.ts` (new), `services/MockDataService.ts`
+- `app/api/dashboard/route.ts` (new)
+- `app/(auth)/dashboard/page.tsx`, `DashboardClient.tsx`, `components/` (new)
+- `components/shared/Navbar.tsx`
+- `config/platform.config.ts`
+- `__tests__/services/DashboardService.test.ts` (new)
+- `tsconfig.json` (removed TS7-removed `baseUrl`)
+- `ai-system/index/repo-map.md`, `ai-system/index/dependency-graph.md`, `ai-system/system-architecture.md`, `ai-system/planning/project-plan.md`, `ai-system/planning/task-queue.md`, `ai-system/summaries/dev-history.md`, `ai-system/memory/lessons-learned.md`, `ai-system/checkpoints/session-log.md`
+
+**Build Status:** ✅ Production build passes (incl. `/dashboard`). TypeScript compiles with zero errors. ESLint passes (no new warnings). 140 tests pass (125 existing + 15 new).
+
+**Next Task:**
+Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.

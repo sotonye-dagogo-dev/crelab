@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system (Session 18)
+> - last-verified-against-code: 2026-08-09
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -45,6 +45,16 @@ PlatformConfigService
   → config/platform.config.ts (fallback default)
   → Drizzle schema (platform_config + audit_log tables)
   → Next.js unstable_cache / revalidateTag
+
+DashboardService
+  → lib/db.ts (Drizzle + postgres client)
+  → drizzle/schema.ts (providers, bookings, portfolio_items, service_packages, user, wallets, payments)
+  → drizzle-orm (eq, and, sql, gte)
+  → PlatformConfigService (availabilityLookaheadDays config)
+  → MockDataService (fallback mock dashboards when NEXT_PUBLIC_MOCK_DATA=true)
+  → ExploreService (queryExploreCards for client discover rail)
+  → lib/currency.ts (formatKobo for display values)
+  → types/dashboard.ts (IProviderDashboard, IClientDashboard, pipeline/stats/availability types) + BookingStatus, ExploreSort
 
 Auth (Better Auth)
   → Better Auth standalone instance (lib/auth.ts)

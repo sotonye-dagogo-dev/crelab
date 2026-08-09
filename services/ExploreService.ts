@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { providers, servicePackages, portfolioItems, reviews, bookings } from "@/drizzle/schema";
 import { eq, and, sql, desc, asc } from "drizzle-orm";
+import { buildProviderSlug } from "@/lib/slug";
 import type { IExploreCard, IExploreFilters } from "@/types";
 
 const DEFAULT_LIMIT = 20;
@@ -148,7 +149,7 @@ export class ExploreService {
     const data: IExploreCard[] = slice.map((row) => ({
       id: row.id,
       displayName: row.displayName,
-      slug: `${row.displayName.toLowerCase().replace(/\s+/g, "-")}--${row.id.slice(0, 8)}`,
+      slug: buildProviderSlug(row.displayName, row.id),
       categorySlug: row.categorySlug,
       categoryLabel: "",
       location: row.location,

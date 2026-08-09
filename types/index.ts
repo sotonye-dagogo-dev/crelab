@@ -349,6 +349,24 @@ export interface IWalletConfig {
   maxDvaAccounts: number;
 }
 
+export interface IMediaUploadConfig {
+  /** Master switch — admin can disable all direct media uploads */
+  enabled: boolean;
+  /** Toggle Cloudinary-powered direct uploads. When off, only paste-link mode is offered */
+  cloudinaryEnabled: boolean;
+  /** Maximum accepted file size in MB */
+  maxFileSizeMb: number;
+  /** Accepted video MIME types */
+  videoTypes: string[];
+  /** Accepted image MIME types */
+  imageTypes: string[];
+}
+
+export interface IDashboardConfig {
+  /** Number of days shown in the provider availability calendar */
+  availabilityLookaheadDays: number;
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
@@ -362,6 +380,8 @@ export interface IPlatformConfig {
   features: IFeatureFlags;
   milestonePayments: IMilestonePaymentsConfig;
   wallet: IWalletConfig;
+  mediaUpload?: IMediaUploadConfig;
+  dashboard?: IDashboardConfig;
   emailConfig?: IEmailConfig;
   devCredit?: IDevCredit;
 }
@@ -401,6 +421,23 @@ export interface IAuditLogEntry {
 
 export type { IExploreCard, IExploreFilters } from "./explore";
 export { ExploreSort } from "./explore";
+
+/* ── Dashboard ── */
+
+export type {
+  IDashboardBooking,
+  IDashboardPipelineColumn,
+  IDashboardStat,
+  DashboardStatTone,
+  IPortfolioPerformanceRow,
+  IDashboardAvailabilitySlot,
+  IProfileCompletenessItem,
+  IProfileCompleteness,
+  IDashboardQuickAction,
+  IProviderDashboard,
+  IClientPaymentRecord,
+  IClientDashboard,
+} from "./dashboard";
 
 export interface ApiResponse<T> {
   success: boolean;

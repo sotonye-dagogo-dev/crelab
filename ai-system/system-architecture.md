@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system (Session 18)
+> - last-verified-against-code: 2026-08-09
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -30,6 +30,7 @@ Service Layer (services/)
     |-- PaymentService          -- Paystack integration, subaccount split
     |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
     |-- ExploreService          -- Provider search, filter, sort, cursor pagination
+    |-- DashboardService        -- Role-aware Provider/Client dashboards (pipeline, stats, availability, payments)
     |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
     |-- MockDataService         -- Mock data fallback when DB unavailable
@@ -56,7 +57,7 @@ Data Stores
 | Module | Responsibility | Key Files | Dependencies |
 |--------|---------------|-----------|--------------|
 | Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search | `app/(public)/` | Components, Services |
-| Auth Routes | Authenticated pages: booking, profile/edit, register, login | `app/(auth)/` | AuthGate, Services |
+| Auth Routes | Authenticated pages: dashboard, booking, profile/edit, register, login | `app/(auth)/` | AuthGate, Services |
 | Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, email templates | `app/admin/` | requireRole('ADMIN'), Services |
 | API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, webhooks, cron | `app/api/` | Services, Lib |
 | UI Wrappers | Cl* wrappers around shadcn/ui primitives | `components/ui/` | shadcn/ui, Tailwind |
@@ -116,6 +117,21 @@ Data Stores
 7. Previously synced items not in current list -> hidden (not deleted)
 8. Daily cron: DriveService.syncAll() for all providers with drive_folder_url
 ```
+
+### Media Upload (Cloudinary) Flow
+```
+1. MediaUpload component fetches GET /api/media/status -> { enabled, cloudinaryConfigured, maxFileSizeMb, videoTypes, imageTypes }
+2. Cloudinary available (config mediaUpload.enabled+cloudinaryEnabled AND NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET):
+   -> Upload tab shown; file POSTed to /api/media/upload (auth + config + env + type/size validation)
+   -> uploadFile() uploads via unsigned preset -> { url, thumbnailUrl, mimeType, resourceType }
+3. Cloudinary unavailable: upload tab hidden, paste-link tab offered ("Direct upload is temporarily unavailable")
+4. Pasted URLs (Drive link or any public link) validated with isValidMediaUrl()
+5. Cover video / avatar URLs stored via onboarding state -> /api/profile/setup -> providers.coverVideoUrl / avatarUrl
+6. Drive folder during onboarding is collect-only; DriveService.ingestFolder() runs server-side after provider creation
+```
+
+### Provider Slug Resolution
+Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug.ts`). Because the id prefix is NOT the full stored id, the public profile page resolves with a prefix `LIKE` query (`providers.id LIKE 'prefix%'`), never an exact `eq()`. Consumers: profile page, ExploreService, sitemap, profile setup API.
 
 ---
 
@@ -195,13 +211,32 @@ DB seeding via `scripts/seed.ts` + `scripts/seed-rollback.ts` provides reproduci
 Files not yet implemented despite being in the planned architecture:
 - `services/ReviewService.ts` (interface exists but no implementation)
 - `lib/mux.ts` (Mux streaming integration stubbed but not wired)
-- Provider Dashboard (Phase 2)
-- Client Dashboard (Phase 2)
 - Messages/notifications (Phase 2)
 
 ---
 
 ## Recent Changes
+
+### 2026-08-09 — Provider & Client Dashboards
+- `types/dashboard.ts` (new): `IProviderDashboard`, `IClientDashboard`, `IDashboardStat`, `IDashboardPipelineColumn`, `IDashboardAvailabilitySlot`, `IPortfolioPerformanceRow`, `IClientPaymentRecord`, `IProfileCompleteness` — re-exported from `types/index.ts`
+- `services/DashboardService.ts` (new): role-aware dashboard query layer — provider stats/earnings (kobo), 4-column booking pipeline, completeness profile, availability slots (config-driven lookahead), client payment history, discover rail; static `PROVIDER_COLUMNS` / `CLIENT_COLUMNS` hold the pipeline stage→status mappings; MockDataService fallback when DB unavailable
+- `services/MockDataService.ts`: added `getMockProviderDashboard`, `getMockClientDashboard`, `getMockAvailability`, `getMockPortfolioPerformance`, `getMockWorkHistoryForProvider`
+- `app/api/dashboard/route.ts` (new): single authenticated endpoint serving either role's dashboard payload
+- `app/(auth)/dashboard/page.tsx` (new) + `DashboardClient.tsx` + `components/` (ProviderDashboardView, ClientDashboardView, PipelineColumn, StatCard, ProfileCompleteness, AvailabilityCalendar, PaymentHistoryList, DiscoverRail): role-switching via `useRole`, refetch on role change
+- `components/shared/Navbar.tsx`: brand + Dashboard link now render for authenticated users in both nav variants
+- `config/platform.config.ts`: `dashboard.availabilityLookaheadDays` + `dashboard.quickActions` config keys (DB-overridable)
+- `__tests__/services/DashboardService.test.ts` (new): 15 tests — column definitions (each status maps to exactly one provider stage, active statuses covered on client side), mock dashboard shapes, kobo integer invariants, sorted payment history, empty-safe fallback shapes
+- `tsconfig.json`: removed removed-in-TS7 `baseUrl` (paths already resolve relative to tsconfig)
+
+### 2026-08-09 — Alpha Testing Feedback Fixes
+- `lib/currency.ts` (new): `nairaToKobo` / `formatNaira` / `formatKobo` — single money conversion point; onboarding review preview no longer ×100's entered naira
+- `lib/slug.ts` (new): `buildProviderSlug` / `parseProviderSlug`; profile page resolves slugs with prefix `LIKE` + last-`--` parsing (fixes 404 for real UUID providers); sitemap separator corrected
+- `lib/cloudinary.ts`: env read at call time, `isCloudinaryConfigured()`, `CloudinaryNotConfiguredError`, server-side `uploadFile()`; `lib/media.ts` (new): type/size/URL validation helpers
+- `app/api/media/upload/route.ts` (new): authenticated, config- and env-gated upload; `app/api/media/status/route.ts` (new): public upload capability status
+- `components/profile/MediaUpload.tsx` (new): "Upload your work or provide a link" — Cloudinary upload tab + paste-link tab with graceful fallback
+- `components/profile/DriveConnectSettings.tsx`: `mode="collect"` for onboarding (validate + save URL only; live sync needs an existing provider)
+- `app/api/profile/setup/route.ts`: server-side Drive ingest after provider creation (non-fatal), package validation, uses shared slug builder
+- `app/(auth)/profile/setup/page.tsx`: step 4 uses MediaUpload + collect Drive; success/warning toasts on publish
 
 ### 2026-08-05 — Google OAuth in Sign-Up + Onboarding Handoff
 - `lib/oauth.ts` (new): callback URL constants, OAuth return detection, self-assignable role guard (CLIENT/PROVIDER only), open-redirect-safe post-signup route resolution
