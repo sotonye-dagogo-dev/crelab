@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-verified-against-code: 2026-08-09
 > - staleness-policy: re-verify if sync procedure changes
 
 > **Overview:** Sprint-end deep synchronization. Reads all `.ai-system/` files and compares them against the current repository state. Fixes drift that accumulated during the sprint. Heavier than `sync-context.md`.

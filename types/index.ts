@@ -362,6 +362,11 @@ export interface IMediaUploadConfig {
   imageTypes: string[];
 }
 
+export interface IDashboardConfig {
+  /** Number of days shown in the provider availability calendar */
+  availabilityLookaheadDays: number;
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
@@ -376,6 +381,7 @@ export interface IPlatformConfig {
   milestonePayments: IMilestonePaymentsConfig;
   wallet: IWalletConfig;
   mediaUpload?: IMediaUploadConfig;
+  dashboard?: IDashboardConfig;
   emailConfig?: IEmailConfig;
   devCredit?: IDevCredit;
 }
@@ -415,6 +421,23 @@ export interface IAuditLogEntry {
 
 export type { IExploreCard, IExploreFilters } from "./explore";
 export { ExploreSort } from "./explore";
+
+/* ── Dashboard ── */
+
+export type {
+  IDashboardBooking,
+  IDashboardPipelineColumn,
+  IDashboardStat,
+  DashboardStatTone,
+  IPortfolioPerformanceRow,
+  IDashboardAvailabilitySlot,
+  IProfileCompletenessItem,
+  IProfileCompleteness,
+  IDashboardQuickAction,
+  IProviderDashboard,
+  IClientPaymentRecord,
+  IClientDashboard,
+} from "./dashboard";
 
 export interface ApiResponse<T> {
   success: boolean;

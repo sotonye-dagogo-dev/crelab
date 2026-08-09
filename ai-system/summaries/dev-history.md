@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-29
+> - last-verified-against-code: 2026-08-09
 
 ## 2026-07-28 — Prototype Interactivity & Fallback Content
 
@@ -129,3 +129,25 @@ The onboarding wizard only offered raw "Cloudinary URL" text inputs (no upload a
 
 ### Status
 Pass — typecheck clean, 124 tests pass, lint has no new warnings, production build passes.
+
+## Sprint 2026-08-09 — Provider & Client Dashboards
+
+### What
+Built the role-aware authenticated dashboard: a single `/dashboard` route served by one API endpoint that returns a provider or client payload depending on the signed-in user's role, with full mock fallback.
+
+### Why
+Phase 2 dashboard work was unstarted — providers had no earnings/pipeline/availability view and clients had no booking/payment history surface, despite the design files (12-provider-dashboard, 14-client-dashboard).
+
+### Key Changes
+- **`types/dashboard.ts`** (new): `IProviderDashboard`, `IClientDashboard`, `IDashboardStat`, `IDashboardPipelineColumn`, `IDashboardAvailabilitySlot`, `IPortfolioPerformanceRow`, `IClientPaymentRecord`, `IProfileCompleteness` — re-exported through `types/index.ts`
+- **`services/DashboardService.ts`** (new): role-aware queries — provider stats/earnings (kobo ints), 4-column booking pipeline (static `PROVIDER_COLUMNS` / `CLIENT_COLUMNS` map stages → statuses), profile completeness (same rounding as the real service), availability slots (config-driven `availabilityLookaheadDays`), client payment history (newest-first, `netAmount = amount - fee`), discover rail via ExploreService; graceful MockDataService fallback
+- **`services/MockDataService.ts`**: `getMockProviderDashboard`, `getMockClientDashboard`, `getMockAvailability`, `getMockPortfolioPerformance`, `getMockWorkHistoryForProvider` — empty-safe shapes when mock mode off
+- **`app/api/dashboard/route.ts`** (new): single `GET` serving either role, 401 unauthenticated
+- **`app/(auth)/dashboard/`** (new): server page + `DashboardClient` (role switch via `useRole`, refetch on change) + components (`ProviderDashboardView`, `ClientDashboardView`, `PipelineColumn`, `StatCard`, `ProfileCompleteness`, `AvailabilityCalendar`, `PaymentHistoryList`, `DiscoverRail`)
+- **`Navbar`**: brand + Dashboard link now shown to authenticated users in both nav variants
+- **`config/platform.config.ts`**: `dashboard.availabilityLookaheadDays` (30) + `dashboard.quickActions` config keys (DB-overridable)
+- **Tests**: 15 new in `__tests__/services/DashboardService.test.ts` — every provider status maps to exactly one pipeline stage, active client statuses covered, mock shapes, kobo invariants, sorted payments, empty-safe fallbacks
+- **`tsconfig.json`**: dropped `baseUrl` (removed in TypeScript 7) — paths already resolve relative to tsconfig
+
+### Status
+Pass — typecheck clean, 140 tests pass, lint has no new warnings, production build passes (incl. `/dashboard` route).

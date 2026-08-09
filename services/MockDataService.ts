@@ -7,6 +7,13 @@ import type {
   IPortfolioItem,
   IServicePackage,
   IReview,
+  IProviderDashboard,
+  IClientDashboard,
+  IDashboardBooking,
+  IDashboardPipelineColumn,
+  IDashboardAvailabilitySlot,
+  IPortfolioPerformanceRow,
+  IClientPaymentRecord,
 } from "@/types";
 import { BookingStatus, EscrowState, ExperienceLevel, PaymentMode, PortfolioItemSource, UserRole } from "@/types";
 
@@ -576,5 +583,215 @@ export class MockDataService {
       completedAt: b.updatedAt,
       description: b.scopeNotes ?? "",
     }));
+  }
+
+  private static readonly mockClientNames: Record<string, string> = {
+    "mock-client-1": "Tunde Bakare",
+    "mock-client-2": "Amara Chukwu",
+  };
+
+  private static readonly mockProviderNames: Record<string, string> = {
+    "mock-provider-1": "Amara Studios",
+    "mock-provider-2": "Lens & Light",
+    "mock-provider-3": "Kelechi Media",
+  };
+
+  private static readonly mockPackageLabels: Record<string, string> = {
+    "mock-pkg-1-1": "Starter Pack",
+    "mock-pkg-1-2": "Pro Pack",
+    "mock-pkg-1-3": "Premium Pack",
+    "mock-pkg-2-1": "Event Coverage",
+    "mock-pkg-2-2": "Commercial Shoot",
+    "mock-pkg-2-3": "Documentary Package",
+    "mock-pkg-3-1": "Quick UGC Pack",
+    "mock-pkg-3-2": "Content Bundle",
+    "mock-pkg-3-3": "Campaign Package",
+  };
+
+  static getMockDashboardBookings(): IDashboardBooking[] {
+    if (!this.isEnabled()) return [];
+    return this.getMockBookings().map((b) => ({
+      id: b.id,
+      booking: b,
+      providerId: b.providerId,
+      providerName: this.mockProviderNames[b.providerId] ?? "Mock Provider",
+      clientId: b.clientId,
+      clientName: this.mockClientNames[b.clientId] ?? "Demo Client",
+      packageId: b.packageId,
+      packageLabel: this.mockPackageLabels[b.packageId] ?? "Standard Package",
+      packageTier: "STANDARD",
+    }));
+  }
+
+  static getMockPortfolioPerformance(providerId: string): IPortfolioPerformanceRow[] {
+    if (!this.isEnabled()) return [];
+    const rows: Record<string, IPortfolioPerformanceRow[]> = {
+      "mock-provider-1": [
+        { id: "mock-perf-1", title: "GTBank Campaign", mimeType: "video/mp4", thumbnailUrl: null, plays: 1200, clicks: 340, conversionRate: 28, visible: true },
+        { id: "mock-perf-2", title: "Beauty UGC Reel", mimeType: "video/mp4", thumbnailUrl: null, plays: 3400, clicks: 892, conversionRate: 26, visible: true },
+        { id: "mock-perf-3", title: "Fashion Week BTS", mimeType: "video/mp4", thumbnailUrl: null, plays: 2800, clicks: 654, conversionRate: 23, visible: true },
+        { id: "mock-perf-4", title: "Food Brand Promo", mimeType: "video/mp4", thumbnailUrl: null, plays: 1900, clicks: 487, conversionRate: 26, visible: true },
+      ],
+      "mock-provider-2": [
+        { id: "mock-perf-5", title: "Corporate Event Coverage", mimeType: "video/mp4", thumbnailUrl: null, plays: 940, clicks: 210, conversionRate: 22, visible: true },
+      ],
+      "mock-provider-3": [
+        { id: "mock-perf-6", title: "Skincare Review UGC", mimeType: "video/mp4", thumbnailUrl: null, plays: 5200, clicks: 1310, conversionRate: 25, visible: true },
+      ],
+    };
+    return rows[providerId] ?? [];
+  }
+
+  static getMockAvailability(providerId: string): IDashboardAvailabilitySlot[] {
+    if (!this.isEnabled()) return [];
+    const bookedDates = this.getMockBookings()
+      .filter((b) => b.providerId === providerId && b.serviceDate && ["HELD", "IN_PROGRESS", "REQUESTED", "ACCEPTED"].includes(b.status))
+      .map((b) => new Date(b.serviceDate!).toISOString().slice(0, 10));
+
+    const bookedSet = new Set(bookedDates);
+    const slots: IDashboardAvailabilitySlot[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 30; i++) {
+      const day = new Date(today);
+      day.setDate(today.getDate() + i);
+      const iso = day.toISOString().slice(0, 10);
+      if (bookedSet.has(iso)) {
+        slots.push({ date: iso, status: "BOOKED", label: "Booked" });
+      } else if (i === 0) {
+        slots.push({ date: iso, status: "AVAILABLE", label: "Today" });
+      } else {
+        slots.push({ date: iso, status: "AVAILABLE" });
+      }
+    }
+    return slots;
+  }
+
+  static getMockProviderDashboard(userId: string): IProviderDashboard {
+    if (!this.isEnabled()) {
+      return {
+        role: "PROVIDER",
+        profile: null,
+        completeness: { percent: 0, completedItems: 0, totalItems: 0, items: [] },
+        stats: [],
+        pipeline: [],
+        portfolioPerformance: [],
+        availability: [],
+        quickActions: [],
+      };
+    }
+
+    const bookings = this.getMockDashboardBookings().filter(
+      (b) => b.providerId === "mock-provider-1",
+    );
+
+    const pipeline: IDashboardPipelineColumn[] = [
+      { key: "requested", label: "Requested", statuses: [BookingStatus.REQUESTED, BookingStatus.ACCEPTED], bookings: bookings.filter((b) => ["REQUESTED", "ACCEPTED"].includes(b.booking.status)) },
+      { key: "confirmed", label: "Confirmed", statuses: [BookingStatus.HELD], bookings: bookings.filter((b) => b.booking.status === "HELD") },
+      { key: "in-progress", label: "In Progress", statuses: [BookingStatus.IN_PROGRESS], bookings: bookings.filter((b) => b.booking.status === "IN_PROGRESS") },
+      { key: "completed", label: "Completed", statuses: [BookingStatus.RELEASED], bookings: bookings.filter((b) => b.booking.status === "RELEASED") },
+    ];
+
+    const stats = [
+      { value: "1,247", rawValue: 1247, label: "Profile Views", sub: "+12% vs last week", subTone: "success" as const },
+      { value: "3,892", rawValue: 3892, label: "Portfolio Plays", sub: "+8% vs last week", subTone: "success" as const },
+      { value: "14", rawValue: 14, label: "Booking Requests", sub: "3 pending", subTone: "warning" as const },
+      { value: "₦248,500", rawValue: 24850000, label: "Earnings (30d)", sub: "₦42,500 in escrow", subTone: "held" as const },
+    ];
+
+    return {
+      role: "PROVIDER",
+      profile: {
+        id: "mock-provider-1",
+        userId,
+        displayName: "Amara Studios",
+        categoryLabel: "Content Creator",
+        active: true,
+        verified: true,
+        profileViews: 1247,
+      },
+      completeness: {
+        percent: Math.round((6 / 9) * 100),
+        completedItems: 6,
+        totalItems: 9,
+        items: [
+          { key: "coverVideo", label: "Cover video", completed: true },
+          { key: "bio", label: "Bio", completed: true },
+          { key: "location", label: "Location", completed: true },
+          { key: "experience", label: "Experience level", completed: true },
+          { key: "niche", label: "Niche tags", completed: true },
+          { key: "packages", label: "3 service packages", completed: true },
+          { key: "portfolio", label: "3+ portfolio items", completed: true },
+          { key: "drive", label: "Google Drive connected", completed: false },
+          { key: "platforms", label: "Active platforms", completed: false },
+        ],
+      },
+      stats,
+      pipeline,
+      portfolioPerformance: this.getMockPortfolioPerformance("mock-provider-1"),
+      availability: this.getMockAvailability("mock-provider-1"),
+      quickActions: [
+        { label: "Add Portfolio Item", href: "/profile/setup", variant: "primary" },
+        { label: "Edit Packages", href: "/profile/setup", variant: "accent-outlined" },
+        { label: "Update Availability", href: "/profile/setup", variant: "accent-outlined" },
+        { label: "Sync Google Drive", href: "/profile/setup", variant: "ghost" },
+      ],
+    };
+  }
+
+  static getMockClientDashboard(userId: string): IClientDashboard {
+    if (!this.isEnabled()) {
+      return {
+        role: "CLIENT",
+        stats: [],
+        pipeline: [],
+        paymentHistory: [],
+        discover: [],
+      };
+    }
+
+    const bookings = this.getMockDashboardBookings().filter(
+      (b) => b.clientId === "mock-client-1",
+    );
+
+    const pipeline: IDashboardPipelineColumn[] = [
+      { key: "pending", label: "Pending Acceptance", statuses: [BookingStatus.REQUESTED, BookingStatus.ACCEPTED], bookings: bookings.filter((b) => ["REQUESTED", "ACCEPTED"].includes(b.booking.status)) },
+      { key: "confirmed", label: "Confirmed", statuses: [BookingStatus.HELD], bookings: bookings.filter((b) => b.booking.status === "HELD") },
+      { key: "in-progress", label: "In Progress", statuses: [BookingStatus.IN_PROGRESS], bookings: bookings.filter((b) => b.booking.status === "IN_PROGRESS") },
+      { key: "completed", label: "Completed", statuses: [BookingStatus.RELEASED], bookings: bookings.filter((b) => b.booking.status === "RELEASED") },
+    ];
+
+    const paymentHistory: IClientPaymentRecord[] = this.getMockBookings()
+      .filter((b) => b.clientId === "mock-client-1")
+      .filter((b) => b.paystackRef)
+      .map((b) => ({
+        id: `mock-payment-${b.id}`,
+        bookingId: b.id,
+        providerId: b.providerId,
+        providerName: this.mockProviderNames[b.providerId] ?? "Mock Provider",
+        packageLabel: this.mockPackageLabels[b.packageId] ?? "Standard Package",
+        amount: b.total,
+        fee: b.fee,
+        netAmount: b.total - b.fee,
+        status: b.status,
+        paystackRef: b.paystackRef ?? "mock-ref",
+        createdAt: b.createdAt,
+      }))
+      .sort((a, b2) => b2.createdAt.localeCompare(a.createdAt));
+
+    const stats = [
+      { value: "2", rawValue: 2, label: "Active Bookings", sub: "1 in progress", subTone: "success" as const },
+      { value: "₦210,000", rawValue: 21000000, label: "Total Spent (30d)", sub: "₦157,500 across 2 bookings", subTone: "tertiary" as const },
+      { value: "4", rawValue: 4, label: "Messages", sub: "1 unread", subTone: "accent" as const },
+    ];
+
+    return {
+      role: "CLIENT",
+      stats,
+      pipeline,
+      paymentHistory,
+      discover: this.getExploreProviders().slice(0, 4),
+    };
   }
 }
