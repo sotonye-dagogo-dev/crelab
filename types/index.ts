@@ -349,6 +349,19 @@ export interface IWalletConfig {
   maxDvaAccounts: number;
 }
 
+export interface IMediaUploadConfig {
+  /** Master switch — admin can disable all direct media uploads */
+  enabled: boolean;
+  /** Toggle Cloudinary-powered direct uploads. When off, only paste-link mode is offered */
+  cloudinaryEnabled: boolean;
+  /** Maximum accepted file size in MB */
+  maxFileSizeMb: number;
+  /** Accepted video MIME types */
+  videoTypes: string[];
+  /** Accepted image MIME types */
+  imageTypes: string[];
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
@@ -362,6 +375,7 @@ export interface IPlatformConfig {
   features: IFeatureFlags;
   milestonePayments: IMilestonePaymentsConfig;
   wallet: IWalletConfig;
+  mediaUpload?: IMediaUploadConfig;
   emailConfig?: IEmailConfig;
   devCredit?: IDevCredit;
 }

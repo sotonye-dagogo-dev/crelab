@@ -3,7 +3,11 @@ import { db } from "@/lib/db";
 import { providers, servicePackages } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { DriveService } from "@/services/DriveService";
+import { buildProviderSlug } from "@/lib/slug";
 import { ExperienceLevel } from "@/types";
+
+const VALID_TIERS = ["BASIC", "STANDARD", "PREMIUM"] as const;
 
 export async function POST(req: Request) {
   try {
@@ -47,8 +51,42 @@ export async function POST(req: Request) {
       );
     }
 
+    if (packages.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "At least one service package is required" },
+        { status: 400 },
+      );
+    }
+
+    for (const pkg of packages) {
+      if (!VALID_TIERS.includes(pkg.tier)) {
+        return NextResponse.json(
+          { success: false, error: `Invalid package tier: ${pkg.tier}` },
+          { status: 400 },
+        );
+      }
+      if (!Number.isInteger(pkg.price) || pkg.price <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Package "${pkg.label}" price must be a positive amount`,
+          },
+          { status: 400 },
+        );
+      }
+      if (!Number.isInteger(pkg.turnaroundDays) || pkg.turnaroundDays <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Package "${pkg.label}" turnaround days must be positive`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     const providerId = crypto.randomUUID();
-    const slug = `${session.user.name?.toLowerCase().replace(/\s+/g, "-")}--${providerId.slice(0, 8)}`;
+    const slug = buildProviderSlug(session.user.name ?? "provider", providerId);
 
     const fields = categoryFields as Record<string, unknown> | undefined;
 
@@ -80,11 +118,32 @@ export async function POST(req: Request) {
       });
     }
 
+    let driveSync: { ok: boolean; message?: string } | null = null;
+    if (driveFolderUrl && typeof driveFolderUrl === "string") {
+      try {
+        const driveService = new DriveService();
+        const result = await driveService.ingestFolder(providerId, driveFolderUrl);
+        driveSync = {
+          ok: true,
+          message: `${result.added} item(s) synced from Drive`,
+        };
+      } catch (driveErr) {
+        driveSync = {
+          ok: false,
+          message:
+            driveErr instanceof Error
+              ? driveErr.message
+              : "Drive folder could not be synced",
+        };
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: { id: providerId, slug },
+      data: { id: providerId, slug, driveSync },
     });
   } catch (err) {
+    console.error("Profile setup failed:", err);
     return NextResponse.json(
       {
         success: false,

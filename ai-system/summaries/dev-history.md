@@ -109,3 +109,23 @@ Buttons running network/async operations gave no in-flight feedback and were re-
 
 ### Status
 Pass — typecheck clean, 92 tests pass, lint has no new warnings, production build passes.
+
+## Sprint 2026-08-09 — Alpha Testing Feedback Fixes
+
+### What
+Addressed the four concerns from the first-time alpha tester: no direct media upload option, broken Google Drive connect during onboarding, prices displaying ×100 too high at the review step (₦75,000 → ₦7,500,000), and a 404 after the final Create Account action.
+
+### Why
+The onboarding wizard only offered raw "Cloudinary URL" text inputs (no upload affordance), the Drive sync call ran before a provider row existed (→ 404 "Provider profile not found"), the step-5 preview double-converted naira→kobo, and provider slugs truncated UUIDs to 8 chars which the profile page then compared with an exact `eq()` — never matching → `notFound()`.
+
+### Key Changes
+- **Pricing**: new `lib/currency.ts` (`nairaToKobo`, `formatNaira`, `formatKobo`); review preview displays entered naira correctly
+- **Slug/404**: new `lib/slug.ts` (`buildProviderSlug`, `parseProviderSlug`); profile page resolves with prefix `LIKE` + last-`--` parsing; sitemap/ExploreService/setup API share the builder
+- **Cloudinary pipeline**: `mediaUpload` config block; `lib/cloudinary.ts` reads env at call time + `isCloudinaryConfigured()`; `POST /api/media/upload` (auth/config/env/type-size checks) and `GET /api/media/status`
+- **MediaUpload component**: "Upload your work or provide a link" — Cloudinary upload tab + paste-link tab; link-only fallback when Cloudinary unavailable
+- **Drive onboarding**: `DriveConnectSettings` `mode="collect"` (validate + save URL only); setup API ingests Drive server-side post-creation (non-fatal)
+- **Feedback**: success toast on publish; Drive-sync warning toast; redirect lands on live profile
+- **Tests**: 12 new (`media`, `slug`, `currency`, `cloudinary`)
+
+### Status
+Pass — typecheck clean, 124 tests pass, lint has no new warnings, production build passes.

@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system (Session 17)
+> - last-verified-against-code: 2026-08-09
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -57,6 +57,7 @@ crelab/
 │       ├── cron/           # Escrow cron endpoints
 │       ├── explore/        # Provider search/filter/sort
 │       ├── milestones/     # Milestone CRUD
+│       ├── media/          # Media upload (Cloudinary proxy) + capability status
 │       ├── email/          # Email sending endpoints (welcome, booking, payment)
 │       ├── portfolio/      # Portfolio CRUD
 │       ├── profile/        # Profile management (setup)
@@ -65,7 +66,7 @@ crelab/
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput added)
 │   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard
-│   ├── profile/            # ProviderHero, PortfolioGrid, ServicePackages, etc.
+│   ├── profile/            # ProviderHero, PortfolioGrid, ServicePackages, MediaUpload, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
 │   ├── blog/               # ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar
 │   ├── admin/              # AdminSidebar, CategoryModal, ConfigField, TeamMemberModal, BatchOperations
@@ -94,14 +95,17 @@ crelab/
 ├── lib/
 │   ├── auth.ts             # Better Auth instance + getSession/requireAuth/requireRole
 │   ├── blog-fallback.ts    # Hardcoded fallback blog posts when Sanity is unavailable
-│   ├── cloudinary.ts       # Video/image upload, thumbnail generation
+│   ├── cloudinary.ts       # Video/image upload, thumbnail generation, env availability guard
 │   ├── config-context.tsx  # PlatformConfig React context provider
 │   ├── consent.ts          # NDPR consent capture server action
+│   ├── currency.ts         # Money helpers: nairaToKobo, formatNaira, formatKobo
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
+│   ├── media.ts            # Media file/URL validation helpers (type, size, link)
 │   ├── mux.ts              # Mux streaming (stub — not wired)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
 │   ├── paystack.ts         # Init transaction, verify webhook, split, refund, DVA, transfer
+│   ├── slug.ts             # Provider slug build/parse helpers (`name--id-prefix`)
 │   ├── sanity.ts           # Sanity CMS client + helpers
 │   ├── theme-context.tsx   # Theme provider (System/Light/Dark) + useTheme hook
 │   └── toast.tsx           # Toast notification component
@@ -141,11 +145,11 @@ crelab/
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `slug.ts`, `currency.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (463 lines, 14 tables + 6 enums + relations), `migrations/` |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
-| `__tests__/` | Vitest test files for all services | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `oauth.test.ts` |
+| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts` |
 
 ---
 

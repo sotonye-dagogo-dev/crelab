@@ -1,8 +1,8 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-updated-by: update-ai-system (Session 17)
+> - last-verified-against-code: 2026-08-09
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -87,3 +87,4 @@
 - [x] Better Auth Dash plugin + Supabase schema sync — DB tables applied, all auth endpoints verified
 - [x] DB Seed System — 10 users via Better Auth API (working passwords), 100+ seed records, rollback with FK-safe cascade
 - [x] Prototype Interactivity — mock data mode enabled, profile page mock fallback, 6 blog fallback posts, team member seeding
+- [x] Alpha Testing Fixes (2026-08-09) — pricing display ×100 bug, post-signup 404 (slug prefix resolution), config-driven Cloudinary media upload pipeline with env availability guard, Drive collect-mode onboarding + post-create ingest
