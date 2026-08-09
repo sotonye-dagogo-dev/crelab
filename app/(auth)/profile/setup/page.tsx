@@ -6,7 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { ClButton, ClInput, ClTextarea, ClSelect } from "@/components/ui";
 import { ExploreVideoCard } from "@/components/shared/ExploreVideoCard";
 import { DriveConnectSettings } from "@/components/profile/DriveConnectSettings";
+import { MediaUpload } from "@/components/profile/MediaUpload";
 import { usePlatformConfig } from "@/lib/config-context";
+import { useToast } from "@/lib/toast";
+import { nairaToKobo, formatNaira } from "@/lib/currency";
 import { Check, X } from "lucide-react";
 import type { IFieldSchemaField, IPortfolioItem } from "@/types";
 
@@ -54,10 +57,10 @@ export default function ProfileSetupPage() {
   const { user, isLoading } = useAuth();
 
   const [state, setState] = useState<OnboardingState>(initialState);
-  const [showDriveSettings, setShowDriveSettings] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const platformConfig = usePlatformConfig();
+  const { toast } = useToast();
 
   const categories = platformConfig.categories.filter((c) => c.active);
 
@@ -174,7 +177,7 @@ export default function ProfileSetupPage() {
       const packages = state.packages.map((pkg, i) => ({
         tier: tierLabels[i] as "BASIC" | "STANDARD" | "PREMIUM",
         label: pkg.label,
-        price: Math.round(parseFloat(pkg.price) * 100),
+        price: nairaToKobo(parseFloat(pkg.price)),
         deliverables: pkg.deliverables
           .split("\n")
           .map((d) => d.trim())
@@ -202,6 +205,16 @@ export default function ProfileSetupPage() {
       }
 
       localStorage.removeItem(STORAGE_KEY);
+
+      if (json.data?.driveSync && !json.data.driveSync.ok) {
+        toast(
+          `Profile published, but Drive sync was skipped: ${json.data.driveSync.message ?? "please add your Drive folder later"}.`,
+          "info",
+        );
+      } else {
+        toast("Profile published! Your profile is now live.", "success");
+      }
+
       router.push(`/profile/${json.data.slug}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -415,42 +428,42 @@ export default function ProfileSetupPage() {
           </div>
         )}
 
-        {/* Step 4: Upload */}
+        {/* Step 4: Media */}
         {state.step === 4 && (
           <div className="flex flex-col gap-6">
             <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
               <h3 className="font-[family-name:var(--font-display)] font-bold text-[15px] text-[var(--color-text-primary)] mb-3">
-                Cover Video
+                Add Your Work
               </h3>
-              <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">
-                Upload a short video that represents your work (this will appear at the top of your profile).
+              <p className="text-[13px] text-[var(--color-text-secondary)] mb-4">
+                Upload your work directly or provide a link — either works. No
+                need to worry about the storage technology underneath.
               </p>
-              <ClInput
-                placeholder="Cloudinary video URL"
-                value={state.coverVideoUrl}
-                onChange={(e) => updateState({ coverVideoUrl: e.target.value })}
-              />
-            </div>
 
-            <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-              <h3 className="font-[family-name:var(--font-display)] font-bold text-[15px] text-[var(--color-text-primary)] mb-3">
-                Profile Photo
-              </h3>
-              <ClInput
-                placeholder="Cloudinary image URL"
-                value={state.avatarUrl}
-                onChange={(e) => updateState({ avatarUrl: e.target.value })}
-              />
+              <div className="flex flex-col gap-4">
+                <MediaUpload
+                  label="Cover Video"
+                  accept="video"
+                  hint="A short video that represents your work. This appears at the top of your profile."
+                  value={state.coverVideoUrl}
+                  onChange={(url) => updateState({ coverVideoUrl: url })}
+                />
+
+                <MediaUpload
+                  label="Profile Photo"
+                  accept="image"
+                  hint="A clear photo of you (or your brand). This appears next to your name."
+                  value={state.avatarUrl}
+                  onChange={(url) => updateState({ avatarUrl: url })}
+                />
+              </div>
             </div>
 
             <DriveConnectSettings
               currentUrl={state.driveFolderUrl || null}
               providerId="pending"
-              onStateChange={(driveState) => {
-                if (driveState === "SYNCED") {
-                  setShowDriveSettings(true);
-                }
-              }}
+              mode="collect"
+              onUrlChange={(url) => updateState({ driveFolderUrl: url })}
             />
 
             <div className="flex gap-3">
@@ -500,10 +513,9 @@ export default function ProfileSetupPage() {
                         {tierLabels[i]}
                       </p>
                       <p className="font-bold text-[var(--color-text-primary)] mt-1">
-                        ₦
                         {pkg.price
-                          ? (parseFloat(pkg.price) * 100).toLocaleString()
-                          : "0"}
+                          ? formatNaira(parseFloat(pkg.price))
+                          : "₦0"}
                       </p>
                     </div>
                   ))}

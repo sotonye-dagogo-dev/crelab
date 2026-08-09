@@ -1,0 +1,81 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { uploadFile, CloudinaryNotConfiguredError } from "@/lib/cloudinary";
+import { isMediaFileAllowed } from "@/lib/media";
+
+export async function POST(req: Request) {
+  try {
+    const session = await auth.api.getSession({ headers: req.headers });
+
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    let config;
+    try {
+      config = await PlatformConfigService.getCached();
+    } catch {
+      config = DEFAULT_CONFIG;
+    }
+
+    const mediaUpload = config.mediaUpload ?? DEFAULT_CONFIG.mediaUpload!;
+
+    if (!mediaUpload.enabled) {
+      return NextResponse.json(
+        { success: false, error: "Media uploads are currently disabled" },
+        { status: 403 },
+      );
+    }
+
+    if (!mediaUpload.cloudinaryEnabled) {
+      return NextResponse.json(
+        { success: false, error: "Direct uploads are disabled. Please paste a link instead." },
+        { status: 403 },
+      );
+    }
+
+    const formData = await req.formData();
+    const file = formData.get("file");
+
+    if (!(file instanceof File)) {
+      return NextResponse.json(
+        { success: false, error: "file is required" },
+        { status: 400 },
+      );
+    }
+
+    const validation = isMediaFileAllowed(file, mediaUpload);
+    if (!validation.ok) {
+      return NextResponse.json(
+        { success: false, error: validation.reason ?? "Invalid file" },
+        { status: 400 },
+      );
+    }
+
+    const result = await uploadFile(file, file.type);
+
+    return NextResponse.json({ success: true, data: result });
+  } catch (err) {
+    if (err instanceof CloudinaryNotConfiguredError) {
+      return NextResponse.json(
+        { success: false, error: "Direct upload is not available. Please paste a link instead." },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : "Internal server error",
+      },
+      { status: 500 },
+    );
+  }
+}

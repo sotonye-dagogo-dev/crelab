@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { db } from "@/lib/db";
 import { providers } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { buildProviderSlug } from "@/lib/slug";
 
 async function getBlogSlugs(): Promise<{ slug: string }[]> {
   try {
@@ -45,7 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from(providers)
       .where(eq(providers.active, true));
     profilePages = rows.map((row) => {
-      const slug = `${row.displayName.toLowerCase().replace(/\s+/g, "-")}-${row.id.slice(0, 8)}`;
+      const slug = buildProviderSlug(row.displayName, row.id);
       return {
         url: `${baseUrl}/profile/${slug}`,
         lastModified: row.updatedAt,

@@ -660,3 +660,41 @@ Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications
 **Notes / Blockers:**
 - Antivirus / security scanner flag (stakeholder-reported RAV Endpoint Protection "malicious URL detected") is noted but there is no actionable code fix — see final summary.
 - `npm install` was run to verify typecheck/build/tests; `package-lock.json` incidental changes were reverted (no dependency changes).
+
+---
+
+## Session 17 — 2026-08-09 (Execute Feature — Alpha Testing Feedback Fixes)
+
+**Completed:**
+Resolved the four issues raised by the in-house alpha tester: no direct media upload option, inactive/broken Google Drive connect during onboarding, wrong pricing display at the review step, and a 404 after the final "Create Account" action.
+
+1. **Pricing display fix** — The step-5 review preview multiplied the naira price by 100 again (`(parseFloat(pkg.price) * 100)`), showing ₦75,000 as ₦7,500,000. Now uses `formatNaira(nairaToKobo(...))` via the new `lib/currency.ts` helpers (single conversion point; kobo stored, naira displayed).
+2. **404 on post-signup redirect** — Provider slugs are `name--first8UUIDchars`, but the profile page did `eq(providers.id, first8chars)` on a full 36-char UUID → never matched → `notFound()`. Now resolves via prefix `LIKE` match and robust last-`--` parsing. Also fixed `app/sitemap.ts` which used a single `-` separator. Extracted `lib/slug.ts` (`buildProviderSlug`/`parseProviderSlug`) used by the setup API, sitemap, ExploreService, and profile page.
+3. **Config-driven Cloudinary pipeline** — Added `mediaUpload` config block (`enabled`, `cloudinaryEnabled`, `maxFileSizeMb`, `videoTypes`, `imageTypes`) to `IPlatformConfig` + defaults. Hardened `lib/cloudinary.ts`: env vars read at call time, `isCloudinaryConfigured()` + `CloudinaryNotConfiguredError`, server-side `uploadFile()` helper. New `POST /api/media/upload` (auth + config + env + type/size validation) and public `GET /api/media/status`.
+4. **Media upload UX** — New `components/profile/MediaUpload.tsx` ("Upload your work or provide a link"): Upload tab (Cloudinary file upload with progress/error/success preview) + Paste-link tab (Google Drive or any public URL). Gracefully falls back to link-only when Cloudinary is unconfigured or disabled.
+5. **Google Drive handling during onboarding** — Root cause: the wizard called the live sync endpoint before a provider row existed (→ 404 "Provider profile not found"), so Drive connect was always broken in onboarding. Added `mode="collect"` to `DriveConnectSettings` (validates + saves the folder URL only). The setup API now ingests the Drive folder server-side after creating the provider (non-fatal on failure).
+6. **Success/failure feedback** — Publish now shows a success toast; a Drive-sync failure surfaces an info toast while still publishing. Post-publish redirect now lands on the (working) profile page.
+
+**Files Modified/Created:**
+- `app/(auth)/profile/setup/page.tsx`
+- `app/(public)/profile/[slug]/page.tsx`
+- `app/sitemap.ts`
+- `app/api/profile/setup/route.ts`
+- `components/profile/DriveConnectSettings.tsx`
+- `components/profile/MediaUpload.tsx` (new)
+- `app/api/media/upload/route.ts` (new)
+- `app/api/media/status/route.ts` (new)
+- `lib/cloudinary.ts`
+- `lib/media.ts` (new)
+- `lib/slug.ts` (new)
+- `lib/currency.ts` (new)
+- `config/platform.config.ts`
+- `types/index.ts`
+- `services/ExploreService.ts`
+- `__tests__/media.test.ts`, `__tests__/slug.test.ts`, `__tests__/currency.test.ts`, `__tests__/cloudinary.test.ts` (new)
+- `ai-system/planning/task-queue.md`, `ai-system/summaries/dev-history.md`, `ai-system/checkpoints/session-log.md`, `ai-system/checkpoints/in-progress.md`, `ai-system/repair-system.md`, `ai-system/system-architecture.md`
+
+**Build Status:** ✅ Production build passes. TypeScript compiles with zero errors. ESLint passes (only pre-existing warnings elsewhere). 124 tests pass (112 existing + 12 new).
+
+**Next Task:**
+Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.

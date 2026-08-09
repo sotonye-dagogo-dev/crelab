@@ -1,8 +1,8 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: execute-feature (Session 17)
+> - last-verified-against-code: 2026-08-09
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -70,6 +70,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Alpha testing fixes: pricing display (×100), onboarding 404, media upload (Cloudinary) pipeline, Drive collect-mode onboarding | 2026-08-09 |
 | Google OAuth sign-up flow: register-page button, `?oauth=done` finalize (role + consent), `/api/auth/role`, seamless `/profile/setup` handoff | 2026-08-05 |
 | DB seed system (scripts/seed.ts, scripts/seed-rollback.ts) — working auth passwords via Better Auth API | 2026-07-22 |
 | drizzle-kit push: schema synced to Supabase (14 tables, enums, relations) | 2026-07-21 |

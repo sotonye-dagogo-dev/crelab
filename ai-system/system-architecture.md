@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: execute-feature (Session 17)
+> - last-verified-against-code: 2026-08-09
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -117,6 +117,21 @@ Data Stores
 8. Daily cron: DriveService.syncAll() for all providers with drive_folder_url
 ```
 
+### Media Upload (Cloudinary) Flow
+```
+1. MediaUpload component fetches GET /api/media/status -> { enabled, cloudinaryConfigured, maxFileSizeMb, videoTypes, imageTypes }
+2. Cloudinary available (config mediaUpload.enabled+cloudinaryEnabled AND NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET):
+   -> Upload tab shown; file POSTed to /api/media/upload (auth + config + env + type/size validation)
+   -> uploadFile() uploads via unsigned preset -> { url, thumbnailUrl, mimeType, resourceType }
+3. Cloudinary unavailable: upload tab hidden, paste-link tab offered ("Direct upload is temporarily unavailable")
+4. Pasted URLs (Drive link or any public link) validated with isValidMediaUrl()
+5. Cover video / avatar URLs stored via onboarding state -> /api/profile/setup -> providers.coverVideoUrl / avatarUrl
+6. Drive folder during onboarding is collect-only; DriveService.ingestFolder() runs server-side after provider creation
+```
+
+### Provider Slug Resolution
+Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug.ts`). Because the id prefix is NOT the full stored id, the public profile page resolves with a prefix `LIKE` query (`providers.id LIKE 'prefix%'`), never an exact `eq()`. Consumers: profile page, ExploreService, sitemap, profile setup API.
+
 ---
 
 ### Database Seeding Flow
@@ -202,6 +217,16 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-08-09 — Alpha Testing Feedback Fixes
+- `lib/currency.ts` (new): `nairaToKobo` / `formatNaira` / `formatKobo` — single money conversion point; onboarding review preview no longer ×100's entered naira
+- `lib/slug.ts` (new): `buildProviderSlug` / `parseProviderSlug`; profile page resolves slugs with prefix `LIKE` + last-`--` parsing (fixes 404 for real UUID providers); sitemap separator corrected
+- `lib/cloudinary.ts`: env read at call time, `isCloudinaryConfigured()`, `CloudinaryNotConfiguredError`, server-side `uploadFile()`; `lib/media.ts` (new): type/size/URL validation helpers
+- `app/api/media/upload/route.ts` (new): authenticated, config- and env-gated upload; `app/api/media/status/route.ts` (new): public upload capability status
+- `components/profile/MediaUpload.tsx` (new): "Upload your work or provide a link" — Cloudinary upload tab + paste-link tab with graceful fallback
+- `components/profile/DriveConnectSettings.tsx`: `mode="collect"` for onboarding (validate + save URL only; live sync needs an existing provider)
+- `app/api/profile/setup/route.ts`: server-side Drive ingest after provider creation (non-fatal), package validation, uses shared slug builder
+- `app/(auth)/profile/setup/page.tsx`: step 4 uses MediaUpload + collect Drive; success/warning toasts on publish
 
 ### 2026-08-05 — Google OAuth in Sign-Up + Onboarding Handoff
 - `lib/oauth.ts` (new): callback URL constants, OAuth return detection, self-assignable role guard (CLIENT/PROVIDER only), open-redirect-safe post-signup route resolution

@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { providers, portfolioItems, servicePackages, reviews, user, bookings } from "@/drizzle/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, like } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { MockDataService } from "@/services/MockDataService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { parseProviderSlug } from "@/lib/slug";
 import { ProviderHero } from "@/components/profile/ProviderHero";
 import { PortfolioGrid } from "@/components/profile/PortfolioGrid";
 import { DrivePortfolioSection } from "@/components/profile/DrivePortfolioSection";
@@ -23,15 +24,15 @@ async function getProvider(slug: string) {
   const mock = MockDataService.getMockProviderBySlug(slug);
   if (mock) return mock;
 
-  const parts = slug.split("--");
-  if (parts.length !== 2) return null;
-  const idPrefix = parts[1];
+  const parsed = parseProviderSlug(slug);
+  if (!parsed) return null;
+  const idPrefix = parsed.idPrefix;
 
   try {
     const provider = await db
       .select()
       .from(providers)
-      .where(and(eq(providers.id, idPrefix), eq(providers.active, true)))
+      .where(and(like(providers.id, `${idPrefix}%`), eq(providers.active, true)))
       .then((rows) => rows[0]);
 
     if (!provider) return null;
