@@ -1,7 +1,7 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 17)
+> - last-updated-by: update-ai-system (Session 18)
 > - last-verified-against-code: 2026-08-09
 > - staleness-policy: re-verify if project scope or phase changes
 
@@ -56,8 +56,8 @@
 
 - [ ] In-platform messaging (post-booking-acceptance, Supabase Realtime)
 - [ ] Notifications: email (Resend) + in-app notification centre
-- [ ] Provider dashboard: earnings, kanban booking pipeline, availability calendar, portfolio performance
-- [ ] Client dashboard: active bookings, booking history, payment history
+- [x] Provider dashboard: earnings, kanban booking pipeline, availability calendar, portfolio performance
+- [x] Client dashboard: active bookings, booking history, payment history
 - [ ] Reviews & ratings: mutual post-service, "Verified Booking" badge
 - [ ] Pricing guidance widget: anonymised aggregate rates by category
 - [ ] Identity verification: BVN/NIN check via Dojah or Smile Identity
@@ -88,3 +88,4 @@
 - [x] DB Seed System — 10 users via Better Auth API (working passwords), 100+ seed records, rollback with FK-safe cascade
 - [x] Prototype Interactivity — mock data mode enabled, profile page mock fallback, 6 blog fallback posts, team member seeding
 - [x] Alpha Testing Fixes (2026-08-09) — pricing display ×100 bug, post-signup 404 (slug prefix resolution), config-driven Cloudinary media upload pipeline with env availability guard, Drive collect-mode onboarding + post-create ingest
+- [x] Provider & Client Dashboards (2026-08-09) — DashboardService + /api/dashboard + role-aware /dashboard page; provider earnings/kanban pipeline/availability/portfolio performance; client pipeline/payment history/discover rail; mock fallback + 15 tests

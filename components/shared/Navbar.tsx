@@ -10,6 +10,7 @@ import { ThemeToggler } from "./ThemeToggler";
 
 const navLinks = [
   { href: "/", label: "Explore" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/blog", label: "Blog" },
   { href: "/team", label: "Team" },
 ];
@@ -22,7 +23,8 @@ export function Navbar() {
 
   const isAdmin = pathname.startsWith("/admin");
   const visibleLinks = navLinks.filter(
-    (l) => l.href !== "/blog" || features?.blogEnabled !== false,
+    (l) =>
+      l.href !== "/blog" || features?.blogEnabled !== false,
   );
 
   useEffect(() => {
@@ -77,9 +79,9 @@ export function Navbar() {
         <div className="hidden sm:flex items-center gap-3">
           {isAuthenticated ? (
             <Link
-              href="/profile"
+              href="/dashboard"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-transparent bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]">
-              Profile
+              Dashboard
             </Link>
           ) : (
             <>
@@ -143,9 +145,9 @@ export function Navbar() {
 
         {isAuthenticated ? (
           <Link
-            href="/profile"
+            href="/dashboard"
             className="inline-flex h-12 w-[200px] items-center justify-center gap-2 rounded-[8px] border border-transparent bg-[var(--color-accent)] px-6 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]">
-            Profile
+            Dashboard
           </Link>
         ) : (
           <>

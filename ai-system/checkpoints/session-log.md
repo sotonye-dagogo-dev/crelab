@@ -698,3 +698,35 @@ Resolved the four issues raised by the in-house alpha tester: no direct media up
 
 **Next Task:**
 Provider Dashboard, Client Dashboard, Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.
+
+---
+
+## Session 18 — 2026-08-09 (Execute Feature — Provider & Client Dashboards)
+
+**Completed:**
+Built the Phase 2 role-aware dashboard surface: a single `/dashboard` route backed by one API endpoint serving either role's payload, with full mock fallback and 15 new tests.
+
+1. **Types** — New `types/dashboard.ts`: `IProviderDashboard`, `IClientDashboard`, `IDashboardStat`, `IDashboardPipelineColumn`, `IDashboardAvailabilitySlot`, `IPortfolioPerformanceRow`, `IClientPaymentRecord`, `IProfileCompleteness`; re-exported via `types/index.ts`.
+2. **`services/DashboardService.ts`** — Role-aware query layer: provider stats/earnings (integer kobo), 4-column booking pipeline, profile completeness, config-driven availability slots, client payment history (newest-first, `netAmount = amount - fee`), discover rail via ExploreService. Static `PROVIDER_COLUMNS`/`CLIENT_COLUMNS` are the single source of truth for status→stage mapping, shared by the real query and mock fallback so shapes can't drift. Graceful MockDataService fallback on DB errors.
+3. **`services/MockDataService.ts`** — Added `getMockProviderDashboard`, `getMockClientDashboard`, `getMockAvailability`, `getMockPortfolioPerformance`, `getMockWorkHistoryForProvider`; empty-safe shapes when mock mode is off; completeness percent derived with the same rounding as the real service.
+4. **`app/api/dashboard/route.ts`** — Single `GET` endpoint, 401 when unauthenticated, serves provider or client payload by session role.
+5. **`app/(auth)/dashboard/`** — Server page + `DashboardClient` (role switch via `useRole`, refetch on change) + `components/`: `ProviderDashboardView`, `ClientDashboardView`, `PipelineColumn`, `StatCard`, `ProfileCompleteness`, `AvailabilityCalendar`, `PaymentHistoryList`, `DiscoverRail`.
+6. **Navbar** — Brand + Dashboard link rendered for authenticated users in both nav variants; `/dashboard` added to the middleware-protected route list.
+7. **Config** — `dashboard.availabilityLookaheadDays` (30) + `dashboard.quickActions` keys, DB-overridable like the rest of `platform.config.ts`.
+8. **Tests** — `__tests__/services/DashboardService.test.ts` (15 tests): each provider status maps to exactly one pipeline stage, active client statuses covered, mock dashboard shapes, kobo integer invariants, sorted payment history, empty-safe fallback shapes.
+
+**Files Modified/Created:**
+- `types/dashboard.ts` (new), `types/index.ts`
+- `services/DashboardService.ts` (new), `services/MockDataService.ts`
+- `app/api/dashboard/route.ts` (new)
+- `app/(auth)/dashboard/page.tsx`, `DashboardClient.tsx`, `components/` (new)
+- `components/shared/Navbar.tsx`
+- `config/platform.config.ts`
+- `__tests__/services/DashboardService.test.ts` (new)
+- `tsconfig.json` (removed TS7-removed `baseUrl`)
+- `ai-system/index/repo-map.md`, `ai-system/index/dependency-graph.md`, `ai-system/system-architecture.md`, `ai-system/planning/project-plan.md`, `ai-system/planning/task-queue.md`, `ai-system/summaries/dev-history.md`, `ai-system/memory/lessons-learned.md`, `ai-system/checkpoints/session-log.md`
+
+**Build Status:** ✅ Production build passes (incl. `/dashboard`). TypeScript compiles with zero errors. ESLint passes (no new warnings). 140 tests pass (125 existing + 15 new).
+
+**Next Task:**
+Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.

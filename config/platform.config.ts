@@ -149,6 +149,9 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     videoTypes: ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"],
     imageTypes: ["image/jpeg", "image/png", "image/webp"],
   },
+  dashboard: {
+    availabilityLookaheadDays: 30,
+  },
   emailConfig: {
     fromName: "Crellab",
     fromEmail: "noreply@crellab.com",

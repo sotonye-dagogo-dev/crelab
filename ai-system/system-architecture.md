@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 17)
+> - last-updated-by: update-ai-system (Session 18)
 > - last-verified-against-code: 2026-08-09
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -30,6 +30,7 @@ Service Layer (services/)
     |-- PaymentService          -- Paystack integration, subaccount split
     |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
     |-- ExploreService          -- Provider search, filter, sort, cursor pagination
+    |-- DashboardService        -- Role-aware Provider/Client dashboards (pipeline, stats, availability, payments)
     |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
     |-- MockDataService         -- Mock data fallback when DB unavailable
@@ -56,7 +57,7 @@ Data Stores
 | Module | Responsibility | Key Files | Dependencies |
 |--------|---------------|-----------|--------------|
 | Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search | `app/(public)/` | Components, Services |
-| Auth Routes | Authenticated pages: booking, profile/edit, register, login | `app/(auth)/` | AuthGate, Services |
+| Auth Routes | Authenticated pages: dashboard, booking, profile/edit, register, login | `app/(auth)/` | AuthGate, Services |
 | Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, email templates | `app/admin/` | requireRole('ADMIN'), Services |
 | API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, webhooks, cron | `app/api/` | Services, Lib |
 | UI Wrappers | Cl* wrappers around shadcn/ui primitives | `components/ui/` | shadcn/ui, Tailwind |
@@ -210,13 +211,22 @@ DB seeding via `scripts/seed.ts` + `scripts/seed-rollback.ts` provides reproduci
 Files not yet implemented despite being in the planned architecture:
 - `services/ReviewService.ts` (interface exists but no implementation)
 - `lib/mux.ts` (Mux streaming integration stubbed but not wired)
-- Provider Dashboard (Phase 2)
-- Client Dashboard (Phase 2)
 - Messages/notifications (Phase 2)
 
 ---
 
 ## Recent Changes
+
+### 2026-08-09 — Provider & Client Dashboards
+- `types/dashboard.ts` (new): `IProviderDashboard`, `IClientDashboard`, `IDashboardStat`, `IDashboardPipelineColumn`, `IDashboardAvailabilitySlot`, `IPortfolioPerformanceRow`, `IClientPaymentRecord`, `IProfileCompleteness` — re-exported from `types/index.ts`
+- `services/DashboardService.ts` (new): role-aware dashboard query layer — provider stats/earnings (kobo), 4-column booking pipeline, completeness profile, availability slots (config-driven lookahead), client payment history, discover rail; static `PROVIDER_COLUMNS` / `CLIENT_COLUMNS` hold the pipeline stage→status mappings; MockDataService fallback when DB unavailable
+- `services/MockDataService.ts`: added `getMockProviderDashboard`, `getMockClientDashboard`, `getMockAvailability`, `getMockPortfolioPerformance`, `getMockWorkHistoryForProvider`
+- `app/api/dashboard/route.ts` (new): single authenticated endpoint serving either role's dashboard payload
+- `app/(auth)/dashboard/page.tsx` (new) + `DashboardClient.tsx` + `components/` (ProviderDashboardView, ClientDashboardView, PipelineColumn, StatCard, ProfileCompleteness, AvailabilityCalendar, PaymentHistoryList, DiscoverRail): role-switching via `useRole`, refetch on role change
+- `components/shared/Navbar.tsx`: brand + Dashboard link now render for authenticated users in both nav variants
+- `config/platform.config.ts`: `dashboard.availabilityLookaheadDays` + `dashboard.quickActions` config keys (DB-overridable)
+- `__tests__/services/DashboardService.test.ts` (new): 15 tests — column definitions (each status maps to exactly one provider stage, active statuses covered on client side), mock dashboard shapes, kobo integer invariants, sorted payment history, empty-safe fallback shapes
+- `tsconfig.json`: removed removed-in-TS7 `baseUrl` (paths already resolve relative to tsconfig)
 
 ### 2026-08-09 — Alpha Testing Feedback Fixes
 - `lib/currency.ts` (new): `nairaToKobo` / `formatNaira` / `formatKobo` — single money conversion point; onboarding review preview no longer ×100's entered naira

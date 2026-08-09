@@ -26,6 +26,7 @@ const configFields = [
   { key: "features.googleDriveSync", label: "Google Drive Sync", type: "toggle" as const, section: "Features" },
   { key: "features.blogEnabled", label: "Blog", type: "toggle" as const, section: "Features" },
   { key: "features.emailNotifications", label: "Email Notifications", type: "toggle" as const, section: "Features" },
+  { key: "dashboard.availabilityLookaheadDays", label: "Availability Calendar Days", type: "number" as const, section: "Features", unit: "days" },
   { key: "emailConfig.fromName", label: "Email From Name", type: "text" as const, section: "Email" },
   { key: "emailConfig.fromEmail", label: "Email From Address", type: "text" as const, section: "Email" },
 ];
