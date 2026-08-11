@@ -1,7 +1,7 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 19)
+> - last-updated-by: update-ai-system (Session 20)
 > - last-verified-against-code: 2026-08-11
 > - staleness-policy: re-verify before each session
 
@@ -42,7 +42,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [M] | Provider Dashboard (full) with earnings, kanban pipeline, availability calendar | [x] |
 | [M] | Client Dashboard: active bookings, booking history, payment history | [x] |
 | [L] | In-platform messaging (Phase 2) | [ ] |
-| [M] | Notifications: email (Resend) done; in-app notification centre (Phase 2) | [~] |
+| [M] | Email (Resend) made operational — default flag, health route, env, tests (in-app notification centre remains Phase 2, per Session 20 decision) | [x] |
 | [M] | Provider Onboarding Wizard UI | [x] |
 | [M] | Prototype interactivity: mock data, profile fallback, blog fallback | [x] |
 | [S] | Seed team_members in seed script | [x] |
@@ -69,6 +69,8 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Integrations operational readiness: `emailNotifications` default (was silently off), `isResendConfigured()` + `getResendConfig()`, `/api/email/status` health route, subject `{{name}}` fill fix, 11 EmailService tests, `.env.example` mirrors all env vars (added RESEND_API_KEY + CRON_SECRET). 151 tests pass, build green | 2026-08-11 |
+| In-app notification centre — confirmed Phase 2, NOT delivered in Phase 1 (decision logged in project-decisions.md) | 2026-08-11 |
 | Dashboard Unauthorized fix: `lib/auth.ts` getSession forwards request headers via `next/headers` | 2026-08-11 |
 | Provider & Client Dashboards: DashboardService, /api/dashboard, role-aware /dashboard page, mock fallback, 15 tests | 2026-08-09 |
 | Alpha testing fixes: pricing display (×100), onboarding 404, media upload (Cloudinary) pipeline, Drive collect-mode onboarding | 2026-08-09 |

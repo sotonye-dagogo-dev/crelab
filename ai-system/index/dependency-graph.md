@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 19)
+> - last-updated-by: update-ai-system (Session 20)
 > - last-verified-against-code: 2026-08-11
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -55,6 +55,13 @@ DashboardService
   → ExploreService (queryExploreCards for client discover rail)
   → lib/currency.ts (formatKobo for display values)
   → types/dashboard.ts (IProviderDashboard, IClientDashboard, pipeline/stats/availability types) + BookingStatus, ExploreSort
+
+EmailService (+ isResendConfigured / getResendConfig)
+  → config/platform.config.ts (DEFAULT_CONFIG email templates + fromName/fromEmail)
+  → types/index.ts (IEmailTemplate, IPlatformConfig)
+  → global fetch → https://api.resend.com/emails (raw HTTP, no SDK)
+  → env RESEND_API_KEY (read at call time; preview fallback when absent)
+  → consumed by app/api/email/send + app/api/email/welcome + app/api/email/status
 
 Auth (Better Auth)
   → Better Auth standalone instance (lib/auth.ts)

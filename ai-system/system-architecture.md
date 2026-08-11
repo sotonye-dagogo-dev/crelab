@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 19)
+> - last-updated-by: update-ai-system (Session 20)
 > - last-verified-against-code: 2026-08-11
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -34,7 +34,7 @@ Service Layer (services/)
     |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
     |-- MockDataService         -- Mock data fallback when DB unavailable
-    |-- EmailService            -- Resend transactional emails with simulation fallback
+    |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback)
     |
     v
 Data Access Layer
@@ -211,11 +211,18 @@ DB seeding via `scripts/seed.ts` + `scripts/seed-rollback.ts` provides reproduci
 Files not yet implemented despite being in the planned architecture:
 - `services/ReviewService.ts` (interface exists but no implementation)
 - `lib/mux.ts` (Mux streaming integration planned but NOT stubbed — file does not exist and `@mux/mux-node` is not in package.json)
-- Messages/notifications (Phase 2)
+- Messages (Phase 2) + in-app notification centre (Phase 2; deliberately NOT part of Phase 1 MVP — see Session 20 decision)
 
 ---
 
 ## Recent Changes
+
+### 2026-08-11 — Integrations Operational Readiness (Cloudinary + Resend)
+- `config/platform.config.ts`: added `features.emailNotifications: true` default — previously `/api/email/*` short-circuited "Email notifications disabled" even with `RESEND_API_KEY` set
+- `services/EmailService.ts`: added `isResendConfigured()` / `getResendConfig()` (mirrors `lib/cloudinary.ts` `isCloudinaryConfigured()`); subject now also receives `name`/`logoUrl` so `{{name}}` in subjects resolves
+- `app/api/email/status/route.ts` (new): public health route mirroring `/api/media/status` — enabled flag, `resendConfigured` (feature flag AND `RESEND_API_KEY`), from address/name, enabled template list
+- `__tests__/services/EmailService.test.ts` (new): 11 tests — configure guard, preview fallback, variable substitution, disabled/unknown template, Resend API success/error/throw paths
+- `.env.example`: added `RESEND_API_KEY` and `CRON_SECRET` (the only env vars referenced in code that were missing)
 
 ### 2026-08-11 — Dashboard "Unauthorized" for Authenticated Users (Fix Build)
 - `lib/auth.ts`: `getSession()` previously called `auth.api.getSession({ headers: new Headers() })` — an empty Headers object meant Better Auth never saw the request cookies, so every `requireAuth()` guard (dashboard, wallet, wallet/milestone API routes) threw `Unauthorized` even for signed-in users. Now reads the current request headers via `await headers()` from `next/headers` and forwards them (same pattern as `app/admin/layout.tsx` and consent/export/delete API routes).

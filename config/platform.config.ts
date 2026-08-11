@@ -141,6 +141,7 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     guestBrowse: true,
     googleDriveSync: true,
     blogEnabled: true,
+    emailNotifications: true,
   },
   mediaUpload: {
     enabled: true,

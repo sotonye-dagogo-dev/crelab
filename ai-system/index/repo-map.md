@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 19)
+> - last-updated-by: update-ai-system (Session 20)
 > - last-verified-against-code: 2026-08-11
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -60,7 +60,7 @@ crelab/
 │       ├── explore/        # Provider search/filter/sort
 │       ├── milestones/     # Milestone CRUD
 │       ├── media/          # Media upload (Cloudinary proxy) + capability status
-│       ├── email/          # Email sending endpoints (welcome, booking, payment)
+│       ├── email/          # Email send (welcome, booking, payment) + status health route
 │       ├── portfolio/      # Portfolio CRUD
 │       ├── profile/        # Profile management (setup)
 │       ├── wallet/         # Wallet: topup (card + bank DVA), withdraw, balance, transactions
@@ -82,7 +82,7 @@ crelab/
 │   ├── DashboardService.ts   # Role-aware dashboard queries + pipeline column defs
 │   ├── DriveService.ts
 │   ├── EscrowService.ts
-│   ├── EmailService.ts       # Resend transactional emails with simulation fallback
+│   ├── EmailService.ts       # Resend transactional emails (isResendConfigured guard + preview fallback)
 │   ├── ExploreService.ts
 │   ├── MilestoneService.ts
 │   ├── MockDataService.ts
@@ -153,7 +153,7 @@ crelab/
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (463 lines, 14 tables + 6 enums + relations), `migrations/` |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
-| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts` |
+| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts` |
 
 ---
 

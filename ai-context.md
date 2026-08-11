@@ -1,8 +1,8 @@
 # Project AI Context
 
 > **Metadata**
-> - last-updated-by: feature-plan-execution
-> - last-verified-against-code: 2026-07-06 (Navbar, Footer, Theme System, Mock Data)
+> - last-updated-by: update-ai-system (Session 20)
+> - last-verified-against-code: 2026-08-11 (dashboards, integrations readiness)
 > - staleness-policy: re-verify before trusting if project structure has changed
 
 > **Overview:** Crelab is a dark, cinematic, video-first creative services marketplace for Nigeria. Providers (content creators, cinematographers) showcase video portfolios and get hired based on quality — not follower count. Clients book with transparent pricing and pay via Paystack escrow.
@@ -40,12 +40,12 @@
 | Feature Components | `components/explore/`, `components/profile/`, `components/booking/`, `components/blog/`, `components/shared/` | Domain-specific UI |
 | Layout Components | `components/shared/Navbar.tsx`, `components/shared/Footer.tsx` | Fixed navbar + footer on all public pages |
 | Theme System | `lib/theme-context.tsx`, `components/shared/ThemeToggler.tsx` | system/light/dark toggle via CSS custom properties |
-| Services | `services/` | OOP class-based: BookingService, DriveService, EscrowService, ExploreService, MockDataService, PaymentService, PlatformConfigService, PortfolioService |
+| Services | `services/` | OOP class-based: BookingService, DashboardService, DriveService, EmailService, EscrowService, ExploreService, MilestoneService, MockDataService, PaymentService, PlatformConfigService, PortfolioService, WalletService |
 | Types | `types/` | Global TypeScript interfaces, barrel export via index.ts |
 | Config | `config/platform.config.ts` | Hardcoded fallback config (DB overrides at runtime) |
 | Database | `drizzle/schema.ts` | Drizzle schema — single source of truth for DB shape + migrations |
 | Auth | `lib/auth.ts` | Better Auth instance + helpers |
-| Third-party | `lib/paystack.ts`, `lib/cloudinary.ts`, `lib/mux.ts`, `lib/drive.ts`, `lib/db.ts` | Isolated third-party wrappers |
+| Third-party | `lib/paystack.ts`, `lib/cloudinary.ts`, `lib/drive.ts`, `lib/db.ts` + `services/EmailService.ts` (Resend) | Isolated wrappers + env-guarded integrations (Cloudinary, Resend) |
 | Mock Data | `services/MockDataService.ts` | Simulated data for exploration without DB (enable via `NEXT_PUBLIC_MOCK_DATA=true`) |
 | AI System | `.ai-system/` | AI-assisted development governance + design system docs |
 
@@ -73,4 +73,4 @@ Active development — Milestones 1.0-1.4 substantially complete. See `.ai-syste
 - Team page fallback: renders mock data when DB unavailable
 - Design system docs in `.ai-system/` (DESIGN.md, tokens/components/team-page HTML specs)
 
-**Next:** onboarding wizard UI, tests. Phase 2: dashboards, messaging, notifications.
+**Next:** Phase 2: messaging, in-app notification centre, reviews, pricing guidance, identity verification. Integrations (Cloudinary + Resend) are operational-ready — plug in env vars per `.env.example`.

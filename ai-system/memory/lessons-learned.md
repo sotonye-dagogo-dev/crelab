@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 19)
+> - last-updated-by: update-ai-system (Session 20)
 > - last-verified-against-code: 2026-08-11
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -262,6 +262,39 @@
 4. The app already had the correct pattern (`app/admin/layout.tsx`, consent/export/delete API routes); grep for `getSession({ headers: new Headers()` during review to catch regressions
 
 **Apply When:** Writing or reviewing any Better Auth session lookup, auth guard, or protected server page/route.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Every Config Feature Flag Needs a Default in DEFAULT_CONFIG
+
+**Context:** `DEFAULT_CONFIG.features` had `guestBrowse`, `googleDriveSync`, `blogEnabled` — but the admin editor and `/api/email/*` routes referenced `features.emailNotifications`, which had no default. The route's `if (!config.features?.emailNotifications)` guard made every email silently return "disabled", so even with a real `RESEND_API_KEY` the system could not send. This was only caught by reading the API routes against the config, not by any test.
+
+**What We Learned:**
+1. A feature flag referenced by code must have an explicit default in `DEFAULT_CONFIG` — a missing default makes the feature permanently off (or permanently on) until someone touches the DB, which reads like a broken integration rather than a config issue
+2. Grep for every `config.features?.X` / `config.X?.Y` access and cross-check against `DEFAULT_CONFIG` + the `IFeatureFlags` interface — the type's `?` hides the gap
+3. Health/status endpoints per integration (`/api/media/status`, `/api/email/status`) that report "configured = featureFlag AND envPresent" turn silent gaps into checkable state
+4. Integration guards should be symmetric: `isCloudinaryConfigured()` / `isResendConfigured()` read env at call time so the same pattern applies to every external provider
+
+**Apply When:** Adding any config flag, reviewing the admin config editor, or wiring a new external integration (env guard + status endpoint + default flag).
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## `.env.example` Must Mirror Every Env Var Referenced in Code
+
+**Context:** While making Resend operational, `RESEND_API_KEY` and `CRON_SECRET` were found referenced in `services/EmailService.ts` and `app/api/cron/*` but absent from `.env.example` — anyone following the template would plug in every listed var and still have email + cron silently unavailable.
+
+**What We Learned:**
+1. Derive `.env.example` by grepping `process.env.<NAME>` across `app/`, `lib/`, `services/`, `scripts/`, `sanity/`, `drizzle/`, `middleware.ts` — then diff against `.env.example`
+2. Group by service with a one-line purpose comment (e.g. "Resend — welcome, booking confirmation, payment received") so keys are self-documenting
+3. Note which features degrade without the var (e.g. "direct uploads only appear when both Cloudinary vars are set")
+
+**Apply When:** Adding an env var, updating the deployment checklist, or reviewing `.env.example`.
 
 **Supersedes:** None
 **Superseded by:** None
