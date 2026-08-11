@@ -1,23 +1,36 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import {
-  uploadFile,
-  CloudinaryNotConfiguredError,
-  deleteAssetsByUrl,
-} from "@/lib/cloudinary";
+import { uploadFile, CloudinaryNotConfiguredError } from "@/lib/cloudinary";
 import { MediaAssetService } from "@/services/MediaAssetService";
 import { isMediaFileAllowed } from "@/lib/media";
 
-export async function POST(req: Request) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
-
     if (!session?.user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
+      );
+    }
+
+    const { id } = await params;
+    const asset = await MediaAssetService.getById(id);
+    if (!asset) {
+      return NextResponse.json(
+        { success: false, error: "Media asset not found" },
+        { status: 404 },
+      );
+    }
+    if (asset.ownerId !== session.user.id) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
       );
     }
 
@@ -27,7 +40,6 @@ export async function POST(req: Request) {
     } catch {
       config = DEFAULT_CONFIG;
     }
-
     const mediaUpload = config.mediaUpload ?? DEFAULT_CONFIG.mediaUpload!;
 
     if (!mediaUpload.enabled) {
@@ -36,10 +48,9 @@ export async function POST(req: Request) {
         { status: 403 },
       );
     }
-
     if (!mediaUpload.cloudinaryEnabled) {
       return NextResponse.json(
-        { success: false, error: "Direct uploads are disabled. Please paste a link instead." },
+        { success: false, error: "Direct uploads are disabled" },
         { status: 403 },
       );
     }
@@ -64,43 +75,35 @@ export async function POST(req: Request) {
 
     const result = await uploadFile(file, file.type);
 
-    let assetId: string | null = null;
-    try {
-      const asset = await MediaAssetService.recordUpload({
+    const { asset: newAsset, referencesUpdated } =
+      await MediaAssetService.replaceAsset(id, {
         publicId: result.publicId,
         cloudName: result.cloudName,
         resourceType: result.resourceType,
         url: result.url,
         thumbnailUrl: result.thumbnailUrl,
         mimeType: result.mimeType,
-        ownerId: session.user.id,
       });
-      assetId = asset.id;
-    } catch {
-      // Registration failed — the upload has no owner and would be orphaned.
-      // Clean it up immediately so Cloudinary storage is not wasted.
-      await deleteAssetsByUrl([result.url]).catch(() => {});
-    }
 
     return NextResponse.json({
       success: true,
-      data: { ...result, assetId },
+      data: { asset: newAsset, referencesUpdated },
     });
   } catch (err) {
     if (err instanceof CloudinaryNotConfiguredError) {
       return NextResponse.json(
-        { success: false, error: "Direct upload is not available. Please paste a link instead." },
+        { success: false, error: "Direct upload is not available" },
         { status: 503 },
       );
     }
+    if (err instanceof Error && err.message === "Media asset not found") {
+      return NextResponse.json(
+        { success: false, error: err.message },
+        { status: 404 },
+      );
+    }
     return NextResponse.json(
-      {
-        success: false,
-        error:
-          err instanceof Error
-            ? err.message
-            : "Internal server error",
-      },
+      { success: false, error: err instanceof Error ? err.message : "Internal server error" },
       { status: 500 },
     );
   }

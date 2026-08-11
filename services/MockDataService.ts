@@ -734,6 +734,7 @@ export class MockDataService {
       quickActions: [
         { label: "Add Portfolio Item", href: "/profile/setup", variant: "primary" },
         { label: "Edit Packages", href: "/profile/setup", variant: "accent-outlined" },
+        { label: "My Media", href: "/profile/media", variant: "accent-outlined" },
         { label: "Update Availability", href: "/profile/setup", variant: "accent-outlined" },
         { label: "Sync Google Drive", href: "/profile/setup", variant: "ghost" },
       ],
