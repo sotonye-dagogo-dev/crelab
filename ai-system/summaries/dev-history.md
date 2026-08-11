@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-09
+> - last-verified-against-code: 2026-08-11
 
 ## 2026-07-28 — Prototype Interactivity & Fallback Content
 
@@ -151,3 +151,17 @@ Phase 2 dashboard work was unstarted — providers had no earnings/pipeline/avai
 
 ### Status
 Pass — typecheck clean, 140 tests pass, lint has no new warnings, production build passes (incl. `/dashboard` route).
+
+## Sprint 2026-08-11 — Fix: Dashboard "Unauthorized" for Authenticated Users
+
+### What
+Fixed a runtime error where a successfully authenticated user opening `/dashboard` (or any `requireAuth()`-guarded page) hit `Error: Unauthorized` (digest `1369153800`).
+
+### Why
+`lib/auth.ts` `getSession()` called `auth.api.getSession({ headers: new Headers() })`. Better Auth resolves the session from the incoming request's cookies, so with an empty `Headers` object the session was always `null` and `requireAuth()` threw `Unauthorized`. The bug affected every server-side auth guard — dashboard page, wallet page, and the wallet/milestone API routes.
+
+### Key Changes
+- **`lib/auth.ts`**: `getSession()` now reads the current request headers via `await headers()` from `next/headers` and forwards them to `auth.api.getSession({ headers: h })` — the same pattern already used in `app/admin/layout.tsx` and the consent/export/delete API routes.
+
+### Status
+Pass — typecheck clean, 140 tests pass, lint has no new warnings, production build passes (incl. `/dashboard`).

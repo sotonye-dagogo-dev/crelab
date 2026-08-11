@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: fix-build (Session 19)
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,8 +11,8 @@
 
 ## Last Run
 
-**Date:** 2026-08-09
-**Run by:** execute-feature (Session 18)
+**Date:** 2026-08-11
+**Run by:** fix-build (Session 19)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
@@ -36,4 +36,5 @@ None.
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-08-11 | 140 | 0 | Fixed dashboard "Unauthorized" for authenticated users: `getSession()` now forwards request headers |
 | 2026-08-09 | 140 | 0 | Dashboard added: DashboardService + MockDataService dashboard tests (15 new) |

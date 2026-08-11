@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 18)
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: update-ai-system (Session 19)
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -59,6 +59,7 @@ DashboardService
 Auth (Better Auth)
   → Better Auth standalone instance (lib/auth.ts)
   → Drizzle adapter → drizzle/schema.ts (user, session, account, verification)
+  → next/headers (getSession forwards the current request headers — never an empty Headers())
   → hooks/useAuth.ts (client-side hook)
   → lib/oauth.ts (OAuth callback routing helpers + role guard)
   → app/api/auth/role (self-assignable role endpoint)
@@ -69,6 +70,7 @@ Lib Module
   → Types (input/output types)
   → crypto (HMAC-SHA512 webhook verification)
   → blog-fallback.ts is a standalone leaf module — no dependencies beyond types/blog.ts
+  → errors.ts is a leaf module — no dependencies beyond node's Error (imported by WalletService, MilestoneService, and integrations)
 
 Drizzle
    → drizzle/schema.ts (463 lines, single source of truth — exports all tables, enums, relations)

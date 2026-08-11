@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 18)
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: update-ai-system (Session 19)
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -97,7 +97,7 @@ crelab/
 ├── config/
 │   └── platform.config.ts   # Hardcoded fallback, DB overrides at runtime
 ├── lib/
-│   ├── auth.ts             # Better Auth instance + getSession/requireAuth/requireRole
+│   ├── auth.ts             # Better Auth instance + getSession/requireAuth/requireRole (getSession forwards request headers)
 │   ├── blog-fallback.ts    # Hardcoded fallback blog posts when Sanity is unavailable
 │   ├── cloudinary.ts       # Video/image upload, thumbnail generation, env availability guard
 │   ├── config-context.tsx  # PlatformConfig React context provider
@@ -105,8 +105,8 @@ crelab/
 │   ├── currency.ts         # Money helpers: nairaToKobo, formatNaira, formatKobo
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
+│   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
 │   ├── media.ts            # Media file/URL validation helpers (type, size, link)
-│   ├── mux.ts              # Mux streaming (stub — not wired)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
 │   ├── paystack.ts         # Init transaction, verify webhook, split, refund, DVA, transfer
 │   ├── slug.ts             # Provider slug build/parse helpers (`name--id-prefix`)
@@ -149,7 +149,7 @@ crelab/
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts`, `dashboard.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `slug.ts`, `currency.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (463 lines, 14 tables + 6 enums + relations), `migrations/` |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
