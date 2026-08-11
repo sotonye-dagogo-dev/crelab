@@ -1,7 +1,7 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 19)
+> - last-updated-by: update-ai-system (Session 20)
 > - last-verified-against-code: 2026-08-11
 > - staleness-policy: re-verify if project scope or phase changes
 
@@ -55,7 +55,7 @@
 ## Phase 2 — Post-Launch (Month 1-3)
 
 - [ ] In-platform messaging (post-booking-acceptance, Supabase Realtime)
-- [ ] Notifications: email (Resend) + in-app notification centre
+- [x] Notifications: email (Resend) made operational (Session 20); in-app notification centre still Phase 2
 - [x] Provider dashboard: earnings, kanban booking pipeline, availability calendar, portfolio performance
 - [x] Client dashboard: active bookings, booking history, payment history
 - [ ] Reviews & ratings: mutual post-service, "Verified Booking" badge
@@ -90,3 +90,4 @@
 - [x] Alpha Testing Fixes (2026-08-09) — pricing display ×100 bug, post-signup 404 (slug prefix resolution), config-driven Cloudinary media upload pipeline with env availability guard, Drive collect-mode onboarding + post-create ingest
 - [x] Provider & Client Dashboards (2026-08-09) — DashboardService + /api/dashboard + role-aware /dashboard page; provider earnings/kanban pipeline/availability/portfolio performance; client pipeline/payment history/discover rail; mock fallback + 15 tests
 - [x] Dashboard Unauthorized Fix (2026-08-11) — `lib/auth.ts` `getSession()` now forwards request headers via `next/headers` instead of an empty `Headers()` (previously every authenticated `/dashboard` visit threw `Unauthorized`)
+- [x] Integrations Operational Readiness (2026-08-11) — Cloudinary + Resend foundations verified functional: `emailNotifications` default added to config (was silently disabling all email), `isResendConfigured()` + `/api/email/status` health route, subject template `{{name}}` fix, 11 new EmailService tests, `.env.example` now mirrors every env var referenced in code (added `RESEND_API_KEY`, `CRON_SECRET`). In-app notification centre confirmed Phase 2 → NOT delivered (per directive's "if part of Phase 1 MVP" condition)

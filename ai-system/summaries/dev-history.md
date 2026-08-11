@@ -1,7 +1,7 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system
+> - last-updated-by: update-ai-system (Session 20)
 > - last-verified-against-code: 2026-08-11
 
 ## 2026-07-28 — Prototype Interactivity & Fallback Content
@@ -165,3 +165,22 @@ Fixed a runtime error where a successfully authenticated user opening `/dashboar
 
 ### Status
 Pass — typecheck clean, 140 tests pass, lint has no new warnings, production build passes (incl. `/dashboard`).
+
+## Sprint 2026-08-11 — Integrations Operational Readiness (Cloudinary + Resend)
+
+### What
+Made the Cloudinary and Resend foundations genuinely operational once env vars are plugged in: fixed the email flag that silently disabled every email, added a Resend availability guard + health endpoint mirroring the Cloudinary pattern, fixed subject template substitution, and brought `.env.example` fully in line with every env var the code references.
+
+### Why
+The user obtained real Cloudinary + Resend API keys and needs the systems to work as soon as the keys are set. Auditing the routes against the config surfaced three real blockers: `DEFAULT_CONFIG.features.emailNotifications` had no default (so `/api/email/*` always returned "Email notifications disabled"), the welcome subject's `{{name}}` never resolved (subject fill didn't receive config vars), and `.env.example` was missing `RESEND_API_KEY` + `CRON_SECRET`.
+
+### Key Changes
+- **`config/platform.config.ts`**: `features.emailNotifications: true` default added (was undefined → all transactional email disabled)
+- **`services/EmailService.ts`**: added `isResendConfigured()` / `getResendConfig()` (call-time env read, mirrors `isCloudinaryConfigured()`); subject now filled with the same base vars (name/logoUrl) as the HTML body
+- **`app/api/email/status/route.ts`** (new): public health route — `enabled`, `resendConfigured` (feature flag AND `RESEND_API_KEY`), from address/name, enabled template subjects (mirrors `/api/media/status`)
+- **`__tests__/services/EmailService.test.ts`** (new): 11 tests — guard, preview fallback, var substitution, unknown/disabled template, Resend success/error/throw paths
+- **`.env.example`**: added `RESEND_API_KEY` and `CRON_SECRET` (verified against every `process.env.*` reference in `app/`, `lib/`, `services/`, `scripts/`, `sanity/`, `drizzle/`, `middleware.ts`)
+- **Scope check**: in-app notification centre confirmed Phase 2 (per `project-plan.md` + `task-queue.md`) → NOT delivered, per the directive's condition. Decision logged in `memory/project-decisions.md`.
+
+### Status
+Pass — typecheck clean, 151 tests pass (11 new), lint has no new warnings, production build passes.

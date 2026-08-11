@@ -753,3 +753,32 @@ Fixed the `/dashboard` runtime error where a successfully authenticated user sti
 
 **Next Task:**
 Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.
+
+---
+
+## Session 20 — 2026-08-11 (Integrations Operational Readiness — Cloudinary + Resend)
+
+**Directive:** Deliver the in-app notification system IF it is part of the Phase 1 MVP; ensure Cloudinary + Resend foundations are functional/operational with env vars plugged in; update `.env.example` to mirror the `.env` files.
+
+**Completed:**
+
+1. **Scope decision — in-app notifications NOT delivered.** Confirmed against `planning/project-plan.md` (Phase 2 list) and `planning/task-queue.md` ("in-app notification centre (Phase 2)") that the notification centre is Phase 2, not Phase 1 MVP. Per the directive's explicit condition, it was not implemented. Decision logged in `memory/project-decisions.md`; the `[~]` in-progress marker on the notifications task was resolved (`[x]` for email, in-app remains Phase 2).
+2. **Email flag fix (blocking):** `DEFAULT_CONFIG.features` was missing `emailNotifications` → `/api/email/send` and `/api/email/welcome` always returned "Email notifications disabled" even with `RESEND_API_KEY` set. Added `emailNotifications: true`.
+3. **Email guard + health:** `isResendConfigured()` / `getResendConfig()` added to `services/EmailService.ts` (mirrors `isCloudinaryConfigured()`); new `GET /api/email/status` mirrors `/api/media/status` (enabled, resendConfigured, from address/name, enabled templates).
+4. **Subject template bug:** `{{name}}` in the welcome subject never resolved because subject fill only received the caller's vars. Subject and HTML now share the same base vars (`name`, `logoUrl`).
+5. **Tests:** 11 new in `__tests__/services/EmailService.test.ts` (guard, preview fallback, substitution, unknown/disabled template, Resend success/error/throw).
+6. **`.env.example`:** added `RESEND_API_KEY` + `CRON_SECRET` — the only two `process.env.*` references missing from the template (verified across `app/`, `lib/`, `services/`, `scripts/`, `sanity/`, `drizzle/`, `middleware.ts`).
+7. **QA gate:** 151/151 tests pass, `tsc --noEmit` clean, ESLint no new warnings, production build passes.
+
+**Files Modified:**
+- `config/platform.config.ts` — `features.emailNotifications: true`
+- `services/EmailService.ts` — `isResendConfigured()`, `getResendConfig()`, shared base vars for subject+HTML
+- `app/api/email/status/route.ts` — new health route
+- `__tests__/services/EmailService.test.ts` — new (11 tests)
+- `.env.example` — added `RESEND_API_KEY`, `CRON_SECRET`
+- `ai-system/` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, project-decisions, lessons-learned, dev-history, session-log (this entry), in-progress cleared
+
+**Build Status:** ✅ Production build passes. TypeScript compiles with zero errors. ESLint no new warnings. 151/151 tests pass.
+
+**Next Task:**
+Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification). Consider end-to-end onboarding journey test against live Supabase + Cloudinary + Resend before wider beta. Cloudinary upload requires an unsigned upload preset named per `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`; Resend requires a verified sending domain for `fromEmail`.

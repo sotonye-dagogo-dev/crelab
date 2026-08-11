@@ -208,6 +208,25 @@
 
 **Implications:** EmailService wraps Resend behind an internal interface. All transactional email goes through `EmailService.send()` which handles template lookup, variable substitution, and Resend API calls. If `RESEND_API_KEY` is not set, the service returns a preview HTML instead of sending. Admin changes to templates via `/admin/email-templates` or config API apply immediately via PlatformConfigService cache invalidation.
 
+### Session 20 update — email is now operational by default
+- `DEFAULT_CONFIG.features.emailNotifications` is now `true`. It was previously undefined, so the feature check in `/api/email/send` and `/api/email/welcome` short-circuited with "Email notifications disabled" even when `RESEND_API_KEY` was present — the system could NOT go live with env vars plugged in. Fixed.
+- Added `isResendConfigured()`/`getResendConfig()` (mirrors Cloudinary's guard) and a `/api/email/status` health route (mirrors `/api/media/status`).
+- Subjects now receive `name`/`logoUrl` too, so `{{name}}` in a subject (e.g. welcome) actually resolves.
+
+---
+
+## In-App Notification Centre: Confirmed Phase 2 — Not Part of Phase 1 MVP
+
+**Decision:** The in-app notification centre is Phase 2, NOT Phase 1 MVP. When asked to "deliver the in-app notification system if it is part of the phase 1 MVP", it was confirmed against `planning/project-plan.md` (Phase 2 list) and `planning/task-queue.md` ("in-app notification centre (Phase 2)") that it is not, so it was NOT implemented in Session 20. The email (Resend) half of notifications was made operational instead.
+**Date:** 2026-08-11
+**Made by:** Implementer (per issue directive condition)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:** Phase 1 Milestones 1.0–1.4 (foundation, provider supply, discovery, booking/payment, admin/SEO) do not include an in-app notification centre. Delivering it would violate scope discipline and the directive's explicit condition.
+
+**Implications:** The `[~]` "in progress" marker on the notifications task in task-queue.md was resolved to `[x]` for the email portion and the in-app centre remains a Phase 2 backlog item. When Phase 2 begins, reference the design and the config-driven pattern (DB overrides + graceful env guard) used for email/Cloudinary.
+
 ---
 
 ## Google OAuth Sign-Up: Role + Consent Finalize Step Before Onboarding
