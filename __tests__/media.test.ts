@@ -12,6 +12,8 @@ const testConfig: IMediaUploadConfig = {
   maxFileSizeMb: 100,
   videoTypes: ["video/mp4", "video/webm"],
   imageTypes: ["image/jpeg", "image/png"],
+  cleanupOrphanAfterHours: 24,
+  cleanupEnabled: true,
 };
 
 describe("lib/media — getAcceptedTypes", () => {

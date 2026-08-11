@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ClButton } from "@/components/ui";
-import { ClDialog } from "@/components/ui";
+import { ClButton, ClConfirmDialog } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { CheckCheck, X, RotateCcw } from "lucide-react";
 
@@ -159,36 +158,17 @@ export function BatchToolbar<T = string>({
         </div>
       )}
 
-      <ClDialog
+      <ClConfirmDialog
         open={confirmAction !== null}
-        onClose={() => setConfirmAction(null)}
-      >
-        {confirmAction && (
-          <div className="space-y-4">
-            <h3 className="font-[family-name:var(--font-display)] font-bold text-[18px]">
-              {confirmAction.confirmTitle ?? `Batch ${confirmAction.label}`}
-            </h3>
-            <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
-              {confirmAction.confirmMessage}
-            </p>
-            <p className="text-[12px] text-[var(--color-text-tertiary)]">
-              {selectedCount} item(s) will be affected.
-            </p>
-            <div className="flex items-center gap-2 pt-2">
-              <ClButton
-                variant={confirmAction.danger ? "primary" : "accent-outlined"}
-                onClick={() => handleExecute(confirmAction)}
-                loading={executing}
-              >
-                {confirmAction.label}
-              </ClButton>
-              <ClButton variant="ghost" onClick={() => setConfirmAction(null)}>
-                Cancel
-              </ClButton>
-            </div>
-          </div>
-        )}
-      </ClDialog>
+        title={confirmAction?.confirmTitle ?? "Confirm action"}
+        message={confirmAction?.confirmMessage ?? ""}
+        detail={`${selectedCount} item(s) will be affected.`}
+        confirmLabel={confirmAction?.label}
+        danger={confirmAction?.danger}
+        loading={executing}
+        onConfirm={() => confirmAction && handleExecute(confirmAction)}
+        onCancel={() => setConfirmAction(null)}
+      />
     </>
   );
 }

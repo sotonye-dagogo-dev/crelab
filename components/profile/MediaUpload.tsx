@@ -97,6 +97,8 @@ export function MediaUpload({
       maxFileSizeMb: status.maxFileSizeMb,
       videoTypes: status.videoTypes,
       imageTypes: status.imageTypes,
+      cleanupOrphanAfterHours: 0,
+      cleanupEnabled: false,
     });
 
     if (!validation.ok) {

@@ -360,6 +360,27 @@ export interface IMediaUploadConfig {
   videoTypes: string[];
   /** Accepted image MIME types */
   imageTypes: string[];
+  /** Delete unreferenced uploads older than this many hours (0 disables orphan sweep) */
+  cleanupOrphanAfterHours: number;
+  /** Master switch for the orphan-asset cleanup job */
+  cleanupEnabled: boolean;
+}
+
+export interface IMediaAsset {
+  id: string;
+  publicId: string;
+  cloudName: string;
+  resourceType: "video" | "image";
+  url: string;
+  thumbnailUrl: string | null;
+  mimeType: string | null;
+  ownerId: string | null;
+  ownerName?: string | null;
+  status: "ACTIVE" | "DELETED";
+  /** ISO 8601 */
+  createdAt: string;
+  /** Whether the asset URL/publicId is currently used by a profile or portfolio item */
+  referenced?: boolean;
 }
 
 export interface IDashboardConfig {

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { isCloudinaryConfigured } from "@/lib/cloudinary";
+import {
+  isCloudinaryConfigured,
+  isCloudinaryAdminConfigured,
+} from "@/lib/cloudinary";
 
 export async function GET() {
   let config;
@@ -21,6 +24,12 @@ export async function GET() {
         mediaUpload.enabled &&
         mediaUpload.cloudinaryEnabled &&
         isCloudinaryConfigured(),
+      cloudinaryAdminConfigured:
+        mediaUpload.enabled &&
+        mediaUpload.cloudinaryEnabled &&
+        isCloudinaryAdminConfigured(),
+      cleanupEnabled: Boolean(mediaUpload.cleanupEnabled),
+      cleanupOrphanAfterHours: mediaUpload.cleanupOrphanAfterHours ?? 0,
       maxFileSizeMb: mediaUpload.maxFileSizeMb,
       videoTypes: mediaUpload.videoTypes,
       imageTypes: mediaUpload.imageTypes,

@@ -29,6 +29,11 @@ const configFields = [
   { key: "dashboard.availabilityLookaheadDays", label: "Availability Calendar Days", type: "number" as const, section: "Features", unit: "days" },
   { key: "emailConfig.fromName", label: "Email From Name", type: "text" as const, section: "Email" },
   { key: "emailConfig.fromEmail", label: "Email From Address", type: "text" as const, section: "Email" },
+  { key: "mediaUpload.enabled", label: "Media Uploads", type: "toggle" as const, section: "Media" },
+  { key: "mediaUpload.cloudinaryEnabled", label: "Cloudinary Direct Uploads", type: "toggle" as const, section: "Media" },
+  { key: "mediaUpload.maxFileSizeMb", label: "Max Upload Size", type: "number" as const, section: "Media", unit: "MB" },
+  { key: "mediaUpload.cleanupEnabled", label: "Orphan Cleanup Job", type: "toggle" as const, section: "Media" },
+  { key: "mediaUpload.cleanupOrphanAfterHours", label: "Delete Orphans After", type: "number" as const, section: "Media", unit: "hours" },
 ];
 
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
@@ -148,7 +153,7 @@ export default function ConfigPage() {
     }
   }, [data, toast]);
 
-  const sections = ["Branding", "Fees & Escrow", "Features", "Email"] as const;
+  const sections = ["Branding", "Fees & Escrow", "Features", "Email", "Media"] as const;
 
   if (isLoading) {
     return (

@@ -571,6 +571,7 @@ export class DashboardService implements IDashboardService {
     const actions: IProviderDashboard["quickActions"] = [
       { label: "Add Portfolio Item", href: "/profile/edit", variant: "primary" },
       { label: "Edit Packages", href: "/profile/edit", variant: "accent-outlined" },
+      { label: "My Media", href: "/profile/media", variant: "accent-outlined" },
     ];
     if (platformConfig.features.googleDriveSync !== false) {
       actions.push({
