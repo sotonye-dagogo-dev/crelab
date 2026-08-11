@@ -1,8 +1,8 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 18)
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: update-ai-system (Session 19)
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -89,3 +89,4 @@
 - [x] Prototype Interactivity — mock data mode enabled, profile page mock fallback, 6 blog fallback posts, team member seeding
 - [x] Alpha Testing Fixes (2026-08-09) — pricing display ×100 bug, post-signup 404 (slug prefix resolution), config-driven Cloudinary media upload pipeline with env availability guard, Drive collect-mode onboarding + post-create ingest
 - [x] Provider & Client Dashboards (2026-08-09) — DashboardService + /api/dashboard + role-aware /dashboard page; provider earnings/kanban pipeline/availability/portfolio performance; client pipeline/payment history/discover rail; mock fallback + 15 tests
+- [x] Dashboard Unauthorized Fix (2026-08-11) — `lib/auth.ts` `getSession()` now forwards request headers via `next/headers` instead of an empty `Headers()` (previously every authenticated `/dashboard` visit threw `Unauthorized`)

@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 18)
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: update-ai-system (Session 19)
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -210,12 +210,15 @@ DB seeding via `scripts/seed.ts` + `scripts/seed-rollback.ts` provides reproduci
 
 Files not yet implemented despite being in the planned architecture:
 - `services/ReviewService.ts` (interface exists but no implementation)
-- `lib/mux.ts` (Mux streaming integration stubbed but not wired)
+- `lib/mux.ts` (Mux streaming integration planned but NOT stubbed — file does not exist and `@mux/mux-node` is not in package.json)
 - Messages/notifications (Phase 2)
 
 ---
 
 ## Recent Changes
+
+### 2026-08-11 — Dashboard "Unauthorized" for Authenticated Users (Fix Build)
+- `lib/auth.ts`: `getSession()` previously called `auth.api.getSession({ headers: new Headers() })` — an empty Headers object meant Better Auth never saw the request cookies, so every `requireAuth()` guard (dashboard, wallet, wallet/milestone API routes) threw `Unauthorized` even for signed-in users. Now reads the current request headers via `await headers()` from `next/headers` and forwards them (same pattern as `app/admin/layout.tsx` and consent/export/delete API routes).
 
 ### 2026-08-09 — Provider & Client Dashboards
 - `types/dashboard.ts` (new): `IProviderDashboard`, `IClientDashboard`, `IDashboardStat`, `IDashboardPipelineColumn`, `IDashboardAvailabilitySlot`, `IPortfolioPerformanceRow`, `IClientPaymentRecord`, `IProfileCompleteness` — re-exported from `types/index.ts`

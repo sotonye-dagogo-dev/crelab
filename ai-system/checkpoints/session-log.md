@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-updated-by: fix-build (Session 19)
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -727,6 +727,29 @@ Built the Phase 2 role-aware dashboard surface: a single `/dashboard` route back
 - `ai-system/index/repo-map.md`, `ai-system/index/dependency-graph.md`, `ai-system/system-architecture.md`, `ai-system/planning/project-plan.md`, `ai-system/planning/task-queue.md`, `ai-system/summaries/dev-history.md`, `ai-system/memory/lessons-learned.md`, `ai-system/checkpoints/session-log.md`
 
 **Build Status:** ✅ Production build passes (incl. `/dashboard`). TypeScript compiles with zero errors. ESLint passes (no new warnings). 140 tests pass (125 existing + 15 new).
+
+**Next Task:**
+Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.
+
+---
+
+## Session 19 — 2026-08-11 (Fix Build — Dashboard "Unauthorized" for Authenticated Users)
+
+**Completed:**
+Fixed the `/dashboard` runtime error where a successfully authenticated user still hit `Error: Unauthorized` (digest `1369153800`).
+
+1. **Root cause** — `lib/auth.ts` `getSession()` called `auth.api.getSession({ headers: new Headers() })`. Better Auth resolves the session from the incoming request's cookies; with an empty `Headers` object the session was always `null`, so `requireAuth()` threw `Unauthorized` for every server-side guard (dashboard page, wallet page, wallet/milestone API routes).
+2. **Fix** — `getSession()` now reads the current request headers via `await headers()` from `next/headers` and passes them to `auth.api.getSession({ headers: h })`, matching the existing pattern in `app/admin/layout.tsx` and the consent/export/delete API routes. `getSession`/`requireAuth` are only called in request context (route handlers + server components), so this is safe.
+3. **Verification** — TypeScript compiles with zero errors, 140/140 vitest tests pass, production build passes (incl. `/dashboard`).
+
+**Files Modified:**
+- `lib/auth.ts` — `getSession()` forwards request headers instead of `new Headers()`
+- `ai-system/repair-system.md` — logged error entry
+- `ai-system/testing/test-results.md` — updated last run
+- `ai-system/checkpoints/session-log.md` — this entry
+- `ai-system/checkpoints/in-progress.md` — cleared
+
+**Build Status:** ✅ Production build passes (incl. `/dashboard`). TypeScript compiles with zero errors. 140/140 tests pass.
 
 **Next Task:**
 Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.

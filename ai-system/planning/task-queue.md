@@ -1,8 +1,8 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 17)
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: update-ai-system (Session 19)
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -42,7 +42,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [M] | Provider Dashboard (full) with earnings, kanban pipeline, availability calendar | [x] |
 | [M] | Client Dashboard: active bookings, booking history, payment history | [x] |
 | [L] | In-platform messaging (Phase 2) | [ ] |
-| [M] | Notifications: email (Resend) + in-app notification centre | [x] |
+| [M] | Notifications: email (Resend) done; in-app notification centre (Phase 2) | [~] |
 | [M] | Provider Onboarding Wizard UI | [x] |
 | [M] | Prototype interactivity: mock data, profile fallback, blog fallback | [x] |
 | [S] | Seed team_members in seed script | [x] |
@@ -54,7 +54,6 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Size | Task |
 |------|------|
-| [M] | Client Dashboard: active bookings, booking history, payment history |
 | [M] | Reviews & ratings: mutual post-service, "Verified Booking" badge |
 | [M] | Pricing guidance widget: anonymised aggregate rates by category |
 | [L] | Identity verification: BVN/NIN check via Dojah or Smile Identity |
@@ -70,6 +69,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Dashboard Unauthorized fix: `lib/auth.ts` getSession forwards request headers via `next/headers` | 2026-08-11 |
 | Provider & Client Dashboards: DashboardService, /api/dashboard, role-aware /dashboard page, mock fallback, 15 tests | 2026-08-09 |
 | Alpha testing fixes: pricing display (×100), onboarding 404, media upload (Cloudinary) pipeline, Drive collect-mode onboarding | 2026-08-09 |
 | Google OAuth sign-up flow: register-page button, `?oauth=done` finalize (role + consent), `/api/auth/role`, seamless `/profile/setup` handoff | 2026-08-05 |

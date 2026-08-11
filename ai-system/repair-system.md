@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -238,6 +238,28 @@ Always gate optional-integration features on an availability check that degrades
 
 **Date:** 2026-08-09
 **Status:** Active
+
+### Dashboard Throws "Error: Unauthorized" for Authenticated Users
+
+**Symptom:**
+Opening `/dashboard` (or any `requireAuth()`-guarded page) throws `Error: Unauthorized` (digest `1369153800`) even after a successful sign-in. Trace shows the throw from `app/(auth)/dashboard/page.js`.
+
+**Root Cause:**
+`lib/auth.ts` `getSession()` called `auth.api.getSession({ headers: new Headers() })` — an empty `Headers` object with no cookies. Better Auth resolves the session from the incoming request cookies, so it always returned `null` and `requireAuth()` threw `Unauthorized`. This affected every server-side `requireAuth()` caller (dashboard page, wallet page, all wallet/milestone API routes). The correct request headers are available via `headers()` from `next/headers` (the pattern already used in `app/admin/layout.tsx` and the consent/export/delete API routes).
+
+**Fix Applied:**
+`lib/auth.ts` `getSession()` now reads the current request headers with `await headers()` and passes them to `auth.api.getSession({ headers: h })`.
+
+**Prevention:**
+Never construct `new Headers()` for Better Auth session lookups in request context — always forward `headers()` from `next/headers` (server components and route handlers) or `req.headers` (route handlers). Search for any remaining `getSession({ headers: new Headers()` usages during review.
+
+**Files Affected:**
+- `lib/auth.ts`
+
+**Date:** 2026-08-11
+**Status:** Active
+
+---
 
 ### Next.js 15.3.1 — Vulnerable Version Blocking Vercel Deployment
 

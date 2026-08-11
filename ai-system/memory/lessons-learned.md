@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 18)
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: update-ai-system (Session 19)
+> - last-verified-against-code: 2026-08-11
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -245,6 +245,23 @@
 3. Verify the actual compiler version with `npx tsc --version` — a global/pinned newer tsc can surface errors the project's own toolchain would not
 
 **Apply When:** Upgrading TypeScript, triaging bulk "module not found" typecheck noise, or editing tsconfig.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Better Auth Session Lookups Need the Request Headers — Never `new Headers()`
+
+**Context:** A signed-in user opening `/dashboard` got `Error: Unauthorized` (digest `1369153800`). The trace pointed at the dashboard page, but the user's session cookie was valid.
+
+**What We Learned:**
+1. `auth.api.getSession({ headers: new Headers() })` always returns `null` — Better Auth reads the session cookie from the request headers, and an empty `Headers` object contains no cookies
+2. In server components and route handlers, obtain the current request headers with `await headers()` from `next/headers` and forward them: `auth.api.getSession({ headers: h })` (route handlers may also use `req.headers`)
+3. A shared `getSession()`/`requireAuth()` helper hides the bug from every caller — one wrong headers source breaks all protected pages and API routes at once
+4. The app already had the correct pattern (`app/admin/layout.tsx`, consent/export/delete API routes); grep for `getSession({ headers: new Headers()` during review to catch regressions
+
+**Apply When:** Writing or reviewing any Better Auth session lookup, auth guard, or protected server page/route.
 
 **Supersedes:** None
 **Superseded by:** None
