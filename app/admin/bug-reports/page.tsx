@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClBadge, ClTextarea, ClSelect } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import type { IBugReport } from "@/types";
-import { Bug, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Bug, Clock, AlertTriangle } from "lucide-react";
 
 const statusColors: Record<string, "warning" | "info" | "success" | "default"> = {
   OPEN: "warning",

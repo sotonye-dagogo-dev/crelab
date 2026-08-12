@@ -9,13 +9,7 @@ import {
   ClEmptyState,
 } from "@/components/ui";
 import { useToast } from "@/lib/toast";
-import {
-  Film,
-  Image as ImageIcon,
-  RefreshCw,
-  Trash2,
-  CloudOff,
-} from "lucide-react";
+import { Film, RefreshCw, Trash2, CloudOff } from "lucide-react";
 import type { IMediaAsset } from "@/types";
 
 interface MediaStatus {
@@ -116,8 +110,8 @@ export default function ProfileMediaPage() {
           My Media
         </h1>
         <p className="text-[13px] text-[var(--color-text-secondary)] mt-1">
-          Manage the files you've uploaded. Replace a file to update it
-          everywhere it's used, or delete it to free storage.
+          Manage the files you&apos;ve uploaded. Replace a file to update it
+          everywhere it&apos;s used, or delete it to free storage.
         </p>
       </div>
 
