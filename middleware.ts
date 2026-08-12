@@ -13,6 +13,7 @@ const protectedPrefixes = [
   "/dashboard",
   "/bookings",
   "/profile/edit",
+  "/profile/media",
   "/profile/setup",
   "/messages",
   "/wallet",

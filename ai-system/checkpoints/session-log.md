@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-updated-by: execute-feature (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -730,3 +730,112 @@ Built the Phase 2 role-aware dashboard surface: a single `/dashboard` route back
 
 **Next Task:**
 Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.
+
+---
+
+## Session 19 — 2026-08-11 (Fix Build — Dashboard "Unauthorized" for Authenticated Users)
+
+**Completed:**
+Fixed the `/dashboard` runtime error where a successfully authenticated user still hit `Error: Unauthorized` (digest `1369153800`).
+
+1. **Root cause** — `lib/auth.ts` `getSession()` called `auth.api.getSession({ headers: new Headers() })`. Better Auth resolves the session from the incoming request's cookies; with an empty `Headers` object the session was always `null`, so `requireAuth()` threw `Unauthorized` for every server-side guard (dashboard page, wallet page, wallet/milestone API routes).
+2. **Fix** — `getSession()` now reads the current request headers via `await headers()` from `next/headers` and passes them to `auth.api.getSession({ headers: h })`, matching the existing pattern in `app/admin/layout.tsx` and the consent/export/delete API routes. `getSession`/`requireAuth` are only called in request context (route handlers + server components), so this is safe.
+3. **Verification** — TypeScript compiles with zero errors, 140/140 vitest tests pass, production build passes (incl. `/dashboard`).
+
+**Files Modified:**
+- `lib/auth.ts` — `getSession()` forwards request headers instead of `new Headers()`
+- `ai-system/repair-system.md` — logged error entry
+- `ai-system/testing/test-results.md` — updated last run
+- `ai-system/checkpoints/session-log.md` — this entry
+- `ai-system/checkpoints/in-progress.md` — cleared
+
+**Build Status:** ✅ Production build passes (incl. `/dashboard`). TypeScript compiles with zero errors. 140/140 tests pass.
+
+**Next Task:**
+Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.
+
+---
+
+## Session 22 — 2026-08-12 (Close-Out — Cloudinary Asset Lifecycle Implementation)
+
+**Directive:** Confirm whether the Cloudinary asset-lifecycle plan in `ai-system/in-progress.md` was ever closed out; close it out if needed, then run `update-ai-system.md`.
+
+**Completed:**
+
+1. **Status confirmed: implemented but never closed out.** The `ai-system/in-progress.md` plan described Cloudinary asset lifecycle work (env-var rename, `media_assets` registry, orphan cleanup, admin/user media managers). All 12 plan items were verified present in the code (shipped in commit `2f927df`, PR #59, 2026-08-11): `lib/cloudinary.ts` signed ops + new env vars, migration `0004_media_assets.sql`, `mediaUpload.cleanupEnabled`/`cleanupOrphanAfterHours=`24/24h config with admin editor fields, `services/MediaAssetService.ts` (record/list/scan/cleanup/delete/replace), API routes (`/api/media/upload` records assets, `/api/cron/media-cleanup`, `/api/admin/media` + `[id]`, `/api/media/assets` + `[id]` + `[id]/replace`), `ClConfirmDialog` + `lib/use-undoable.ts` (adopted by `BatchOperations`/admin team), `/admin/media` + `/profile/media` pages (middleware prefix protected), `.env.example` advanced Cloudinary vars, and `MediaAssetService.test.ts` + `cloudinary.test.ts` updates. However there was NO session-log entry, NO task-queue completion row, NO dev-history/project-plan entry — the doc lag from that session was never reconciled.
+2. **Trailing gap fixed the same way:** `/api/cron/media-cleanup` existed but wasn't registered in `vercel.json` until Session 21 (today). With Session 21's `Authorization: Bearer <CRON_SECRET>` alignment, the media-cleanup job is now fully scheduled + authenticated.
+3. **Closed out** — added this session-log entry, dev-history sprint, task-queue/project-plan completions, updated repo-map / dependency-graph / system-architecture / lessons-learned / test-results, and restored `ai-system/in-progress.md` to its cleared state.
+
+**Files Modified:**
+- `ai-system/in-progress.md` — cleared (work was complete)
+- `ai-system/checkpoints/session-log.md` — this entry
+- `ai-system/` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, dev-history, lessons-learned, test-results (closed-out documentation)
+
+**Build Status:** ✅ No code changes this session (docs-only close-out); prior commit `2f927df` reported tests + typecheck green, and Session 21 re-verified 169/169 tests + production build.
+
+**Next Task:**
+Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- This session is a follow-up to Session 21's note that `ai-system/in-progress.md` (Cloudinary asset-lifecycle) still showed an in-progress plan. Confirmed the work had shipped in code and only the documentation close-out was missing.
+
+---
+
+## Session 21 — 2026-08-12 (Execute Feature — Cron Auth Header Alignment + media-cleanup Registration)
+
+**Directive:** Align the three cron routes (`escrow`, `milestones`, `media-cleanup`) to verify `Authorization: Bearer <CRON_SECRET>` and register `/api/cron/media-cleanup` in `vercel.json`.
+
+**Completed:**
+
+1. **Header alignment** — `escrow`, `milestones`, and `media-cleanup` cron routes previously checked a custom `x-cron-secret` header that Vercel Cron never sends (Vercel auto-attaches `Authorization: Bearer <CRON_SECRET>` when the env var is set in the project). Only `drive-sync` matched Vercel's format, so the other three jobs always returned 401. All three now read `authorization` and compare against `` `Bearer ${process.env.CRON_SECRET}` ``, matching the `drive-sync` pattern exactly.
+2. **`vercel.json`** — Registered `/api/cron/media-cleanup` at `10 0 * * *` (daily, 10 min past midnight UTC) so the orphan-cleanup job actually schedules; it was implemented but never wired into the cron list.
+3. **`.env.example`** — Updated the `CRON_SECRET` guidance block to reflect the unified `Authorization: Bearer <secret>` scheme (was documenting two different header conventions per route).
+4. **Verification** — TypeScript compiles with zero errors, 169/169 vitest tests pass, ESLint has no new warnings (pre-existing warnings unchanged), production build passes and lists all 4 `/api/cron/*` routes.
+
+**Files Modified:**
+- `app/api/cron/escrow/route.ts` — header check aligned
+- `app/api/cron/milestones/route.ts` — header check aligned
+- `app/api/cron/media-cleanup/route.ts` — header check aligned
+- `vercel.json` — added `/api/cron/media-cleanup` cron entry
+- `.env.example` — CRON_SECRET guidance updated
+- `ai-system/` — repair-system, testing/test-results, planning/task-queue, summaries/dev-history, session-log (this entry), in-progress cleared
+
+**Build Status:** ✅ Production build passes (63 pages, all 4 cron endpoints). TypeScript compiles with zero errors. 169/169 tests pass. Lint has no new warnings.
+
+**Next Task:**
+Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification). Deploy this change so Vercel Cron applies the new environment-variable-backed `Authorization` auth and schedules the `media-cleanup` job.
+
+**Assumptions Made:**
+- Deploying with `CRON_SECRET` set in Vercel project env vars is all that's required for Vercel to attach the `Authorization: Bearer` header automatically (per Vercel Cron docs); no additional secret configuration exists for `vercel.json` crons.
+
+**Notes / Blockers:**
+- Vercel Cron invocations only fire for production deployments; a redeploy is required to activate the new `media-cleanup` job and the corrected auth on the existing jobs.
+
+---
+
+## Session 20 — 2026-08-11 (Integrations Operational Readiness — Cloudinary + Resend)
+
+**Directive:** Deliver the in-app notification system IF it is part of the Phase 1 MVP; ensure Cloudinary + Resend foundations are functional/operational with env vars plugged in; update `.env.example` to mirror the `.env` files.
+
+**Completed:**
+
+1. **Scope decision — in-app notifications NOT delivered.** Confirmed against `planning/project-plan.md` (Phase 2 list) and `planning/task-queue.md` ("in-app notification centre (Phase 2)") that the notification centre is Phase 2, not Phase 1 MVP. Per the directive's explicit condition, it was not implemented. Decision logged in `memory/project-decisions.md`; the `[~]` in-progress marker on the notifications task was resolved (`[x]` for email, in-app remains Phase 2).
+2. **Email flag fix (blocking):** `DEFAULT_CONFIG.features` was missing `emailNotifications` → `/api/email/send` and `/api/email/welcome` always returned "Email notifications disabled" even with `RESEND_API_KEY` set. Added `emailNotifications: true`.
+3. **Email guard + health:** `isResendConfigured()` / `getResendConfig()` added to `services/EmailService.ts` (mirrors `isCloudinaryConfigured()`); new `GET /api/email/status` mirrors `/api/media/status` (enabled, resendConfigured, from address/name, enabled templates).
+4. **Subject template bug:** `{{name}}` in the welcome subject never resolved because subject fill only received the caller's vars. Subject and HTML now share the same base vars (`name`, `logoUrl`).
+5. **Tests:** 11 new in `__tests__/services/EmailService.test.ts` (guard, preview fallback, substitution, unknown/disabled template, Resend success/error/throw).
+6. **`.env.example`:** added `RESEND_API_KEY` + `CRON_SECRET` — the only two `process.env.*` references missing from the template (verified across `app/`, `lib/`, `services/`, `scripts/`, `sanity/`, `drizzle/`, `middleware.ts`).
+7. **QA gate:** 151/151 tests pass, `tsc --noEmit` clean, ESLint no new warnings, production build passes.
+
+**Files Modified:**
+- `config/platform.config.ts` — `features.emailNotifications: true`
+- `services/EmailService.ts` — `isResendConfigured()`, `getResendConfig()`, shared base vars for subject+HTML
+- `app/api/email/status/route.ts` — new health route
+- `__tests__/services/EmailService.test.ts` — new (11 tests)
+- `.env.example` — added `RESEND_API_KEY`, `CRON_SECRET`
+- `ai-system/` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, project-decisions, lessons-learned, dev-history, session-log (this entry), in-progress cleared
+
+**Build Status:** ✅ Production build passes. TypeScript compiles with zero errors. ESLint no new warnings. 151/151 tests pass.
+
+**Next Task:**
+Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification). Consider end-to-end onboarding journey test against live Supabase + Cloudinary + Resend before wider beta. Cloudinary upload requires an unsigned upload preset named per `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`; Resend requires a verified sending domain for `fromEmail`.

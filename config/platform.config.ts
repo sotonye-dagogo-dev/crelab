@@ -141,6 +141,7 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     guestBrowse: true,
     googleDriveSync: true,
     blogEnabled: true,
+    emailNotifications: true,
   },
   mediaUpload: {
     enabled: true,
@@ -148,6 +149,8 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     maxFileSizeMb: 100,
     videoTypes: ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"],
     imageTypes: ["image/jpeg", "image/png", "image/webp"],
+    cleanupOrphanAfterHours: 24,
+    cleanupEnabled: true,
   },
   dashboard: {
     availabilityLookaheadDays: 30,

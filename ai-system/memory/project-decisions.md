@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -208,6 +208,25 @@
 
 **Implications:** EmailService wraps Resend behind an internal interface. All transactional email goes through `EmailService.send()` which handles template lookup, variable substitution, and Resend API calls. If `RESEND_API_KEY` is not set, the service returns a preview HTML instead of sending. Admin changes to templates via `/admin/email-templates` or config API apply immediately via PlatformConfigService cache invalidation.
 
+### Session 20 update — email is now operational by default
+- `DEFAULT_CONFIG.features.emailNotifications` is now `true`. It was previously undefined, so the feature check in `/api/email/send` and `/api/email/welcome` short-circuited with "Email notifications disabled" even when `RESEND_API_KEY` was present — the system could NOT go live with env vars plugged in. Fixed.
+- Added `isResendConfigured()`/`getResendConfig()` (mirrors Cloudinary's guard) and a `/api/email/status` health route (mirrors `/api/media/status`).
+- Subjects now receive `name`/`logoUrl` too, so `{{name}}` in a subject (e.g. welcome) actually resolves.
+
+---
+
+## In-App Notification Centre: Confirmed Phase 2 — Not Part of Phase 1 MVP
+
+**Decision:** The in-app notification centre is Phase 2, NOT Phase 1 MVP. When asked to "deliver the in-app notification system if it is part of the phase 1 MVP", it was confirmed against `planning/project-plan.md` (Phase 2 list) and `planning/task-queue.md` ("in-app notification centre (Phase 2)") that it is not, so it was NOT implemented in Session 20. The email (Resend) half of notifications was made operational instead.
+**Date:** 2026-08-11
+**Made by:** Implementer (per issue directive condition)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:** Phase 1 Milestones 1.0–1.4 (foundation, provider supply, discovery, booking/payment, admin/SEO) do not include an in-app notification centre. Delivering it would violate scope discipline and the directive's explicit condition.
+
+**Implications:** The `[~]` "in progress" marker on the notifications task in task-queue.md was resolved to `[x]` for the email portion and the in-app centre remains a Phase 2 backlog item. When Phase 2 begins, reference the design and the config-driven pattern (DB overrides + graceful env guard) used for email/Cloudinary.
+
 ---
 
 ## Google OAuth Sign-Up: Role + Consent Finalize Step Before Onboarding
@@ -230,3 +249,23 @@
 - `POST /api/auth/role` must keep its allow-list to `CLIENT`/`PROVIDER` to prevent ADMIN escalation.
 - The email/password provider signup path also calls the role endpoint, fixing the pre-existing gap where providers stayed `CLIENT` in the DB.
 - Google OAuth requires `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and the `/api/auth/callback/google` redirect URI registered in Google Cloud.
+
+---
+
+## Registry-Driven Media Asset Cleanup + Confirmed Destructive Actions
+
+**Decision:** Orphan-cloudinary-upload cleanup is registry-driven: every upload is recorded in a local `media_assets` table, and the cleanup job deletes rows older than `mediaUpload.cleanupOrphanAfterHours` whose publicId is not referenced in `providers`/`portfolio_items` (no Cloudinary remote tag/list scanning). Deleting a media asset clears its references first (provider cover/avatar → null; portfolio rows removed) and then deletes the Cloudinary binary — irrevocable, so delete flows use `ClConfirmDialog`, while reversible admin deletes (team member, portfolio item) use `useUndoable` undo toasts. Cleanup is gated by `mediaUpload.cleanupEnabled` and surfaced in `/api/media/status`.
+**Date:** 2026-08-11 (implemented, undocumented) 2026-08-12 (logged on close-out)
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Remote API scanning for orphans is slow (pagination, rate limits, eventual consistency) and error-prone; a local registry makes cleanup a SQL query plus a bounded set of Cloudinary deletes. Reference-clearing + binary delete is irreversible, so confirmation UI is mandatory on user-triggered deletes.
+
+**Alternatives Considered:**
+- Cloudinary tag/list scanning — rejected: slow, rate-limited, eventual-consistency drift
+- Soft-delete only (mark orphaned without deleting binary) — rejected: storage costs for orphaned binaries; delete is the point of the job
+
+**Implications:**
+Cleanup jobs and admin/user media managers depend on the `media_assets` registry staying consistent (uploads record synchronously; compensating delete on record insert failure). Env vars for signed deletes are server-only (`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET`) with `NEXT_PUBLIC_CLOUDINARY_*` fallbacks.

@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-updated-by: update-ai-system (Session 21)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -42,6 +42,34 @@
 **Date:** [YYYY-MM-DD]
 **Status:** [Active / Superseded]
 ```
+
+---
+
+## Known Error Patterns
+
+### Vercel Cron — Custom `x-cron-secret` Header Always Returns 401
+
+**Symptom:**
+Cron endpoints return `401 Unauthorized` in production even though `CRON_SECRET` is set. The jobs (`/api/cron/*`) never actually run their logic.
+
+**Root Cause:**
+Vercel Cron does not send a custom header. When `CRON_SECRET` is set as a project env var, Vercel automatically attaches `Authorization: Bearer <CRON_SECRET>` to the cron invocation. Handlers that read a different header (e.g. `x-cron-secret`) never match and reject every request. A handler that matches Vercel's format (e.g. `drive-sync` reads `authorization`) works, which makes the failure easy to miss.
+
+**Fix Applied:**
+Aligned `escrow`, `milestones`, and `media-cleanup` routes to read `authorization` and compare against `` `Bearer ${process.env.CRON_SECRET}` `` — the same guard `drive-sync` already used.
+
+**Prevention:**
+On Vercel Cron, always verify the `authorization` header as `Bearer <CRON_SECRET>`; there is no way to configure a custom header per job. Custom-header schemes (`x-cron-secret`) are only valid with self-hosted schedulers (GitHub Actions, cron-job.org, BetterStack) where you control the request. Keep `.env.example` guidance consistent with whichever scheduler is actually in use.
+
+**Files Affected:**
+- `app/api/cron/escrow/route.ts`
+- `app/api/cron/milestones/route.ts`
+- `app/api/cron/media-cleanup/route.ts`
+- `vercel.json` (registered `/api/cron/media-cleanup`)
+- `.env.example`
+
+**Date:** 2026-08-12
+**Status:** Active
 
 ---
 
@@ -238,6 +266,28 @@ Always gate optional-integration features on an availability check that degrades
 
 **Date:** 2026-08-09
 **Status:** Active
+
+### Dashboard Throws "Error: Unauthorized" for Authenticated Users
+
+**Symptom:**
+Opening `/dashboard` (or any `requireAuth()`-guarded page) throws `Error: Unauthorized` (digest `1369153800`) even after a successful sign-in. Trace shows the throw from `app/(auth)/dashboard/page.js`.
+
+**Root Cause:**
+`lib/auth.ts` `getSession()` called `auth.api.getSession({ headers: new Headers() })` — an empty `Headers` object with no cookies. Better Auth resolves the session from the incoming request cookies, so it always returned `null` and `requireAuth()` threw `Unauthorized`. This affected every server-side `requireAuth()` caller (dashboard page, wallet page, all wallet/milestone API routes). The correct request headers are available via `headers()` from `next/headers` (the pattern already used in `app/admin/layout.tsx` and the consent/export/delete API routes).
+
+**Fix Applied:**
+`lib/auth.ts` `getSession()` now reads the current request headers with `await headers()` and passes them to `auth.api.getSession({ headers: h })`.
+
+**Prevention:**
+Never construct `new Headers()` for Better Auth session lookups in request context — always forward `headers()` from `next/headers` (server components and route handlers) or `req.headers` (route handlers). Search for any remaining `getSession({ headers: new Headers()` usages during review.
+
+**Files Affected:**
+- `lib/auth.ts`
+
+**Date:** 2026-08-11
+**Status:** Active
+
+---
 
 ### Next.js 15.3.1 — Vulnerable Version Blocking Vercel Deployment
 

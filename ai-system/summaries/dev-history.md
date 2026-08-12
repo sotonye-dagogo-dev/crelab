@@ -1,8 +1,43 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
+
+## Sprint 2026-08-12 — Cloudinary Asset Lifecycle Close-Out
+
+### What
+Confirmed the Cloudinary asset-lifecycle work (shipped 2026-08-11 in commit `2f927df`) was implemented but never closed out in docs, then performed the missing documentation reconciliation and ran a full `update-ai-system.md` deep sync.
+
+### Why
+`ai-system/in-progress.md` still showed an active "Cloudinary Asset Lifecycle" plan while the code was complete — no session-log entry, no task-queue/project-plan/dev-history completion, and `repo-map`/`dependency-graph`/`system-architecture` didn't mention `MediaAssetService` or the media routes. The docs had drifted because that session's close-out step was never run.
+
+### Key Changes
+- **Close-out documentation** — session-log (Session 22), dev-history sprint, task-queue + project-plan completions; `ai-system/in-progress.md` restored to cleared
+- **`index/repo-map.md`** — added `/admin/media`, `/profile/media`, `mediaUpload` details, `MediaAssetService`, `ClConfirmDialog`, `use-undoable.ts`, `MediaAssetService.test.ts`
+- **`index/dependency-graph.md`** — added `MediaAssetService` (db, media_assets, cloudinary signed ops, config, types) + Cloudinary/Drive/Resend raw-fetch dependency entries (no SDKs in package.json — all use global `fetch`)
+- **`system-architecture.md`** — MediaAssetService in service layer, "Media Asset Lifecycle" data-flow section, `mediaUpload.cleanupEnabled`/`cleanupOrphanAfterHours` config table row, tech stack clarified (Cloudinary/Drive via raw fetch), recent-changes entries
+- **`planning/project-plan.md`**, **`planning/task-queue.md`**, **`summaries/dev-history.md`**, **`memory/lessons-learned.md`**, **`testing/test-results.md`** — reconciled
+
+### Status
+Pass — docs-only session; no code changes. Tests verified at 169/169 (Session 21).
+
+## Sprint 2026-08-12 — Cron Auth Header Alignment + media-cleanup Scheduling
+
+### What
+Aligned all four cron route handlers on the `Authorization: Bearer <CRON_SECRET>` verification scheme that Vercel Cron actually sends, and registered the previously-unwired `/api/cron/media-cleanup` job in `vercel.json`.
+
+### Why
+`escrow`, `milestones`, and `media-cleanup` cron routes read a custom `x-cron-secret` header. Vercel Cron never sends that header — when `CRON_SECRET` is set as a project env var, Vercel auto-attaches `Authorization: Bearer <secret>`. Only `drive-sync` matched Vercel's format, so those three jobs always returned 401 in production. `media-cleanup` was implemented but never added to the `crons` array in `vercel.json`, so it never ran at all.
+
+### Key Changes
+- **`app/api/cron/{escrow,milestones,media-cleanup}/route.ts`**: header check changed from `x-cron-secret` to `authorization` compared against `` `Bearer ${process.env.CRON_SECRET}` `` (identical to `drive-sync`)
+- **`vercel.json`**: added `/api/cron/media-cleanup` at `10 0 * * *` (daily, 10 past midnight UTC)
+- **`.env.example`**: `CRON_SECRET` guidance block now documents the unified Bearer scheme instead of two per-route conventions
+- **`ai-system/repair-system.md`**: logged the cron-header mismatch as a known error pattern with prevention guidance
+
+### Status
+Pass — typecheck clean, 169 tests pass, lint has no new warnings, production build passes (all 4 `/api/cron/*` routes listed).
 
 ## 2026-07-28 — Prototype Interactivity & Fallback Content
 
@@ -151,3 +186,36 @@ Phase 2 dashboard work was unstarted — providers had no earnings/pipeline/avai
 
 ### Status
 Pass — typecheck clean, 140 tests pass, lint has no new warnings, production build passes (incl. `/dashboard` route).
+
+## Sprint 2026-08-11 — Fix: Dashboard "Unauthorized" for Authenticated Users
+
+### What
+Fixed a runtime error where a successfully authenticated user opening `/dashboard` (or any `requireAuth()`-guarded page) hit `Error: Unauthorized` (digest `1369153800`).
+
+### Why
+`lib/auth.ts` `getSession()` called `auth.api.getSession({ headers: new Headers() })`. Better Auth resolves the session from the incoming request's cookies, so with an empty `Headers` object the session was always `null` and `requireAuth()` threw `Unauthorized`. The bug affected every server-side auth guard — dashboard page, wallet page, and the wallet/milestone API routes.
+
+### Key Changes
+- **`lib/auth.ts`**: `getSession()` now reads the current request headers via `await headers()` from `next/headers` and forwards them to `auth.api.getSession({ headers: h })` — the same pattern already used in `app/admin/layout.tsx` and the consent/export/delete API routes.
+
+### Status
+Pass — typecheck clean, 140 tests pass, lint has no new warnings, production build passes (incl. `/dashboard`).
+
+## Sprint 2026-08-11 — Integrations Operational Readiness (Cloudinary + Resend)
+
+### What
+Made the Cloudinary and Resend foundations genuinely operational once env vars are plugged in: fixed the email flag that silently disabled every email, added a Resend availability guard + health endpoint mirroring the Cloudinary pattern, fixed subject template substitution, and brought `.env.example` fully in line with every env var the code references.
+
+### Why
+The user obtained real Cloudinary + Resend API keys and needs the systems to work as soon as the keys are set. Auditing the routes against the config surfaced three real blockers: `DEFAULT_CONFIG.features.emailNotifications` had no default (so `/api/email/*` always returned "Email notifications disabled"), the welcome subject's `{{name}}` never resolved (subject fill didn't receive config vars), and `.env.example` was missing `RESEND_API_KEY` + `CRON_SECRET`.
+
+### Key Changes
+- **`config/platform.config.ts`**: `features.emailNotifications: true` default added (was undefined → all transactional email disabled)
+- **`services/EmailService.ts`**: added `isResendConfigured()` / `getResendConfig()` (call-time env read, mirrors `isCloudinaryConfigured()`); subject now filled with the same base vars (name/logoUrl) as the HTML body
+- **`app/api/email/status/route.ts`** (new): public health route — `enabled`, `resendConfigured` (feature flag AND `RESEND_API_KEY`), from address/name, enabled template subjects (mirrors `/api/media/status`)
+- **`__tests__/services/EmailService.test.ts`** (new): 11 tests — guard, preview fallback, var substitution, unknown/disabled template, Resend success/error/throw paths
+- **`.env.example`**: added `RESEND_API_KEY` and `CRON_SECRET` (verified against every `process.env.*` reference in `app/`, `lib/`, `services/`, `scripts/`, `sanity/`, `drizzle/`, `middleware.ts`)
+- **Scope check**: in-app notification centre confirmed Phase 2 (per `project-plan.md` + `task-queue.md`) → NOT delivered, per the directive's condition. Decision logged in `memory/project-decisions.md`.
+
+### Status
+Pass — typecheck clean, 151 tests pass (11 new), lint has no new warnings, production build passes.

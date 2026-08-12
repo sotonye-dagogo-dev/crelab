@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 18)
-> - last-verified-against-code: 2026-08-09
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -245,6 +245,90 @@
 3. Verify the actual compiler version with `npx tsc --version` — a global/pinned newer tsc can surface errors the project's own toolchain would not
 
 **Apply When:** Upgrading TypeScript, triaging bulk "module not found" typecheck noise, or editing tsconfig.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Better Auth Session Lookups Need the Request Headers — Never `new Headers()`
+
+**Context:** A signed-in user opening `/dashboard` got `Error: Unauthorized` (digest `1369153800`). The trace pointed at the dashboard page, but the user's session cookie was valid.
+
+**What We Learned:**
+1. `auth.api.getSession({ headers: new Headers() })` always returns `null` — Better Auth reads the session cookie from the request headers, and an empty `Headers` object contains no cookies
+2. In server components and route handlers, obtain the current request headers with `await headers()` from `next/headers` and forward them: `auth.api.getSession({ headers: h })` (route handlers may also use `req.headers`)
+3. A shared `getSession()`/`requireAuth()` helper hides the bug from every caller — one wrong headers source breaks all protected pages and API routes at once
+4. The app already had the correct pattern (`app/admin/layout.tsx`, consent/export/delete API routes); grep for `getSession({ headers: new Headers()` during review to catch regressions
+
+**Apply When:** Writing or reviewing any Better Auth session lookup, auth guard, or protected server page/route.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Every Config Feature Flag Needs a Default in DEFAULT_CONFIG
+
+**Context:** `DEFAULT_CONFIG.features` had `guestBrowse`, `googleDriveSync`, `blogEnabled` — but the admin editor and `/api/email/*` routes referenced `features.emailNotifications`, which had no default. The route's `if (!config.features?.emailNotifications)` guard made every email silently return "disabled", so even with a real `RESEND_API_KEY` the system could not send. This was only caught by reading the API routes against the config, not by any test.
+
+**What We Learned:**
+1. A feature flag referenced by code must have an explicit default in `DEFAULT_CONFIG` — a missing default makes the feature permanently off (or permanently on) until someone touches the DB, which reads like a broken integration rather than a config issue
+2. Grep for every `config.features?.X` / `config.X?.Y` access and cross-check against `DEFAULT_CONFIG` + the `IFeatureFlags` interface — the type's `?` hides the gap
+3. Health/status endpoints per integration (`/api/media/status`, `/api/email/status`) that report "configured = featureFlag AND envPresent" turn silent gaps into checkable state
+4. Integration guards should be symmetric: `isCloudinaryConfigured()` / `isResendConfigured()` read env at call time so the same pattern applies to every external provider
+
+**Apply When:** Adding any config flag, reviewing the admin config editor, or wiring a new external integration (env guard + status endpoint + default flag).
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## `.env.example` Must Mirror Every Env Var Referenced in Code
+
+**Context:** While making Resend operational, `RESEND_API_KEY` and `CRON_SECRET` were found referenced in `services/EmailService.ts` and `app/api/cron/*` but absent from `.env.example` — anyone following the template would plug in every listed var and still have email + cron silently unavailable.
+
+**What We Learned:**
+1. Derive `.env.example` by grepping `process.env.<NAME>` across `app/`, `lib/`, `services/`, `scripts/`, `sanity/`, `drizzle/`, `middleware.ts` — then diff against `.env.example`
+2. Group by service with a one-line purpose comment (e.g. "Resend — welcome, booking confirmation, payment received") so keys are self-documenting
+3. Note which features degrade without the var (e.g. "direct uploads only appear when both Cloudinary vars are set")
+
+**Apply When:** Adding an env var, updating the deployment checklist, or reviewing `.env.example`.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Media Asset Cleanup Should Be Registry-Driven, Not API-Scanned
+
+**Context:** Implementing orphaned-Cloudinary-upload cleanup. Scanning Cloudinary's remote tag or resource-list API for "orphans" is slow and fragile (pagination, rate limits, eventual consistency). The shipped design instead records every upload in a local `media_assets` registry table.
+
+**What We Learned:**
+1. A local registry (`media_assets` with publicId/cloudName/assetId/uploaderId/metadata) is the single source of truth: cleanup = query rows older than `mediaUpload.cleanupOrphanAfterHours` whose publicId isn't referenced in `providers`/`portfolio_items`, then call Cloudinary delete for each
+2. Record-then-delete is non-atomic — the upload route records the asset and deletes the Cloudinary binary if the DB insert fails (compensating delete), keeping the registry consistent
+3. Delete is a two-step, irreversible operation (clear references first, then the binary), so destructive flows must use a confirmation dialog (`ClConfirmDialog`); reversible admin deletes get undo toasts (`useUndoable`)
+4. Signed Cloudinary admin operations need server-only env vars (`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET`), read at call time with backward-compatible `NEXT_PUBLIC_CLOUDINARY_*` fallbacks, gated by `isCloudinaryConfigured()`
+5. Config-gate the cleanup job (`mediaUpload.cleanupEnabled` + `cleanupOrphanAfterHours`) and expose in `/api/media/status` so ops can verify the pipeline without running it
+
+**Apply When:** Building any external-object-storage cleanup, asset registry, or "am I still using this file?" reconciliation (Cloudinary, S3, Drive).
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Close Out Work in Docs When the Code Ships
+
+**Context:** The Cloudinary asset-lifecycle implementation shipped (commit `2f927df`) with a full in-progress plan left behind. `ai-system/in-progress.md` stayed "active", and `session-log`/`task-queue`/`project-plan`/`dev-history` had no completion entries — so anyone reading the docs thought the work was unfinished while the code was complete and tested.
+
+**What We Learned:**
+1. "The QA gate passed" and "the docs are closed out" are separate steps. Shipping code without the close-out step (`execute-feature.md` Step 5) silently accumulates doc drift
+2. Before starting work, check whether `in-progress.md` from a prior session describes work that already exists in code (`git log` for the listed files) — close it out instead of re-implementing
+3. Completion for a feature is: session-log entry + task-queue/project-plan `[x]` + dev-history sprint + `in-progress.md` cleared + repo-map/dependency-graph/system-architecture reconciled
+
+**Apply When:** Beginning any session that references a prior `in-progress.md`, or after any feature where close-out was skipped.
 
 **Supersedes:** None
 **Superseded by:** None

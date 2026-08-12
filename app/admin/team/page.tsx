@@ -2,17 +2,20 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton } from "@/components/ui";
+import { ClButton, ClConfirmDialog } from "@/components/ui";
 import { TeamMemberModal } from "@/components/admin/TeamMemberModal";
 import { useToast } from "@/lib/toast";
+import { useUndoable } from "@/lib/use-undoable";
 import { useBatchSelect, BatchToolbar } from "@/components/admin/BatchOperations";
 import type { ITeamMember } from "@/types";
 
 export default function AdminTeamPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const undoable = useUndoable();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<ITeamMember | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<ITeamMember | null>(null);
   const { selectedIds, toggleSelect, selectAll, invertSelect, clearSelection } = useBatchSelect<string>();
 
   const { data: members = [], isLoading } = useQuery<ITeamMember[]>({
@@ -58,6 +61,40 @@ export default function AdminTeamPage() {
       toast(err.message, "error");
     },
   });
+
+  const restoreMember = async (member: ITeamMember) => {
+    const res = await fetch("/api/admin/team", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: member.name,
+        role: member.role,
+        bio: member.bio,
+        avatarUrl: member.avatarUrl,
+        socialLinks: member.socialLinks,
+        orderIndex: member.orderIndex,
+        active: member.active,
+      }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error ?? "Failed to restore member");
+    queryClient.invalidateQueries({ queryKey: ["admin-team"] });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!memberToDelete) return;
+    const member = memberToDelete;
+    setMemberToDelete(null);
+    undoable({
+      execute: async () => {
+        await deleteMutation.mutateAsync(member.id);
+      },
+      undo: async () => {
+        await restoreMember(member);
+      },
+      successMessage: "Team member deleted",
+    });
+  };
 
   const batchMutation = useMutation({
     mutationFn: async (body: { action: string; ids: string[] }) => {
@@ -250,11 +287,7 @@ export default function AdminTeamPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm("Delete this team member?")) {
-                          deleteMutation.mutate(member.id);
-                        }
-                      }}
+                      onClick={() => setMemberToDelete(member)}
                       disabled={deleteMutation.isPending || toggleMutation.isPending}
                       className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -273,6 +306,16 @@ export default function AdminTeamPage() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         member={editingMember}
+      />
+
+      <ClConfirmDialog
+        open={memberToDelete !== null}
+        title="Delete team member"
+        message={`Delete "${memberToDelete?.name}" from the public team page? This action is reversible from the undo prompt.`}
+        confirmLabel="Delete"
+        loading={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setMemberToDelete(null)}
       />
     </div>
   );

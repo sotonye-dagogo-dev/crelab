@@ -325,6 +325,7 @@ export const userRelations = relations(user, ({ many, one }) => ({
   disputesRaised: many(disputes, { relationName: "raisedBy" }),
   disputesResolved: many(disputes, { relationName: "resolvedBy" }),
   consentRecords: many(consentRecords),
+  mediaAssets: many(mediaAssets),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -460,4 +461,30 @@ export const bugReports = pgTable("bug_reports", {
 export const bugReportsRelations = relations(bugReports, ({ one }) => ({
   user: one(user, { fields: [bugReports.userId], references: [user.id] }),
   resolvedBy: one(user, { fields: [bugReports.resolvedById], references: [user.id] }),
+}));
+
+export const mediaAssetStatusEnum = pgEnum("media_asset_status", [
+  "ACTIVE",
+  "DELETED",
+]);
+
+export const mediaAssets = pgTable("media_assets", {
+  id: text("id").primaryKey(),
+  /** Cloudinary public id */
+  publicId: text("public_id").notNull(),
+  cloudName: text("cloud_name").notNull(),
+  resourceType: text("resource_type", { enum: ["video", "image"] }).notNull(),
+  url: text("url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  mimeType: text("mime_type"),
+  /** User who uploaded the asset (null once anonymised) */
+  ownerId: text("owner_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  status: mediaAssetStatusEnum("status").notNull().default("ACTIVE"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const mediaAssetsRelations = relations(mediaAssets, ({ one }) => ({
+  owner: one(user, { fields: [mediaAssets.ownerId], references: [user.id] }),
 }));

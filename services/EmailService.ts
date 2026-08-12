@@ -11,6 +11,19 @@ function getResendApiKey(): string | null {
   return process.env.RESEND_API_KEY ?? null;
 }
 
+/**
+ * Resend is only available when RESEND_API_KEY is present. Email features must
+ * check this and degrade gracefully (preview/console fallback) when absent.
+ * Read at call time so availability reflects current runtime configuration.
+ */
+export function isResendConfigured(): boolean {
+  return getResendApiKey() !== null;
+}
+
+export function getResendConfig(): { apiKeyPresent: boolean } {
+  return { apiKeyPresent: isResendConfigured() };
+}
+
 export class EmailService {
   static async send(
     to: string,
@@ -26,12 +39,13 @@ export class EmailService {
     }
 
     const apiKey = getResendApiKey();
-    const subject = fillTemplate(template.subject, vars);
-    const html = fillTemplate(template.bodyHtml, {
+    const baseVars: TemplateVars = {
       ...vars,
       name: cfg.name,
       logoUrl: cfg.logoPath,
-    });
+    };
+    const subject = fillTemplate(template.subject, baseVars);
+    const html = fillTemplate(template.bodyHtml, baseVars);
 
     if (apiKey) {
       try {

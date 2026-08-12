@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { headers } from "next/headers";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { db } from "@/lib/db";
 import { phoneNumber } from "better-auth/plugins";
@@ -49,7 +50,8 @@ export const auth = betterAuth({
 });
 
 export async function getSession() {
-  return auth.api.getSession({ headers: new Headers() });
+  const h = await headers();
+  return auth.api.getSession({ headers: h });
 }
 
 export async function requireAuth() {
