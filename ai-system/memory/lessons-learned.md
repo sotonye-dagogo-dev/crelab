@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 20)
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -295,6 +295,40 @@
 3. Note which features degrade without the var (e.g. "direct uploads only appear when both Cloudinary vars are set")
 
 **Apply When:** Adding an env var, updating the deployment checklist, or reviewing `.env.example`.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Media Asset Cleanup Should Be Registry-Driven, Not API-Scanned
+
+**Context:** Implementing orphaned-Cloudinary-upload cleanup. Scanning Cloudinary's remote tag or resource-list API for "orphans" is slow and fragile (pagination, rate limits, eventual consistency). The shipped design instead records every upload in a local `media_assets` registry table.
+
+**What We Learned:**
+1. A local registry (`media_assets` with publicId/cloudName/assetId/uploaderId/metadata) is the single source of truth: cleanup = query rows older than `mediaUpload.cleanupOrphanAfterHours` whose publicId isn't referenced in `providers`/`portfolio_items`, then call Cloudinary delete for each
+2. Record-then-delete is non-atomic — the upload route records the asset and deletes the Cloudinary binary if the DB insert fails (compensating delete), keeping the registry consistent
+3. Delete is a two-step, irreversible operation (clear references first, then the binary), so destructive flows must use a confirmation dialog (`ClConfirmDialog`); reversible admin deletes get undo toasts (`useUndoable`)
+4. Signed Cloudinary admin operations need server-only env vars (`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET`), read at call time with backward-compatible `NEXT_PUBLIC_CLOUDINARY_*` fallbacks, gated by `isCloudinaryConfigured()`
+5. Config-gate the cleanup job (`mediaUpload.cleanupEnabled` + `cleanupOrphanAfterHours`) and expose in `/api/media/status` so ops can verify the pipeline without running it
+
+**Apply When:** Building any external-object-storage cleanup, asset registry, or "am I still using this file?" reconciliation (Cloudinary, S3, Drive).
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Close Out Work in Docs When the Code Ships
+
+**Context:** The Cloudinary asset-lifecycle implementation shipped (commit `2f927df`) with a full in-progress plan left behind. `ai-system/in-progress.md` stayed "active", and `session-log`/`task-queue`/`project-plan`/`dev-history` had no completion entries — so anyone reading the docs thought the work was unfinished while the code was complete and tested.
+
+**What We Learned:**
+1. "The QA gate passed" and "the docs are closed out" are separate steps. Shipping code without the close-out step (`execute-feature.md` Step 5) silently accumulates doc drift
+2. Before starting work, check whether `in-progress.md` from a prior session describes work that already exists in code (`git log` for the listed files) — close it out instead of re-implementing
+3. Completion for a feature is: session-log entry + task-queue/project-plan `[x]` + dev-history sprint + `in-progress.md` cleared + repo-map/dependency-graph/system-architecture reconciled
+
+**Apply When:** Beginning any session that references a prior `in-progress.md`, or after any feature where close-out was skipped.
 
 **Supersedes:** None
 **Superseded by:** None

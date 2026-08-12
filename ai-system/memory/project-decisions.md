@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-05
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -249,3 +249,23 @@
 - `POST /api/auth/role` must keep its allow-list to `CLIENT`/`PROVIDER` to prevent ADMIN escalation.
 - The email/password provider signup path also calls the role endpoint, fixing the pre-existing gap where providers stayed `CLIENT` in the DB.
 - Google OAuth requires `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and the `/api/auth/callback/google` redirect URI registered in Google Cloud.
+
+---
+
+## Registry-Driven Media Asset Cleanup + Confirmed Destructive Actions
+
+**Decision:** Orphan-cloudinary-upload cleanup is registry-driven: every upload is recorded in a local `media_assets` table, and the cleanup job deletes rows older than `mediaUpload.cleanupOrphanAfterHours` whose publicId is not referenced in `providers`/`portfolio_items` (no Cloudinary remote tag/list scanning). Deleting a media asset clears its references first (provider cover/avatar → null; portfolio rows removed) and then deletes the Cloudinary binary — irrevocable, so delete flows use `ClConfirmDialog`, while reversible admin deletes (team member, portfolio item) use `useUndoable` undo toasts. Cleanup is gated by `mediaUpload.cleanupEnabled` and surfaced in `/api/media/status`.
+**Date:** 2026-08-11 (implemented, undocumented) 2026-08-12 (logged on close-out)
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Remote API scanning for orphans is slow (pagination, rate limits, eventual consistency) and error-prone; a local registry makes cleanup a SQL query plus a bounded set of Cloudinary deletes. Reference-clearing + binary delete is irreversible, so confirmation UI is mandatory on user-triggered deletes.
+
+**Alternatives Considered:**
+- Cloudinary tag/list scanning — rejected: slow, rate-limited, eventual-consistency drift
+- Soft-delete only (mark orphaned without deleting binary) — rejected: storage costs for orphaned binaries; delete is the point of the job
+
+**Implications:**
+Cleanup jobs and admin/user media managers depend on the `media_assets` registry staying consistent (uploads record synchronously; compensating delete on record insert failure). Env vars for signed deletes are server-only (`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET`) with `NEXT_PUBLIC_CLOUDINARY_*` fallbacks.

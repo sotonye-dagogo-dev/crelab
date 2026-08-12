@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 20)
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -33,6 +33,7 @@ Service Layer (services/)
     |-- DashboardService        -- Role-aware Provider/Client dashboards (pipeline, stats, availability, payments)
     |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
+    |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan, orphan cleanup, delete, replace
     |-- MockDataService         -- Mock data fallback when DB unavailable
     |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback)
     |
@@ -62,7 +63,7 @@ Data Stores
 | API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, webhooks, cron | `app/api/` | Services, Lib |
 | UI Wrappers | Cl* wrappers around shadcn/ui primitives | `components/ui/` | shadcn/ui, Tailwind |
 | Feature Components | Domain-specific UI: explore cards, profile sections, booking drawer, admin panels | `components/` | UI Wrappers, Types |
-| Services | Business logic: booking, escrow, payment, portfolio, drive, config, explore | `services/` | Lib, Types, Drizzle |
+| Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore | `services/` | Lib, Types, Drizzle |
 | Types | Global TS interfaces: entities, API responses, enums, explore types | `types/` | None |
 | Config | Platform config with DB override capability | `config/` | Types |
 | Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, mux, drive, consent, config-context, toast | `lib/` | SDK packages |
@@ -120,14 +121,24 @@ Data Stores
 
 ### Media Upload (Cloudinary) Flow
 ```
-1. MediaUpload component fetches GET /api/media/status -> { enabled, cloudinaryConfigured, maxFileSizeMb, videoTypes, imageTypes }
-2. Cloudinary available (config mediaUpload.enabled+cloudinaryEnabled AND NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET):
+1. MediaUpload component fetches GET /api/media/status -> { enabled, cloudinaryConfigured, maxFileSizeMb, videoTypes, imageTypes, cleanupEnabled, cleanupOrphanAfterHours }
+2. Cloudinary available (config mediaUpload.enabled+cloudinaryEnabled AND CLOUDINARY_CLOUD_NAME + CLOUDINARY_UPLOAD_PRESET set):
    -> Upload tab shown; file POSTed to /api/media/upload (auth + config + env + type/size validation)
-   -> uploadFile() uploads via unsigned preset -> { url, thumbnailUrl, mimeType, resourceType }
+   -> uploadFile() uploads via unsigned preset -> { url, thumbnailUrl, mimeType, resourceType, publicId }
+   -> MediaAssetService records the asset in media_assets (deletes the Cloudinary binary if the record insert fails)
 3. Cloudinary unavailable: upload tab hidden, paste-link tab offered ("Direct upload is temporarily unavailable")
 4. Pasted URLs (Drive link or any public link) validated with isValidMediaUrl()
 5. Cover video / avatar URLs stored via onboarding state -> /api/profile/setup -> providers.coverVideoUrl / avatarUrl
 6. Drive folder during onboarding is collect-only; DriveService.ingestFolder() runs server-side after provider creation
+```
+
+### Media Asset Lifecycle (Cleanup + Admin/User Management)
+```
+1. Every upload records a row in media_assets (publicId, cloudName, assetId, uploaderId, url, thumbnailUrl, mimeType, sizeBytes, status)
+2. GET /api/media/assets (own list), DELETE /api/media/assets/[id], POST /api/media/assets/[id]/replace (swap references + delete old binary)
+3. Admin: GET /api/admin/media (all assets) + manual "Run cleanup" + DELETE /api/admin/media/[id] (with ClConfirmDialog)
+4. Daily cron: /api/cron/media-cleanup scans media_assets for rows older than mediaUpload.cleanupOrphanAfterHours whose publicId is not referenced in providers/portfolio_items -> Cloudinary deleteAsset() + row removal. Gated by mediaUpload.cleanupEnabled.
+5. Delete clears references first (providers cover/avatar -> null; portfolio_items -> row removed) then deletes the Cloudinary binary. Irreversible at the binary level -> delete flows use ClConfirmDialog; reversible destructive actions (team member delete, portfolio removal) use useUndoable undo toasts
 ```
 
 ### Provider Slug Resolution
@@ -165,6 +176,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | ESCROW_RELEASE_DAYS | Days after service date for auto-release | platform.config.ts | 5 |
 | CATEGORIES | Category slugs + field schema JSONB | platform.config.ts | ['content-creator', 'cinematographer'] |
 | FEATURES | Feature flags (guest browse, Drive sync, blog) | platform.config.ts | { guestBrowse: true, googleDriveSync: true, blogEnabled: true } |
+| MEDIA_UPLOAD | mediaUpload.enabled / cloudinaryEnabled / maxFileSizeMb / videoTypes / imageTypes / cleanupEnabled / cleanupOrphanAfterHours | platform.config.ts | { enabled: true, cloudinaryEnabled: true, maxFileSizeMb: 100, cleanupEnabled: true, cleanupOrphanAfterHours: 24 } |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
 
@@ -183,8 +195,8 @@ All config points have hardcoded fallback values in `config/platform.config.ts` 
 | Database | PostgreSQL (Supabase) | - |
 | ORM | Drizzle ORM | latest stable |
 | Payment | Paystack (primary) / Flutterwave (fallback) | 2.x |
-| Video | Cloudinary (upload/thumbnails) + Mux (streaming) | cloudinary@2.x / @mux/mux-node@14.x |
-| Drive | Google Drive Files API v3 | googleapis@20.x |
+| Video | Cloudinary (upload/thumbnails/signed delete via raw fetch) + Mux (streaming) | cloudinary@2.x / @mux/mux-node@14.x |
+| Drive | Google Drive Files API v3 (raw fetch) | googleapis@20.x |
 | CMS | Sanity CMS | @sanity/client@7.x |
 | Email | Resend | resend@6.x |
 | Data Fetching | TanStack Query | 5.x |
@@ -216,6 +228,16 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-08-12 — Cloudinary Asset Lifecycle (Close-Out Documentation)
+
+N/A — no code changes this session. Close-out only: the asset-lifecycle implementation (shipped 2026-08-11 in commit `2f927df`) had never been documented. Documented `services/MediaAssetService.ts` (registry-driven lifecycle), the `media_assets` table (`0004_media_assets.sql`), `/admin/media` + `/profile/media` pages, admin/user media API routes, `ClConfirmDialog` + `lib/use-undoable.ts` reusable destructive-action primitives, and the `mediaUpload.cleanupEnabled`/`cleanupOrphanAfterHours` config keys. `repo-map.md`, `dependency-graph.md`, `project-plan.md`, `task-queue.md`, `dev-history.md`, `lessons-learned.md`, `test-results.md` reconciled; `ai-system/in-progress.md` cleared.
+
+### 2026-08-12 — Cron Auth Header Alignment + media-cleanup Scheduling
+- `app/api/cron/{escrow,milestones,media-cleanup}/route.ts`: header verification changed from custom `x-cron-secret` to `Authorization: Bearer <CRON_SECRET>` — matching what Vercel Cron actually sends when `CRON_SECRET` is set (previously only `drive-sync` matched, so the other three jobs always returned 401)
+- `vercel.json`: `/api/cron/media-cleanup` added at `10 0 * * *` (was implemented but never scheduled)
+- `.env.example`: `CRON_SECRET` guidance now documents the single Bearer scheme
+- Also updated `repair-system.md`, `testing/test-results.md`, `planning/task-queue.md`, `summaries/dev-history.md`
 
 ### 2026-08-11 — Integrations Operational Readiness (Cloudinary + Resend)
 - `config/platform.config.ts`: added `features.emailNotifications: true` default — previously `/api/email/*` short-circuited "Email notifications disabled" even with `RESEND_API_KEY` set

@@ -1,8 +1,8 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 20)
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: update-ai-system (Session 21)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -69,6 +69,8 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Cloudinary asset lifecycle close-out: implementation (media_assets registry, MediaAssetService, admin/user media managers, ClConfirmDialog + useUndoable, cron cleanup) shipped 2026-08-11 but was never documented; session-log/dev-history/task-queue/project-plan entries added and in-progress.md cleared on close-out | 2026-08-12 |
+| Cron auth alignment: all 4 `/api/cron/*` routes now verify `Authorization: Bearer <CRON_SECRET>` (matches Vercel Cron's auto header); `/api/cron/media-cleanup` registered in `vercel.json` at `10 0 * * *`. 169 tests pass, build green | 2026-08-12 |
 | Integrations operational readiness: `emailNotifications` default (was silently off), `isResendConfigured()` + `getResendConfig()`, `/api/email/status` health route, subject `{{name}}` fill fix, 11 EmailService tests, `.env.example` mirrors all env vars (added RESEND_API_KEY + CRON_SECRET). 151 tests pass, build green | 2026-08-11 |
 | In-app notification centre — confirmed Phase 2, NOT delivered in Phase 1 (decision logged in project-decisions.md) | 2026-08-11 |
 | Dashboard Unauthorized fix: `lib/auth.ts` getSession forwards request headers via `next/headers` | 2026-08-11 |

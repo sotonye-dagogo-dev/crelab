@@ -1,8 +1,43 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 20)
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
+
+## Sprint 2026-08-12 — Cloudinary Asset Lifecycle Close-Out
+
+### What
+Confirmed the Cloudinary asset-lifecycle work (shipped 2026-08-11 in commit `2f927df`) was implemented but never closed out in docs, then performed the missing documentation reconciliation and ran a full `update-ai-system.md` deep sync.
+
+### Why
+`ai-system/in-progress.md` still showed an active "Cloudinary Asset Lifecycle" plan while the code was complete — no session-log entry, no task-queue/project-plan/dev-history completion, and `repo-map`/`dependency-graph`/`system-architecture` didn't mention `MediaAssetService` or the media routes. The docs had drifted because that session's close-out step was never run.
+
+### Key Changes
+- **Close-out documentation** — session-log (Session 22), dev-history sprint, task-queue + project-plan completions; `ai-system/in-progress.md` restored to cleared
+- **`index/repo-map.md`** — added `/admin/media`, `/profile/media`, `mediaUpload` details, `MediaAssetService`, `ClConfirmDialog`, `use-undoable.ts`, `MediaAssetService.test.ts`
+- **`index/dependency-graph.md`** — added `MediaAssetService` (db, media_assets, cloudinary signed ops, config, types) + Cloudinary/Drive/Resend raw-fetch dependency entries (no SDKs in package.json — all use global `fetch`)
+- **`system-architecture.md`** — MediaAssetService in service layer, "Media Asset Lifecycle" data-flow section, `mediaUpload.cleanupEnabled`/`cleanupOrphanAfterHours` config table row, tech stack clarified (Cloudinary/Drive via raw fetch), recent-changes entries
+- **`planning/project-plan.md`**, **`planning/task-queue.md`**, **`summaries/dev-history.md`**, **`memory/lessons-learned.md`**, **`testing/test-results.md`** — reconciled
+
+### Status
+Pass — docs-only session; no code changes. Tests verified at 169/169 (Session 21).
+
+## Sprint 2026-08-12 — Cron Auth Header Alignment + media-cleanup Scheduling
+
+### What
+Aligned all four cron route handlers on the `Authorization: Bearer <CRON_SECRET>` verification scheme that Vercel Cron actually sends, and registered the previously-unwired `/api/cron/media-cleanup` job in `vercel.json`.
+
+### Why
+`escrow`, `milestones`, and `media-cleanup` cron routes read a custom `x-cron-secret` header. Vercel Cron never sends that header — when `CRON_SECRET` is set as a project env var, Vercel auto-attaches `Authorization: Bearer <secret>`. Only `drive-sync` matched Vercel's format, so those three jobs always returned 401 in production. `media-cleanup` was implemented but never added to the `crons` array in `vercel.json`, so it never ran at all.
+
+### Key Changes
+- **`app/api/cron/{escrow,milestones,media-cleanup}/route.ts`**: header check changed from `x-cron-secret` to `authorization` compared against `` `Bearer ${process.env.CRON_SECRET}` `` (identical to `drive-sync`)
+- **`vercel.json`**: added `/api/cron/media-cleanup` at `10 0 * * *` (daily, 10 past midnight UTC)
+- **`.env.example`**: `CRON_SECRET` guidance block now documents the unified Bearer scheme instead of two per-route conventions
+- **`ai-system/repair-system.md`**: logged the cron-header mismatch as a known error pattern with prevention guidance
+
+### Status
+Pass — typecheck clean, 169 tests pass, lint has no new warnings, production build passes (all 4 `/api/cron/*` routes listed).
 
 ## 2026-07-28 — Prototype Interactivity & Fallback Content
 

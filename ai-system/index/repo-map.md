@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 20)
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -39,7 +39,7 @@ crelab/
 │   │   ├── dashboard/      # Role-aware Provider/Client dashboard
 │   │   ├── forgot-password/ # Password reset page
 │   │   ├── login/          # Sign in page (email/password + phone/OTP + Google OAuth)
-│   │   ├── profile/        # Profile edit/setup
+│   │   ├── profile/        # Profile edit/setup + media asset manager
 │   │   ├── register/       # Sign up page (multi-step email/password + Google OAuth)
 │   │   └── wallet/         # Wallet page (balance, topup, withdraw, transactions)
 │   ├── admin/               # ADMIN role only
@@ -49,24 +49,25 @@ crelab/
 │   │   ├── config/         # Platform config editor
 │   │   ├── disputes/       # Dispute resolution dashboard
 │   │   ├── email-templates/ # Admin-editable email templates
+│   │   ├── media/          # Media asset manager (list, preview, delete, cleanup)
 │   │   └── providers/      # Provider review queue
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
-│       ├── admin/          # Admin CRUD endpoints
+│       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id])
 │       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission
-│       ├── cron/           # Escrow cron endpoints
+│       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)
 │       ├── dashboard/      # Provider/Client dashboard payload
 │       ├── explore/        # Provider search/filter/sort
 │       ├── milestones/     # Milestone CRUD
-│       ├── media/          # Media upload (Cloudinary proxy) + capability status
+│       ├── media/          # Media upload (Cloudinary) + status + asset registry (list/delete/replace)
 │       ├── email/          # Email send (welcome, booking, payment) + status health route
 │       ├── portfolio/      # Portfolio CRUD
 │       ├── profile/        # Profile management (setup)
 │       ├── wallet/         # Wallet: topup (card + bank DVA), withdraw, balance, transactions
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
-│   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput added)
+│   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog added)
 │   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard
 │   ├── profile/            # ProviderHero, PortfolioGrid, ServicePackages, MediaUpload, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
@@ -84,6 +85,7 @@ crelab/
 │   ├── EscrowService.ts
 │   ├── EmailService.ts       # Resend transactional emails (isResendConfigured guard + preview fallback)
 │   ├── ExploreService.ts
+│   ├── MediaAssetService.ts  # Media asset registry: record, list, referenced-URL scan, orphan cleanup, delete, replace
 │   ├── MilestoneService.ts
 │   ├── MockDataService.ts
 │   ├── PaymentService.ts
@@ -99,7 +101,7 @@ crelab/
 ├── lib/
 │   ├── auth.ts             # Better Auth instance + getSession/requireAuth/requireRole (getSession forwards request headers)
 │   ├── blog-fallback.ts    # Hardcoded fallback blog posts when Sanity is unavailable
-│   ├── cloudinary.ts       # Video/image upload, thumbnail generation, env availability guard
+│   ├── cloudinary.ts       # Video/image upload, thumbnail generation, signed admin ops (deleteAsset) + env availability guard
 │   ├── config-context.tsx  # PlatformConfig React context provider
 │   ├── consent.ts          # NDPR consent capture server action
 │   ├── currency.ts         # Money helpers: nairaToKobo, formatNaira, formatKobo
@@ -112,7 +114,8 @@ crelab/
 │   ├── slug.ts             # Provider slug build/parse helpers (`name--id-prefix`)
 │   ├── sanity.ts           # Sanity CMS client + helpers
 │   ├── theme-context.tsx   # Theme provider (System/Light/Dark) + useTheme hook
-│   └── toast.tsx           # Toast notification component
+│   ├── toast.tsx           # Toast notification component
+│   └── use-undoable.ts      # useUndoable hook (undo toasts for reversible admin destructive actions)
 ├── drizzle/
 │   ├── schema.ts           # Drizzle schema (single source of truth for DB shape)
 │   └── migrations/         # Generated SQL migrations
@@ -137,23 +140,23 @@ crelab/
 | `app/` | Next.js 15 App Router: route groups for public, auth, admin, and API | `layout.tsx`, `page.tsx`, `sitemap.ts`, `robots.ts`, route handlers |
 | `checkpoints/` | Session tracking: in-progress and session logs | `in-progress.md`, `session-log.md` |
 | `testing/` | Test results tracking | `test-results.md` |
-| `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes | `page.tsx`, `layout.tsx` |
-| `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx` |
+| `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager | `page.tsx`, `layout.tsx`, `media/page.tsx` |
+| `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx`, `ClConfirmDialog.tsx` |
 | `components/explore/` | Explore feed: filter bar, masonry grid, video cards | ExploreFilterBar, ExploreGrid |
-| `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings | ProviderHero, PortfolioGrid, ServicePackages |
+| `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings, media upload | ProviderHero, PortfolioGrid, ServicePackages, MediaUpload |
 | `components/booking/` | Booking flow: drawer, escrow timeline, dispute modal | BookingDrawer, EscrowTimeline |
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar |
 | `components/admin/` | Admin panel components | AdminSidebar, CategoryModal, ConfigField |
 | `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner | Providers, AuthGate, CookieConsentBanner |
 | `sanity/` | Sanity CMS project config + content schemas | `sanity.config.ts`, `schemas/` |
-| `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService |
+| `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts`, `dashboard.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts` |
-| `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (463 lines, 14 tables + 6 enums + relations), `migrations/` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `use-undoable.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts` |
+| `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (441 lines, 21 tables + 12 enums + relations), `migrations/` |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
-| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts` |
+| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts` |
 
 ---
 

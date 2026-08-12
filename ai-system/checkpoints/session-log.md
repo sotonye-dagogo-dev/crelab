@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 19)
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: execute-feature (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -753,6 +753,63 @@ Fixed the `/dashboard` runtime error where a successfully authenticated user sti
 
 **Next Task:**
 Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.
+
+---
+
+## Session 22 — 2026-08-12 (Close-Out — Cloudinary Asset Lifecycle Implementation)
+
+**Directive:** Confirm whether the Cloudinary asset-lifecycle plan in `ai-system/in-progress.md` was ever closed out; close it out if needed, then run `update-ai-system.md`.
+
+**Completed:**
+
+1. **Status confirmed: implemented but never closed out.** The `ai-system/in-progress.md` plan described Cloudinary asset lifecycle work (env-var rename, `media_assets` registry, orphan cleanup, admin/user media managers). All 12 plan items were verified present in the code (shipped in commit `2f927df`, PR #59, 2026-08-11): `lib/cloudinary.ts` signed ops + new env vars, migration `0004_media_assets.sql`, `mediaUpload.cleanupEnabled`/`cleanupOrphanAfterHours=`24/24h config with admin editor fields, `services/MediaAssetService.ts` (record/list/scan/cleanup/delete/replace), API routes (`/api/media/upload` records assets, `/api/cron/media-cleanup`, `/api/admin/media` + `[id]`, `/api/media/assets` + `[id]` + `[id]/replace`), `ClConfirmDialog` + `lib/use-undoable.ts` (adopted by `BatchOperations`/admin team), `/admin/media` + `/profile/media` pages (middleware prefix protected), `.env.example` advanced Cloudinary vars, and `MediaAssetService.test.ts` + `cloudinary.test.ts` updates. However there was NO session-log entry, NO task-queue completion row, NO dev-history/project-plan entry — the doc lag from that session was never reconciled.
+2. **Trailing gap fixed the same way:** `/api/cron/media-cleanup` existed but wasn't registered in `vercel.json` until Session 21 (today). With Session 21's `Authorization: Bearer <CRON_SECRET>` alignment, the media-cleanup job is now fully scheduled + authenticated.
+3. **Closed out** — added this session-log entry, dev-history sprint, task-queue/project-plan completions, updated repo-map / dependency-graph / system-architecture / lessons-learned / test-results, and restored `ai-system/in-progress.md` to its cleared state.
+
+**Files Modified:**
+- `ai-system/in-progress.md` — cleared (work was complete)
+- `ai-system/checkpoints/session-log.md` — this entry
+- `ai-system/` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, dev-history, lessons-learned, test-results (closed-out documentation)
+
+**Build Status:** ✅ No code changes this session (docs-only close-out); prior commit `2f927df` reported tests + typecheck green, and Session 21 re-verified 169/169 tests + production build.
+
+**Next Task:**
+Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- This session is a follow-up to Session 21's note that `ai-system/in-progress.md` (Cloudinary asset-lifecycle) still showed an in-progress plan. Confirmed the work had shipped in code and only the documentation close-out was missing.
+
+---
+
+## Session 21 — 2026-08-12 (Execute Feature — Cron Auth Header Alignment + media-cleanup Registration)
+
+**Directive:** Align the three cron routes (`escrow`, `milestones`, `media-cleanup`) to verify `Authorization: Bearer <CRON_SECRET>` and register `/api/cron/media-cleanup` in `vercel.json`.
+
+**Completed:**
+
+1. **Header alignment** — `escrow`, `milestones`, and `media-cleanup` cron routes previously checked a custom `x-cron-secret` header that Vercel Cron never sends (Vercel auto-attaches `Authorization: Bearer <CRON_SECRET>` when the env var is set in the project). Only `drive-sync` matched Vercel's format, so the other three jobs always returned 401. All three now read `authorization` and compare against `` `Bearer ${process.env.CRON_SECRET}` ``, matching the `drive-sync` pattern exactly.
+2. **`vercel.json`** — Registered `/api/cron/media-cleanup` at `10 0 * * *` (daily, 10 min past midnight UTC) so the orphan-cleanup job actually schedules; it was implemented but never wired into the cron list.
+3. **`.env.example`** — Updated the `CRON_SECRET` guidance block to reflect the unified `Authorization: Bearer <secret>` scheme (was documenting two different header conventions per route).
+4. **Verification** — TypeScript compiles with zero errors, 169/169 vitest tests pass, ESLint has no new warnings (pre-existing warnings unchanged), production build passes and lists all 4 `/api/cron/*` routes.
+
+**Files Modified:**
+- `app/api/cron/escrow/route.ts` — header check aligned
+- `app/api/cron/milestones/route.ts` — header check aligned
+- `app/api/cron/media-cleanup/route.ts` — header check aligned
+- `vercel.json` — added `/api/cron/media-cleanup` cron entry
+- `.env.example` — CRON_SECRET guidance updated
+- `ai-system/` — repair-system, testing/test-results, planning/task-queue, summaries/dev-history, session-log (this entry), in-progress cleared
+
+**Build Status:** ✅ Production build passes (63 pages, all 4 cron endpoints). TypeScript compiles with zero errors. 169/169 tests pass. Lint has no new warnings.
+
+**Next Task:**
+Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification). Deploy this change so Vercel Cron applies the new environment-variable-backed `Authorization` auth and schedules the `media-cleanup` job.
+
+**Assumptions Made:**
+- Deploying with `CRON_SECRET` set in Vercel project env vars is all that's required for Vercel to attach the `Authorization: Bearer` header automatically (per Vercel Cron docs); no additional secret configuration exists for `vercel.json` crons.
+
+**Notes / Blockers:**
+- Vercel Cron invocations only fire for production deployments; a redeploy is required to activate the new `media-cleanup` job and the corrected auth on the existing jobs.
 
 ---
 

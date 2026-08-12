@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 20)
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: update-ai-system (Session 22)
+> - last-verified-against-code: 2026-08-12
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -63,6 +63,18 @@ EmailService (+ isResendConfigured / getResendConfig)
   → env RESEND_API_KEY (read at call time; preview fallback when absent)
   → consumed by app/api/email/send + app/api/email/welcome + app/api/email/status
 
+MediaAssetService (registry-driven media asset lifecycle)
+  → lib/db.ts (Drizzle + postgres client)
+  → drizzle/schema.ts (media_assets table) + drizzle-orm (and, desc, eq, isNotNull, like, lt, or)
+  → lib/cloudinary.ts (deleteAsset, publicId extraction — signed admin ops via fetch to Cloudinary Admin API)
+  → PlatformConfigService (mediaUpload.cleanupEnabled + cleanupOrphanAfterHours)
+  → types/index.ts (IMediaAsset)
+  → consumed by app/api/media/upload (records on upload), app/api/media/assets (+ [id] delete, [id]/replace), app/api/admin/media (+ [id]), app/api/cron/media-cleanup
+
+Cloudinary flows
+  → lib/cloudinary.ts — raw fetch → https://api.cloudinary.com/v1_1/{cloudName}/{image,upload,video}/upload + Admin API (delete by public_id). Reads env at call time: CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET/UPLOAD_PRESET with NEXT_PUBLIC_CLOUDINARY_* fallbacks. No SDK dependency.
+  → consumed by app/api/media/upload + app/api/admin/media/[id] + services/MediaAssetService
+
 Auth (Better Auth)
   → Better Auth standalone instance (lib/auth.ts)
   → Drizzle adapter → drizzle/schema.ts (user, session, account, verification)
@@ -80,7 +92,7 @@ Lib Module
   → errors.ts is a leaf module — no dependencies beyond node's Error (imported by WalletService, MilestoneService, and integrations)
 
 Drizzle
-   → drizzle/schema.ts (463 lines, single source of truth — exports all tables, enums, relations)
+   → drizzle/schema.ts (441 lines, single source of truth — exports all tables, enums, relations)
   → postgres driver (lib/db.ts)
   → drizzle-kit (migrations)
 ```
@@ -103,9 +115,11 @@ Drizzle
 | tailwindcss | Styling | app/, components/ |
 | shadcn/ui (via Cl* wrappers) | UI primitives (wrapped) | components/ui/ |
 | zod | Schema validation (package.json) | — |
-| Not yet wired: Paystack SDK, Cloudinary SDK, Mux SDK, googleapis, resend | — | — |
-| bcryptjs | Password hashing (seed — replaced by Better Auth API calls) | scripts/seed.ts |
-| @sanity/client, @sanity/image-url | Sanity CMS content fetching + image URL builder | lib/sanity.ts, sanity/, app/(public)/blog/ |
+| Cloudinary (via lib/cloudinary.ts raw fetch — no SDK) | Media upload, thumbnail, signed delete | lib/cloudinary.ts, app/api/media/upload, app/api/admin/media/[id] |
+| Google Drive API (raw fetch — no SDK import in lib/drive.ts) | Google Drive portfolio sync | lib/drive.ts, services/DriveService.ts |
+| @sanity/client, @sanity/image-url (via next-sanity) | Sanity CMS content fetching + image URL builder | lib/sanity.ts, sanity/, app/(public)/blog/ |
+| resend | Transactional email (raw HTTP, no SDK) | services/EmailService.ts |
+| Not yet wired: Paystack SDK, Mux SDK, Flutterwave | — | — |
 
 ---
 
