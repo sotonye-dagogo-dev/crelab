@@ -1,11 +1,14 @@
 "use client";
 
 import type { EmailTemplateBlock } from "@/types";
+import { resolveUrlForRender } from "@/lib/url";
 
 /**
  * Renders visual-builder blocks (heading, paragraph, list, button, image,
  * divider) as styled page sections. Used to render the config-driven content
- * sections an admin builds with the blog visual builder.
+ * sections an admin builds with the blog visual builder. Relative image/link
+ * URLs are resolved absolute via the shared URL util so they render wherever
+ * the block is surfaced (blog page, admin preview).
  */
 export function ContentBlocks({ blocks }: { blocks: EmailTemplateBlock[] }) {
   if (!blocks?.length) return null;
@@ -41,7 +44,7 @@ export function ContentBlocks({ blocks }: { blocks: EmailTemplateBlock[] }) {
             return block.url ? (
               <div key={i}>
                 <a
-                  href={block.url}
+                  href={resolveUrlForRender(block.url)}
                   className="inline-flex items-center justify-center h-10 px-5 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[13px] no-underline transition-colors hover:bg-[var(--color-accent-dim)]"
                 >
                   {block.text || "Learn more"}
@@ -53,7 +56,7 @@ export function ContentBlocks({ blocks }: { blocks: EmailTemplateBlock[] }) {
               <div key={i}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={block.url}
+                  src={resolveUrlForRender(block.url)}
                   alt={block.alt || ""}
                   className="max-w-full h-auto rounded-[12px] border border-[var(--color-border)]"
                 />

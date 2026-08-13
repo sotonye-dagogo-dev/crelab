@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { blocksToHtml, SAMPLE_EMAIL_VARS, substituteSampleVars } from "@/lib/email-blocks";
+import { blocksToHtml, SAMPLE_EMAIL_VARS, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import type { EmailTemplateBlock } from "@/types";
 
@@ -29,6 +29,39 @@ describe("lib/email-blocks — sample variables", () => {
   it("resolves the sample logoUrl to an absolute URL ending in the logo path", () => {
     expect(SAMPLE_EMAIL_VARS.logoUrl).toMatch(/^https?:\/\//);
     expect(SAMPLE_EMAIL_VARS.logoUrl).toMatch(/primary-logo\.png$/);
+  });
+
+  it("previewVarsFor captures the configured platform name and logoPath", () => {
+    const vars = previewVarsFor({ name: "Acme Studio", logoPath: "/brand/acme.png" });
+    expect(vars.name).toBe("Acme Studio");
+    expect(vars.logoUrl).toMatch(/^https?:\/\/.*\/brand\/acme\.png$/);
+    expect(vars.userName).toBe(SAMPLE_EMAIL_VARS.userName);
+  });
+
+  it("previewVarsFor falls back to sample vars when no config is given", () => {
+    expect(previewVarsFor(null)).toBe(SAMPLE_EMAIL_VARS);
+  });
+
+  it("substituteSampleVars resolves a relative logo image src to an absolute URL", () => {
+    const html = `<img src="/primary-logo.png" alt="logo" />`;
+    const out = substituteSampleVars(html);
+    expect(out).not.toContain('src="/primary-logo.png"');
+    expect(out).toMatch(/src="https?:\/\/[^"]+\/primary-logo\.png"/);
+  });
+
+  it("substituteSampleVars resolves a relative image added via the visual builder and leaves absolute URLs alone", () => {
+    const html = `<img src="{{logoUrl}}" alt="logo" /><img src="https://cdn.example/x.png" alt="x" />`;
+    const out = substituteSampleVars(html);
+    expect(out).toMatch(/src="https?:\/\/[^"]+\/primary-logo\.png"/);
+    expect(out).toContain('src="https://cdn.example/x.png"');
+  });
+
+  it("substituteSampleVars leaves data:/mailto:/fragment URLs untouched", () => {
+    const html = `<a href="#top">top</a><a href="mailto:a@b.com">m</a><img src="data:image/png;base64,AAAA" alt="" />`;
+    const out = substituteSampleVars(html);
+    expect(out).toContain('href="#top"');
+    expect(out).toContain('href="mailto:a@b.com"');
+    expect(out).toContain('src="data:image/png;base64,AAAA"');
   });
 });
 

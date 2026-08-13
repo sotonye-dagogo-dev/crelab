@@ -1,8 +1,27 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 24)
+> - last-updated-by: update-ai-system (Session 25)
 > - last-verified-against-code: 2026-08-13
+
+## Sprint 2026-08-13 — Email Logo / Preview Image Resolution via the URL Util
+
+### What
+Fixed the email logo (and any visual-builder image) not rendering in the admin preview — and in recipients' mailboxes — by making every render path resolve relative URLs to absolute through the shared URL util. The preview now also captures the *configured* platform logo/name instead of the code defaults.
+
+### Why
+The email preview and the `blocksToHtml`/blog block renderers emitted image `src` values verbatim: a `/primary-logo.png` (the editor's own placeholder example) cannot render in email clients and was unreliable in the `srcdoc` preview iframe. Additionally the preview substituted `{{logoUrl}}` from `DEFAULT_CONFIG` rather than the DB-configured `logoPath`, so even the token path didn't "capture" the real logo.
+
+### Key Changes
+- **`lib/url.ts`**: `resolveUrlForRender(value)` — resolves relative URLs while leaving `{{variable}}` tokens and absolute/protocol-relative/schemed/anchor URLs untouched; `resolveRelativeUrlsInHtml(html)` — rewrites relative `img src` / `a href` in a rendered HTML blob to absolute. Both run AFTER token substitution so the origin is resolved at render time (preview client-side, send server-side) rather than baked in at edit time.
+- **`lib/email-blocks.ts`**: `substituteSampleVars()` now resolves relative URLs after substitution; new `previewVarsFor(config)` builds sample vars from the configured `name`/`logoPath`.
+- **`app/admin/email-templates/page.tsx`**: Preview tab uses `previewVarsFor(loaded config)`.
+- **`services/EmailService.ts`**: `send()` resolves relative URLs in the final HTML; `sendWelcome()` builds `exploreUrl` via `resolveAbsoluteUrl("/explore")` (previously a hand-rolled `${NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/explore` that skipped the Vercel fallback).
+- **`components/blog/ContentBlocks.tsx`**: image `src` / button `href` go through `resolveUrlForRender()`.
+- **Tests**: `__tests__/lib/email-blocks.test.ts` (+5) and `config-helpers.test.ts` (+3) cover the new helpers, configured-logo preview capture, and the "don't mangle data/mailto/#/tokens" guard.
+
+### Status
+Pass — typecheck clean, lint 0 errors (pre-existing warnings only), 201/201 tests pass, production build succeeds.
 
 ## Sprint 2026-08-13 — Collapsible Admin Sidebar, Reusable Table/Pagination, Email Template Fixes, Blog Sections Builder
 

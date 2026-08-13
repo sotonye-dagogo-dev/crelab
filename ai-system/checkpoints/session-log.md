@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 24)
+> - last-updated-by: update-ai-system (Session 25)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,38 @@
 ---
 
 ## Sessions
+
+## Session 25 — 2026-08-13 (Execute Feature — Email Logo/Preview Image Resolution via the URL Util)
+
+**Directive:** For the image in email (the logo in particular), ensure the preview also captures it and uses the url util we made — the suspected reason the image isn't rendering in previews. Also correct the issue in other places the pattern is used or observed.
+
+**Completed:**
+
+1. **`lib/url.ts`** — added `resolveUrlForRender(value)` (resolves relative URLs, leaves `{{variable}}` template tokens + absolute/protocol-relative/data/mailto/fragment URLs untouched) and `resolveRelativeUrlsInHtml(html)` (rewrites relative `img src` / `a href` to absolute against `appOrigin()`). These are run AFTER token substitution so no origin is baked at edit time — the preview (client) and the send path (server) each resolve against their own runtime origin.
+2. **`lib/email-blocks.ts`** — `substituteSampleVars()` now runs `resolveRelativeUrlsInHtml()` on the substituted HTML, so an image added as `/primary-logo.png` (the editor's own placeholder) actually renders in the preview iframe; added `previewVarsFor(config)` which builds sample vars from the *configured* platform name/`logoPath` (resolved absolute) instead of the code defaults.
+3. **`app/admin/email-templates/page.tsx`** — the Preview tab now uses `previewVarsFor(loaded config)` so it captures the admin-configured logo/name, not `DEFAULT_CONFIG`.
+4. **`services/EmailService.ts`** — `send()` runs `resolveRelativeUrlsInHtml()` on the final filled HTML before handing it to Resend / returning the preview, and `sendWelcome()` now builds `exploreUrl` via `resolveAbsoluteUrl("/explore")` (was a hand-rolled `${NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/explore`, which missed the Vercel fallback).
+5. **`components/blog/ContentBlocks.tsx`** — image `src` and button `href` now go through `resolveUrlForRender()` (same raw-relative pattern used elsewhere).
+6. **Tests** — `__tests__/lib/email-blocks.test.ts` (+5: `previewVarsFor` capture/fallback, relative logo image src resolution, visual-builder image + absolute mixed, data/mailto/# untouched) and `__tests__/lib/config-helpers.test.ts` (+3: `resolveUrlForRender`, `resolveRelativeUrlsInHtml`, unresolved-token skip). QA gate: typecheck clean, lint 0 errors (pre-existing warnings only), **201/201** tests pass, `next build` succeeds.
+
+**Files Modified:**
+- `lib/url.ts` (new helpers), `lib/email-blocks.ts` (`substituteSampleVars` + `previewVarsFor`)
+- `app/admin/email-templates/page.tsx` (preview uses configured config)
+- `services/EmailService.ts` (relative-URL resolution on send + `sendWelcome` exploreUrl via util)
+- `components/blog/ContentBlocks.tsx` (url util for image/button URLs)
+- `__tests__/lib/email-blocks.test.ts`, `__tests__/lib/config-helpers.test.ts`
+- `ai-system/` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, dev-history, lessons-learned, session-log (this entry)
+
+**Build Status:** ✅ Production build passes. TypeScript compiles with zero errors. ESLint has no new warnings. 201/201 tests pass.
+
+**Next Task:**
+Deploy this change (GitHub Action run). Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- Operational note for whoever debugs logo rendering in *production* emails: the preview and send paths now both resolve the logo to `{appOrigin()}/primary-logo.png`, so the last remaining external cause is `NEXT_PUBLIC_APP_URL` being unset/`http://localhost:3000` in the deployed Vercel runtime env — the resolved URL must be publicly reachable.
+- `npm install --legacy-peer-deps` was required (node_modules absent at session start); no dependency changes made.
+
+---
 
 ## Session 1 — 2026-07-04
 
