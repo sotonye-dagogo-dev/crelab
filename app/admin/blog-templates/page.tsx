@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClCard } from "@/components/ui";
+import { ContentBlocksEditor } from "@/components/admin/ContentBlocksEditor";
+import { ContentBlocks } from "@/components/blog/ContentBlocks";
 import { useToast } from "@/lib/toast";
 import { Eye } from "lucide-react";
-import type { IBlogConfig } from "@/types";
+import type { IBlogConfig, EmailTemplateBlock } from "@/types";
 
 const inputClass =
   "h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none w-full focus:border-[var(--color-accent)]";
@@ -32,6 +34,7 @@ export default function AdminBlogTemplatesPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [blog, setBlog] = useState<IBlogConfig | null>(null);
+  const [blocks, setBlocks] = useState<EmailTemplateBlock[] | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-config"],
@@ -45,7 +48,9 @@ export default function AdminBlogTemplatesPage() {
 
   useEffect(() => {
     if (data?.blogConfig) {
-      setBlog(data.blogConfig as IBlogConfig);
+      const cfg = data.blogConfig as IBlogConfig;
+      setBlog(cfg);
+      setBlocks(cfg.sections?.length ? [...cfg.sections] : null);
     }
   }, [data]);
 
@@ -71,6 +76,14 @@ export default function AdminBlogTemplatesPage() {
 
   const cfg = blog ?? DEFAULT_BLOG;
 
+  const handleSave = () => {
+    const payload: IBlogConfig = {
+      ...cfg,
+      ...(blocks ? { sections: blocks } : {}),
+    };
+    saveMutation.mutate({ key: "blogConfig", value: payload });
+  };
+
   if (isLoading) {
     return (
       <div className="text-[var(--color-text-secondary)] text-[14px]">
@@ -81,16 +94,16 @@ export default function AdminBlogTemplatesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] tracking-[-0.01em]">
             Blog Templates
           </h2>
           <div className="text-[13px] text-[var(--color-text-secondary)] mt-0.5">
-            Edit the copy and sections of the public blog page. Every change is config-driven and previewed live — no code or HTML needed.
+            Edit the copy, sections and copy blocks of the public blog page. Every change is config-driven and previewed live — no code or HTML needed.
           </div>
         </div>
-        <ClButton variant="primary" size="default" onClick={() => saveMutation.mutate({ key: "blogConfig", value: cfg })} loading={saveMutation.isPending}>
+        <ClButton variant="primary" size="default" onClick={handleSave} loading={saveMutation.isPending}>
           Save Blog Template
         </ClButton>
       </div>
@@ -183,12 +196,44 @@ export default function AdminBlogTemplatesPage() {
               </div>
             )}
 
+            {blocks && blocks.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-[var(--color-border)]">
+                <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] mb-4">
+                  Content sections
+                </div>
+                <ContentBlocks blocks={blocks} />
+              </div>
+            )}
+
             <div className="mt-6 pt-4 border-t border-[var(--color-border)] text-center text-[12px] text-[var(--color-text-tertiary)]">
               {cfg.footerTagline || "—"}
             </div>
           </div>
         </ClCard>
       </div>
+
+      <ClCard className="mt-6">
+        <div className="flex flex-col gap-4">
+          <div>
+            <div className="text-[14px] font-semibold text-[var(--color-text-primary)]">Content Sections</div>
+            <div className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
+              Add structured content sections to the blog landing page — same visual builder used for email templates, no HTML needed.
+            </div>
+          </div>
+          {blocks ? (
+            <ContentBlocksEditor blocks={blocks} onChange={setBlocks} />
+          ) : (
+            <div className="rounded-[8px] border border-dashed border-[var(--color-border-mid)] p-8 text-center">
+              <div className="text-[13px] text-[var(--color-text-secondary)] mb-3">
+                The blog page currently has no content sections. Add blocks below to build them visually.
+              </div>
+              <ClButton variant="primary" size="default" onClick={() => setBlocks([])}>
+                Start building sections
+              </ClButton>
+            </div>
+          )}
+        </div>
+      </ClCard>
     </div>
   );
 }

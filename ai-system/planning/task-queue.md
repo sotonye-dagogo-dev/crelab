@@ -1,8 +1,8 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 21)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: update-ai-system (Session 24)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -47,6 +47,11 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [M] | Prototype interactivity: mock data, profile fallback, blog fallback | [x] |
 | [S] | Seed team_members in seed script | [x] |
 | [S] | Button loading states across auth/booking/admin flows + footer bug-report link | [x] |
+| [M] | Collapsible admin sidebar (icon-only collapsed rail + mobile drawer via AdminShell) + responsive audit of admin/all pages | [x] |
+| [M] | Reusable `ClDataTable` + `ClPagination` adopted across users/media/providers/team/categories/config | [x] |
+| [S] | Email templates: h1 default `#E8FF47` + editable template name | [x] |
+| [S] | `{{name}}` resolves to platform name (preview sample var fix) + `logoUrl` origin hardening (`appOrigin` trailing-slash normalisation) | [x] |
+| [M] | Blog sections builder via shared `ContentBlocksEditor` + `ContentBlocks` renderer (blog page sections) | [x] |
 
 ---
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton, ClConfirmDialog } from "@/components/ui";
+import { ClButton, ClConfirmDialog, ClDataTable, type ClColumn } from "@/components/ui";
 import { TeamMemberModal } from "@/components/admin/TeamMemberModal";
 import { useToast } from "@/lib/toast";
 import { useUndoable } from "@/lib/use-undoable";
@@ -134,10 +134,120 @@ export default function AdminTeamPage() {
   }
 
   const memberIds = members.map((m) => m.id);
+  const allSelected = selectedIds.size === memberIds.length && memberIds.length > 0;
+
+  const columns: ClColumn<ITeamMember>[] = [
+    {
+      key: "checkbox",
+      header: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={() => {
+            if (allSelected) clearSelection();
+            else selectAll(memberIds);
+          }}
+          className="cursor-pointer accent-[var(--color-accent)]"
+          aria-label="Select all"
+        />
+      ),
+      width: "w-[40px]",
+      cell: (member) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(member.id)}
+          onChange={() => toggleSelect(member.id)}
+          className="cursor-pointer accent-[var(--color-accent)]"
+          aria-label={`Select ${member.name}`}
+        />
+      ),
+    },
+    {
+      key: "name",
+      header: "Name",
+      cell: (member) => (
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-[var(--color-surface-raised)] flex items-center justify-center text-[10px] font-bold text-[var(--color-text-tertiary)] flex-shrink-0">
+            {member.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2)}
+          </div>
+          <span className="text-[12px]">{member.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: "role",
+      header: "Role",
+      cell: (member) => <span className="text-[12px] text-[var(--color-accent)]">{member.role}</span>,
+    },
+    {
+      key: "bio",
+      header: "Bio",
+      hideOnMobile: true,
+      cell: (member) => (
+        <span className="text-[12px] text-[var(--color-text-secondary)] max-w-[200px] truncate block">
+          {member.bio}
+        </span>
+      ),
+    },
+    {
+      key: "order",
+      header: "Order",
+      hideOnMobile: true,
+      cell: (member) => (
+        <span className="text-[12px] font-[family-name:var(--font-mono)]">{member.orderIndex}</span>
+      ),
+    },
+    {
+      key: "active",
+      header: "Active",
+      cell: (member) => (
+        <button
+          onClick={() => toggleMutation.mutate({ id: member.id, active: member.active })}
+          disabled={toggleMutation.isPending || deleteMutation.isPending}
+          className={`inline-flex items-center w-9 h-5 rounded-[9999px] relative transition-colors cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed ${
+            member.active ? "bg-[var(--color-accent)]" : "bg-[var(--color-border-mid)]"
+          }`}
+          aria-label={member.active ? "Deactivate member" : "Activate member"}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+              member.active ? "translate-x-4" : ""
+            }`}
+          />
+        </button>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (member) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleEdit(member)}
+            className="text-[12px] text-[var(--color-accent)] cursor-pointer bg-transparent border-none p-0"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => setMemberToDelete(member)}
+            disabled={deleteMutation.isPending || toggleMutation.isPending}
+            className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deleteMutation.isPending ? "Deleting…" : "Delete"}
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] tracking-[-0.01em]">
             Team Members
@@ -179,127 +289,17 @@ export default function AdminTeamPage() {
         ]}
       />
 
-      <div className="bg-[var(--color-surface)] rounded-[12px] overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-[var(--color-surface-raised)]">
-              <th className="w-[40px] px-[14px] py-[10px] text-left">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === memberIds.length && memberIds.length > 0}
-                  onChange={() => {
-                    if (selectedIds.size === memberIds.length) clearSelection();
-                    else selectAll(memberIds);
-                  }}
-                  className="cursor-pointer accent-[var(--color-accent)]"
-                />
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Name
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Role
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Bio
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Order
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Active
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
-                  No team members found. Add your first member to get started.
-                </td>
-              </tr>
-            )}
-            {members.map((member) => (
-              <tr
-                key={member.id}
-                className={`border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)] ${
-                  selectedIds.has(member.id) ? "bg-[var(--color-accent-muted)]" : ""
-                }`}
-              >
-                <td className="w-[40px] px-[14px] py-[10px]">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(member.id)}
-                    onChange={() => toggleSelect(member.id)}
-                    className="cursor-pointer accent-[var(--color-accent)]"
-                  />
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-[var(--color-surface-raised)] flex items-center justify-center text-[10px] font-bold text-[var(--color-text-tertiary)] flex-shrink-0">
-                      {member.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2)}
-                    </div>
-                    {member.name}
-                  </div>
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px] text-[var(--color-accent)]">
-                  {member.role}
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-secondary)] max-w-[200px] truncate">
-                  {member.bio}
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px] font-[family-name:var(--font-mono)]">
-                  {member.orderIndex}
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  <button
-                    onClick={() =>
-                      toggleMutation.mutate({ id: member.id, active: member.active })
-                    }
-                    disabled={toggleMutation.isPending || deleteMutation.isPending}
-                    className={`inline-flex items-center w-9 h-5 rounded-[9999px] relative transition-colors cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                      member.active
-                        ? "bg-[var(--color-accent)]"
-                        : "bg-[var(--color-border-mid)]"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                        member.active ? "translate-x-4" : ""
-                      }`}
-                    />
-                  </button>
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEdit(member)}
-                      className="text-[12px] text-[var(--color-accent)] cursor-pointer bg-transparent border-none p-0"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setMemberToDelete(member)}
-                      disabled={deleteMutation.isPending || toggleMutation.isPending}
-                      className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {deleteMutation.isPending ? "Deleting…" : "Delete"}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ClDataTable
+        columns={columns}
+        rows={members}
+        rowKey={(m) => m.id}
+        pageSize={10}
+        emptyState={
+          <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
+            No team members found. Add your first member to get started.
+          </div>
+        }
+      />
 
       <TeamMemberModal
         open={modalOpen}

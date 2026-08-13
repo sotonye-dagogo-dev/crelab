@@ -1,4 +1,6 @@
 import type { EmailTemplateBlock } from "@/types";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { resolveAbsoluteUrl } from "@/lib/url";
 
 /**
  * Serializes structured template blocks (the visual, no-HTML editor format)
@@ -14,7 +16,7 @@ export function blocksToHtml(blocks: EmailTemplateBlock[]): string {
     switch (block.type) {
       case "heading":
         out.push(
-          `<h2 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#F2F2F2;margin:24px 0 8px;">${escapeHtml(block.text)}</h2>`,
+          `<h2 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:24px 0 8px;">${escapeHtml(block.text)}</h2>`,
         );
         break;
       case "paragraph":
@@ -62,18 +64,27 @@ function escapeHtml(value: string): string {
 
 /** Sample variable values used for live previews in the template editor. */
 export const SAMPLE_EMAIL_VARS: Record<string, string> = {
-  name: "Ada Okafor",
+  // `name` is the platform name (used throughout templates as the brand). It is
+  // NOT the recipient's username — keep them distinct so previews reflect what
+  // a real send will render.
+  name: DEFAULT_CONFIG.name,
   userName: "Ada Okafor",
   providerName: "Tunde Films",
   packageName: "Wedding Highlight (60s)",
   amount: "₦180,000",
   bookingDate: "Friday, 24 July",
-  exploreUrl: "https://crelab.example/explore",
-  bookingUrl: "https://crelab.example/dashboard",
-  verifyUrl: "https://crelab.example/verify-email?token=preview-token",
-  logoUrl:
-    "https://res.cloudinary.com/demo/image/upload/w_200/q_auto/cdplogo.png",
+  exploreUrl: `${appOriginForPreview()}/explore`,
+  bookingUrl: `${appOriginForPreview()}/dashboard`,
+  verifyUrl: `${appOriginForPreview()}/verify-email?token=preview-token`,
+  logoUrl: resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath),
 };
+
+function appOriginForPreview(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://crelab.example")
+  );
+}
 
 /**
  * Replaces `{{variable}}` tokens with sample values so admins can preview a

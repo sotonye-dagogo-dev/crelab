@@ -1,22 +1,20 @@
 # In Progress
 
-**Session 23 — execute-feature: email/blog templates + verification + navigation + user management + SEO**
+**Session 24 — execute-feature: collapsible admin sidebar + responsive audit + reusable table/pagination + email template fixes + blog sections builder**
 
 ## DONE
 
-1. ✅ Config persistence fix — `setNestedValue()` deep-sets dotted keys in `PlatformConfigService.get()` (admin edits to `emailConfig.*`, `features.*`, `dashboard.*`, `mediaUpload.*` now round-trip; null values skipped so defaults are never clobbered).
-2. ✅ `lib/url.ts` (`appOrigin` + `resolveAbsoluteUrl`) + EmailService logoUrl origin capture + `verifyEmail`/`emailChanged` templates (config + types).
-3. ✅ Verify-email flow — Better Auth `emailVerification` + `user.changeEmail` config; `/api/verify-email/send`, `/api/verify-email/welcome`; `/verify-email` page with 60s resend timer + `done=1` success (fires welcome once); `useAuth.signUp` now sends verification instead of welcome (Google users welcome immediately from register page).
-4. ✅ Admin email templates — `components/admin/EmailTemplateBlocksEditor.tsx` (Visual/HTML/Preview tabs, block builder, create-new template, sample-var preview via `substituteSampleVars`) + `/api/admin/email/send` (test send + marketing broadcast to MARKETING-consented users, config/template-gated).
-5. ✅ Blog template viewer/editor — `blogConfig` (hero, newsletter, footer tagline) added to config/types, wired into `BlogPageClient` + newsletter subscribe endpoint `/api/newsletter`; `/admin/blog-templates` page with live preview.
-6. ✅ Reusable `ClBackButton` (hydration-safe, history.back w/ fallback href) exported from `components/ui/index.ts`; placed in bookings list/detail, wallet, profile, profile/media, profile/setup.
-7. ✅ Navbar + dashboard quick links → Profile (`/profile`) + Admin (`/admin/config`, role-gated).
-8. ✅ Admin user management — `/api/admin/users` (GET search/list) + `/api/admin/users/[id]` (PATCH role/emailVerified, DELETE w/ self-guard); `/admin/users` page (search, role select, verify toggle, delete confirm); sidebar entry.
-9. ✅ Profile page (`/profile`) — avatar, name update, email verification status + send, email change via better-auth `changeEmail` (confirmation to new inbox); `middleware.ts` now protects `/profile`.
-10. ✅ SEO service `lib/seo.ts` (`buildSeoMetadata` with absolute logo og:image + canonical) wired into root layout + blog, blog/[slug], team, privacy, terms, search, [category], profile/[slug].
-11. ✅ Middleware `/profile` protection + `.env.example` documents `NEXT_PUBLIC_APP_URL`.
-12. ✅ Tests: `__tests__/lib/config-helpers.test.ts` (setNestedValue, url, email-blocks, seo). QA gate: typecheck ✅, 187/187 tests ✅, `next build` ✅ (only pre-existing lint warnings remain).
+1. ✅ Reusable universal table + pagination — `components/ui/ClDataTable.tsx` (config-driven `ClColumn<T>[]` with `hideOnMobile`, checkbox columns, client-side pagination with page-clamp on data shrink, horizontal scroll, zebra rows, empty state) + `components/ui/ClPagination.tsx` (first/prev/next/last + ellipsis page numbers + "Showing x–y of z"). Both exported from `components/ui/index.ts`.
+2. ✅ Adopted `ClDataTable` + pagination + responsive headers in admin pages: `users`, `media` (checkbox batch-select), `providers`, `team`, `categories`, `config` (change log via `changeLogColumns`).
+3. ✅ Collapsible/expandable admin sidebar — `AdminSidebar.tsx` rewritten (props `collapsed`, `mobileOpen`, `onToggle`, `onMobileClose`; 72px icon-only collapsed rail, mobile drawer + backdrop). New `components/admin/AdminShell.tsx` manages collapse state (localStorage `admin-sidebar-collapsed`), mobile top bar, and `lg:ml-[240px]`/`lg:ml-[72px]` main offset. `app/admin/layout.tsx` renders `<AdminShell>`.
+4. ✅ Responsive audit — admin layout/sidebar/headers + all `ClDataTable` pages now wrap on small screens; card-based admin pages (disputes, bug-reports) and public/auth pages verified responsive already.
+5. ✅ Email h1 colour — all 5 default email template h1s in `config/platform.config.ts` + `lib/email-blocks.ts` heading block now default `#E8FF47`.
+6. ✅ `{{name}}` fix — root cause was preview-only: `SAMPLE_EMAIL_VARS.name` was `"Ada Okafor"` (identical to `userName`). `EmailService.send` already forces `name: cfg.name`. `SAMPLE_EMAIL_VARS.name` now = `DEFAULT_CONFIG.name`; sample `logoUrl` resolved via `resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath)`.
+7. ✅ `logoUrl` investigation — `appOrigin()` hardened to strip trailing slashes / `//` in `lib/url.ts`; remaining production cause is likely `NEXT_PUBLIC_APP_URL` set to `http://localhost:3000` in the deployed Vercel env (image URL must be publicly reachable) — server-side reads it at runtime.
+8. ✅ Email template name editable — `IEmailTemplate.name?` + defaults for all 5 templates; `/admin/email-templates` shows the template name in the sidebar and an editable name field; responsive flex-wrap header/editor/layout.
+9. ✅ Blog builder — generic `components/admin/ContentBlocksEditor.tsx` (heading/paragraph/list/button/image/divider, add/remove/reorder, optional preview vars) reused by `EmailTemplateBlocksEditor.tsx` (thin email wrapper) and the new "Content Sections" builder on `/admin/blog-templates` (writes `IBlogConfig.sections`). `components/blog/ContentBlocks.tsx` renders sections on the blog page (`BlogPageClient`).
+10. ✅ Tests — `__tests__/lib/email-blocks.test.ts` (6 tests: sample `{{name}}` = platform name ≠ username, preview substitution, sample logoUrl absolute, h1 colour `#E8FF47`, default templates use `#E8FF47`). QA gate: typecheck ✅, lint 0 errors (pre-existing warnings only), 193/193 tests ✅, `next build` ✅.
 
 ## REMAINING
 
-- Run `update-ai-system.md` (update DESIGN.md / docs / README as it prescribes).
+- None — closed out. Deploy so the sidebar/table/email/blog changes go live.

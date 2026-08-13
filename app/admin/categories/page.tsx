@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton } from "@/components/ui";
+import { ClButton, ClDataTable, type ClColumn } from "@/components/ui";
 import { CategoryModal } from "@/components/admin/CategoryModal";
 import { useToast } from "@/lib/toast";
 import { useBatchSelect, BatchToolbar } from "@/components/admin/BatchOperations";
@@ -80,10 +80,87 @@ export default function CategoriesPage() {
   }
 
   const categorySlugs = categories.map((c) => c.slug);
+  const allSelected = selectedIds.size === categorySlugs.length && categorySlugs.length > 0;
+
+  const columns: ClColumn<ICategoryConfig>[] = [
+    {
+      key: "checkbox",
+      header: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={() => {
+            if (allSelected) clearSelection();
+            else selectAll(categorySlugs);
+          }}
+          className="cursor-pointer accent-[var(--color-accent)]"
+          aria-label="Select all"
+        />
+      ),
+      width: "w-[40px]",
+      cell: (cat) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(cat.slug)}
+          onChange={() => toggleSelect(cat.slug)}
+          className="cursor-pointer accent-[var(--color-accent)]"
+          aria-label={`Select ${cat.label}`}
+        />
+      ),
+    },
+    {
+      key: "slug",
+      header: "Slug",
+      cell: (cat) => <span className="text-[12px] font-[family-name:var(--font-mono)]">{cat.slug}</span>,
+    },
+    {
+      key: "label",
+      header: "Label",
+      cell: (cat) => <span className="text-[12px]">{cat.label}</span>,
+    },
+    {
+      key: "fields",
+      header: "Field Count",
+      hideOnMobile: true,
+      cell: (cat) => <span className="text-[12px]">{cat.fieldSchema.length}</span>,
+    },
+    {
+      key: "active",
+      header: "Active",
+      cell: (cat) => (
+        <span className={`inline-flex items-center w-9 h-5 rounded-[9999px] relative transition-colors ${cat.active ? "bg-[var(--color-accent)]" : "bg-[var(--color-border-mid)]"}`}>
+          <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${cat.active ? "translate-x-4" : ""}`} />
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (cat) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleEdit(cat)}
+            className="text-[12px] text-[var(--color-accent)] cursor-pointer bg-transparent border-none p-0"
+          >
+            Edit
+          </button>
+          {cat.active && (
+            <button
+              onClick={() => disableMutation.mutate(cat.slug)}
+              disabled={disableMutation.isPending}
+              className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {disableMutation.isPending ? "Disabling…" : "Disable"}
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] tracking-[-0.01em]">
             Categories
@@ -124,97 +201,17 @@ export default function CategoriesPage() {
         ]}
       />
 
-      <div className="bg-[var(--color-surface)] rounded-[12px] overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-[var(--color-surface-raised)]">
-              <th className="w-[40px] px-[14px] py-[10px] text-left">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === categorySlugs.length && categorySlugs.length > 0}
-                  onChange={() => {
-                    if (selectedIds.size === categorySlugs.length) clearSelection();
-                    else selectAll(categorySlugs);
-                  }}
-                  className="cursor-pointer accent-[var(--color-accent)]"
-                />
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Slug
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Label
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Field Count
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Active
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
-                  No categories found.
-                </td>
-              </tr>
-            )}
-            {categories.map((cat) => (
-              <tr
-                key={cat.slug}
-                className={`border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)] ${
-                  selectedIds.has(cat.slug) ? "bg-[var(--color-accent-muted)]" : ""
-                }`}
-              >
-                <td className="w-[40px] px-[14px] py-[10px]">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(cat.slug)}
-                    onChange={() => toggleSelect(cat.slug)}
-                    className="cursor-pointer accent-[var(--color-accent)]"
-                  />
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px] font-[family-name:var(--font-mono)]">
-                  {cat.slug}
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px]">{cat.label}</td>
-                <td className="px-[14px] py-[10px] text-[12px]">
-                  {cat.fieldSchema.length}
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  <span className={`inline-flex items-center w-9 h-5 rounded-[9999px] relative transition-colors ${cat.active ? "bg-[var(--color-accent)]" : "bg-[var(--color-border-mid)]"}`}>
-                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${cat.active ? "translate-x-4" : ""}`} />
-                  </span>
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEdit(cat)}
-                      className="text-[12px] text-[var(--color-accent)] cursor-pointer bg-transparent border-none p-0"
-                    >
-                      Edit
-                    </button>
-                    {cat.active && (
-                      <button
-                        onClick={() => disableMutation.mutate(cat.slug)}
-                        disabled={disableMutation.isPending}
-                        className="text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {disableMutation.isPending ? "Disabling…" : "Disable"}
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ClDataTable
+        columns={columns}
+        rows={categories}
+        rowKey={(c) => c.slug}
+        pageSize={10}
+        emptyState={
+          <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
+            No categories found.
+          </div>
+        }
+      />
 
       <CategoryModal
         open={modalOpen}
