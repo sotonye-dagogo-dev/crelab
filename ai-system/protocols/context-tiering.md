@@ -1,8 +1,8 @@
 # Context Tiering Protocol
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-updated-by: pull-template-update (v3 migration)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: this file changes rarely — trust unless explicitly flagged
 
 > **Overview:** Defines which files to read based on context budget and task complexity. Prevents small-context models from being overwhelmed and large-context models from skipping orientation. The system degrades gracefully: even reading only the tier-1 core gives enough to be useful.
@@ -53,6 +53,9 @@ Load these only when the task directly touches their domain:
 | `memory/lessons-learned.md` | ~400 | Before repeating work that had issues before |
 | `index/repo-map.md` | ~500 | To navigate unfamiliar code areas |
 | `index/dependency-graph.md` | ~500 | To assess change impact |
+| `skills/<name>/SKILL.md` | ~300 | When a skill's `trigger` matches the mid-task need |
+| `tools/registry.md` | ~400 | Before doing by hand what a registered tool does; before a resource decision |
+| `tools/integrations/<name>.md` | ~300 | When actually using an adopted resource |
 
 ---
 
@@ -66,6 +69,9 @@ Load these only when the task directly touches their domain:
 | `summaries/dev-history.md` | ~500 | Sprint retrospectives |
 | `checkpoints/session-log.md` | ~300 | Recent session context |
 | `checkpoints/in-progress.md` | ~100 | Only on resumption |
+| `skills/<name>/references/` | ~400 | When a skill's SKILL.md is not enough |
+| `design-references/*/DESIGN.md` | ~500 | When a specific reference is explicitly relevant |
+| `tools/registry.md` (row history) | ~300 | Only when a past evaluation history is needed |
 
 ---
 

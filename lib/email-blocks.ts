@@ -1,4 +1,6 @@
 import type { EmailTemplateBlock } from "@/types";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { resolveAbsoluteUrl, resolveRelativeUrlsInHtml } from "@/lib/url";
 
 /**
  * Serializes structured template blocks (the visual, no-HTML editor format)
@@ -14,7 +16,7 @@ export function blocksToHtml(blocks: EmailTemplateBlock[]): string {
     switch (block.type) {
       case "heading":
         out.push(
-          `<h2 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#F2F2F2;margin:24px 0 8px;">${escapeHtml(block.text)}</h2>`,
+          `<h2 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:24px 0 8px;">${escapeHtml(block.text)}</h2>`,
         );
         break;
       case "paragraph":
@@ -62,26 +64,56 @@ function escapeHtml(value: string): string {
 
 /** Sample variable values used for live previews in the template editor. */
 export const SAMPLE_EMAIL_VARS: Record<string, string> = {
-  name: "Ada Okafor",
+  // `name` is the platform name (used throughout templates as the brand). It is
+  // NOT the recipient's username — keep them distinct so previews reflect what
+  // a real send will render.
+  name: DEFAULT_CONFIG.name,
   userName: "Ada Okafor",
   providerName: "Tunde Films",
   packageName: "Wedding Highlight (60s)",
   amount: "₦180,000",
   bookingDate: "Friday, 24 July",
-  exploreUrl: "https://crelab.example/explore",
-  bookingUrl: "https://crelab.example/dashboard",
-  verifyUrl: "https://crelab.example/verify-email?token=preview-token",
-  logoUrl:
-    "https://res.cloudinary.com/demo/image/upload/w_200/q_auto/cdplogo.png",
+  exploreUrl: `${appOriginForPreview()}/explore`,
+  bookingUrl: `${appOriginForPreview()}/dashboard`,
+  verifyUrl: `${appOriginForPreview()}/verify-email?token=preview-token`,
+  logoUrl: resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath),
 };
 
 /**
+ * Builds sample preview vars from an actual platform config so the admin preview
+ * captures the *configured* logo and platform name (not the code defaults). Relative
+ * `logoPath` values are resolved to absolute via the shared URL util so the image
+ * renders inside the preview iframe / email clients.
+ */
+export function previewVarsFor(
+  config: { name?: string; logoPath?: string } | null | undefined,
+): Record<string, string> {
+  if (!config) return SAMPLE_EMAIL_VARS;
+  return {
+    ...SAMPLE_EMAIL_VARS,
+    name: config.name || SAMPLE_EMAIL_VARS.name,
+    logoUrl: config.logoPath ? resolveAbsoluteUrl(config.logoPath) : SAMPLE_EMAIL_VARS.logoUrl,
+  };
+}
+
+function appOriginForPreview(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://crelab.example")
+  );
+}
+
+/**
  * Replaces `{{variable}}` tokens with sample values so admins can preview a
- * template without sending a real email. Unknown tokens are left intact.
+ * template without sending a real email. Unknown tokens are left intact. Any
+ * relative image/link URLs remaining after substitution are resolved to absolute
+ * via the shared URL util (a `/primary-logo.png` src does not render in the
+ * preview iframe or email clients otherwise).
  */
 export function substituteSampleVars(
   html: string,
   vars: Record<string, string> = SAMPLE_EMAIL_VARS,
 ): string {
-  return html.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+  const substituted = html.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+  return resolveRelativeUrlsInHtml(substituted);
 }

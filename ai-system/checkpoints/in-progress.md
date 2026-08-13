@@ -1,22 +1,57 @@
 # In Progress
 
-**Session 23 — execute-feature: email/blog templates + verification + navigation + user management + SEO**
+**Session 25 — execute-feature: email logo/preview image resolution via the URL util**
+
+## Directive
+
+For the image in email (the logo in particular), ensure the preview also captures
+it and uses the `resolveAbsoluteUrl` url util — the suspected reason the image is
+not rendering in previews. Correct the same raw-relative-URL pattern anywhere else
+it is used or observed.
+
+## Root cause
+
+- `blocksToHtml`/`ContentBlocks` emit image `src` (and button `href`) verbatim —
+  a relative `/primary-logo.png` is not resolvable in email clients and unreliable
+  in the srcdoc preview iframe.
+- The email preview substitutes `{{logoUrl}}` from `SAMPLE_EMAIL_VARS`, which uses
+  `DEFAULT_CONFIG.logoPath` rather than the admin-configured (DB) `logoPath`, so the
+  preview does not "capture" the actual configured logo.
+- `EmailService.send` resolves the `{{logoUrl}}` token but leaves any other relative
+  image/link URLs in raw or visual-builder HTML untouched.
+
+## Plan
+
+1. `lib/url.ts` — add `resolveUrlForRender(value)` (resolves relative URLs, leaves
+   `{{template tokens}}` + absolute/protocol-relative/data/mailto/# untouched) and
+   `resolveRelativeUrlsInHtml(html)` (resolves relative `img src` / `a href` in a
+   rendered HTML blob — used at preview + send time so no origin is baked at edit time).
+2. `lib/email-blocks.ts` — `substituteSampleVars` resolves relative URLs after token
+   substitution; new `previewVarsFor(config)` builds sample vars from the actual
+   platform config (name + logoPath via `resolveAbsoluteUrl`).
+3. `app/admin/email-templates/page.tsx` — preview uses `previewVarsFor(loaded config)`
+   so it captures the configured logo/name.
+4. `services/EmailService.ts` — run `resolveRelativeUrlsInHtml` on the final filled
+   HTML before handing to Resend / returning preview.
+5. `components/blog/ContentBlocks.tsx` — apply `resolveUrlForRender` to image/button
+   URLs (same pattern elsewhere).
+6. Tests — cover new helpers + preview config capture.
+7. QA gate — typecheck, lint, tests, `next build`.
+8. Run `update-ai-system.md` to reconcile docs.
 
 ## DONE
 
-1. ✅ Config persistence fix — `setNestedValue()` deep-sets dotted keys in `PlatformConfigService.get()` (admin edits to `emailConfig.*`, `features.*`, `dashboard.*`, `mediaUpload.*` now round-trip; null values skipped so defaults are never clobbered).
-2. ✅ `lib/url.ts` (`appOrigin` + `resolveAbsoluteUrl`) + EmailService logoUrl origin capture + `verifyEmail`/`emailChanged` templates (config + types).
-3. ✅ Verify-email flow — Better Auth `emailVerification` + `user.changeEmail` config; `/api/verify-email/send`, `/api/verify-email/welcome`; `/verify-email` page with 60s resend timer + `done=1` success (fires welcome once); `useAuth.signUp` now sends verification instead of welcome (Google users welcome immediately from register page).
-4. ✅ Admin email templates — `components/admin/EmailTemplateBlocksEditor.tsx` (Visual/HTML/Preview tabs, block builder, create-new template, sample-var preview via `substituteSampleVars`) + `/api/admin/email/send` (test send + marketing broadcast to MARKETING-consented users, config/template-gated).
-5. ✅ Blog template viewer/editor — `blogConfig` (hero, newsletter, footer tagline) added to config/types, wired into `BlogPageClient` + newsletter subscribe endpoint `/api/newsletter`; `/admin/blog-templates` page with live preview.
-6. ✅ Reusable `ClBackButton` (hydration-safe, history.back w/ fallback href) exported from `components/ui/index.ts`; placed in bookings list/detail, wallet, profile, profile/media, profile/setup.
-7. ✅ Navbar + dashboard quick links → Profile (`/profile`) + Admin (`/admin/config`, role-gated).
-8. ✅ Admin user management — `/api/admin/users` (GET search/list) + `/api/admin/users/[id]` (PATCH role/emailVerified, DELETE w/ self-guard); `/admin/users` page (search, role select, verify toggle, delete confirm); sidebar entry.
-9. ✅ Profile page (`/profile`) — avatar, name update, email verification status + send, email change via better-auth `changeEmail` (confirmation to new inbox); `middleware.ts` now protects `/profile`.
-10. ✅ SEO service `lib/seo.ts` (`buildSeoMetadata` with absolute logo og:image + canonical) wired into root layout + blog, blog/[slug], team, privacy, terms, search, [category], profile/[slug].
-11. ✅ Middleware `/profile` protection + `.env.example` documents `NEXT_PUBLIC_APP_URL`.
-12. ✅ Tests: `__tests__/lib/config-helpers.test.ts` (setNestedValue, url, email-blocks, seo). QA gate: typecheck ✅, 187/187 tests ✅, `next build` ✅ (only pre-existing lint warnings remain).
+1. ✅ `lib/url.ts` — `resolveUrlForRender` + `resolveRelativeUrlsInHtml` helpers.
+2. ✅ `lib/email-blocks.ts` — `substituteSampleVars` resolves relative URLs; `previewVarsFor(config)` added.
+3. ✅ `app/admin/email-templates/page.tsx` — preview uses `previewVarsFor(loaded config)`.
+4. ✅ `services/EmailService.ts` — `send()` resolves relative URLs; `sendWelcome` exploreUrl via `resolveAbsoluteUrl`.
+5. ✅ `components/blog/ContentBlocks.tsx` — image/button URLs via `resolveUrlForRender`.
+6. ✅ Tests — `email-blocks.test.ts` (+5) + `config-helpers.test.ts` (+3).
+7. ✅ QA gate — typecheck clean, lint 0 errors (pre-existing warnings only), 201/201 tests, `next build` green.
+8. ✅ `update-ai-system.md` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, dev-history, lessons-learned, project-decisions, test-results, session-log reconciled.
 
 ## REMAINING
 
-- Run `update-ai-system.md` (update DESIGN.md / docs / README as it prescribes).
+- None — closed out. Deploy so the email/preview image fixes go live. Remaining production
+  cause for logo rendering (if still broken in a real send): `NEXT_PUBLIC_APP_URL` unset or
+  `http://localhost:3000` in the deployed Vercel runtime env — the resolved URL must be public.

@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 22)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: pull-template-update (v3 migration)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -269,3 +269,45 @@ Remote API scanning for orphans is slow (pagination, rate limits, eventual consi
 
 **Implications:**
 Cleanup jobs and admin/user media managers depend on the `media_assets` registry staying consistent (uploads record synchronously; compensating delete on record insert failure). Env vars for signed deletes are server-only (`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET`) with `NEXT_PUBLIC_CLOUDINARY_*` fallbacks.
+
+---
+
+## Relative URLs Resolved at Render Time, Not Baked at Edit Time
+
+**Decision:** Template-token `{{variable}}` values and raw relative paths (`/primary-logo.png`) are the interchange format stored in config/blocks/HTML. Relative `src`/`href` values are resolved to absolute — via the shared `lib/url` helpers (`resolveUrlForRender` for single values, `resolveRelativeUrlsInHtml` for rendered HTML blobs) — only at the final render boundary: the admin preview (client-side, `previewVarsFor(config)` + `substituteSampleVars`) and the real send (`EmailService.send`). The preview captures the DB-configured `logoPath`/name, not `DEFAULT_CONFIG`.
+**Date:** 2026-08-13
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Email clients can't resolve relative URLs, so logo/images added as `/primary-logo.png` in the visual builder never rendered in previews or sent mail. Resolving at save time bakes the editor's client origin (e.g. `localhost:3000`) into stored HTML; resolving at render time lets the preview use the client's build-time `NEXT_PUBLIC_APP_URL` and the server the runtime env, each correct for its context.
+
+**Alternatives Considered:**
+- Resolve inside `blocksToHtml()`/on save — rejected: bakes client origin into stored config; wrong when editing from a local dev box against a production DB
+- Generic regex over all `src`/`href` — rejected: mangles `data:`/`mailto:`/`tel:`/`#`/`{{token}}` values; helpers skip scheme'd, protocol-relative, fragment, and template-token values
+
+**Implications:**
+The resolved absolute origin for email assets is `appOrigin()` (NEXT_PUBLIC_APP_URL → VERCEL_URL → localhost), so `NEXT_PUBLIC_APP_URL` must be set to a publicly reachable origin in the deployed runtime or the logo will still fail to load there. New render surfaces for email/blog content should route image/link URLs through the same `lib/url` helpers.
+
+---
+
+## ai-system Upgraded to Template v3.0.0 (pull-template-update)
+
+**Decision:** Adopt the v3 ai-system template (`Sotonye0808/ai-system-template`, VERSION 3.0.0) via the pull-based update mechanism. New subsystems added: `skills/` (9 self-invoking expertise units), `tools/` (resource registry + integration docs), `design-references/` (pulled reference-design library + TEMPLATE). New commands added: `audit-sources.md`, `visual-review.md`, `generate-design-md.md`, `pull-template-update.md`. Existing commands/protocols/standards edited per `V2_TO_V3_MIGRATION.md` (mandatory `Chains to` rows, §11–§24 engineering principles, task-queue/checkpoint coupling, `last-synced` marker, `installed-ai-system-version: 3.0.0`). No local content files (session-log, task-queue data, memory, project docs, designs) were overwritten — only merged.
+**Date:** 2026-08-13
+**Made by:** Implementer (per issue update-ai-system directive)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The project's ai-system predated v3 (no `installed-ai-system-version` baseline). v3 adds the skill layer, a persistent external-resource registry (so sessions stop re-litigating tools), design-reference capture, a verification CLI / rollback framework, and mechanical enforcement of task-queue/command-chain compliance — all of which the project benefits from given its config-driven, heavily-admin-managed architecture.
+
+**Alternatives Considered:**
+- Staying on v2 — rejected: no version baseline, no tool registry, no skills, no chain enforcement.
+- Copying the whole v3 kit over the local `ai-system/` wholesale — rejected per `pull-template-update.md` ("never silently overwrite"); local content (Crelab docs, 21 design HTML screens, 911-line session log, real task queue/decisions) must be preserved.
+
+**Implications:**
+- `installed-ai-system-version: 3.0.0` is recorded in `ai-context.md` — `pull-template-update.md` now has a baseline for future comparisons.
+- Every command now declares a `Chains to` row; `verify-work.md` / `audit-drift.md` mechanically check chain order and task-queue coupling.
+- New v3 catalogs (`skills/`, `tools/registry.md`, `design-references/`) are live; agents consult `tools/registry.md` before doing by hand what a registered tool does.

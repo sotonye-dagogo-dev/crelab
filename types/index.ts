@@ -309,6 +309,8 @@ export type EmailTemplateBlock =
   | { type: "divider" };
 
 export interface IEmailTemplate {
+  /** Human-friendly display name shown in the admin template list */
+  name?: string;
   subject: string;
   bodyHtml: string;
   enabled: boolean;
@@ -431,6 +433,8 @@ export interface IBlogConfig {
   heroSubtitle: string;
   newsletter: IBlogNewsletterConfig;
   footerTagline: string;
+  /** Optional visual-builder content sections rendered on the blog landing page */
+  sections?: EmailTemplateBlock[];
 }
 
 export interface IBugReport {

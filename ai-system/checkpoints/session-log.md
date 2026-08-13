@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 22)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: pull-template-update (v3 migration)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -10,6 +10,66 @@
 ---
 
 ## Sessions
+
+## Session 26 — 2026-08-13 (pull-template-update — ai-system v2 → v3 migration)
+
+**Directive:** Update this project's ai-system from `Sotonye0808/ai-system-template` to v3 per `V2_TO_V3_MIGRATION.md`; run `pull-template-update.md` (repo reachable) to diff and propose the update; do not overwrite local content.
+
+**Completed:**
+
+1. **Baseline check** — local `ai-context.md` had no `installed-ai-system-version` (v2-era); upstream `VERSION` = `3.0.0`. Comparison: v2 → v3.
+2. **New subsystems** (copied from template kit, no local equivalent): `skills/` (9 skills: design-token-extraction, lean-debt-audit, rbac-page-scaffold, acid-transaction-review, universal-component-check, integration-wrapper-scaffold, pdf-html-asset-inspection, research, gh-stack), `tools/` (`registry.md` + 12 `integrations/*.md`), `design-references/` (README + TEMPLATE/DESIGN.md).
+3. **New commands**: `audit-sources.md`, `visual-review.md`, `generate-design-md.md`, `pull-template-update.md`.
+4. **Root additions**: `VERSION` (3.0.0), `CHANGELOG.md`.
+5. **Edited (surgical merges, local content preserved)**: `standards/engineering-principles.md` (+§11–§24, §10→§25, doc-style addendum), `protocols/entry-protocol.md` (tool-discovery-first step + closing-turn advisory), `protocols/context-tiering.md` (Tier 3/4 skills/tools/design-references rows), `protocols/verification-rules.md` (v3 principle extensions + contract-compliance checks), all 12 existing commands (`Chains to` rows + v3 steps), `agents/tester-qa.md` (live-preview/browsing capability), `design-system.md` (Reference Library + Design Asset Viewer sections), `system-architecture.md` (Verification CLI + Rollback/Undo sections, `ENABLE_DESIGN_VIEWER` config row), `planning/task-queue.md` (`last-synced` marker), `memory/project-decisions.md` (v3 migration decision entry).
+6. **Not overwritten** (template placeholders never copied over local data): `checkpoints/session-log.md` (this log), `checkpoints/in-progress.md`, `index/`, `memory/lessons-learned.md`, `memory/architecture-history.md`, `planning/project-plan.md`, `project-context.md`, `repair-system.md`, `summaries/`, `testing/`, `agents/` (except tester-qa), `designs/`, `docs/`.
+7. **Baseline recorded** — `installed-ai-system-version: 3.0.0` in `ai-context.md`; fresh `last-verified-against-code: 2026-08-13` on all migrating files.
+
+**Files Modified:**
+- `ai-context.md` (version baseline + skills/tools/design-references pointers + recently-completed)
+- `ai-system/` — new: `skills/`, `tools/`, `design-references/`; new commands: audit-sources, visual-review, generate-design-md, pull-template-update; edited: engineering-principles, entry-protocol, context-tiering, verification-rules, plan-feature, sync-context, execute-feature, dev-cycle, refactor-codebase, fix-build, resume-session, cloud-session, bootstrap-project, update-ai-system, verify-work, audit-drift, tester-qa, design-system, system-architecture, task-queue, project-decisions, session-log (this entry)
+- Root: `VERSION`, `CHANGELOG.md` (new)
+
+**Build Status:** Docs-only migration — no application code touched. No build/test run required.
+
+**Next Task:** Human review of the proposed v3 diff (per `pull-template-update.md` — this migration is a proposal; never auto-applied over divergent local files). After approval, run `sync-context.md` to refresh freshness metadata on remaining files.
+
+**Notes / Blockers:**
+- This entry follows the v3 "task-queue mutation trace" contract: the `task-queue.md` `last-synced` marker points at this session-log entry.
+
+---
+
+## Session 25 — 2026-08-13 (Execute Feature — Email Logo/Preview Image Resolution via the URL Util)
+
+**Directive:** For the image in email (the logo in particular), ensure the preview also captures it and uses the url util we made — the suspected reason the image isn't rendering in previews. Also correct the issue in other places the pattern is used or observed.
+
+**Completed:**
+
+1. **`lib/url.ts`** — added `resolveUrlForRender(value)` (resolves relative URLs, leaves `{{variable}}` template tokens + absolute/protocol-relative/data/mailto/fragment URLs untouched) and `resolveRelativeUrlsInHtml(html)` (rewrites relative `img src` / `a href` to absolute against `appOrigin()`). These are run AFTER token substitution so no origin is baked at edit time — the preview (client) and the send path (server) each resolve against their own runtime origin.
+2. **`lib/email-blocks.ts`** — `substituteSampleVars()` now runs `resolveRelativeUrlsInHtml()` on the substituted HTML, so an image added as `/primary-logo.png` (the editor's own placeholder) actually renders in the preview iframe; added `previewVarsFor(config)` which builds sample vars from the *configured* platform name/`logoPath` (resolved absolute) instead of the code defaults.
+3. **`app/admin/email-templates/page.tsx`** — the Preview tab now uses `previewVarsFor(loaded config)` so it captures the admin-configured logo/name, not `DEFAULT_CONFIG`.
+4. **`services/EmailService.ts`** — `send()` runs `resolveRelativeUrlsInHtml()` on the final filled HTML before handing it to Resend / returning the preview, and `sendWelcome()` now builds `exploreUrl` via `resolveAbsoluteUrl("/explore")` (was a hand-rolled `${NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/explore`, which missed the Vercel fallback).
+5. **`components/blog/ContentBlocks.tsx`** — image `src` and button `href` now go through `resolveUrlForRender()` (same raw-relative pattern used elsewhere).
+6. **Tests** — `__tests__/lib/email-blocks.test.ts` (+5: `previewVarsFor` capture/fallback, relative logo image src resolution, visual-builder image + absolute mixed, data/mailto/# untouched) and `__tests__/lib/config-helpers.test.ts` (+3: `resolveUrlForRender`, `resolveRelativeUrlsInHtml`, unresolved-token skip). QA gate: typecheck clean, lint 0 errors (pre-existing warnings only), **201/201** tests pass, `next build` succeeds.
+
+**Files Modified:**
+- `lib/url.ts` (new helpers), `lib/email-blocks.ts` (`substituteSampleVars` + `previewVarsFor`)
+- `app/admin/email-templates/page.tsx` (preview uses configured config)
+- `services/EmailService.ts` (relative-URL resolution on send + `sendWelcome` exploreUrl via util)
+- `components/blog/ContentBlocks.tsx` (url util for image/button URLs)
+- `__tests__/lib/email-blocks.test.ts`, `__tests__/lib/config-helpers.test.ts`
+- `ai-system/` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, dev-history, lessons-learned, session-log (this entry)
+
+**Build Status:** ✅ Production build passes. TypeScript compiles with zero errors. ESLint has no new warnings. 201/201 tests pass.
+
+**Next Task:**
+Deploy this change (GitHub Action run). Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- Operational note for whoever debugs logo rendering in *production* emails: the preview and send paths now both resolve the logo to `{appOrigin()}/primary-logo.png`, so the last remaining external cause is `NEXT_PUBLIC_APP_URL` being unset/`http://localhost:3000` in the deployed Vercel runtime env — the resolved URL must be publicly reachable.
+- `npm install --legacy-peer-deps` was required (node_modules absent at session start); no dependency changes made.
+
+---
 
 ## Session 1 — 2026-07-04
 
@@ -753,6 +813,44 @@ Fixed the `/dashboard` runtime error where a successfully authenticated user sti
 
 **Next Task:**
 Phase 2 features (messaging, notifications). Consider end-to-end onboarding journey test against a live Supabase + Cloudinary sandbox before wider beta.
+
+---
+
+## Session 24 — 2026-08-13 (Execute Feature — Collapsible Admin Sidebar + Reusable Table/Pagination + Email Fixes + Blog Sections Builder)
+
+**Directive:** Make the admin sidebar collapsible/expandable (icon-only when collapsed), run a responsive audit across admin + all pages, build universal reusable table + pagination components, fix email templates (h1 default `#E8FF47`, `{{name}}` → platform name not username, editable template name), give the blog builder addable elements like the email visual builder, and investigate why `logoUrl` images don't resolve in emails.
+
+**Completed:**
+
+1. **Reusable `ClDataTable` + `ClPagination`** — `components/ui/ClDataTable.tsx` (config-driven `ClColumn<T>[]` incl. `hideOnMobile`, checkbox columns, client-side pagination with a `useEffect` page-clamp when the dataset shrinks, horizontal scroll, zebra rows, empty state) + `components/ui/ClPagination.tsx` (first/prev/next/last, ellipsis page numbers, "Showing x–y of z"). Exported from `components/ui/index.ts`.
+2. **Adoption** — `users`, `media` (checkbox batch-select), `providers`, `team`, `categories`, and `config` (change log via `changeLogColumns`) admin pages now use `ClDataTable`; responsive page headers (flex-wrap) across those pages.
+3. **Collapsible admin sidebar** — `AdminSidebar.tsx` rewritten (props `collapsed` / `mobileOpen` / `onToggle` / `onMobileClose`; 72px icon-only rail when collapsed; mobile drawer + backdrop). New `components/admin/AdminShell.tsx` owns collapse state (localStorage `admin-sidebar-collapsed`), mobile top bar, and `lg:ml-[240px]`/`lg:ml-[72px]` main offset. `app/admin/layout.tsx` renders `<AdminShell>`.
+4. **Email h1 colour** — all 5 default template h1s (`welcome`, `bookingConfirmation`, `paymentReceived`, `verifyEmail`, `emailChanged`) and the `heading` block in `lib/email-blocks.ts` default to `#E8FF47`.
+5. **`{{name}}` fix** — root cause was preview-only: `SAMPLE_EMAIL_VARS.name` was hardcoded `"Ada Okafor"` (identical to `userName`) so previews showed a username. `EmailService.send` already forces `name: cfg.name`. `SAMPLE_EMAIL_VARS.name` now = `DEFAULT_CONFIG.name` and sample `logoUrl` = `resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath)`.
+6. **`logoUrl` investigation** — `appOrigin()` in `lib/url.ts` hardened against trailing slashes / `//`. Emails render `{origin}/primary-logo.png`; the likeliest remaining production cause is `NEXT_PUBLIC_APP_URL` being `http://localhost:3000` (or unset) in the deployed Vercel runtime env, making the `<img>` unreachable — the preview sample previously used a fake Cloudinary `demo` URL which never rendered. Documented; no further code change possible.
+7. **Editable template name** — `IEmailTemplate.name?` + defaults for all 5 templates; `/admin/email-templates` shows the name in the sidebar and an inline editable name field; header/editor/layout made responsive (flex-wrap).
+8. **Blog sections builder** — generic `components/admin/ContentBlocksEditor.tsx` (add/remove/reorder heading/paragraph/list/button/image/divider, optional preview vars) shared by the email `EmailTemplateBlocksEditor.tsx` (thin wrapper) and the new "Content Sections" card on `/admin/blog-templates` (writes `IBlogConfig.sections`); `components/blog/ContentBlocks.tsx` renders sections on the blog page via `BlogPageClient`.
+9. **Tests** — `__tests__/lib/email-blocks.test.ts` (6 tests). QA gate: typecheck clean, lint 0 errors (pre-existing warnings only), **193/193** tests pass, `next build` succeeds (72 static pages).
+
+**Files Modified/Created:**
+- `components/ui/ClDataTable.tsx` (new), `components/ui/ClPagination.tsx` (new), `components/ui/index.ts`
+- `components/admin/AdminSidebar.tsx`, `components/admin/AdminShell.tsx` (new), `app/admin/layout.tsx`
+- `app/admin/{users,media,providers,team,categories,config}/page.tsx`
+- `config/platform.config.ts` (h1 colours, template names), `lib/email-blocks.ts` (heading colour + `SAMPLE_EMAIL_VARS`), `lib/url.ts` (origin normalisation)
+- `types/index.ts` (`IEmailTemplate.name?`, `IBlogConfig.sections?`)
+- `app/admin/email-templates/page.tsx` (editable name, responsive), `components/admin/ContentBlocksEditor.tsx` (new), `components/admin/EmailTemplateBlocksEditor.tsx` (wrapper), `app/admin/blog-templates/page.tsx` (sections builder + preview), `components/blog/ContentBlocks.tsx` (new), `app/(public)/blog/BlogPageClient.tsx`
+- `__tests__/lib/email-blocks.test.ts` (new)
+- `ai-system/` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, dev-history, lessons-learned, test-results, session-log (this entry)
+
+**Build Status:** ✅ Production build passes (72 static pages, middleware). TypeScript compiles with zero errors. ESLint has no new warnings (only pre-existing ones in unrelated files). 193/193 tests pass.
+
+**Next Task:**
+Deploy this change (GitHub Action run). Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- `npm install --legacy-peer-deps` was required because `node_modules` was absent at session start; no dependency changes were made (`package-lock.json` untouched by this session's work).
+- Design-brief item (light theme + tabbed theme toggler + team page design files) was verified already satisfied: `ai-system/docs/DESIGN.md` documents the light palette + tabbed `ThemeToggler`, and `ai-system/designs/` contains `01-design-system-tokens.html`/`02-design-system-components.html` (dark+light) plus `03-design-system-team-page.html`/`20-team.html`; designs `README.md` covers all. The `open_design` MCP `create_artifact` server referenced by AGENTS.md is not available in this environment, so no new design artifacts were generated.
+- **Drift found:** Session 23's session-log entry is missing (repo-map/in-progress metadata reference "Session 23" but `session-log.md` jumps 22 → 21 → 20). Not fabricated here; noted for a future historian pass.
 
 ---
 

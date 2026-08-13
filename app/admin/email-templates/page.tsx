@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClCard } from "@/components/ui";
 import { EmailTemplateBlocksEditor } from "@/components/admin/EmailTemplateBlocksEditor";
 import { useToast } from "@/lib/toast";
-import { blocksToHtml, substituteSampleVars } from "@/lib/email-blocks";
+import { blocksToHtml, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
 import { Plus } from "lucide-react";
 import type { IEmailConfig, EmailTemplateBlock } from "@/types";
 
@@ -39,6 +39,7 @@ export default function AdminEmailTemplatesPage() {
   const { toast } = useToast();
   const [config, setConfig] = useState<IEmailConfig | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
   const [editSubject, setEditSubject] = useState("");
   const [editEnabled, setEditEnabled] = useState(true);
   const [htmlBody, setHtmlBody] = useState("");
@@ -113,6 +114,7 @@ export default function AdminEmailTemplatesPage() {
     const tpl = config?.templates?.[key];
     if (tpl) {
       setActiveTemplate(key);
+      setEditName(tpl.name ?? "");
       setEditSubject(tpl.subject);
       setHtmlBody(tpl.bodyHtml);
       setBlocks(tpl.blocks ? [...tpl.blocks] : null);
@@ -146,6 +148,7 @@ export default function AdminEmailTemplatesPage() {
     const updatedTemplates = {
       ...config.templates,
       [activeTemplate]: {
+        name: editName.trim() || undefined,
         subject: editSubject,
         bodyHtml: htmlBody,
         enabled: editEnabled,
@@ -169,6 +172,7 @@ export default function AdminEmailTemplatesPage() {
     const updatedTemplates = {
       ...(config?.templates ?? {}),
       [key]: {
+        name: key.replace(/([A-Z])/g, " $1").trim(),
         subject: newSubject.trim(),
         bodyHtml: blocksToHtml(nextBlocks),
         enabled: false,
@@ -183,7 +187,10 @@ export default function AdminEmailTemplatesPage() {
     handleSelectTemplate(key);
   };
 
-  const previewSrcDoc = `<!doctype html><html><body style="margin:0;background:#0A0A0A;padding:24px;">${substituteSampleVars(htmlBody)}</body></html>`;
+  // Preview with sample vars built from the *configured* platform name/logo so the
+  // preview captures the actual logo (resolved absolute via the URL util) rather
+  // than the code defaults.
+  const previewSrcDoc = `<!doctype html><html><body style="margin:0;background:#0A0A0A;padding:24px;">${substituteSampleVars(htmlBody, previewVarsFor(data as { name?: string; logoPath?: string } | undefined))}</body></html>`;
 
   if (isLoading) {
     return (
@@ -198,7 +205,7 @@ export default function AdminEmailTemplatesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] tracking-[-0.01em]">
             Email Templates
@@ -245,8 +252,8 @@ export default function AdminEmailTemplatesPage() {
         </div>
       )}
 
-      <div className="flex gap-6">
-        <div className="w-[220px] shrink-0 flex flex-col gap-1">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex lg:flex-col gap-1 lg:w-[220px] lg:shrink-0 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
           {templateKeys.length === 0 && (
             <div className="text-[12px] text-[var(--color-text-tertiary)] py-4">
               No templates configured.
@@ -258,6 +265,7 @@ export default function AdminEmailTemplatesPage() {
               onClick={() => handleSelectTemplate(key)}
               className={`
                 text-left px-4 py-3 rounded-[8px] text-[13px] font-medium cursor-pointer border-none
+                whitespace-nowrap lg:whitespace-normal
                 transition-colors duration-150
                 ${activeTemplate === key
                   ? "bg-[var(--color-accent-muted)] text-[var(--color-accent)]"
@@ -265,7 +273,9 @@ export default function AdminEmailTemplatesPage() {
                 }
               `.trim()}
             >
-              <div className="capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</div>
+              <div className="capitalize">
+                {templates[key]?.name?.trim() || key.replace(/([A-Z])/g, " $1").trim()}
+              </div>
               <div className="text-[11px] text-[var(--color-text-tertiary)] mt-0.5">
                 {templates[key]?.enabled ? "Active" : "Disabled"}
               </div>
@@ -277,7 +287,7 @@ export default function AdminEmailTemplatesPage() {
           {activeTemplate ? (
             <ClCard>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <label className="text-[13px] font-semibold text-[var(--color-text-primary)]">Enabled</label>
                     <button
@@ -289,7 +299,7 @@ export default function AdminEmailTemplatesPage() {
                       <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editEnabled ? "translate-x-4" : ""}`} />
                     </button>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <ClButton variant="outlined" size="default" onClick={() => setSendDialog("test")} loading={sendMutation.isPending && sendDialog === "test"}>
                       Send Test
                     </ClButton>
@@ -348,6 +358,18 @@ export default function AdminEmailTemplatesPage() {
                     )}
                   </div>
                 )}
+
+                <div>
+                  <label className="block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
+                    Template name
+                  </label>
+                  <input
+                    className={inputClass}
+                    placeholder="e.g. Welcome"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                  />
+                </div>
 
                 <div>
                   <label className="block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">

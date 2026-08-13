@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton } from "@/components/ui";
+import { ClButton, ClDataTable, type ClColumn } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { useBatchSelect, BatchToolbar } from "@/components/admin/BatchOperations";
 import { Check, AlertTriangle } from "lucide-react";
@@ -91,10 +91,93 @@ export default function ProvidersPage() {
   }
 
   const providerIds = providers.map((p) => p.id);
+  const allSelected = selectedIds.size === providerIds.length && providerIds.length > 0;
+
+  const columns: ClColumn<ProviderReviewItem>[] = [
+    {
+      key: "checkbox",
+      header: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={() => {
+            if (allSelected) clearSelection();
+            else selectAll(providerIds);
+          }}
+          className="cursor-pointer accent-[var(--color-accent)]"
+          aria-label="Select all"
+        />
+      ),
+      width: "w-[40px]",
+      cell: (provider) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(provider.id)}
+          onChange={() => toggleSelect(provider.id)}
+          className="cursor-pointer accent-[var(--color-accent)]"
+          aria-label={`Select ${provider.displayName}`}
+        />
+      ),
+    },
+    {
+      key: "name",
+      header: "Name",
+      cell: (provider) => <span className="text-[12px]">{provider.displayName}</span>,
+    },
+    {
+      key: "category",
+      header: "Category",
+      cell: (provider) => <span className="text-[12px]">{provider.categorySlug}</span>,
+    },
+    {
+      key: "submitted",
+      header: "Submitted",
+      hideOnMobile: true,
+      cell: (provider) => (
+        <span className="text-[11px] font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)]">
+          {new Date(provider.createdAt).toLocaleDateString("en-CA")}
+        </span>
+      ),
+    },
+    {
+      key: "portfolio",
+      header: "Portfolio Items",
+      hideOnMobile: true,
+      cell: (provider) => <span className="text-[12px]">{provider.portfolioCount}</span>,
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (provider) => (
+        <div className="flex items-center gap-2">
+          <ClButton
+            variant="outlined"
+            size="sm"
+            onClick={() => approveMutation.mutate(provider.id)}
+            loading={approveMutation.isPending}
+            className="!text-[var(--color-success)] !border-[var(--color-success)] hover:!bg-[rgba(74,222,128,0.08)]"
+          >
+            <Check size={14} strokeWidth={2.5} />
+            Approve
+          </ClButton>
+          <ClButton
+            variant="outlined"
+            size="sm"
+            onClick={() => flagMutation.mutate(provider.id)}
+            loading={flagMutation.isPending}
+            className="!text-[var(--color-warning)] !border-[var(--color-warning)] hover:!bg-[rgba(250,204,21,0.08)]"
+          >
+            <AlertTriangle size={14} strokeWidth={2.5} />
+            Flag
+          </ClButton>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
         <div>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] tracking-[-0.01em]">
             New Providers — Pending Review ({providers.length})
@@ -134,102 +217,17 @@ export default function ProvidersPage() {
         ]}
       />
 
-      <div className="bg-[var(--color-surface)] rounded-[12px] overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-[var(--color-surface-raised)]">
-              <th className="w-[40px] px-[14px] py-[10px] text-left">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === providerIds.length && providerIds.length > 0}
-                  onChange={() => {
-                    if (selectedIds.size === providerIds.length) clearSelection();
-                    else selectAll(providerIds);
-                  }}
-                  className="cursor-pointer accent-[var(--color-accent)]"
-                />
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Name
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Category
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Submitted
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Portfolio Items
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {providers.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
-                  No providers pending review.
-                </td>
-              </tr>
-            )}
-            {providers.map((provider) => (
-              <tr
-                key={provider.id}
-                className={`border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)] ${
-                  selectedIds.has(provider.id) ? "bg-[var(--color-accent-muted)]" : ""
-                }`}
-              >
-                <td className="w-[40px] px-[14px] py-[10px]">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(provider.id)}
-                    onChange={() => toggleSelect(provider.id)}
-                    className="cursor-pointer accent-[var(--color-accent)]"
-                  />
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px]">
-                  {provider.displayName}
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px]">
-                  {provider.categorySlug}
-                </td>
-                <td className="px-[14px] py-[10px] text-[11px] font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)]">
-                  {new Date(provider.createdAt).toLocaleDateString("en-CA")}
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px]">
-                  {provider.portfolioCount}
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  <div className="flex items-center gap-2">
-                    <ClButton
-                      variant="outlined"
-                      size="sm"
-                      onClick={() => approveMutation.mutate(provider.id)}
-                      loading={approveMutation.isPending}
-                      className="!text-[var(--color-success)] !border-[var(--color-success)] hover:!bg-[rgba(74,222,128,0.08)]"
-                    >
-                      <Check size={14} strokeWidth={2.5} />
-                      Approve
-                    </ClButton>
-                    <ClButton
-                      variant="outlined"
-                      size="sm"
-                      onClick={() => flagMutation.mutate(provider.id)}
-                      loading={flagMutation.isPending}
-                      className="!text-[var(--color-warning)] !border-[var(--color-warning)] hover:!bg-[rgba(250,204,21,0.08)]"
-                    >
-                      <AlertTriangle size={14} strokeWidth={2.5} />
-                      Flag
-                    </ClButton>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ClDataTable
+        columns={columns}
+        rows={providers}
+        rowKey={(p) => p.id}
+        pageSize={10}
+        emptyState={
+          <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
+            No providers pending review.
+          </div>
+        }
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 23)
+> - last-updated-by: update-ai-system (Session 25)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -443,6 +443,58 @@
 4. Guard the `/api/verify-email/welcome` route: only send when the session user's `emailVerified` is true
 
 **Apply When:** Configuring Better Auth email verification, welcome emails, or email-change confirmation flows.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Module-Level Constants Freeze Build-Time Env — `NEXT_PUBLIC_*` Is Inlined, Not Runtime-Read
+
+**Context:** Debugging why a test couldn't override `NEXT_PUBLIC_APP_URL` after import: `SAMPLE_EMAIL_VARS` in `lib/email-blocks.ts` is a module-level constant computed once at import time. Setting `process.env.NEXT_PUBLIC_APP_URL` after the module loaded had no effect — the value had already been captured.
+
+**What We Learned:**
+1. A top-level `const X = compute(process.env.NEXT_PUBLIC_...)` in a module evaluates exactly once, at module load — later env writes are invisible to it
+2. `NEXT_PUBLIC_*` vars are statically inlined at build time for the client bundle; for server code they're still read from `process.env` at request time. Module-level constants computed from them on the server freeze whatever the env was at first load (fine in production, misleading in tests)
+3. For email previews, keep the sample vars as exported constants derived from `DEFAULT_CONFIG` (deterministic) rather than the live env — and if you must test env-dependent URL resolution, test `resolveAbsoluteUrl(appOrigin())` directly instead of a module-load-time constant
+4. When a test needs a different env value, set it before the module is first imported (e.g. via `vi.stubEnv`/`beforeAll` in a setup file), not in the test body after import
+
+**Apply When:** Deriving preview/display values from `NEXT_PUBLIC_*`/env at module scope; writing tests that need to vary the origin/URL.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Better Auth Verification: `sendOnSignUp:false` + Client-Side Welcome After Verification
+
+**Context:** Wiring email verification with a custom `sendVerificationEmail`. Sending the welcome email from Better Auth's `afterEmailVerification` hook fires for BOTH verification-after-signup AND email-address-change verification — the latter would re-send a welcome email to an already-welcome'd user.
+
+**What We Learned:**
+1. Configure `emailVerification.sendOnSignUp: false` so verification is requested explicitly (client POSTs `/api/verify-email/send`) instead of Better Auth auto-sending on signup
+2. Don't fire the welcome email from `afterEmailVerification` — that hook also runs when a user changes their email address, so the welcome email would be re-sent on an unrelated action
+3. Instead, have the `/verify-email` page fire the welcome once client-side when the flow returns with `?done=1` (only for the verification-from-signup path), and keep Google signups (pre-verified emails) firing the welcome immediately from the register page
+4. Guard the `/api/verify-email/welcome` route: only send when the session user's `emailVerified` is true
+
+**Apply When:** Configuring Better Auth email verification, welcome emails, or email-change confirmation flows.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Relative URLs Must Be Resolved at Render Time — Never Baked at Edit Time
+
+**Context:** The email logo (and any image added via the visual block builder as `/primary-logo.png`) didn't render in the admin preview or in recipients' emails. The builder emitted `src` verbatim, and the preview substituted `{{logoUrl}}` from `DEFAULT_CONFIG` rather than the DB-configured `logoPath`.
+
+**What We Learned:**
+1. Email clients cannot resolve relative URLs; the `srcdoc` preview iframe resolves them against the parent origin (unreliable). Every image/link destined for email must be absolute.
+2. Do NOT resolve against the origin inside `blocksToHtml()`/at save time — that bakes the editor's client origin (e.g. `localhost:3000`) into stored HTML. Resolve at **render time**: the client preview computes `appOrigin()` from its build-time `NEXT_PUBLIC_APP_URL`, the server send path from the server env. `resolveRelativeUrlsInHtml()` is shared by both, run AFTER `{{variable}}` substitution.
+3. `resolveUrlForRender()` must skip `{{token}}` values (resolving them mangles later substitution), and the HTML rewrite must skip scheme'd (`data:`/`mailto:`/`tel:`), protocol-relative (`//`), and `#` fragment URLs.
+4. Preview sample vars should come from the actual platform config (`previewVarsFor(config)`) so the preview captures the configured logo/name — a preview tied to `DEFAULT_CONFIG` misleads admins.
+5. Keep template tokens as the interchange format in stored blocks/HTML; resolve absolute only at the final render boundary (preview + send).
+
+**Apply When:** Embedding images/links in email templates, building preview surfaces for config-driven content, or writing URL utilities that must not corrupt template placeholders.
 
 **Supersedes:** None
 **Superseded by:** None

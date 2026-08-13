@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 23)
+> - last-updated-by: pull-template-update (v3 migration)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -115,12 +115,20 @@ Data Stores
 
 ### Email Template Management Flow
 ```
-1. /admin/email-templates: Visual/HTML/Preview tabs
-   -> Visual uses EmailTemplateBlocksEditor (heading/paragraph/list/button/image/divider, reorder, delete, per-block variable insert)
-   -> blocks serialized via lib/email-blocks blocksToHtml() -> inline-styled email HTML
-   -> previews use substituteSampleVars() + SAMPLE_EMAIL_VARS
+1. /admin/email-templates: Visual/HTML/Preview tabs; editable template name (sidebar + header field, saved to emailConfig.templates.*.name)
+   -> Visual uses EmailTemplateBlocksEditor (thin email wrapper over the shared ContentBlocksEditor: heading/paragraph/list/button/image/divider, reorder, delete, per-block variable insert)
+   -> blocks serialized via lib/email-blocks blocksToHtml() -> inline-styled email HTML (h1 defaults to #E8FF47)
+   -> previews use substituteSampleVars() + previewVarsFor(config)/SAMPLE_EMAIL_VARS ({{name}} = platform name, {{logoUrl}} = configured logo resolved absolute) — relative img/link URLs resolved via lib/url resolveRelativeUrlsInHtml
+   -> real sends resolve relative URLs too (EmailService.send runs resolveRelativeUrlsInHtml on the filled HTML)
 2. New templates created via create-new-template modal (added to emailConfig.templates)
 3. Test-send + "Send to Subscribers" broadcast to MARKETING-consented users -> POST /api/admin/email/send -> EmailService
+```
+
+### Blog Content Sections Flow
+```
+1. /admin/blog-templates: "Content Sections" card uses the shared ContentBlocksEditor (same block builder as email templates)
+2. Sections saved to blogConfig.sections (EmailTemplateBlock[]); optional preview vars for placeholders
+3. app/(public)/blog renders cfg.sections via components/blog/ContentBlocks.tsx (BlogPageClient) alongside the config-driven hero + newsletter
 ```
 
 ### Admin User Management Flow
@@ -214,8 +222,35 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged) + fromName/fromEmail | platform.config.ts | template defaults + from settings |
 | BLOG_CONFIG | blogConfig.heroTitle / heroSubtitle / newsletter / footerTagline — drives blog page hero + newsletter section, admin-editable at /admin/blog-templates | platform.config.ts | hero + newsletter defaults |
 | NEXT_PUBLIC_APP_URL | Absolute origin for SEO canonical URLs + email logo links (falls back to VERCEL_URL, then http://localhost:3000) | .env | - |
+| ENABLE_DESIGN_VIEWER | Mounts the dev-only design-asset viewer at `/__design/*`; must be false in production builds | .env | false |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
+
+---
+
+## Verification CLI (agent-verifiable behavior)
+
+Engineering principle §24 requires a CLI the agent can invoke to observe and verify application behavior end-to-end. Crelab's verification surface is the Node/npm test + typecheck + lint + build stack, invoked per the quality gate in `protocols/quality-gate.md` and `commands/verify-work.md`:
+
+| Command | What it proves | When to use |
+|---------|---------------|-------------|
+| `npm test` (Vitest) | Unit + integration contract coverage for services/lib | Before a quality-gate close, after any code change |
+| `npm run typecheck` (tsc --noEmit) | TypeScript strict compile of the whole app | After any code change |
+| `npm run lint` (eslint) | Static rule adherence (0 errors) | After any code change |
+| `npm run build` (next build) | Production build compiles + static pages generate | Before deploy / QA close |
+| `npm run db:seed` / `db:seed:rollback` | Reproducible test data with working auth | When integration tests need seeded state |
+
+An agent may extend this CLI (new script/command) when a change creates a new verification need — see §24.
+
+---
+
+## Rollback & Undo (deployment level)
+
+This is the "undo" instinct applied one layer up from data (§22 covers user-facing undo; this covers deployments). `commands/fix-build.md` treats this as an escalation option, not just "fix forward":
+
+- **Previous-build promotion** — Vercel allows redeploying a previous deployment; `vercel rollback` / the Vercel dashboard promotes the last-good build.
+- **DB migration reversibility** — Drizzle migrations are down-migratable (`npm run db:generate` produces reversible migrations; see `scripts/seed-rollback.ts` for the seed data rollback path).
+- **Feature-flag kill switch** — `platformConfig.features.*` (config-driven, DB-overridable) disables a bad feature without a deploy (e.g. `features.googleDriveSync`, `features.blogEnabled`).
 
 ---
 
@@ -265,6 +300,24 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-08-13 — Email Logo/Preview Image Resolution via the URL Util
+- `lib/url.ts`: `resolveUrlForRender(value)` (relative → absolute, leaves `{{tokens}}` + absolute/protocol-relative/data/mailto/# untouched) + `resolveRelativeUrlsInHtml(html)` (rewrites relative `img src`/`a href` in a rendered HTML blob). Both run AFTER token substitution so the origin is resolved at render time — preview client-side, send server-side — never baked at edit time.
+- `lib/email-blocks.ts`: `substituteSampleVars()` resolves relative URLs after substitution; new `previewVarsFor(config)` builds preview vars from the configured `name`/`logoPath`.
+- `app/admin/email-templates`: Preview tab uses `previewVarsFor(loaded config)` — the preview now captures the admin-configured logo.
+- `services/EmailService.ts`: `send()` resolves relative URLs in the final HTML; `sendWelcome()` uses `resolveAbsoluteUrl("/explore")` for exploreUrl (was `${NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/explore`).
+- `components/blog/ContentBlocks.tsx`: image/button URLs via `resolveUrlForRender`.
+- Tests: `email-blocks.test.ts` (+5) + `config-helpers.test.ts` (+3). QA gate: typecheck clean, lint 0 errors, 201/201 tests, build green.
+
+### 2026-08-13 — Admin UX (Collapsible Sidebar + Reusable Table/Pagination) + Email/Blog Content Editing
+- `components/ui/ClDataTable.tsx` + `ClPagination.tsx` (new): config-driven reusable table (`ClColumn<T>[]` — custom render, `hideOnMobile`, checkbox columns; client-side pagination with `useEffect` page-clamp when the dataset shrinks; horizontal scroll; zebra rows; empty state) + pagination control (first/prev/next/last, ellipsis, "Showing x–y of z"). Adopted by `users`, `media` (batch select), `providers`, `team`, `categories`, `config` (change log) admin pages.
+- `components/admin/AdminShell.tsx` (new) + `AdminSidebar.tsx` rewrite: collapsible sidebar — `collapsed` prop gives a 72px icon-only rail, `mobileOpen` gives a drawer with backdrop; collapse persisted to localStorage `admin-sidebar-collapsed`; `app/admin/layout.tsx` renders the shell with `lg:ml-[240px]`/`lg:ml-[72px]` main offset. Responsive page headers (flex-wrap) across admin pages.
+- Email h1 colour: all 5 default template h1s in `config/platform.config.ts` + the `heading` block serializer default to `#E8FF47`.
+- `{{name}}` fix: preview-only root cause — `SAMPLE_EMAIL_VARS.name` was hardcoded `"Ada Okafor"` (identical to `userName`); `EmailService.send` already forces `name: cfg.name`. `SAMPLE_EMAIL_VARS.name` = `DEFAULT_CONFIG.name`, sample `logoUrl` = `resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath)`.
+- `logoUrl` hardening: `appOrigin()` in `lib/url.ts` now normalises trailing slashes / `//`. Production cause is most likely `NEXT_PUBLIC_APP_URL` set to `http://localhost:3000` (or unset) in the deployed Vercel runtime env — server code reads it at runtime.
+- `types/index.ts`: `IEmailTemplate.name?` + `IBlogConfig.sections?` (`EmailTemplateBlock[]`). `/admin/email-templates` now shows an editable template name in the sidebar + header.
+- Blog sections builder: generic `components/admin/ContentBlocksEditor.tsx` (shared add/remove/reorder block UI) reused by `EmailTemplateBlocksEditor.tsx` (thin email wrapper) and a new "Content Sections" card on `/admin/blog-templates` (writes `IBlogConfig.sections`); `components/blog/ContentBlocks.tsx` renders sections on the blog page via `BlogPageClient`.
+- Tests: `__tests__/lib/email-blocks.test.ts` (6 tests). QA gate: typecheck clean, lint 0 errors (pre-existing warnings only), 193/193 tests, production build (72 static pages).
 
 ### 2026-08-13 — Config Persistence, Email Verification, SEO Wiring, Admin User/Blog Management
 - `services/PlatformConfigService.ts`: exported `setNestedValue(target, path, value)` — deep-sets dotted config keys (e.g. `emailConfig.templates`, `features.guestBrowse`) when merging DB rows in `get()`; null values skipped so defaults never clobbered (fixes admin edits not round-tripping)

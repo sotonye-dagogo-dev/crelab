@@ -15,3 +15,5 @@ export { ClEmptyState } from "./ClEmptyState";
 export { ClPasswordInput } from "./ClPasswordInput";
 export { ClConfirmDialog } from "./ClConfirmDialog";
 export { ClBackButton } from "./ClBackButton";
+export { ClDataTable, type ClColumn } from "./ClDataTable";
+export { ClPagination } from "./ClPagination";

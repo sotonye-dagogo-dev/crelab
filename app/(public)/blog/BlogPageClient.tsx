@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { IBlogPost, BlogCategory } from "@/types/blog";
 import type { IBlogConfig } from "@/types";
 import { BlogCard } from "@/components/blog/BlogCard";
+import { ContentBlocks } from "@/components/blog/ContentBlocks";
 import { ClEmptyState, ClButton, ClInput } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 
@@ -120,6 +121,12 @@ export function BlogPageClient({ posts, blogConfig }: BlogPageClientProps) {
             title="No posts in this category yet"
             message="Check back later for new content."
           />
+        )}
+
+        {cfg.sections && cfg.sections.length > 0 && (
+          <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] px-8 py-8 mb-16 max-sm:px-5 max-sm:py-6">
+            <ContentBlocks blocks={cfg.sections} />
+          </div>
         )}
 
         {cfg.newsletter.enabled && (
