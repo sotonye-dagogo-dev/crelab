@@ -13,6 +13,7 @@ const EMAIL_VARIABLES = [
   "exploreUrl",
   "bookingUrl",
   "verifyUrl",
+  "resetUrl",
   "logoUrl",
 ];
 

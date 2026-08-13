@@ -13,6 +13,7 @@ import {
   Mail,
   FolderOpen,
   FileText,
+  PenSquare,
   UserCog,
   PanelLeftClose,
   PanelLeftOpen,
@@ -65,6 +66,11 @@ const navItems = [
     label: "Blog Templates",
     href: "/admin/blog-templates",
     icon: <FileText size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "Blog Posts",
+    href: "/admin/blog-posts",
+    icon: <PenSquare size={16} strokeWidth={1.5} />,
   },
   {
     label: "Bug Reports",
@@ -173,7 +179,7 @@ export function AdminSidebar({
       </div>
 
       <div
-        className={`px-4 pb-4 ${collapsed ? "px-2 flex justify-center" : ""}`}
+        className={`px-4 pb-4 ${collapsed ? "px-2 flex justify-center" : ""} hidden lg:block`}
       >
         <button
           onClick={onToggle}

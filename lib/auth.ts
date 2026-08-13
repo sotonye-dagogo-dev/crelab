@@ -40,6 +40,14 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    // Wired password-reset email: fired when a user requests a reset link via
+    // the /forgot-password flow. Non-blocking — auth never fails on a mail error.
+    sendResetPassword: async ({ user, url }) => {
+      await sendTransactionalEmail("passwordReset", user.email, {
+        userName: user.name,
+        resetUrl: url,
+      });
+    },
   },
   emailVerification: {
     // Non-blocking verification: we trigger it manually after signup so we can

@@ -488,3 +488,27 @@ export const mediaAssets = pgTable("media_assets", {
 export const mediaAssetsRelations = relations(mediaAssets, ({ one }) => ({
   owner: one(user, { fields: [mediaAssets.ownerId], references: [user.id] }),
 }));
+
+/* ── Blog posts (admin-managed, DB-backed with mock fallback) ── */
+
+export const blogPosts = pgTable("blog_posts", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  /** Visual-builder content blocks (EmailTemplateBlock[]) */
+  content: jsonb("content").notNull().default([]),
+  metaDescription: text("meta_description"),
+  /** Hero image — resolved absolute URL (Cloudinary or external) */
+  heroImageUrl: text("hero_image_url"),
+  category: text("category").notNull(),
+  tags: jsonb("tags").notNull().default([]),
+  author: text("author").notNull(),
+  /** ISO 8601 string; null when the post is a draft */
+  publishedAt: text("published_at"),
+  published: boolean("published").notNull().default(false),
+  spotlightProviderSlug: text("spotlight_provider_slug"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const blogPostsRelations = relations(blogPosts, () => ({}));

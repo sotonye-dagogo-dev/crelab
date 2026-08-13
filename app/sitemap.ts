@@ -6,9 +6,8 @@ import { buildProviderSlug } from "@/lib/slug";
 
 async function getBlogSlugs(): Promise<{ slug: string }[]> {
   try {
-    if (!process.env.NEXT_PUBLIC_SANITY_PROJECT_ID) return [];
-    const { getAllPostSlugs } = await import("@/lib/sanity");
-    return await getAllPostSlugs();
+    const { BlogPostService } = await import("@/services/BlogPostService");
+    return await BlogPostService.getAllSlugs();
   } catch {
     return [];
   }

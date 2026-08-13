@@ -2,12 +2,19 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { IBlogPost } from "@/types/blog";
-import { getPostBySlug, getRelatedPosts, urlFor } from "@/lib/sanity";
-import { getFallbackPostBySlug, getFallbackRelatedPosts } from "@/lib/blog-fallback";
+import { BlogPostService } from "@/services/BlogPostService";
 import { ArticleBody } from "@/components/blog/ArticleBody";
 import { ToCSidebar } from "@/components/blog/ToCSidebar";
 import { CreatorSpotlightEmbed } from "@/components/blog/CreatorSpotlightEmbed";
+import { ContentBlocks } from "@/components/blog/ContentBlocks";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { getPostHeroUrl } from "@/lib/blog-hero";
+import type { EmailTemplateBlock } from "@/types";
+
+/** Renders visual-builder block content for admin-created blog posts. */
+function BlocksContent({ blocks }: { blocks: unknown[] }) {
+  return <ContentBlocks blocks={blocks as EmailTemplateBlock[]} />;
+}
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -28,41 +35,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     config = await PlatformConfigService.getCached();
   } catch {}
 
-  const pageFallback = (post: { title: string; metaDescription: string }) =>
-    buildSeoMetadata(config, {
-      title: post.title,
-      description: post.metaDescription,
-      path: `/blog/${slug}`,
-      ogType: "article",
-    });
+  const post = await BlogPostService.getBySlug(slug);
+  if (!post) return { title: "Post Not Found" };
 
-  try {
-    const post = await getPostBySlug(slug);
-    if (!post) {
-      const fallback = getFallbackPostBySlug(slug);
-      if (!fallback) return { title: "Post Not Found" };
-      return pageFallback(fallback);
-    }
-
-    return buildSeoMetadata(config, {
-      title: post.title,
-      description: post.metaDescription,
-      path: `/blog/${slug}`,
-      ogType: "article",
-      ogImage: post.heroImage
-        ? urlFor(post.heroImage).width(1200).height(630).url()
-        : undefined,
-    });
-  } catch {
-    const fallback = getFallbackPostBySlug(slug);
-    if (!fallback) return { title: "Post Not Found" };
-    return pageFallback(fallback);
-  }
+  return buildSeoMetadata(config, {
+    title: post.title,
+    description: post.metaDescription,
+    path: `/blog/${slug}`,
+    ogType: "article",
+    ogImage: post.heroImage ? getPostHeroUrl(post, 1200, 630) : undefined,
+  });
 }
 
 function extractToC(content: unknown[]): { id: string; text: string; level: number }[] {
   const items: { id: string; text: string; level: number }[] = [];
   if (!Array.isArray(content)) return items;
+
+  // Block-based (visual builder) content — headings carry `text`.
+  if (content.some((b) => b && typeof b === "object" && "type" in (b as Record<string, unknown>) && (b as Record<string, unknown>).type === "heading")) {
+    for (const block of content as { type: string; text?: string }[]) {
+      if (block.type === "heading" && block.text) {
+        const id = block.text.toLowerCase().replace(/\s+/g, "-");
+        items.push({ id, text: block.text, level: 2 });
+      }
+    }
+    return items;
+  }
 
   for (const block of content) {
     if (
@@ -118,34 +116,27 @@ function formatDate(iso: string): string {
 
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
-  let post;
-  try {
-    post = await getPostBySlug(slug);
-    if (!post) {
-      post = getFallbackPostBySlug(slug);
-    }
-  } catch {
-    post = getFallbackPostBySlug(slug);
-  }
+  const post = await BlogPostService.getBySlug(slug);
 
   if (!post) notFound();
 
+  const isBlockContent = Array.isArray(post.content) && post.content.some(
+    (b) => b && typeof b === "object" && "type" in (b as Record<string, unknown>),
+  );
+  const heroImage = getPostHeroUrl(post, 1200, 380);
   const tocItems = extractToC(post.content as unknown[]);
-  const readTime = getReadTime(post.content as unknown[]);
-  let relatedPosts: IBlogPost[] = [];
-  try {
-    relatedPosts = await getRelatedPosts(post.category, slug);
-  } catch {
-    relatedPosts = getFallbackRelatedPosts(post.category, slug);
-  }
+  const readTime = isBlockContent
+    ? Math.max(1, Math.round((post.content as unknown[]).join(" ").split(/\s+/).filter(Boolean).length / 200)) + " min read"
+    : getReadTime(post.content as unknown[]);
+  const relatedPosts: IBlogPost[] = await BlogPostService.getRelated(post.category, slug);
 
   return (
     <div className="article-page pt-14 max-sm:pt-12">
       <div
         className="w-full h-[380px] flex items-center justify-center relative max-sm:h-[260px]"
         style={{
-          background: post.heroImage
-            ? `url(${urlFor(post.heroImage).width(1200).height(380).url()}) center/cover`
+          background: heroImage
+            ? `url(${heroImage}) center/cover`
             : "linear-gradient(135deg, #0A0A0A, #1E2200)",
         }}
       >
@@ -198,7 +189,11 @@ export default async function BlogPostPage({ params }: Props) {
         <hr className="border-t border-[var(--color-border)] mt-5 mb-0" />
 
         <div className="mt-6">
-          <ArticleBody content={post.content as unknown[]} />
+          {isBlockContent ? (
+            <BlocksContent blocks={post.content as unknown[]} />
+          ) : (
+            <ArticleBody content={post.content as unknown[]} />
+          )}
         </div>
 
         {post.spotlightProviderSlug && (
@@ -222,7 +217,7 @@ export default async function BlogPostPage({ params }: Props) {
                       <div
                         className="h-[120px] bg-cover bg-center"
                         style={{
-                          backgroundImage: `url(${urlFor(related.heroImage).width(400).height(120).url()})`,
+                          backgroundImage: `url(${getPostHeroUrl(related, 400, 120)})`,
                         }}
                       />
                     ) : (

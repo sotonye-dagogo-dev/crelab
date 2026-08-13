@@ -1,5 +1,4 @@
-import { getAllPosts } from "@/lib/sanity";
-import { getFallbackPosts } from "@/lib/blog-fallback";
+import { BlogPostService } from "@/services/BlogPostService";
 import { BlogPageClient } from "./BlogPageClient";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 
@@ -28,11 +27,6 @@ export default async function BlogPage() {
     blogConfig = config.blogConfig;
   } catch {}
 
-  try {
-    const posts = await getAllPosts();
-    return <BlogPageClient posts={posts} blogConfig={blogConfig} />;
-  } catch {
-    const fallback = getFallbackPosts();
-    return <BlogPageClient posts={fallback} blogConfig={blogConfig} />;
-  }
+  const posts = await BlogPostService.list();
+  return <BlogPageClient posts={posts} blogConfig={blogConfig} />;
 }

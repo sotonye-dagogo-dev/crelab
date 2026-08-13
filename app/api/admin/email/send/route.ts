@@ -4,12 +4,16 @@ import { db } from "@/lib/db";
 import { user, consentRecords } from "@/drizzle/schema";
 import { inArray } from "drizzle-orm";
 import { ConsentType } from "@/types";
+import { isWiredEmailTemplate } from "@/lib/email-templates";
 
 /**
  * ADMIN-only email trigger. Supports:
  *  - { templateKey, to }            → test send to a single address
  *  - { templateKey, segment:"marketing" } → broadcast a template to every user
  *     who granted MARKETING consent during signup (config-gated + template-gated)
+ *
+ * Wired (code-triggered) templates can never be sent or broadcast from here —
+ * their delivery is owned by the code paths that fire them.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -46,6 +50,20 @@ export async function POST(req: NextRequest) {
     if (!template.enabled) {
       return NextResponse.json(
         { success: false, error: "That template is disabled — enable it before sending" },
+        { status: 400 },
+      );
+    }
+
+    // Wired templates are triggered by code, not by the admin. Blocking them
+    // here (in addition to hiding the UI) prevents accidental test/broadcast
+    // sends that would be out of step with the events that actually fire them.
+    if (isWiredEmailTemplate(templateKey)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "This template is wired to code and is triggered automatically by user events — it can only be previewed or simulated, not sent or broadcast.",
+        },
         { status: 400 },
       );
     }

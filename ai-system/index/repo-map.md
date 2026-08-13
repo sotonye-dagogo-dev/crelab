@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 25)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -47,6 +47,7 @@ crelab/
 │   │   ├── page.tsx        # Dashboard
 │   │   ├── layout.tsx      # Admin layout + collapsible sidebar shell (AdminShell)
 │   │   ├── blog-templates/ # Blog config editor (hero/newsletter/footer tagline)
+│   │   ├── blog-posts/     # Blog post manager (create/edit/publish/delete + hero image upload)
 │   │   ├── categories/     # Category manager
 │   │   ├── config/         # Platform config editor
 │   │   ├── disputes/       # Dispute resolution dashboard
@@ -56,7 +57,7 @@ crelab/
 │   │   └── users/          # User management (search, role, verify, delete)
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
-│       ├── admin/          # Admin CRUD endpoints (+ /admin/media/[id], /admin/email/send, /admin/users, /admin/users/[id])
+│       ├── admin/          # Admin CRUD endpoints (+ /admin/media/[id], /admin/email/send, /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id])
 │       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission
 │       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)
@@ -77,7 +78,7 @@ crelab/
 │   ├── profile/            # ProviderHero, PortfolioGrid, ServicePackages, MediaUpload, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
 │   ├── blog/               # ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks
-│   ├── admin/              # AdminSidebar, AdminShell, CategoryModal, ConfigField, TeamMemberModal, BatchOperations, EmailTemplateBlocksEditor, ContentBlocksEditor
+│   ├── admin/              # AdminSidebar, AdminShell, CategoryModal, ConfigField, TeamMemberModal, BatchOperations, EmailTemplateBlocksEditor, ContentBlocksEditor, ImageUploadField
 │   ├── wallet/             # WalletBalanceCard, TopUpModal, WithdrawModal
 │   └── shared/             # AuthGate, MediaEmbed, CookieConsentBanner, ThemeToggler, EmailSimulation
 ├── sanity/                  # Sanity CMS config + schemas
@@ -85,6 +86,7 @@ crelab/
 │   └── schemas/             # Blog post + creator spotlight schemas
 ├── services/                # OOP class-based business logic
 │   ├── BookingService.ts
+│   ├── BlogPostService.ts  # Blog post CRUD + DB→Sanity→fallback merge, deduped by slug (admin/DB wins)
 │   ├── DashboardService.ts   # Role-aware dashboard queries + pipeline column defs
 │   ├── DriveService.ts
 │   ├── EscrowService.ts
@@ -106,6 +108,7 @@ crelab/
 ├── lib/
 │   ├── auth.ts             # Better Auth instance + getSession/requireAuth/requireRole (getSession forwards request headers)
 │   ├── blog-fallback.ts    # Hardcoded fallback blog posts when Sanity is unavailable
+│   ├── blog-hero.ts        # getPostHeroUrl: plain URL or Sanity image- ref → absolute hero URL
 │   ├── cloudinary.ts       # Video/image upload, thumbnail generation, signed admin ops (deleteAsset) + env availability guard
 │   ├── config-context.tsx  # PlatformConfig React context provider
 │   ├── consent.ts          # NDPR consent capture server action
@@ -113,6 +116,7 @@ crelab/
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
 │   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS/previewVarsFor (platform name + resolved logoUrl; relative URLs resolved via lib/url)
+│   ├── email-templates.ts  # WIRED_EMAIL_TEMPLATES registry (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset: label + trigger) + isWiredEmailTemplate — code-wired emails are preview/simulate only, never sendable/broadcastable
 │   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
 │   ├── media.ts            # Media file/URL validation helpers (type, size, link)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
@@ -148,23 +152,23 @@ crelab/
 | `app/` | Next.js 15 App Router: route groups for public, auth, admin, and API | `layout.tsx`, `page.tsx`, `sitemap.ts`, `robots.ts`, route handlers |
 | `checkpoints/` | Session tracking: in-progress and session logs | `in-progress.md`, `session-log.md` |
 | `testing/` | Test results tracking | `test-results.md` |
-| `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager, email templates, blog templates, user management | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx` |
+| `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager, email templates, blog templates, blog posts, user management | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx`, `blog-posts/page.tsx` |
 | `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx`, `ClConfirmDialog.tsx`, `ClBackButton.tsx`, `ClDataTable.tsx`, `ClPagination.tsx` |
 | `components/explore/` | Explore feed: filter bar, masonry grid, video cards | ExploreFilterBar, ExploreGrid |
 | `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings, media upload | ProviderHero, PortfolioGrid, ServicePackages, MediaUpload |
 | `components/booking/` | Booking flow: drawer, escrow timeline, dispute modal | BookingDrawer, EscrowTimeline |
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
-| `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor |
+| `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor, ImageUploadField |
 | `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner | Providers, AuthGate, CookieConsentBanner |
 | `sanity/` | Sanity CMS project config + content schemas | `sanity.config.ts`, `schemas/` |
-| `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService |
+| `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts`, `dashboard.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `use-undoable.ts`, `blog-fallback.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts` |
-| `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (441 lines, 21 tables + 12 enums + relations), `migrations/` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts` |
+| `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (441+ lines, 22 tables + 12 enums + relations — incl. `blog_posts`), `migrations/` (0000-0004 tracked + standalone 0005_blog_posts.sql) |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
-| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `lib/config-helpers.test.ts`, `lib/email-blocks.test.ts` |
+| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `lib/config-helpers.test.ts`, `lib/email-blocks.test.ts`, `lib/email-templates.test.ts` |
 
 ---
 
