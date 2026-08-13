@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 25)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -495,6 +495,58 @@
 5. Keep template tokens as the interchange format in stored blocks/HTML; resolve absolute only at the final render boundary (preview + send).
 
 **Apply When:** Embedding images/links in email templates, building preview surfaces for config-driven content, or writing URL utilities that must not corrupt template placeholders.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Code-Wired Transactional Emails Are Preview/Simulate-Only — Never Operator-Sendable
+
+**Context:** Building the admin email-templates page, the welcome/verification/password-reset/booking/payment emails are triggered by code events (signup, email verification, password reset, booking lifecycle) — not by an operator. Letting the admin "Send Test" or "Broadcast" a wired template would fire emails at the wrong time or to the wrong segment (e.g. broadcasting a password-reset email), duplicating or mis-sequencing the code paths that own those sends.
+
+**What We Learned:**
+1. Keep a single registry of wired keys (`lib/email-templates.ts` `WIRED_EMAIL_TEMPLATES`), each with a `label` + `trigger` (the user event that fires it), plus `isWiredEmailTemplate(key)` — one source of truth for both the API guard and the UI.
+2. Enforce the rule **server-side**, not just in the UI: `/api/admin/email/send` must reject wired keys for both test-send and broadcast. UI affordances (Simulate vs Send Test / Send to Subscribers) are the second layer.
+3. Surface the "why" to the operator: a badge + the trigger description in the admin panel turns an opaque "can't send this" into self-documenting behaviour.
+4. Wired templates still need a way to be validated → reuse the existing preview/simulation surface (`useEmailSimulation`) so operators can review content without sending.
+5. A template that is triggered by code still needs its code path wired explicitly — e.g. `passwordReset` required adding the template to `DEFAULT_CONFIG` AND Better Auth `emailAndPassword.sendResetPassword` → `sendTransactionalEmail`; adding the template alone would have done nothing.
+
+**Apply When:** Adding any transactional email triggered by a code event, or building admin surfaces over code-triggered content where "send" must be prevented.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## A New Drizzle Migration File Is Not Enough — The Journal Must Reference It
+
+**Context:** Session 27 added `drizzle/migrations/0005_blog_posts.sql` by hand, but `drizzle/migrations/meta/_journal.json` only tracks `0000`–`0002` (it had already drifted). `drizzle-kit migrate` will not apply a migration that the journal doesn't list — the table silently never exists in any target DB unless someone applies the SQL manually.
+
+**What We Learned:**
+1. `drizzle-kit` generates migrations AND appends them to the `meta/_journal.json` snapshot in one step. Hand-written SQL files are invisible to the migration runner unless the journal (and ideally the snapshot) is also updated.
+2. When the journal is already stale, don't silently rely on it — record the gap in the session log and in the delivery notes: "apply `0005_blog_posts.sql` manually to the target DB".
+3. Verify schema-in-code matches the migration: `blog_posts` is defined in `drizzle/schema.ts` (single source of truth) AND mirrored in the SQL; keep them in sync so a future `drizzle-kit generate` doesn't produce a conflicting `0005`.
+4. Prefer running `drizzle-kit generate` (or `drizzle-kit push`) for future schema changes so the journal and snapshot stay consistent.
+
+**Apply When:** Writing or reviewing migrations, syncing schema to Supabase/other DBs, or triaging "table doesn't exist" after a deploy.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Merge Strategy for Multi-Source Content: Prefer a Controlled Source, Fall Back Gracefully
+
+**Context:** The public blog previously read only Sanity (or hardcoded fallback). Session 27 added DB-backed posts via `blog_posts`; the public pages now need Sanity posts, DB posts, and fallback posts to coexist without duplicates.
+
+**What We Learned:**
+1. Deduplicate by a stable key (`slug`) with a fixed precedence (DB/admin wins over Sanity, fallback last) — build the merge once in `BlogPostService` so pages, cards, sitemap, and related-posts all agree.
+2. Detect content shape at render time instead of assuming one source: block-content posts use `type` (`EmailTemplateBlock[]` → `ContentBlocks`/`BlocksContent`), Sanity posts use `_type` (portable text → `ArticleBody`). A single post object can carry either — check for the discriminating field.
+3. Keep legacy field shapes compatible: a DB hero URL is stored as a plain string but mapped to `heroImage.asset._ref`/`asset.url` so existing `BlogCard`/metadata code keeps working; a `lib/blog-hero.ts` `getPostHeroUrl` helper resolves both plain URLs and Sanity `image-` refs.
+4. Dynamic-import the optional Sanity client inside the service (`await import("@/lib/sanity")` in try/catch) so an unconfigured CMS degrades to DB/fallback instead of crashing.
+
+**Apply When:** Layering a new content source (DB, CMS, fallback) over existing reads, or unifying multiple post/page data sources.
 
 **Supersedes:** None
 **Superseded by:** None

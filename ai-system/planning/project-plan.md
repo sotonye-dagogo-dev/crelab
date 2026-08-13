@@ -1,7 +1,7 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 25)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify if project scope or phase changes
 
@@ -47,7 +47,7 @@
 ### Milestone 1.4 — Admin & SEO (Week 5)
 
 - [x] Admin Panel: config editor, category manager (with CategoryModal), provider review queue, dispute dashboard, admin layout + sidebar
-- [x] Blog System: Sanity CMS, /blog, /blog/[slug], creator spotlights, ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar
+- [x] Blog System: Sanity CMS + DB-backed blog posts (`blog_posts`, `BlogPostService` — admin/DB posts merged over Sanity), /blog, /blog/[slug], creator spotlights, ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar
 - [x] sitemap.ts, robots.ts (Next.js generated sitemap.xml + robots.txt)
 
 ---
@@ -95,3 +95,4 @@
 - [x] Config Persistence + Email Verification + SEO + Admin Management (2026-08-13) — `setNestedValue` deep-merge fixes admin edits not round-tripping; `lib/url.ts` + `lib/seo.ts` + `lib/email-blocks.ts`; Better Auth `emailVerification` flow (sendOnSignUp false, welcome fires after verification via `/api/verify-email/welcome`), `/verify-email` public page, `useAuth.signUp` → `/api/verify-email/send`; email templates Visual/HTML/Preview tabs + block editor + broadcast via `/api/admin/email/send`; `blogConfig` + `/admin/blog-templates` + newsletter section + `/api/newsletter` (MARKETING consent); admin user management (`/api/admin/users`, `/admin/users`); `ClBackButton`, `/profile` page, Navbar Profile/Admin links; `generateMetadata` SEO wiring; `.env.example` documents `NEXT_PUBLIC_APP_URL`. Tests: `__tests__/lib/config-helpers.test.ts`, 187/187 passing
 - [x] Admin UX + Email/Blog content editing (2026-08-13) — collapsible/expandable admin sidebar (`AdminShell` + `AdminSidebar` props, icon-only 72px collapsed rail, mobile drawer, localStorage persistence) + responsive audit of admin/all pages; universal reusable `ClDataTable` + `ClPagination` adopted across users/media/providers/team/categories/config; email templates h1 default `#E8FF47` + editable template name (`IEmailTemplate.name`); `{{name}}` preview fix (platform name, not username) + `appOrigin` trailing-slash hardening for email `logoUrl`; blog sections builder via shared `ContentBlocksEditor` (email + blog) + `ContentBlocks` blog renderer (`IBlogConfig.sections`). Tests: `__tests__/lib/email-blocks.test.ts`, 193/193 passing
 - [x] Email logo/preview image resolution (2026-08-13) — `lib/url.ts` gains `resolveUrlForRender` + `resolveRelativeUrlsInHtml`; `substituteSampleVars()` resolves relative `img src`/`a href` after substitution and `previewVarsFor(config)` makes the admin preview capture the DB-configured logo/name; `EmailService.send` resolves relative URLs in the final HTML + `sendWelcome` exploreUrl via `resolveAbsoluteUrl`; blog `ContentBlocks` image/button URLs use the util. Tests: `__tests__/lib/email-blocks.test.ts` + `config-helpers.test.ts`, 201/201 passing
+- [x] Wired email templates + blog post management + admin responsive fixes (2026-08-13) — `lib/email-templates.ts` marks the 6 code-triggered emails (welcome, verifyEmail, emailChanged, bookingConfirmation, paymentReceived, passwordReset) as preview/simulate-only; `/api/admin/email/send` rejects wired keys (test-send + broadcast); `/admin/email-templates` shows wired badge/Simulate/trigger banner; `passwordReset` template added + `sendResetPassword` wired in `lib/auth.ts`. Blog admin beyond templates: `blog_posts` table (`0005_blog_posts.sql`) + `BlogPostService` (DB → Sanity → fallback merge) + `/api/admin/blog-posts` CRUD + `/admin/blog-posts` page + `ImageUploadField` (Cloudinary/paste hero image) + public `/blog` + `/blog/[slug]` render DB posts. Admin sidebar collapse hidden on mobile (drawer only); `/admin/config` change log `formatChangeValue()` + `break-words`; `ConfigField` responsive. Tests: `__tests__/lib/email-templates.test.ts`, 206/206 passing

@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: pull-template-update (v3 migration)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,34 @@
 ---
 
 ## Sessions
+
+## Session 27 — 2026-08-13 (Wired Email Templates + Blog Post Management + Admin Responsive Fixes)
+
+**Directive:** Emails wired into code (welcome, verify email, password reset, etc.) must be marked as code-wired and only previewable/simulated — never sendable/broadcastable — while admin-created templates remain sendable/broadcastable. Blog admin must go beyond templates to making/uploading blog posts with image uploads. Admin sidebar: mobile = hamburger-togglable overlay; collapsibility reserved for desktop. Admin/config pages responsive so text never escapes containers.
+
+**Completed:**
+
+1. **Wired email templates** — new `lib/email-templates.ts` registers 6 code-wired templates (`welcome`, `verifyEmail`, `emailChanged`, `bookingConfirmation`, `paymentReceived`, `passwordReset`) each with a `label` + `trigger` (the user event that fires it) + `isWiredEmailTemplate(key)`. `/api/admin/email/send` now rejects wired keys for both test-send and broadcast. `/admin/email-templates` shows a `ClBadge` + `Zap` icon on wired templates, a "Simulate" button (via `useEmailSimulation`) instead of Send Test / Send to Subscribers, and an info banner describing the trigger; `sendDialog` state resets on template select.
+2. **Password reset wired** — `passwordReset` template added to `DEFAULT_CONFIG`; `lib/auth.ts` `emailAndPassword.sendResetPassword` now sends the template via `sendTransactionalEmail`; `resetUrl` added to `lib/email-blocks.ts` sample vars + `EmailTemplateBlocksEditor` variable list.
+3. **Blog post management** — new `blog_posts` table (`drizzle/schema.ts` + `drizzle/migrations/0005_blog_posts.sql`: slug unique index, `(published, published_at)` + `category` indexes, content/tags as jsonb); `services/BlogPostService.ts` (list/getBySlug/getRelated/getAllSlugs/adminList/getById/create/update/remove — merges DB posts → Sanity posts → fallback posts, deduped by slug, admin/DB posts win); `/api/admin/blog-posts` (GET/POST) + `/api/admin/blog-posts/[id]` (PATCH/DELETE); `/admin/blog-posts` page (ClDataTable list + modal editor with live slugify, tags, meta description, publish toggle, confirm delete). Content stored as `EmailTemplateBlock[]` and rendered by the existing `ContentBlocks` renderer; public `/blog` + `/blog/[slug]` now read via `BlogPostService` (block-content detection: `type` → `BlocksContent`, `_type` → Sanity `ArticleBody`); `components/blog/BlogCard.tsx` + `app/sitemap.ts` use `getAllSlugs`.
+4. **Image uploads** — new `components/admin/ImageUploadField.tsx` (reusable Cloudinary upload via `/api/media/upload` with paste-URL fallback); used for the blog post hero image.
+5. **Admin sidebar responsive** — collapse toggle hidden on mobile (`hidden lg:block`); mobile uses hamburger-togglable overlay drawer only. New "Blog Posts" nav item (`PenSquare`).
+6. **Responsive/padding fixes** — `/admin/config` change log now renders nested values via `formatChangeValue()` (JSON stringify) with `break-words`/`min-w-0` columns so long/escaped text can't overflow; `ConfigField` refactored to a `fieldControl` variable, stacks on mobile, `min-w-0`/`break-words`.
+7. **Tests** — `__tests__/lib/email-templates.test.ts` covers the wired map (all keys + triggers + labels) and `isWiredEmailTemplate`. QA gate: typecheck clean, **206/206** tests pass, production build green.
+
+**Files Modified:**
+- New: `lib/email-templates.ts`, `services/BlogPostService.ts`, `lib/blog-hero.ts` (`getPostHeroUrl` — plain URL or Sanity `image-` ref), `components/admin/ImageUploadField.tsx`, `app/admin/blog-posts/page.tsx`, `app/api/admin/blog-posts/route.ts`, `app/api/admin/blog-posts/[id]/route.ts`, `drizzle/migrations/0005_blog_posts.sql`, `__tests__/lib/email-templates.test.ts`
+- Edited: `config/platform.config.ts` (+`passwordReset` template), `lib/auth.ts` (sendResetPassword wiring), `lib/email-blocks.ts` (+`resetUrl`), `components/admin/EmailTemplateBlocksEditor.tsx` (+`resetUrl`), `drizzle/schema.ts` (+`blogPosts`), `app/api/admin/email/send/route.ts` (wired guard), `app/admin/email-templates/page.tsx` (wired badge/simulate/banner), `app/(public)/blog/page.tsx`, `app/(public)/blog/[slug]/page.tsx`, `components/blog/BlogCard.tsx`, `app/sitemap.ts`, `components/admin/AdminSidebar.tsx` (mobile collapse hidden + Blog Posts nav), `app/admin/config/page.tsx` (`formatChangeValue`), `components/admin/ConfigField.tsx` (responsive fieldControl), `ai-system/` docs (this sync)
+
+**Build Status:** ✅ Typecheck clean, 206/206 tests pass, production build green.
+
+**Next Task:** Apply `drizzle/migrations/0005_blog_posts.sql` to the target DB (the migration journal was not regenerated — the file is standalone SQL). Deploy via GitHub Action run. Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- `blog_posts` content is stored as `EmailTemplateBlock[]` (reusing the visual-builder block types); `ContentBlocks.tsx` renders it on the public article page. Hero images are plain URLs (`heroImageUrl`), surfaced as `heroImage.asset._ref`/`asset.url` for compatibility with the existing `IBlogPost`/`BlogCard` shape.
+- `0005_blog_posts.sql` must be applied manually — `drizzle/migrations/meta/_journal.json` only tracks `0000`–`0002` (already stale), so `drizzle-kit migrate` will not pick it up automatically.
+
+---
 
 ## Session 26 — 2026-08-13 (pull-template-update — ai-system v2 → v3 migration)
 

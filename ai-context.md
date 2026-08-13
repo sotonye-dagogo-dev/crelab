@@ -1,7 +1,7 @@
 # Project AI Context
 
 > **Metadata**
-> - last-updated-by: pull-template-update (ai-system v3 migration)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
 > - installed-ai-system-version: 3.0.0
 > - staleness-policy: re-verify before trusting if project structure has changed
@@ -51,7 +51,7 @@ The AI system docs live in `.ai-system/`. Start with `.ai-system/protocols/entry
 | Feature Components | `components/explore/`, `components/profile/`, `components/booking/`, `components/blog/`, `components/shared/` | Domain-specific UI |
 | Layout Components | `components/shared/Navbar.tsx`, `components/shared/Footer.tsx` | Fixed navbar + footer on all public pages |
 | Theme System | `lib/theme-context.tsx`, `components/shared/ThemeToggler.tsx` | system/light/dark toggle via CSS custom properties |
-| Services | `services/` | OOP class-based: BookingService, DashboardService, DriveService, EmailService, EscrowService, ExploreService, MilestoneService, MockDataService, PaymentService, PlatformConfigService, PortfolioService, WalletService |
+| Services | `services/` | OOP class-based: BookingService, BlogPostService, DashboardService, DriveService, EmailService, EscrowService, ExploreService, MilestoneService, MockDataService, PaymentService, PlatformConfigService, PortfolioService, WalletService |
 | Types | `types/` | Global TypeScript interfaces, barrel export via index.ts |
 | Config | `config/platform.config.ts` | Hardcoded fallback config (DB overrides at runtime) |
 | Database | `drizzle/schema.ts` | Drizzle schema — single source of truth for DB shape + migrations |
@@ -75,6 +75,7 @@ Start with: `.ai-system/protocols/entry-protocol.md`
 Active development — Milestones 1.0-1.4 substantially complete. See `.ai-system/summaries/dev-history.md` for sprint log.
 
 **Recently completed:**
+- **Wired email templates + blog post management + admin responsive fixes** (Session 27) — `lib/email-templates.ts` marks the 6 code-triggered emails (welcome, verifyEmail, emailChanged, bookingConfirmation, paymentReceived, passwordReset) as preview/simulate-only; `/api/admin/email/send` rejects wired keys; `passwordReset` template + `sendResetPassword` wiring in `lib/auth.ts`. Blog admin now creates/publishes posts: `blog_posts` table (`0005_blog_posts.sql` — apply manually, journal stale) + `BlogPostService` (DB → Sanity → fallback merge) + `/api/admin/blog-posts` CRUD + `/admin/blog-posts` page + `ImageUploadField` hero uploads; public `/blog` + `/blog/[slug]` render DB posts. Admin sidebar collapse hidden on mobile; `/admin/config` + `ConfigField` responsive. 206 tests pass, build green.
 - **ai-system upgraded to template v3.0.0** (pull-template-update) — skills/, tools/, design-references/ subsystems; 4 new commands; mandatory `Chains to` rows on all commands; engineering principles §11–§24; task-queue/checkpoint coupling + `last-synced` marker; `installed-ai-system-version` baseline set
 - Navbar (fixed, all public pages) with config-driven platform name and auth-aware actions
 - Footer (all public pages) with config-driven dev credit ("built by S.D." → sotonye-dagogo.is-a.dev)
