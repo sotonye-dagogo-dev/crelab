@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 24)
+> - last-updated-by: update-ai-system (Session 25)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -477,6 +477,24 @@
 4. Guard the `/api/verify-email/welcome` route: only send when the session user's `emailVerified` is true
 
 **Apply When:** Configuring Better Auth email verification, welcome emails, or email-change confirmation flows.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Relative URLs Must Be Resolved at Render Time — Never Baked at Edit Time
+
+**Context:** The email logo (and any image added via the visual block builder as `/primary-logo.png`) didn't render in the admin preview or in recipients' emails. The builder emitted `src` verbatim, and the preview substituted `{{logoUrl}}` from `DEFAULT_CONFIG` rather than the DB-configured `logoPath`.
+
+**What We Learned:**
+1. Email clients cannot resolve relative URLs; the `srcdoc` preview iframe resolves them against the parent origin (unreliable). Every image/link destined for email must be absolute.
+2. Do NOT resolve against the origin inside `blocksToHtml()`/at save time — that bakes the editor's client origin (e.g. `localhost:3000`) into stored HTML. Resolve at **render time**: the client preview computes `appOrigin()` from its build-time `NEXT_PUBLIC_APP_URL`, the server send path from the server env. `resolveRelativeUrlsInHtml()` is shared by both, run AFTER `{{variable}}` substitution.
+3. `resolveUrlForRender()` must skip `{{token}}` values (resolving them mangles later substitution), and the HTML rewrite must skip scheme'd (`data:`/`mailto:`/`tel:`), protocol-relative (`//`), and `#` fragment URLs.
+4. Preview sample vars should come from the actual platform config (`previewVarsFor(config)`) so the preview captures the configured logo/name — a preview tied to `DEFAULT_CONFIG` misleads admins.
+5. Keep template tokens as the interchange format in stored blocks/HTML; resolve absolute only at the final render boundary (preview + send).
+
+**Apply When:** Embedding images/links in email templates, building preview surfaces for config-driven content, or writing URL utilities that must not corrupt template placeholders.
 
 **Supersedes:** None
 **Superseded by:** None

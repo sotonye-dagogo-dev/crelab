@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 24)
+> - last-updated-by: update-ai-system (Session 25)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -112,7 +112,7 @@ crelab/
 │   ├── currency.ts         # Money helpers: nairaToKobo, formatNaira, formatKobo
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
-│   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS (platform name + resolved logoUrl)
+│   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS/previewVarsFor (platform name + resolved logoUrl; relative URLs resolved via lib/url)
 │   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
 │   ├── media.ts            # Media file/URL validation helpers (type, size, link)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
@@ -120,7 +120,7 @@ crelab/
 │   ├── seo.ts              # buildSeoMetadata: config-driven Next.js Metadata (logo og:image, canonical, twitter, noindex)
 │   ├── slug.ts             # Provider slug build/parse helpers (`name--id-prefix`)
 │   ├── sanity.ts           # Sanity CMS client + helpers
-│   ├── url.ts              # appOrigin (NEXT_PUBLIC_APP_URL → VERCEL_URL → localhost, trailing-slash normalised) + resolveAbsoluteUrl
+│   ├── url.ts              # appOrigin (NEXT_PUBLIC_APP_URL → VERCEL_URL → localhost, trailing-slash normalised) + resolveAbsoluteUrl + resolveUrlForRender + resolveRelativeUrlsInHtml (email/blog relative URL resolution)
 │   ├── theme-context.tsx   # Theme provider (System/Light/Dark) + useTheme hook
 │   ├── toast.tsx           # Toast notification component
 │   └── use-undoable.ts      # useUndoable hook (undo toasts for reversible admin destructive actions)

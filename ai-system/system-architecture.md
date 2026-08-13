@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 24)
+> - last-updated-by: update-ai-system (Session 25)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -118,7 +118,8 @@ Data Stores
 1. /admin/email-templates: Visual/HTML/Preview tabs; editable template name (sidebar + header field, saved to emailConfig.templates.*.name)
    -> Visual uses EmailTemplateBlocksEditor (thin email wrapper over the shared ContentBlocksEditor: heading/paragraph/list/button/image/divider, reorder, delete, per-block variable insert)
    -> blocks serialized via lib/email-blocks blocksToHtml() -> inline-styled email HTML (h1 defaults to #E8FF47)
-   -> previews use substituteSampleVars() + SAMPLE_EMAIL_VARS ({{name}} = platform name, {{logoUrl}} = resolved {origin}/logo)
+   -> previews use substituteSampleVars() + previewVarsFor(config)/SAMPLE_EMAIL_VARS ({{name}} = platform name, {{logoUrl}} = configured logo resolved absolute) — relative img/link URLs resolved via lib/url resolveRelativeUrlsInHtml
+   -> real sends resolve relative URLs too (EmailService.send runs resolveRelativeUrlsInHtml on the filled HTML)
 2. New templates created via create-new-template modal (added to emailConfig.templates)
 3. Test-send + "Send to Subscribers" broadcast to MARKETING-consented users -> POST /api/admin/email/send -> EmailService
 ```
@@ -272,6 +273,14 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-08-13 — Email Logo/Preview Image Resolution via the URL Util
+- `lib/url.ts`: `resolveUrlForRender(value)` (relative → absolute, leaves `{{tokens}}` + absolute/protocol-relative/data/mailto/# untouched) + `resolveRelativeUrlsInHtml(html)` (rewrites relative `img src`/`a href` in a rendered HTML blob). Both run AFTER token substitution so the origin is resolved at render time — preview client-side, send server-side — never baked at edit time.
+- `lib/email-blocks.ts`: `substituteSampleVars()` resolves relative URLs after substitution; new `previewVarsFor(config)` builds preview vars from the configured `name`/`logoPath`.
+- `app/admin/email-templates`: Preview tab uses `previewVarsFor(loaded config)` — the preview now captures the admin-configured logo.
+- `services/EmailService.ts`: `send()` resolves relative URLs in the final HTML; `sendWelcome()` uses `resolveAbsoluteUrl("/explore")` for exploreUrl (was `${NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/explore`).
+- `components/blog/ContentBlocks.tsx`: image/button URLs via `resolveUrlForRender`.
+- Tests: `email-blocks.test.ts` (+5) + `config-helpers.test.ts` (+3). QA gate: typecheck clean, lint 0 errors, 201/201 tests, build green.
 
 ### 2026-08-13 — Admin UX (Collapsible Sidebar + Reusable Table/Pagination) + Email/Blog Content Editing
 - `components/ui/ClDataTable.tsx` + `ClPagination.tsx` (new): config-driven reusable table (`ClColumn<T>[]` — custom render, `hideOnMobile`, checkbox columns; client-side pagination with `useEffect` page-clamp when the dataset shrinks; horizontal scroll; zebra rows; empty state) + pagination control (first/prev/next/last, ellipsis, "Showing x–y of z"). Adopted by `users`, `media` (batch select), `providers`, `team`, `categories`, `config` (change log) admin pages.

@@ -1,5 +1,5 @@
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { resolveAbsoluteUrl } from "@/lib/url";
+import { resolveAbsoluteUrl, resolveRelativeUrlsInHtml } from "@/lib/url";
 import type { IEmailTemplate, IPlatformConfig } from "@/types";
 
 type TemplateVars = Record<string, string>;
@@ -48,7 +48,9 @@ export class EmailService {
       logoUrl: resolveAbsoluteUrl(cfg.logoPath),
     };
     const subject = fillTemplate(template.subject, baseVars);
-    const html = fillTemplate(template.bodyHtml, baseVars);
+    // Resolve any remaining relative image/link URLs (e.g. a `/primary-logo.png`
+    // added via the visual builder) to absolute so they render in email clients.
+    const html = resolveRelativeUrlsInHtml(fillTemplate(template.bodyHtml, baseVars));
 
     if (apiKey) {
       try {
@@ -89,7 +91,7 @@ export class EmailService {
   ): Promise<{ sent: boolean; preview?: string }> {
     return EmailService.send(to, "welcome", {
       userName,
-      exploreUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/explore`,
+      exploreUrl: resolveAbsoluteUrl("/explore"),
     }, config);
   }
 

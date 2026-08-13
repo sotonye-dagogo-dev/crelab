@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { setNestedValue } from "@/services/PlatformConfigService";
-import { appOrigin, resolveAbsoluteUrl } from "@/lib/url";
+import { appOrigin, resolveAbsoluteUrl, resolveUrlForRender, resolveRelativeUrlsInHtml } from "@/lib/url";
 import { blocksToHtml, substituteSampleVars } from "@/lib/email-blocks";
 import { buildSeoMetadata } from "@/lib/seo";
 
@@ -64,6 +64,36 @@ describe("lib/url", () => {
 
   it("resolveAbsoluteUrl leaves already-absolute paths rooted at the origin", () => {
     expect(resolveAbsoluteUrl("http://localhost:3000/x")).toBe("http://localhost:3000/x");
+  });
+
+  it("resolveUrlForRender resolves relative paths but leaves template tokens intact", () => {
+    expect(resolveUrlForRender("/primary-logo.png")).toMatch(/^http:\/\/localhost:3000\/primary-logo\.png$/);
+    expect(resolveUrlForRender("{{logoUrl}}")).toBe("{{logoUrl}}");
+    expect(resolveUrlForRender("https://cdn.example/x.png")).toBe("https://cdn.example/x.png");
+    expect(resolveUrlForRender("//cdn.example/x.png")).toBe("//cdn.example/x.png");
+  });
+
+  it("resolveRelativeUrlsInHtml resolves relative img/a URLs and ignores absolute/schemed/fragment ones", () => {
+    const html = [
+      '<img src="/primary-logo.png" alt="logo" />',
+      '<img src="https://cdn.example/x.png" alt="x" />',
+      '<a href="/explore">Go</a>',
+      '<a href="mailto:a@b.com">Mail</a>',
+      '<a href="#top">Top</a>',
+      '<img src="data:image/png;base64,AAAA" alt="" />',
+    ].join("");
+    const out = resolveRelativeUrlsInHtml(html);
+    expect(out).toContain('src="http://localhost:3000/primary-logo.png"');
+    expect(out).toContain('src="https://cdn.example/x.png"');
+    expect(out).toContain('href="http://localhost:3000/explore"');
+    expect(out).toContain('href="mailto:a@b.com"');
+    expect(out).toContain('href="#top"');
+    expect(out).toContain('src="data:image/png;base64,AAAA"');
+  });
+
+  it("resolveRelativeUrlsInHtml ignores unresolved template tokens", () => {
+    const out = resolveRelativeUrlsInHtml('<img src="{{logoUrl}}" alt="logo" />');
+    expect(out).toContain('src="{{logoUrl}}"');
   });
 });
 

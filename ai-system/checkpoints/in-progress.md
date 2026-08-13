@@ -1,20 +1,57 @@
 # In Progress
 
-**Session 24 — execute-feature: collapsible admin sidebar + responsive audit + reusable table/pagination + email template fixes + blog sections builder**
+**Session 25 — execute-feature: email logo/preview image resolution via the URL util**
+
+## Directive
+
+For the image in email (the logo in particular), ensure the preview also captures
+it and uses the `resolveAbsoluteUrl` url util — the suspected reason the image is
+not rendering in previews. Correct the same raw-relative-URL pattern anywhere else
+it is used or observed.
+
+## Root cause
+
+- `blocksToHtml`/`ContentBlocks` emit image `src` (and button `href`) verbatim —
+  a relative `/primary-logo.png` is not resolvable in email clients and unreliable
+  in the srcdoc preview iframe.
+- The email preview substitutes `{{logoUrl}}` from `SAMPLE_EMAIL_VARS`, which uses
+  `DEFAULT_CONFIG.logoPath` rather than the admin-configured (DB) `logoPath`, so the
+  preview does not "capture" the actual configured logo.
+- `EmailService.send` resolves the `{{logoUrl}}` token but leaves any other relative
+  image/link URLs in raw or visual-builder HTML untouched.
+
+## Plan
+
+1. `lib/url.ts` — add `resolveUrlForRender(value)` (resolves relative URLs, leaves
+   `{{template tokens}}` + absolute/protocol-relative/data/mailto/# untouched) and
+   `resolveRelativeUrlsInHtml(html)` (resolves relative `img src` / `a href` in a
+   rendered HTML blob — used at preview + send time so no origin is baked at edit time).
+2. `lib/email-blocks.ts` — `substituteSampleVars` resolves relative URLs after token
+   substitution; new `previewVarsFor(config)` builds sample vars from the actual
+   platform config (name + logoPath via `resolveAbsoluteUrl`).
+3. `app/admin/email-templates/page.tsx` — preview uses `previewVarsFor(loaded config)`
+   so it captures the configured logo/name.
+4. `services/EmailService.ts` — run `resolveRelativeUrlsInHtml` on the final filled
+   HTML before handing to Resend / returning preview.
+5. `components/blog/ContentBlocks.tsx` — apply `resolveUrlForRender` to image/button
+   URLs (same pattern elsewhere).
+6. Tests — cover new helpers + preview config capture.
+7. QA gate — typecheck, lint, tests, `next build`.
+8. Run `update-ai-system.md` to reconcile docs.
 
 ## DONE
 
-1. ✅ Reusable universal table + pagination — `components/ui/ClDataTable.tsx` (config-driven `ClColumn<T>[]` with `hideOnMobile`, checkbox columns, client-side pagination with page-clamp on data shrink, horizontal scroll, zebra rows, empty state) + `components/ui/ClPagination.tsx` (first/prev/next/last + ellipsis page numbers + "Showing x–y of z"). Both exported from `components/ui/index.ts`.
-2. ✅ Adopted `ClDataTable` + pagination + responsive headers in admin pages: `users`, `media` (checkbox batch-select), `providers`, `team`, `categories`, `config` (change log via `changeLogColumns`).
-3. ✅ Collapsible/expandable admin sidebar — `AdminSidebar.tsx` rewritten (props `collapsed`, `mobileOpen`, `onToggle`, `onMobileClose`; 72px icon-only collapsed rail, mobile drawer + backdrop). New `components/admin/AdminShell.tsx` manages collapse state (localStorage `admin-sidebar-collapsed`), mobile top bar, and `lg:ml-[240px]`/`lg:ml-[72px]` main offset. `app/admin/layout.tsx` renders `<AdminShell>`.
-4. ✅ Responsive audit — admin layout/sidebar/headers + all `ClDataTable` pages now wrap on small screens; card-based admin pages (disputes, bug-reports) and public/auth pages verified responsive already.
-5. ✅ Email h1 colour — all 5 default email template h1s in `config/platform.config.ts` + `lib/email-blocks.ts` heading block now default `#E8FF47`.
-6. ✅ `{{name}}` fix — root cause was preview-only: `SAMPLE_EMAIL_VARS.name` was `"Ada Okafor"` (identical to `userName`). `EmailService.send` already forces `name: cfg.name`. `SAMPLE_EMAIL_VARS.name` now = `DEFAULT_CONFIG.name`; sample `logoUrl` resolved via `resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath)`.
-7. ✅ `logoUrl` investigation — `appOrigin()` hardened to strip trailing slashes / `//` in `lib/url.ts`; remaining production cause is likely `NEXT_PUBLIC_APP_URL` set to `http://localhost:3000` in the deployed Vercel env (image URL must be publicly reachable) — server-side reads it at runtime.
-8. ✅ Email template name editable — `IEmailTemplate.name?` + defaults for all 5 templates; `/admin/email-templates` shows the template name in the sidebar and an editable name field; responsive flex-wrap header/editor/layout.
-9. ✅ Blog builder — generic `components/admin/ContentBlocksEditor.tsx` (heading/paragraph/list/button/image/divider, add/remove/reorder, optional preview vars) reused by `EmailTemplateBlocksEditor.tsx` (thin email wrapper) and the new "Content Sections" builder on `/admin/blog-templates` (writes `IBlogConfig.sections`). `components/blog/ContentBlocks.tsx` renders sections on the blog page (`BlogPageClient`).
-10. ✅ Tests — `__tests__/lib/email-blocks.test.ts` (6 tests: sample `{{name}}` = platform name ≠ username, preview substitution, sample logoUrl absolute, h1 colour `#E8FF47`, default templates use `#E8FF47`). QA gate: typecheck ✅, lint 0 errors (pre-existing warnings only), 193/193 tests ✅, `next build` ✅.
+1. ✅ `lib/url.ts` — `resolveUrlForRender` + `resolveRelativeUrlsInHtml` helpers.
+2. ✅ `lib/email-blocks.ts` — `substituteSampleVars` resolves relative URLs; `previewVarsFor(config)` added.
+3. ✅ `app/admin/email-templates/page.tsx` — preview uses `previewVarsFor(loaded config)`.
+4. ✅ `services/EmailService.ts` — `send()` resolves relative URLs; `sendWelcome` exploreUrl via `resolveAbsoluteUrl`.
+5. ✅ `components/blog/ContentBlocks.tsx` — image/button URLs via `resolveUrlForRender`.
+6. ✅ Tests — `email-blocks.test.ts` (+5) + `config-helpers.test.ts` (+3).
+7. ✅ QA gate — typecheck clean, lint 0 errors (pre-existing warnings only), 201/201 tests, `next build` green.
+8. ✅ `update-ai-system.md` — repo-map, dependency-graph, system-architecture, project-plan, task-queue, dev-history, lessons-learned, project-decisions, test-results, session-log reconciled.
 
 ## REMAINING
 
-- None — closed out. Deploy so the sidebar/table/email/blog changes go live.
+- None — closed out. Deploy so the email/preview image fixes go live. Remaining production
+  cause for logo rendering (if still broken in a real send): `NEXT_PUBLIC_APP_URL` unset or
+  `http://localhost:3000` in the deployed Vercel runtime env — the resolved URL must be public.

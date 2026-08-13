@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 24)
+> - last-updated-by: update-ai-system (Session 25)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -60,7 +60,7 @@ DashboardService
 EmailService (+ isResendConfigured / getResendConfig + sendVerifyEmail / sendEmailChanged / sendTemplate)
   → config/platform.config.ts (DEFAULT_CONFIG email templates + fromName/fromEmail)
   → types/index.ts (IEmailTemplate, IPlatformConfig, EmailTemplateBlock)
-  → lib/url.ts (resolveAbsoluteUrl for logoUrl)
+  → lib/url.ts (resolveAbsoluteUrl for logoUrl + resolveRelativeUrlsInHtml on the final filled HTML)
   → lib/email-blocks.ts (blocksToHtml for Visual-editor templates; substituteSampleVars for previews)
   → global fetch → https://api.resend.com/emails (raw HTTP, no SDK)
   → env RESEND_API_KEY (read at call time; preview fallback when absent)
@@ -95,9 +95,9 @@ Lib Module
   → crypto (HMAC-SHA512 webhook verification)
   → blog-fallback.ts is a standalone leaf module — no dependencies beyond types/blog.ts
   → errors.ts is a leaf module — no dependencies beyond node's Error (imported by WalletService, MilestoneService, and integrations)
-  → lib/url.ts is a leaf module — appOrigin() (NEXT_PUBLIC_APP_URL → VERCEL_URL → http://localhost:3000) + resolveAbsoluteUrl() (prefixes relative paths, leaves http/https/`//` unchanged); consumed by EmailService + app/layout.tsx
+  → lib/url.ts is a leaf module — appOrigin() (NEXT_PUBLIC_APP_URL → VERCEL_URL → http://localhost:3000) + resolveAbsoluteUrl() (prefixes relative paths, leaves http/https/`//` unchanged) + resolveUrlForRender() (resolves relative, leaves `{{tokens}}` intact) + resolveRelativeUrlsInHtml() (rewrites relative `img src`/`a href`); consumed by EmailService + app/layout.tsx + lib/email-blocks.ts + components/blog/ContentBlocks.tsx
   → lib/seo.ts → types/index.ts (IPlatformConfig) + lib/url.ts (absolute logo/canonical) — buildSeoMetadata() consumed by app/layout.tsx + per-page generateMetadata
-  → lib/email-blocks.ts is a leaf module — blocksToHtml() serializes EmailTemplateBlock[] to inline-styled HTML + substituteSampleVars()/SAMPLE_EMAIL_VARS for previews; consumed by EmailService + app/admin/email-templates
+  → lib/email-blocks.ts is a leaf module — blocksToHtml() serializes EmailTemplateBlock[] to inline-styled HTML + substituteSampleVars()/SAMPLE_EMAIL_VARS/previewVarsFor for previews (relative URLs resolved via lib/url resolveRelativeUrlsInHtml); consumed by EmailService + app/admin/email-templates
 
 Email verify flow (verify-email)
   → app/api/verify-email/send/route.ts (POST → auth.api.sendVerificationEmail with callbackURL "/verify-email?done=1")
@@ -135,7 +135,7 @@ ContentBlocksEditor (components/admin) — shared visual block builder
   → consumed by EmailTemplateBlocksEditor.tsx (thin email wrapper) + app/admin/blog-templates/page.tsx (Content Sections → IBlogConfig.sections)
 
 Blog content sections
-  → components/blog/ContentBlocks.tsx renders EmailTemplateBlock[] sections (heading/paragraph/list/button/image/divider)
+  → components/blog/ContentBlocks.tsx renders EmailTemplateBlock[] sections (heading/paragraph/list/button/image/divider); image `src`/button `href` resolved absolute via lib/url resolveUrlForRender
   → consumed by app/(public)/blog/BlogPageClient.tsx (renders cfg.sections) — config-driven like the rest of blogConfig
 
 Drizzle

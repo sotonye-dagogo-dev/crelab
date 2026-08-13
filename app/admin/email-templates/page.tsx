@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClCard } from "@/components/ui";
 import { EmailTemplateBlocksEditor } from "@/components/admin/EmailTemplateBlocksEditor";
 import { useToast } from "@/lib/toast";
-import { blocksToHtml, substituteSampleVars } from "@/lib/email-blocks";
+import { blocksToHtml, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
 import { Plus } from "lucide-react";
 import type { IEmailConfig, EmailTemplateBlock } from "@/types";
 
@@ -187,7 +187,10 @@ export default function AdminEmailTemplatesPage() {
     handleSelectTemplate(key);
   };
 
-  const previewSrcDoc = `<!doctype html><html><body style="margin:0;background:#0A0A0A;padding:24px;">${substituteSampleVars(htmlBody)}</body></html>`;
+  // Preview with sample vars built from the *configured* platform name/logo so the
+  // preview captures the actual logo (resolved absolute via the URL util) rather
+  // than the code defaults.
+  const previewSrcDoc = `<!doctype html><html><body style="margin:0;background:#0A0A0A;padding:24px;">${substituteSampleVars(htmlBody, previewVarsFor(data as { name?: string; logoPath?: string } | undefined))}</body></html>`;
 
   if (isLoading) {
     return (

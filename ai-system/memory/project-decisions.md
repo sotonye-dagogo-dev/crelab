@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 22)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: update-ai-system (Session 25)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -269,3 +269,23 @@ Remote API scanning for orphans is slow (pagination, rate limits, eventual consi
 
 **Implications:**
 Cleanup jobs and admin/user media managers depend on the `media_assets` registry staying consistent (uploads record synchronously; compensating delete on record insert failure). Env vars for signed deletes are server-only (`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET`) with `NEXT_PUBLIC_CLOUDINARY_*` fallbacks.
+
+---
+
+## Relative URLs Resolved at Render Time, Not Baked at Edit Time
+
+**Decision:** Template-token `{{variable}}` values and raw relative paths (`/primary-logo.png`) are the interchange format stored in config/blocks/HTML. Relative `src`/`href` values are resolved to absolute — via the shared `lib/url` helpers (`resolveUrlForRender` for single values, `resolveRelativeUrlsInHtml` for rendered HTML blobs) — only at the final render boundary: the admin preview (client-side, `previewVarsFor(config)` + `substituteSampleVars`) and the real send (`EmailService.send`). The preview captures the DB-configured `logoPath`/name, not `DEFAULT_CONFIG`.
+**Date:** 2026-08-13
+**Made by:** Implementer
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Email clients can't resolve relative URLs, so logo/images added as `/primary-logo.png` in the visual builder never rendered in previews or sent mail. Resolving at save time bakes the editor's client origin (e.g. `localhost:3000`) into stored HTML; resolving at render time lets the preview use the client's build-time `NEXT_PUBLIC_APP_URL` and the server the runtime env, each correct for its context.
+
+**Alternatives Considered:**
+- Resolve inside `blocksToHtml()`/on save — rejected: bakes client origin into stored config; wrong when editing from a local dev box against a production DB
+- Generic regex over all `src`/`href` — rejected: mangles `data:`/`mailto:`/`tel:`/`#`/`{{token}}` values; helpers skip scheme'd, protocol-relative, fragment, and template-token values
+
+**Implications:**
+The resolved absolute origin for email assets is `appOrigin()` (NEXT_PUBLIC_APP_URL → VERCEL_URL → localhost), so `NEXT_PUBLIC_APP_URL` must be set to a publicly reachable origin in the deployed runtime or the logo will still fail to load there. New render surfaces for email/blog content should route image/link URLs through the same `lib/url` helpers.

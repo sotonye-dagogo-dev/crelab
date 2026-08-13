@@ -1,7 +1,7 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 24)
+> - last-updated-by: update-ai-system (Session 25)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before each session
 
@@ -52,6 +52,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [S] | Email templates: h1 default `#E8FF47` + editable template name | [x] |
 | [S] | `{{name}}` resolves to platform name (preview sample var fix) + `logoUrl` origin hardening (`appOrigin` trailing-slash normalisation) | [x] |
 | [M] | Blog sections builder via shared `ContentBlocksEditor` + `ContentBlocks` renderer (blog page sections) | [x] |
+| [S] | Email logo/preview image resolution — preview uses `previewVarsFor(config)` (configured logo/name) and `substituteSampleVars`/`EmailService.send`/blog `ContentBlocks` resolve relative `img src`/`a href` via `lib/url` (`resolveUrlForRender` + `resolveRelativeUrlsInHtml`) so the logo renders in previews and real emails | [x] |
 
 ---
 

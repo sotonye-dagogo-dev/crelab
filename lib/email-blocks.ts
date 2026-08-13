@@ -1,6 +1,6 @@
 import type { EmailTemplateBlock } from "@/types";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { resolveAbsoluteUrl } from "@/lib/url";
+import { resolveAbsoluteUrl, resolveRelativeUrlsInHtml } from "@/lib/url";
 
 /**
  * Serializes structured template blocks (the visual, no-HTML editor format)
@@ -79,6 +79,23 @@ export const SAMPLE_EMAIL_VARS: Record<string, string> = {
   logoUrl: resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath),
 };
 
+/**
+ * Builds sample preview vars from an actual platform config so the admin preview
+ * captures the *configured* logo and platform name (not the code defaults). Relative
+ * `logoPath` values are resolved to absolute via the shared URL util so the image
+ * renders inside the preview iframe / email clients.
+ */
+export function previewVarsFor(
+  config: { name?: string; logoPath?: string } | null | undefined,
+): Record<string, string> {
+  if (!config) return SAMPLE_EMAIL_VARS;
+  return {
+    ...SAMPLE_EMAIL_VARS,
+    name: config.name || SAMPLE_EMAIL_VARS.name,
+    logoUrl: config.logoPath ? resolveAbsoluteUrl(config.logoPath) : SAMPLE_EMAIL_VARS.logoUrl,
+  };
+}
+
 function appOriginForPreview(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -88,11 +105,15 @@ function appOriginForPreview(): string {
 
 /**
  * Replaces `{{variable}}` tokens with sample values so admins can preview a
- * template without sending a real email. Unknown tokens are left intact.
+ * template without sending a real email. Unknown tokens are left intact. Any
+ * relative image/link URLs remaining after substitution are resolved to absolute
+ * via the shared URL util (a `/primary-logo.png` src does not render in the
+ * preview iframe or email clients otherwise).
  */
 export function substituteSampleVars(
   html: string,
   vars: Record<string, string> = SAMPLE_EMAIL_VARS,
 ): string {
-  return html.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+  const substituted = html.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+  return resolveRelativeUrlsInHtml(substituted);
 }
