@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 23)
+> - last-updated-by: update-ai-system (Session 24)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -112,7 +112,7 @@ Newsletter
 
 Admin email send
   → app/api/admin/email/send/route.ts (test-send + broadcast to MARKETING-consented users) → EmailService
-  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs via EmailTemplateBlocksEditor)
+  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs + editable template name via EmailTemplateBlocksEditor → ContentBlocksEditor)
 
 Admin user management
   → app/api/admin/users/route.ts (GET search/list) + app/api/admin/users/[id]/route.ts (PATCH role/emailVerified, DELETE with self-guard)
@@ -121,10 +121,22 @@ Admin user management
 UI Wrappers (Cl*)
   → ClBackButton.tsx — hydration-safe history.back with fallback href (click-interception, no typeof window in render)
   → consumed by app/(auth)/profile/page.tsx + profile/media + profile/setup + bookings list/detail + wallet
+  → ClDataTable.tsx + ClPagination.tsx — config-driven reusable table (ClColumn<T>[] with hideOnMobile/checkbox columns, client-side pagination + useEffect page-clamp on data shrink, horizontal scroll, empty state) + pagination control (first/prev/next/last, ellipsis, "Showing x–y of z")
+  → consumed by app/admin/{users,media,providers,team,categories,config}/page.tsx
 
-EmailTemplateBlocksEditor (components/admin)
+Admin sidebar (components/admin)
+  → AdminSidebar.tsx — nav + sign-out; props collapsed (72px icon-only rail) / mobileOpen / onToggle / onMobileClose
+  → AdminShell.tsx — owns collapse state (localStorage `admin-sidebar-collapsed`), mobile top bar + backdrop, `lg:ml-[240px]`/`lg:ml-[72px]` main offset
+  → app/admin/layout.tsx renders <AdminShell>
+
+ContentBlocksEditor (components/admin) — shared visual block builder
   → types/index.ts (EmailTemplateBlock)
-  → block builder: heading/paragraph/list/button/image/divider, move/reorder/delete, per-block variable insert
+  → block types: heading/paragraph/list/button/image/divider; add/remove/reorder, per-block variable insert, optional preview vars
+  → consumed by EmailTemplateBlocksEditor.tsx (thin email wrapper) + app/admin/blog-templates/page.tsx (Content Sections → IBlogConfig.sections)
+
+Blog content sections
+  → components/blog/ContentBlocks.tsx renders EmailTemplateBlock[] sections (heading/paragraph/list/button/image/divider)
+  → consumed by app/(public)/blog/BlogPageClient.tsx (renders cfg.sections) — config-driven like the rest of blogConfig
 
 Drizzle
    → drizzle/schema.ts (441 lines, single source of truth — exports all tables, enums, relations)

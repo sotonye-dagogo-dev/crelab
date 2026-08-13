@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton, ClCard } from "@/components/ui";
+import { ClButton, ClCard, ClDataTable, type ClColumn } from "@/components/ui";
 import { ConfigField } from "@/components/admin/ConfigField";
 import { useToast } from "@/lib/toast";
 
@@ -44,6 +44,40 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
     return undefined;
   }, obj as unknown);
 }
+
+const changeLogColumns: ClColumn<ChangeLogEntry>[] = [
+  {
+    key: "key",
+    header: "Key",
+    cell: (entry) => <span className="text-[12px] font-[family-name:var(--font-mono)]">{entry.entity}</span>,
+  },
+  {
+    key: "old",
+    header: "Old Value",
+    cell: (entry) => <span className="text-[12px] text-[var(--color-text-secondary)]">{String(entry.oldValue ?? "—")}</span>,
+  },
+  {
+    key: "new",
+    header: "New Value",
+    cell: (entry) => <span className="text-[12px]">{String(entry.newValue ?? "—")}</span>,
+  },
+  {
+    key: "timestamp",
+    header: "Timestamp",
+    hideOnMobile: true,
+    cell: (entry) => (
+      <span className="text-[11px] font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)]">
+        {new Date(entry.createdAt).toLocaleString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </span>
+    ),
+  },
+];
 
 function setNestedValue(
   obj: Record<string, unknown>,
@@ -165,7 +199,7 @@ export default function ConfigPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] tracking-[-0.01em]">
             Platform Configuration
@@ -221,57 +255,17 @@ export default function ConfigPage() {
 
       <div className="mt-8">
         <div className="text-[14px] font-semibold mb-4">Recent Changes</div>
-        <div className="bg-[var(--color-surface)] rounded-[12px] overflow-hidden">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-[var(--color-surface-raised)]">
-                <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                  Key
-                </th>
-                <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                  Old Value
-                </th>
-                <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                  New Value
-                </th>
-                <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                  Timestamp
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {changeLog.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
-                    No changes recorded yet.
-                  </td>
-                </tr>
-              )}
-              {changeLog.map((entry) => (
-                <tr key={entry.id} className="border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)]">
-                  <td className="px-[14px] py-[10px] text-[12px] font-[family-name:var(--font-mono)]">
-                    {entry.entity}
-                  </td>
-                  <td className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-secondary)]">
-                    {String(entry.oldValue ?? "—")}
-                  </td>
-                  <td className="px-[14px] py-[10px] text-[12px]">
-                    {String(entry.newValue ?? "—")}
-                  </td>
-                  <td className="px-[14px] py-[10px] text-[11px] font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)]">
-                    {new Date(entry.createdAt).toLocaleString("en-GB", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ClDataTable
+          columns={changeLogColumns}
+          rows={changeLog}
+          rowKey={(e) => e.id}
+          pageSize={8}
+          emptyState={
+            <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
+              No changes recorded yet.
+            </div>
+          }
+        />
       </div>
     </div>
   );

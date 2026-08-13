@@ -174,11 +174,12 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     fromEmail: "noreply@crellab.com",
     templates: {
       welcome: {
+        name: "Welcome",
         subject: "Welcome to {{name}}!",
         bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
 <div style="text-align:center;margin-bottom:32px;">
 <img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
-<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#F2F2F2;margin:16px 0 0;">Welcome to {{name}}</h1>
+<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Welcome to {{name}}</h1>
 </div>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Thanks for joining {{name}} — the platform where African creatives connect with opportunity. We're excited to have you on board.</p>
@@ -196,11 +197,12 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
         enabled: true,
       },
       bookingConfirmation: {
+        name: "Booking Confirmation",
         subject: "Booking Confirmed — {{providerName}}",
         bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
 <div style="text-align:center;margin-bottom:32px;">
 <img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
-<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#F2F2F2;margin:16px 0 0;">Booking Confirmed</h1>
+<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Booking Confirmed</h1>
 </div>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Your booking with <strong style="color:#F2F2F2;">{{providerName}}</strong> has been confirmed.</p>
@@ -217,11 +219,12 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
         enabled: true,
       },
       paymentReceived: {
+        name: "Payment Received",
         subject: "Payment Received — {{amount}}",
         bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
 <div style="text-align:center;margin-bottom:32px;">
 <img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
-<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#F2F2F2;margin:16px 0 0;">Payment Received</h1>
+<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Payment Received</h1>
 </div>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">We've received your payment of <strong style="color:#F2F2F2;">{{amount}}</strong> for the booking with <strong style="color:#F2F2F2;">{{providerName}}</strong>.</p>
@@ -234,11 +237,12 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
         enabled: true,
       },
       verifyEmail: {
+        name: "Verify Email",
         subject: "Verify your email — {{name}}",
         bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
 <div style="text-align:center;margin-bottom:32px;">
 <img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
-<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#F2F2F2;margin:16px 0 0;">Verify your email</h1>
+<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Verify your email</h1>
 </div>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Thanks for joining {{name}}. Please confirm your email address so we know it's really you — it only takes a second.</p>
@@ -250,11 +254,12 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
         enabled: true,
       },
       emailChanged: {
+        name: "Email Changed",
         subject: "Your email address was updated — {{name}}",
         bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
 <div style="text-align:center;margin-bottom:32px;">
 <img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
-<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#F2F2F2;margin:16px 0 0;">Email updated</h1>
+<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Email updated</h1>
 </div>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">This is a quick confirmation that your {{name}} account email address was successfully changed.</p>

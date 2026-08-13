@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 23)
+> - last-updated-by: update-ai-system (Session 24)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -115,12 +115,19 @@ Data Stores
 
 ### Email Template Management Flow
 ```
-1. /admin/email-templates: Visual/HTML/Preview tabs
-   -> Visual uses EmailTemplateBlocksEditor (heading/paragraph/list/button/image/divider, reorder, delete, per-block variable insert)
-   -> blocks serialized via lib/email-blocks blocksToHtml() -> inline-styled email HTML
-   -> previews use substituteSampleVars() + SAMPLE_EMAIL_VARS
+1. /admin/email-templates: Visual/HTML/Preview tabs; editable template name (sidebar + header field, saved to emailConfig.templates.*.name)
+   -> Visual uses EmailTemplateBlocksEditor (thin email wrapper over the shared ContentBlocksEditor: heading/paragraph/list/button/image/divider, reorder, delete, per-block variable insert)
+   -> blocks serialized via lib/email-blocks blocksToHtml() -> inline-styled email HTML (h1 defaults to #E8FF47)
+   -> previews use substituteSampleVars() + SAMPLE_EMAIL_VARS ({{name}} = platform name, {{logoUrl}} = resolved {origin}/logo)
 2. New templates created via create-new-template modal (added to emailConfig.templates)
 3. Test-send + "Send to Subscribers" broadcast to MARKETING-consented users -> POST /api/admin/email/send -> EmailService
+```
+
+### Blog Content Sections Flow
+```
+1. /admin/blog-templates: "Content Sections" card uses the shared ContentBlocksEditor (same block builder as email templates)
+2. Sections saved to blogConfig.sections (EmailTemplateBlock[]); optional preview vars for placeholders
+3. app/(public)/blog renders cfg.sections via components/blog/ContentBlocks.tsx (BlogPageClient) alongside the config-driven hero + newsletter
 ```
 
 ### Admin User Management Flow
@@ -265,6 +272,16 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-08-13 — Admin UX (Collapsible Sidebar + Reusable Table/Pagination) + Email/Blog Content Editing
+- `components/ui/ClDataTable.tsx` + `ClPagination.tsx` (new): config-driven reusable table (`ClColumn<T>[]` — custom render, `hideOnMobile`, checkbox columns; client-side pagination with `useEffect` page-clamp when the dataset shrinks; horizontal scroll; zebra rows; empty state) + pagination control (first/prev/next/last, ellipsis, "Showing x–y of z"). Adopted by `users`, `media` (batch select), `providers`, `team`, `categories`, `config` (change log) admin pages.
+- `components/admin/AdminShell.tsx` (new) + `AdminSidebar.tsx` rewrite: collapsible sidebar — `collapsed` prop gives a 72px icon-only rail, `mobileOpen` gives a drawer with backdrop; collapse persisted to localStorage `admin-sidebar-collapsed`; `app/admin/layout.tsx` renders the shell with `lg:ml-[240px]`/`lg:ml-[72px]` main offset. Responsive page headers (flex-wrap) across admin pages.
+- Email h1 colour: all 5 default template h1s in `config/platform.config.ts` + the `heading` block serializer default to `#E8FF47`.
+- `{{name}}` fix: preview-only root cause — `SAMPLE_EMAIL_VARS.name` was hardcoded `"Ada Okafor"` (identical to `userName`); `EmailService.send` already forces `name: cfg.name`. `SAMPLE_EMAIL_VARS.name` = `DEFAULT_CONFIG.name`, sample `logoUrl` = `resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath)`.
+- `logoUrl` hardening: `appOrigin()` in `lib/url.ts` now normalises trailing slashes / `//`. Production cause is most likely `NEXT_PUBLIC_APP_URL` set to `http://localhost:3000` (or unset) in the deployed Vercel runtime env — server code reads it at runtime.
+- `types/index.ts`: `IEmailTemplate.name?` + `IBlogConfig.sections?` (`EmailTemplateBlock[]`). `/admin/email-templates` now shows an editable template name in the sidebar + header.
+- Blog sections builder: generic `components/admin/ContentBlocksEditor.tsx` (shared add/remove/reorder block UI) reused by `EmailTemplateBlocksEditor.tsx` (thin email wrapper) and a new "Content Sections" card on `/admin/blog-templates` (writes `IBlogConfig.sections`); `components/blog/ContentBlocks.tsx` renders sections on the blog page via `BlogPageClient`.
+- Tests: `__tests__/lib/email-blocks.test.ts` (6 tests). QA gate: typecheck clean, lint 0 errors (pre-existing warnings only), 193/193 tests, production build (72 static pages).
 
 ### 2026-08-13 — Config Persistence, Email Verification, SEO Wiring, Admin User/Blog Management
 - `services/PlatformConfigService.ts`: exported `setNestedValue(target, path, value)` — deep-sets dotted config keys (e.g. `emailConfig.templates`, `features.guestBrowse`) when merging DB rows in `get()`; null values skipped so defaults never clobbered (fixes admin edits not round-tripping)

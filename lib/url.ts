@@ -1,8 +1,19 @@
 export function appOrigin(): string {
   const explicit = process.env.NEXT_PUBLIC_APP_URL;
-  if (explicit) return explicit;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (explicit) return normalizeOrigin(explicit);
+  if (process.env.VERCEL_URL) return normalizeOrigin(`https://${process.env.VERCEL_URL}`);
   return "http://localhost:3000";
+}
+
+/**
+ * Strips trailing slashes (and any path/query/hash noise) so concatenations
+ * like `${origin}/primary-logo.png` never produce `//` double-slashes — those
+ * break image/OG resolution in several email clients and social scrapers.
+ */
+function normalizeOrigin(input: string): string {
+  const trimmed = input.trim();
+  const clean = trimmed.replace(/[/?#]+$/, "");
+  return clean.replace(/\/\/$/, "/");
 }
 
 /**
@@ -14,11 +25,12 @@ export function appOrigin(): string {
  */
 export function resolveAbsoluteUrl(pathOrUrl: string): string {
   if (!pathOrUrl) return pathOrUrl;
-  if (/^https?:\/\//i.test(pathOrUrl) || pathOrUrl.startsWith("//")) {
-    return pathOrUrl;
+  const value = pathOrUrl.trim();
+  if (/^https?:\/\//i.test(value) || value.startsWith("//")) {
+    return value;
   }
-  if (pathOrUrl.startsWith("/")) {
-    return `${appOrigin()}${pathOrUrl}`;
+  if (value.startsWith("/")) {
+    return `${appOrigin()}${value}`;
   }
-  return `${appOrigin()}/${pathOrUrl}`;
+  return `${appOrigin()}/${value}`;
 }

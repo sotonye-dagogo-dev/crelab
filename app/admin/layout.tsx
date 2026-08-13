@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AdminLayout({
   children,
@@ -15,12 +15,5 @@ export default async function AdminLayout({
     redirect("/");
   }
 
-  return (
-    <div className="flex min-h-screen bg-[var(--color-bg)]">
-      <AdminSidebar />
-      <main className="flex-1 ml-[240px] p-8 min-h-screen">
-        {children}
-      </main>
-    </div>
-  );
+  return <AdminShell>{children}</AdminShell>;
 }

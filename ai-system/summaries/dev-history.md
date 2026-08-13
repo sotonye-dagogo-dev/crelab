@@ -1,8 +1,29 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 23)
+> - last-updated-by: update-ai-system (Session 24)
 > - last-verified-against-code: 2026-08-13
+
+## Sprint 2026-08-13 — Collapsible Admin Sidebar, Reusable Table/Pagination, Email Template Fixes, Blog Sections Builder
+
+### What
+Made the admin sidebar collapsible/expandable (icon-only rail), built universal reusable `ClDataTable` + `ClPagination` components adopted across six admin pages, fixed email templates (h1 default `#E8FF47`, `{{name}}` resolving to the username in previews, editable template name), gave the blog builder addable content sections like the email visual builder, and investigated unresolvable `logoUrl` images in emails.
+
+### Why
+The admin sidebar was fixed-width and unusable on mobile; each admin page rolled its own bespoke table/pagination markup; email template previews substituted the sample recipient username into `{{name}}` (the delivery path already used the platform name); the blog admin had no way to add structural content; and email logo images didn't render for recipients.
+
+### Key Changes
+- **`components/ui/ClDataTable.tsx`** (new): config-driven `ClColumn<T>[]` (custom render, `hideOnMobile`, checkbox columns), client-side pagination with `useEffect` page-clamp when the dataset shrinks, horizontal scroll, zebra rows, empty state; **`components/ui/ClPagination.tsx`** (new): first/prev/next/last + ellipsis + "Showing x–y of z". Exported via `components/ui/index.ts` and adopted in `users`, `media`, `providers`, `team`, `categories`, `config` (change log) admin pages.
+- **`components/admin/AdminShell.tsx`** (new) + **`AdminSidebar.tsx`** rewrite: `collapsed` (72px icon-only) / `mobileOpen` (drawer + backdrop) props; collapse persisted to localStorage `admin-sidebar-collapsed`; `app/admin/layout.tsx` renders the shell with `lg:ml-[240px]`/`lg:ml-[72px]` offset. Responsive headers (flex-wrap) across admin pages.
+- **Email h1 colour**: all 5 default template h1s + the `heading` block serializer default to `#E8FF47`.
+- **`{{name}}` fix**: root cause was preview-only — `SAMPLE_EMAIL_VARS.name` was hardcoded `"Ada Okafor"` (identical to `userName`); `EmailService.send` already forces `name: cfg.name`. `SAMPLE_EMAIL_VARS.name` now = `DEFAULT_CONFIG.name`; sample `logoUrl` = `resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath)`.
+- **`logoUrl` investigation**: `appOrigin()` in `lib/url.ts` normalises trailing slashes / `//`; emails render `{origin}/primary-logo.png`. Remaining production cause is almost certainly `NEXT_PUBLIC_APP_URL` set to `http://localhost:3000`/unset in the deployed Vercel runtime env (server reads it at runtime) — the admin preview previously used a fake Cloudinary `demo` URL that never rendered.
+- **Editable template name**: `IEmailTemplate.name?` + defaults for all 5 templates; `/admin/email-templates` sidebar + inline editable name field; responsive flex-wrap header/editor/layout.
+- **Blog sections builder**: generic `components/admin/ContentBlocksEditor.tsx` (add/remove/reorder heading/paragraph/list/button/image/divider) shared by the email `EmailTemplateBlocksEditor.tsx` (now a thin wrapper) and the new "Content Sections" card on `/admin/blog-templates` (writes `IBlogConfig.sections`); `components/blog/ContentBlocks.tsx` renders sections on the blog page.
+- **Tests**: `__tests__/lib/email-blocks.test.ts` (6 tests) — `{{name}}` → platform name, sample logoUrl absolute, h1 `#E8FF47` in serializer + all default templates.
+
+### Status
+Pass — typecheck clean, lint 0 errors (pre-existing warnings only), 193/193 tests pass, production build succeeds (72 static pages).
 
 ## Sprint 2026-08-13 — Config Persistence, Email Verification, SEO Wiring, Admin User/Blog Management
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClButton, ClBadge, ClConfirmDialog } from "@/components/ui";
+import { ClButton, ClBadge, ClConfirmDialog, ClDataTable, type ClColumn } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { useBatchSelect, BatchToolbar } from "@/components/admin/BatchOperations";
 import {
@@ -108,9 +108,130 @@ export default function AdminMediaPage() {
     );
   }
 
+  const allSelected = selectedIds.size === assetIds.length && assetIds.length > 0;
+
+  const columns: ClColumn<IMediaAsset>[] = [
+    {
+      key: "checkbox",
+      header: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={() => {
+            if (allSelected) clearSelection();
+            else selectAll(assetIds);
+          }}
+          className="cursor-pointer accent-[var(--color-accent)]"
+          aria-label="Select all"
+        />
+      ),
+      width: "w-[40px]",
+      cell: (asset) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(asset.id)}
+          onChange={() => toggleSelect(asset.id)}
+          className="cursor-pointer accent-[var(--color-accent)]"
+          aria-label={`Select ${asset.publicId}`}
+        />
+      ),
+    },
+    {
+      key: "preview",
+      header: "Preview",
+      cell: (asset) => (
+        <div className="w-14 h-14 rounded-[8px] overflow-hidden bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
+          {asset.resourceType === "video" ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Film size={18} strokeWidth={1.5} color="var(--color-accent)" />
+            </div>
+          ) : asset.thumbnailUrl || asset.url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={asset.thumbnailUrl ?? asset.url}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageIcon size={18} strokeWidth={1.5} color="var(--color-text-tertiary)" />
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "asset",
+      header: "Asset",
+      cell: (asset) => (
+        <div>
+          <div className="font-[family-name:var(--font-mono)] text-[11px] text-[var(--color-text-secondary)]">
+            {asset.publicId}
+          </div>
+          <div className="text-[11px] text-[var(--color-text-tertiary)] max-w-[220px] truncate">
+            {asset.url}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      cell: (asset) => (
+        <ClBadge variant={asset.resourceType === "video" ? "info" : "default"}>
+          {asset.resourceType}
+        </ClBadge>
+      ),
+    },
+    {
+      key: "owner",
+      header: "Owner",
+      cell: (asset) => (
+        <span className="text-[12px] text-[var(--color-text-secondary)]">{asset.ownerName ?? "—"}</span>
+      ),
+    },
+    {
+      key: "uploaded",
+      header: "Uploaded",
+      hideOnMobile: true,
+      cell: (asset) => (
+        <span className="text-[12px] text-[var(--color-text-secondary)]">
+          {new Date(asset.createdAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (asset) =>
+        asset.referenced ? (
+          <ClBadge variant="success">In use</ClBadge>
+        ) : (
+          <ClBadge variant="warning">
+            <FileWarning size={11} strokeWidth={2} />
+            Orphan
+          </ClBadge>
+        ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (asset) => (
+        <button
+          onClick={() => setAssetToDelete(asset)}
+          disabled={deleting}
+          className="inline-flex items-center gap-1 text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50"
+        >
+          <Trash2 size={13} strokeWidth={1.8} />
+          Delete
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] tracking-[-0.01em]">
             Media Assets
@@ -151,131 +272,17 @@ export default function AdminMediaPage() {
         ]}
       />
 
-      <div className="bg-[var(--color-surface)] rounded-[12px] overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-[var(--color-surface-raised)]">
-              <th className="w-[40px] px-[14px] py-[10px] text-left">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === assetIds.length && assetIds.length > 0}
-                  onChange={() => {
-                    if (selectedIds.size === assetIds.length) clearSelection();
-                    else selectAll(assetIds);
-                  }}
-                  className="cursor-pointer accent-[var(--color-accent)]"
-                />
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Preview
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Asset
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Type
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Owner
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Uploaded
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Status
-              </th>
-              <th className="px-[14px] py-[10px] text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {assets.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-tertiary)] text-center">
-                  No media assets tracked yet. Uploads will appear here.
-                </td>
-              </tr>
-            )}
-            {assets.map((asset) => (
-              <tr
-                key={asset.id}
-                className={`border-b border-[var(--color-border)] last:border-b-0 even:bg-[var(--color-surface-raised)] ${
-                  selectedIds.has(asset.id) ? "bg-[var(--color-accent-muted)]" : ""
-                }`}
-              >
-                <td className="w-[40px] px-[14px] py-[10px]">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(asset.id)}
-                    onChange={() => toggleSelect(asset.id)}
-                    className="cursor-pointer accent-[var(--color-accent)]"
-                  />
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  <div className="w-14 h-14 rounded-[8px] overflow-hidden bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
-                    {asset.resourceType === "video" ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Film size={18} strokeWidth={1.5} color="var(--color-accent)" />
-                      </div>
-                    ) : asset.thumbnailUrl || asset.url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={asset.thumbnailUrl ?? asset.url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon size={18} strokeWidth={1.5} color="var(--color-text-tertiary)" />
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px]">
-                  <div className="font-[family-name:var(--font-mono)] text-[11px] text-[var(--color-text-secondary)]">
-                    {asset.publicId}
-                  </div>
-                  <div className="text-[11px] text-[var(--color-text-tertiary)] max-w-[220px] truncate">
-                    {asset.url}
-                  </div>
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  <ClBadge variant={asset.resourceType === "video" ? "info" : "default"}>
-                    {asset.resourceType}
-                  </ClBadge>
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-secondary)]">
-                  {asset.ownerName ?? "—"}
-                </td>
-                <td className="px-[14px] py-[10px] text-[12px] text-[var(--color-text-secondary)]">
-                  {new Date(asset.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  {asset.referenced ? (
-                    <ClBadge variant="success">In use</ClBadge>
-                  ) : (
-                    <ClBadge variant="warning">
-                      <FileWarning size={11} strokeWidth={2} />
-                      Orphan
-                    </ClBadge>
-                  )}
-                </td>
-                <td className="px-[14px] py-[10px]">
-                  <button
-                    onClick={() => setAssetToDelete(asset)}
-                    disabled={deleting}
-                    className="inline-flex items-center gap-1 text-[12px] text-[var(--color-error)] cursor-pointer bg-transparent border-none p-0 disabled:opacity-50"
-                  >
-                    <Trash2 size={13} strokeWidth={1.8} />
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ClDataTable
+        columns={columns}
+        rows={assets}
+        rowKey={(a) => a.id}
+        pageSize={10}
+        emptyState={
+          <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
+            No media assets tracked yet. Uploads will appear here.
+          </div>
+        }
+      />
 
       <ClConfirmDialog
         open={assetToDelete !== null}
