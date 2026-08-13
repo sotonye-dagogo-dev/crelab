@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 25)
+> - last-updated-by: pull-template-update (v3 migration)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -222,8 +222,35 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged) + fromName/fromEmail | platform.config.ts | template defaults + from settings |
 | BLOG_CONFIG | blogConfig.heroTitle / heroSubtitle / newsletter / footerTagline — drives blog page hero + newsletter section, admin-editable at /admin/blog-templates | platform.config.ts | hero + newsletter defaults |
 | NEXT_PUBLIC_APP_URL | Absolute origin for SEO canonical URLs + email logo links (falls back to VERCEL_URL, then http://localhost:3000) | .env | - |
+| ENABLE_DESIGN_VIEWER | Mounts the dev-only design-asset viewer at `/__design/*`; must be false in production builds | .env | false |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
+
+---
+
+## Verification CLI (agent-verifiable behavior)
+
+Engineering principle §24 requires a CLI the agent can invoke to observe and verify application behavior end-to-end. Crelab's verification surface is the Node/npm test + typecheck + lint + build stack, invoked per the quality gate in `protocols/quality-gate.md` and `commands/verify-work.md`:
+
+| Command | What it proves | When to use |
+|---------|---------------|-------------|
+| `npm test` (Vitest) | Unit + integration contract coverage for services/lib | Before a quality-gate close, after any code change |
+| `npm run typecheck` (tsc --noEmit) | TypeScript strict compile of the whole app | After any code change |
+| `npm run lint` (eslint) | Static rule adherence (0 errors) | After any code change |
+| `npm run build` (next build) | Production build compiles + static pages generate | Before deploy / QA close |
+| `npm run db:seed` / `db:seed:rollback` | Reproducible test data with working auth | When integration tests need seeded state |
+
+An agent may extend this CLI (new script/command) when a change creates a new verification need — see §24.
+
+---
+
+## Rollback & Undo (deployment level)
+
+This is the "undo" instinct applied one layer up from data (§22 covers user-facing undo; this covers deployments). `commands/fix-build.md` treats this as an escalation option, not just "fix forward":
+
+- **Previous-build promotion** — Vercel allows redeploying a previous deployment; `vercel rollback` / the Vercel dashboard promotes the last-good build.
+- **DB migration reversibility** — Drizzle migrations are down-migratable (`npm run db:generate` produces reversible migrations; see `scripts/seed-rollback.ts` for the seed data rollback path).
+- **Feature-flag kill switch** — `platformConfig.features.*` (config-driven, DB-overridable) disables a bad feature without a deploy (e.g. `features.googleDriveSync`, `features.blogEnabled`).
 
 ---
 
