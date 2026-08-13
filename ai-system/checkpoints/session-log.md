@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 25)
+> - last-updated-by: pull-template-update (v3 migration)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,34 @@
 ---
 
 ## Sessions
+
+## Session 26 — 2026-08-13 (pull-template-update — ai-system v2 → v3 migration)
+
+**Directive:** Update this project's ai-system from `Sotonye0808/ai-system-template` to v3 per `V2_TO_V3_MIGRATION.md`; run `pull-template-update.md` (repo reachable) to diff and propose the update; do not overwrite local content.
+
+**Completed:**
+
+1. **Baseline check** — local `ai-context.md` had no `installed-ai-system-version` (v2-era); upstream `VERSION` = `3.0.0`. Comparison: v2 → v3.
+2. **New subsystems** (copied from template kit, no local equivalent): `skills/` (9 skills: design-token-extraction, lean-debt-audit, rbac-page-scaffold, acid-transaction-review, universal-component-check, integration-wrapper-scaffold, pdf-html-asset-inspection, research, gh-stack), `tools/` (`registry.md` + 12 `integrations/*.md`), `design-references/` (README + TEMPLATE/DESIGN.md).
+3. **New commands**: `audit-sources.md`, `visual-review.md`, `generate-design-md.md`, `pull-template-update.md`.
+4. **Root additions**: `VERSION` (3.0.0), `CHANGELOG.md`.
+5. **Edited (surgical merges, local content preserved)**: `standards/engineering-principles.md` (+§11–§24, §10→§25, doc-style addendum), `protocols/entry-protocol.md` (tool-discovery-first step + closing-turn advisory), `protocols/context-tiering.md` (Tier 3/4 skills/tools/design-references rows), `protocols/verification-rules.md` (v3 principle extensions + contract-compliance checks), all 12 existing commands (`Chains to` rows + v3 steps), `agents/tester-qa.md` (live-preview/browsing capability), `design-system.md` (Reference Library + Design Asset Viewer sections), `system-architecture.md` (Verification CLI + Rollback/Undo sections, `ENABLE_DESIGN_VIEWER` config row), `planning/task-queue.md` (`last-synced` marker), `memory/project-decisions.md` (v3 migration decision entry).
+6. **Not overwritten** (template placeholders never copied over local data): `checkpoints/session-log.md` (this log), `checkpoints/in-progress.md`, `index/`, `memory/lessons-learned.md`, `memory/architecture-history.md`, `planning/project-plan.md`, `project-context.md`, `repair-system.md`, `summaries/`, `testing/`, `agents/` (except tester-qa), `designs/`, `docs/`.
+7. **Baseline recorded** — `installed-ai-system-version: 3.0.0` in `ai-context.md`; fresh `last-verified-against-code: 2026-08-13` on all migrating files.
+
+**Files Modified:**
+- `ai-context.md` (version baseline + skills/tools/design-references pointers + recently-completed)
+- `ai-system/` — new: `skills/`, `tools/`, `design-references/`; new commands: audit-sources, visual-review, generate-design-md, pull-template-update; edited: engineering-principles, entry-protocol, context-tiering, verification-rules, plan-feature, sync-context, execute-feature, dev-cycle, refactor-codebase, fix-build, resume-session, cloud-session, bootstrap-project, update-ai-system, verify-work, audit-drift, tester-qa, design-system, system-architecture, task-queue, project-decisions, session-log (this entry)
+- Root: `VERSION`, `CHANGELOG.md` (new)
+
+**Build Status:** Docs-only migration — no application code touched. No build/test run required.
+
+**Next Task:** Human review of the proposed v3 diff (per `pull-template-update.md` — this migration is a proposal; never auto-applied over divergent local files). After approval, run `sync-context.md` to refresh freshness metadata on remaining files.
+
+**Notes / Blockers:**
+- This entry follows the v3 "task-queue mutation trace" contract: the `task-queue.md` `last-synced` marker points at this session-log entry.
+
+---
 
 ## Session 25 — 2026-08-13 (Execute Feature — Email Logo/Preview Image Resolution via the URL Util)
 

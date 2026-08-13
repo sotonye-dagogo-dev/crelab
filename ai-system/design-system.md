@@ -1,8 +1,8 @@
 # Design System
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-29
+> - last-updated-by: pull-template-update (v3 migration)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify if UI components or styling dependencies change
 
 > **Overview:** Dark-dominant, video-first design direction with a full light theme alternative. Electric yellow-green accent (#E8FF47) on near-black (#0A0A0A) for dark mode, earthier olive accent (#A3B800) on near-white (#FAFAF9) for light mode. Theme switching via tabbed toggler (System/Light/Dark) with localStorage persistence. All tokens defined as CSS custom properties with platform config overridability. The colour, typography, and spacing tables below are the single source of truth for design tokens — components must consume these tokens via Cl* wrappers rather than redeclaring values.
@@ -257,3 +257,34 @@ The following visual properties must always come from platformConfig — never h
 - Feature visibility (Drive sync, blog) -> platformConfig.features
 
 A name or colour change requires only an admin panel update. Zero component changes.
+
+---
+
+## Reference Library
+
+External design languages — competitor, inspiration, or reference sites — pulled into `design-references/<name>/DESIGN.md` (Tier 4, read when explicitly relevant). The `generate-design-md` command creates them.
+
+These are **inputs to be reconciled**, never the project's source of truth. The token tables in this file remain the single source of truth per engineering principles §5. Promotion from a reference into the project's real tokens is a human decision, not an agent write.
+
+See `design-references/README.md` for the folder contract.
+
+---
+
+## Design Asset Viewer (dev-only entry point)
+
+A human-facing route to browse design assets — HTML mocks, images, PDFs — without those assets touching the app's real route table when deployed. This is a dev tool, not an agent workflow, and it is itself governed by the engineering principles like any other page.
+
+**Hard rules (not conventions):**
+- Mounted at a distinct, configurable base path (e.g. `/__design/*`) on its own router/middleware branch — never nested under app routes.
+- **Gated:** only mountable when the env flag is set (e.g. `ENABLE_DESIGN_VIEWER=true`), defaulting off. **Never enabled in a production build regardless of the flag** — this is a hard rule, not a convention.
+- Reads a config manifest (engineering principles §1) listing which local folders/paths it is allowed to serve — never an open filesystem browser.
+- No hardcoded asset lists in code.
+
+**Rendering by type:**
+- HTML → sandboxed iframe
+- Images → `<img>`
+- PDF → render pages; where text/structure extraction is needed, use the classify-then-extract approach from the `pdf-html-asset-inspection` skill (detect text vs scanned, extract with position awareness, convert to Markdown) via a small internal utility or thin wrapper.
+
+**Extraction backend decision:** chooses between the two registered extraction candidates (see `tools/registry.md` → PDF-extraction-tooling rows; approach documented in `tools/integrations/`) based on the project stack; the choice is documented in `memory/project-decisions.md`.
+
+**Where it lives:** see also the `system-architecture.md` configuration points template (the `ENABLE_DESIGN_VIEWER` flag) and the viewer's security isolation note for the deployment platform.

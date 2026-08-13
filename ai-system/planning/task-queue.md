@@ -1,8 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 25)
+> - last-updated-by: pull-template-update (v3 migration)
 > - last-verified-against-code: 2026-08-13
+> - last-synced: 2026-08-13 (session-log entry — ai-system v3 migration) — keeps `audit-drift.md` able to catch a queue that drifted from its checkpoint without a human noticing manually
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.

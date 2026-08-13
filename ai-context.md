@@ -1,8 +1,9 @@
 # Project AI Context
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 20)
-> - last-verified-against-code: 2026-08-11 (dashboards, integrations readiness)
+> - last-updated-by: pull-template-update (ai-system v3 migration)
+> - last-verified-against-code: 2026-08-13
+> - installed-ai-system-version: 3.0.0
 > - staleness-policy: re-verify before trusting if project structure has changed
 
 > **Overview:** Crelab is a dark, cinematic, video-first creative services marketplace for Nigeria. Providers (content creators, cinematographers) showcase video portfolios and get hired based on quality — not follower count. Clients book with transparent pricing and pay via Paystack escrow.
@@ -28,6 +29,16 @@
 | File Sync | Google Drive Files API v3 |
 | Deployment | Vercel + Supabase |
 | AI Pipeline | .ai-system + Open Design -> Open Code |
+
+---
+
+## AI System Quick Pointers
+
+The AI system docs live in `.ai-system/`. Start with `.ai-system/protocols/entry-protocol.md`. Installed from `Sotonye0808/ai-system-template` v3.0.0.
+
+- **Skills catalog** — on-demand expertise units that self-invoke mid-task: `.ai-system/skills/README.md`
+- **Tool/resource registry** — every external resource evaluated, with verdicts: `.ai-system/tools/registry.md`
+- **Design references** — pulled reference-design languages: `.ai-system/design-references/`
 
 ---
 
@@ -64,6 +75,7 @@ Start with: `.ai-system/protocols/entry-protocol.md`
 Active development — Milestones 1.0-1.4 substantially complete. See `.ai-system/summaries/dev-history.md` for sprint log.
 
 **Recently completed:**
+- **ai-system upgraded to template v3.0.0** (pull-template-update) — skills/, tools/, design-references/ subsystems; 4 new commands; mandatory `Chains to` rows on all commands; engineering principles §11–§24; task-queue/checkpoint coupling + `last-synced` marker; `installed-ai-system-version` baseline set
 - Navbar (fixed, all public pages) with config-driven platform name and auth-aware actions
 - Footer (all public pages) with config-driven dev credit ("built by S.D." → sotonye-dagogo.is-a.dev)
 - Theme system (system/light/dark) with CSS custom properties in `app/globals.css`
