@@ -129,10 +129,14 @@ export function useAuth(): UseAuthReturn {
       }
 
       if (userResult) {
-        fetch("/api/email/welcome", {
+        // Email/password signups are unverified — send the (non-blocking)
+        // verification email instead of the welcome mail. The welcome email is
+        // triggered after verification succeeds. Google signups are verified at
+        // creation and fire the welcome immediately from the register page.
+        fetch("/api/verify-email/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: userResult.email, name: userResult.name }),
+          body: JSON.stringify({ email: userResult.email }),
         }).catch(() => {});
       }
 

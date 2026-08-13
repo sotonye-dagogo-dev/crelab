@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 22)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: update-ai-system (Session 23)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -45,6 +45,7 @@ PlatformConfigService
   → config/platform.config.ts (fallback default)
   → Drizzle schema (platform_config + audit_log tables)
   → Next.js unstable_cache / revalidateTag
+  → setNestedValue(target, path, value) deep-sets dotted config keys when merging DB rows in get(); null values skipped so defaults never clobbered
 
 DashboardService
   → lib/db.ts (Drizzle + postgres client)
@@ -56,12 +57,14 @@ DashboardService
   → lib/currency.ts (formatKobo for display values)
   → types/dashboard.ts (IProviderDashboard, IClientDashboard, pipeline/stats/availability types) + BookingStatus, ExploreSort
 
-EmailService (+ isResendConfigured / getResendConfig)
+EmailService (+ isResendConfigured / getResendConfig + sendVerifyEmail / sendEmailChanged / sendTemplate)
   → config/platform.config.ts (DEFAULT_CONFIG email templates + fromName/fromEmail)
-  → types/index.ts (IEmailTemplate, IPlatformConfig)
+  → types/index.ts (IEmailTemplate, IPlatformConfig, EmailTemplateBlock)
+  → lib/url.ts (resolveAbsoluteUrl for logoUrl)
+  → lib/email-blocks.ts (blocksToHtml for Visual-editor templates; substituteSampleVars for previews)
   → global fetch → https://api.resend.com/emails (raw HTTP, no SDK)
   → env RESEND_API_KEY (read at call time; preview fallback when absent)
-  → consumed by app/api/email/send + app/api/email/welcome + app/api/email/status
+  → consumed by app/api/email/send + app/api/email/welcome + app/api/email/status + app/api/verify-email/send + app/api/verify-email/welcome + app/api/admin/email/send
 
 MediaAssetService (registry-driven media asset lifecycle)
   → lib/db.ts (Drizzle + postgres client)
@@ -79,10 +82,12 @@ Auth (Better Auth)
   → Better Auth standalone instance (lib/auth.ts)
   → Drizzle adapter → drizzle/schema.ts (user, session, account, verification)
   → next/headers (getSession forwards the current request headers — never an empty Headers())
-  → hooks/useAuth.ts (client-side hook)
+  → hooks/useAuth.ts (client-side hook; signUp POSTs /api/verify-email/send instead of /api/email/welcome)
   → lib/oauth.ts (OAuth callback routing helpers + role guard)
   → app/api/auth/role (self-assignable role endpoint)
-  → middleware.ts (route protection)
+  → middleware.ts (route protection — protectedPrefixes now includes /profile)
+  → emailVerification plugin (sendOnSignUp false, autoSignInAfterVerification true, expiresIn 3600, custom sendVerificationEmail via sendTransactionalEmail helper)
+  → user.changeEmail (enabled + sendChangeEmailConfirmation via sendTransactionalEmail)
 
 Lib Module
   → Third-party SDKs (Paystack, Cloudinary, Google Drive, postgres, Supabase)
@@ -90,6 +95,36 @@ Lib Module
   → crypto (HMAC-SHA512 webhook verification)
   → blog-fallback.ts is a standalone leaf module — no dependencies beyond types/blog.ts
   → errors.ts is a leaf module — no dependencies beyond node's Error (imported by WalletService, MilestoneService, and integrations)
+  → lib/url.ts is a leaf module — appOrigin() (NEXT_PUBLIC_APP_URL → VERCEL_URL → http://localhost:3000) + resolveAbsoluteUrl() (prefixes relative paths, leaves http/https/`//` unchanged); consumed by EmailService + app/layout.tsx
+  → lib/seo.ts → types/index.ts (IPlatformConfig) + lib/url.ts (absolute logo/canonical) — buildSeoMetadata() consumed by app/layout.tsx + per-page generateMetadata
+  → lib/email-blocks.ts is a leaf module — blocksToHtml() serializes EmailTemplateBlock[] to inline-styled HTML + substituteSampleVars()/SAMPLE_EMAIL_VARS for previews; consumed by EmailService + app/admin/email-templates
+
+Email verify flow (verify-email)
+  → app/api/verify-email/send/route.ts (POST → auth.api.sendVerificationEmail with callbackURL "/verify-email?done=1")
+  → app/api/verify-email/welcome/route.ts (fires welcome email once session user is emailVerified)
+  → app/(public)/verify-email/page.tsx (verify/resend form with 60s cooldown + done=1 success state firing the welcome POST)
+  → hooks/useAuth.ts (signUp triggers /api/verify-email/send)
+
+Newsletter
+  → app/api/newsletter/route.ts (signed-in users get a granted MARKETING consent record)
+  → app/(public)/blog/page.tsx + BlogPageClient.tsx (newsletter section + config-driven hero title/subtitle)
+  → app/admin/blog-templates/page.tsx (edits blogConfig with live preview)
+
+Admin email send
+  → app/api/admin/email/send/route.ts (test-send + broadcast to MARKETING-consented users) → EmailService
+  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs via EmailTemplateBlocksEditor)
+
+Admin user management
+  → app/api/admin/users/route.ts (GET search/list) + app/api/admin/users/[id]/route.ts (PATCH role/emailVerified, DELETE with self-guard)
+  → app/admin/users/page.tsx (search, role select, verify toggle, delete confirm)
+
+UI Wrappers (Cl*)
+  → ClBackButton.tsx — hydration-safe history.back with fallback href (click-interception, no typeof window in render)
+  → consumed by app/(auth)/profile/page.tsx + profile/media + profile/setup + bookings list/detail + wallet
+
+EmailTemplateBlocksEditor (components/admin)
+  → types/index.ts (EmailTemplateBlock)
+  → block builder: heading/paragraph/list/button/image/divider, move/reorder/delete, per-block variable insert
 
 Drizzle
    → drizzle/schema.ts (441 lines, single source of truth — exports all tables, enums, relations)

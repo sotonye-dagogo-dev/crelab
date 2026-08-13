@@ -194,10 +194,14 @@ export async function generateMetadata({ params }: Props) {
 
   if (!provider) return { title: "Profile Not Found" };
 
-  return {
-    title: `${provider.displayName} | ${platformConfig.name}`,
+  const { buildSeoMetadata } = await import("@/lib/seo");
+  return buildSeoMetadata(platformConfig, {
+    title: provider.displayName,
     description: provider.bio ?? `Profile of ${provider.displayName}`,
-  };
+    path: `/profile/${slug}`,
+    ogType: "profile",
+    ogImage: provider.avatarUrl ?? undefined,
+  });
 }
 
 export default async function ProfilePage({ params }: Props) {

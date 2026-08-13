@@ -14,3 +14,4 @@ export { ClErrorState } from "./ClErrorState";
 export { ClEmptyState } from "./ClEmptyState";
 export { ClPasswordInput } from "./ClPasswordInput";
 export { ClConfirmDialog } from "./ClConfirmDialog";
+export { ClBackButton } from "./ClBackButton";

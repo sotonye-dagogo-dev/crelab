@@ -7,17 +7,30 @@ import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { buildSeoMetadata } from "@/lib/seo";
+import { resolveAbsoluteUrl } from "@/lib/url";
 import type { IPlatformConfig } from "@/types";
 
-export const metadata: Metadata = {
-  title: DEFAULT_CONFIG.name,
-  description:
-    "A cinematic marketplace where video is the first thing you see and quality speaks louder than follower count.",
-  icons: {
-    icon: DEFAULT_CONFIG.iconPath,
-    apple: DEFAULT_CONFIG.iconPath,
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  let config: IPlatformConfig;
+  try {
+    config = await PlatformConfigService.getCached();
+  } catch {
+    config = DEFAULT_CONFIG;
+  }
+
+  return {
+    ...buildSeoMetadata(config, {
+      title: config.name,
+      description: config.tagline,
+      path: "/",
+    }),
+    icons: {
+      icon: resolveAbsoluteUrl(config.iconPath),
+      apple: resolveAbsoluteUrl(config.iconPath),
+    },
+  };
+}
 
 export default async function RootLayout({
   children,

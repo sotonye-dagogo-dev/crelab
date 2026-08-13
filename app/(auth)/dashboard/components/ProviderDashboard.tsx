@@ -21,12 +21,20 @@ export function ProviderDashboard({ data }: { data: IProviderDashboard }) {
               </p>
             )}
           </div>
-          <Link
-            href={data.profile ? `/profile/${data.profile.id}` : "/explore"}
-            className="text-[13px] text-[var(--color-accent)] no-underline transition-colors duration-150 hover:underline"
-          >
-            View public profile →
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/profile"
+              className="text-[13px] text-[var(--color-accent)] no-underline transition-colors duration-150 hover:underline"
+            >
+              Account settings →
+            </Link>
+            <Link
+              href={data.profile ? `/profile/${data.profile.id}` : "/explore"}
+              className="text-[13px] text-[var(--color-accent)] no-underline transition-colors duration-150 hover:underline"
+            >
+              View public profile →
+            </Link>
+          </div>
         </div>
 
         {data.profile && <CompletenessBar completeness={data.completeness} />}

@@ -18,10 +18,11 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const { features } = usePlatformConfig();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = pathname.startsWith("/admin");
+  const isUserAdmin = user?.role === "ADMIN";
   const visibleLinks = navLinks.filter(
     (l) =>
       l.href !== "/blog" || features?.blogEnabled !== false,
@@ -78,11 +79,25 @@ export function Navbar() {
         {/* Desktop actions */}
         <div className="hidden sm:flex items-center gap-3">
           {isAuthenticated ? (
-            <Link
-              href="/dashboard"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-transparent bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]">
-              Dashboard
-            </Link>
+            <>
+              {isUserAdmin && (
+                <Link
+                  href="/admin/config"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-transparent px-3 text-sm font-semibold text-[var(--color-accent)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-accent-dim)]">
+                  Admin
+                </Link>
+              )}
+              <Link
+                href="/profile"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[var(--color-border-mid)] bg-transparent px-4 text-sm font-semibold text-[var(--color-text-primary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]">
+                Profile
+              </Link>
+              <Link
+                href="/dashboard"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-transparent bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]">
+                Dashboard
+              </Link>
+            </>
           ) : (
             <>
               <Link
@@ -144,11 +159,25 @@ export function Navbar() {
         ))}
 
         {isAuthenticated ? (
-          <Link
-            href="/dashboard"
-            className="inline-flex h-12 w-[200px] items-center justify-center gap-2 rounded-[8px] border border-transparent bg-[var(--color-accent)] px-6 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]">
-            Dashboard
-          </Link>
+          <>
+            {isUserAdmin && (
+              <Link
+                href="/admin/config"
+                className="font-[family-name:var(--font-display)] text-[1.25rem] font-bold no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] text-[var(--color-accent)] hover:text-[var(--color-accent-dim)]">
+                Admin
+              </Link>
+            )}
+            <Link
+              href="/profile"
+              className="font-[family-name:var(--font-display)] text-[1.5rem] font-bold no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)]">
+              Profile
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex h-12 w-[200px] items-center justify-center gap-2 rounded-[8px] border border-transparent bg-[var(--color-accent)] px-6 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]">
+              Dashboard
+            </Link>
+          </>
         ) : (
           <>
             <Link

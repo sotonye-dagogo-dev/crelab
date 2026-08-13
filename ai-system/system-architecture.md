@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 22)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: update-ai-system (Session 23)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -16,9 +16,9 @@ Client (Browser)
     |
     v
 Next.js App Router (app/)
-    |-- (public)  -- Guest: Landing/Explore, Category Browse, Search, Profiles, Blog
-    |-- (auth)    -- Authenticated: Dashboard, Bookings, Messages, Profile Edit
-    |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Analytics
+    |-- (public)  -- Guest: Landing/Explore, Category Browse, Search, Profiles, Blog, Verify-email
+    |-- (auth)    -- Authenticated: Dashboard, Bookings, Messages, Profile, Profile Edit
+    |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Media, Email Templates, Blog Templates, Users
     |-- api/      -- Route handlers: Auth, Bookings, Portfolio, Webhooks, Cron, Admin
     |
     v
@@ -35,7 +35,7 @@ Service Layer (services/)
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
     |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan, orphan cleanup, delete, replace
     |-- MockDataService         -- Mock data fallback when DB unavailable
-    |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback)
+    |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate)
     |
     v
 Data Access Layer
@@ -57,16 +57,16 @@ Data Stores
 
 | Module | Responsibility | Key Files | Dependencies |
 |--------|---------------|-----------|--------------|
-| Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search | `app/(public)/` | Components, Services |
-| Auth Routes | Authenticated pages: dashboard, booking, profile/edit, register, login | `app/(auth)/` | AuthGate, Services |
-| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, email templates | `app/admin/` | requireRole('ADMIN'), Services |
-| API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, webhooks, cron | `app/api/` | Services, Lib |
+| Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search, blog, verify-email | `app/(public)/` | Components, Services |
+| Auth Routes | Authenticated pages: dashboard, booking, profile (page/setup/media), register, login | `app/(auth)/` | AuthGate, Services |
+| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, media, email templates, blog templates, users | `app/admin/` | requireRole('ADMIN'), Services |
+| API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, verify-email, newsletter, webhooks, cron | `app/api/` | Services, Lib |
 | UI Wrappers | Cl* wrappers around shadcn/ui primitives | `components/ui/` | shadcn/ui, Tailwind |
 | Feature Components | Domain-specific UI: explore cards, profile sections, booking drawer, admin panels | `components/` | UI Wrappers, Types |
-| Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore | `services/` | Lib, Types, Drizzle |
-| Types | Global TS interfaces: entities, API responses, enums, explore types | `types/` | None |
+| Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore, email | `services/` | Lib, Types, Drizzle |
+| Types | Global TS interfaces: entities, API responses, enums, explore types, email template blocks | `types/` | None |
 | Config | Platform config with DB override capability | `config/` | Types |
-| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, mux, drive, consent, config-context, toast | `lib/` | SDK packages |
+| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks | `lib/` | SDK packages |
 | Drizzle | Database schema, migrations, RLS policies | `drizzle/` | Supabase, postgres |
 
 ---
@@ -89,11 +89,45 @@ Data Stores
    -> new users land on /register?oauth=done&new=1 (role + NDPR consent)
    -> existing users land on /explore (login) or returnTo (register)
 3. OAuth finalize: capture consent, self-assign PROVIDER role via POST /api/auth/role,
-   send welcome email, then route to /profile/setup (provider) or /explore (client)
-4. Better Auth stores session in Supabase adapter (httpOnly cookies)
-5. Next.js middleware checks session on protected routes
-6. Server components use getSession() / requireAuth() / requireRole()
-7. Client-side: useAuth() hook provides { user, role, isAuthenticated, signIn, signInWithGoogle, signOut }
+   send welcome email immediately (Google emails are already verified), then route
+   to /profile/setup (provider) or /explore (client)
+4. Email/password signup: emailVerification plugin with sendOnSignUp=false — signUp POSTs
+   /api/verify-email/send (callbackURL "/verify-email?done=1") instead of the welcome email;
+   welcome email is deferred until verification succeeds
+5. Better Auth stores session in Supabase adapter (httpOnly cookies)
+6. Next.js middleware checks session on protected routes (incl. /profile)
+7. Server components use getSession() / requireAuth() / requireRole()
+8. Client-side: useAuth() hook provides { user, role, isAuthenticated, signIn, signInWithGoogle, signOut, sendVerificationEmail, changeEmail }
+```
+
+### Email Verification Flow
+```
+1. Email/password signup -> useAuth.signUp() POSTs /api/verify-email/send
+   -> auth.api.sendVerificationEmail({ callbackURL: "/verify-email?done=1" })
+2. /api/verify-email/send invokes custom sendVerificationEmail -> sendTransactionalEmail("verifyEmail", ...)
+   -> EmailService.sendVerifyEmail() (resolves logo absolute via lib/url resolveAbsoluteUrl)
+3. User clicks link -> Better Auth marks user.emailVerified=true, auto-signs-in (autoSignInAfterVerification)
+4. /verify-email page (public) shows verify/resend form with 60s cooldown
+5. With ?done=1 -> page fires POST /api/verify-email/welcome, which reads the session user
+   and — only when emailVerified — sends the welcome email exactly once
+6. Google signups are pre-verified and fire the welcome email immediately from the register page
+```
+
+### Email Template Management Flow
+```
+1. /admin/email-templates: Visual/HTML/Preview tabs
+   -> Visual uses EmailTemplateBlocksEditor (heading/paragraph/list/button/image/divider, reorder, delete, per-block variable insert)
+   -> blocks serialized via lib/email-blocks blocksToHtml() -> inline-styled email HTML
+   -> previews use substituteSampleVars() + SAMPLE_EMAIL_VARS
+2. New templates created via create-new-template modal (added to emailConfig.templates)
+3. Test-send + "Send to Subscribers" broadcast to MARKETING-consented users -> POST /api/admin/email/send -> EmailService
+```
+
+### Admin User Management Flow
+```
+1. /admin/users: search + list via GET /api/admin/users (search/list)
+2. Role change / emailVerified toggle -> PATCH /api/admin/users/[id]
+3. Delete -> DELETE /api/admin/users/[id] with self-guard (cannot delete own admin account)
 ```
 
 ### Booking & Payment Flow
@@ -177,6 +211,9 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | CATEGORIES | Category slugs + field schema JSONB | platform.config.ts | ['content-creator', 'cinematographer'] |
 | FEATURES | Feature flags (guest browse, Drive sync, blog) | platform.config.ts | { guestBrowse: true, googleDriveSync: true, blogEnabled: true } |
 | MEDIA_UPLOAD | mediaUpload.enabled / cloudinaryEnabled / maxFileSizeMb / videoTypes / imageTypes / cleanupEnabled / cleanupOrphanAfterHours | platform.config.ts | { enabled: true, cloudinaryEnabled: true, maxFileSizeMb: 100, cleanupEnabled: true, cleanupOrphanAfterHours: 24 } |
+| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged) + fromName/fromEmail | platform.config.ts | template defaults + from settings |
+| BLOG_CONFIG | blogConfig.heroTitle / heroSubtitle / newsletter / footerTagline — drives blog page hero + newsletter section, admin-editable at /admin/blog-templates | platform.config.ts | hero + newsletter defaults |
+| NEXT_PUBLIC_APP_URL | Absolute origin for SEO canonical URLs + email logo links (falls back to VERCEL_URL, then http://localhost:3000) | .env | - |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
 
@@ -228,6 +265,19 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-08-13 — Config Persistence, Email Verification, SEO Wiring, Admin User/Blog Management
+- `services/PlatformConfigService.ts`: exported `setNestedValue(target, path, value)` — deep-sets dotted config keys (e.g. `emailConfig.templates`, `features.guestBrowse`) when merging DB rows in `get()`; null values skipped so defaults never clobbered (fixes admin edits not round-tripping)
+- `lib/url.ts` (new): `appOrigin()` (NEXT_PUBLIC_APP_URL → VERCEL_URL → http://localhost:3000) + `resolveAbsoluteUrl()` (prefixes relative paths with origin, leaves http/https/`//` unchanged)
+- `lib/seo.ts` (new): `buildSeoMetadata(config, options)` — config-driven Next.js Metadata builder with absolute logo og:image + canonical URL + twitter card + noindex; used by `app/layout.tsx` + per-page metadata (blog, blog/[slug], team, privacy, terms, search, [category], profile/[slug])
+- `lib/email-blocks.ts` (new): `blocksToHtml(blocks)` serializes `EmailTemplateBlock[]` to inline-styled email HTML; `substituteSampleVars()` + `SAMPLE_EMAIL_VARS` for previews
+- `types/index.ts`: added `EmailTemplateBlock`, `IEmailTemplate.blocks?`, `IBlogConfig` + `IBlogNewsletterConfig`
+- `config/platform.config.ts`: added `blogConfig` (heroTitle, heroSubtitle, newsletter, footerTagline) + `verifyEmail` + `emailChanged` email templates
+- Email verification architecture: Better Auth `emailVerification` (sendOnSignUp false, autoSignInAfterVerification true, expiresIn 3600, custom sendVerificationEmail via `sendTransactionalEmail`) + `user.changeEmail.enabled`; `/api/verify-email/send` + `/api/verify-email/welcome`; `/verify-email` public page with 60s cooldown; `useAuth.signUp` now POSTs `/api/verify-email/send` (Google signups pre-verified → welcome fires immediately from register page)
+- Admin email templates: Visual/HTML/Preview tabs + `EmailTemplateBlocksEditor` block builder + create-new-template modal + test-send/"Send to Subscribers" via `/api/admin/email/send`
+- Blog: config-driven hero title/subtitle + newsletter section on blog page; `/admin/blog-templates` editor; `/api/newsletter` grants MARKETING consent
+- Admin user management: `/api/admin/users` + `/api/admin/users/[id]`, `/admin/users` page
+- UI: `ClBackButton` (hydration-safe history.back + fallback href) placed across profile/bookings/wallet pages; Navbar Profile + Admin links; profile page at `/app/(auth)/profile/`
 
 ### 2026-08-12 — Cloudinary Asset Lifecycle (Close-Out Documentation)
 

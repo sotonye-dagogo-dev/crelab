@@ -17,34 +17,46 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const { DEFAULT_CONFIG } = await import("@/config/platform.config");
+  const [{ DEFAULT_CONFIG }, { buildSeoMetadata }, { PlatformConfigService }] = await Promise.all([
+    import("@/config/platform.config"),
+    import("@/lib/seo"),
+    import("@/services/PlatformConfigService"),
+  ]);
+
+  let config = DEFAULT_CONFIG;
+  try {
+    config = await PlatformConfigService.getCached();
+  } catch {}
+
+  const pageFallback = (post: { title: string; metaDescription: string }) =>
+    buildSeoMetadata(config, {
+      title: post.title,
+      description: post.metaDescription,
+      path: `/blog/${slug}`,
+      ogType: "article",
+    });
+
   try {
     const post = await getPostBySlug(slug);
     if (!post) {
       const fallback = getFallbackPostBySlug(slug);
       if (!fallback) return { title: "Post Not Found" };
-      return {
-        title: `${fallback.title} | ${DEFAULT_CONFIG.name}`,
-        description: fallback.metaDescription,
-      };
+      return pageFallback(fallback);
     }
 
-    return {
-      title: `${post.title} | ${DEFAULT_CONFIG.name}`,
+    return buildSeoMetadata(config, {
+      title: post.title,
       description: post.metaDescription,
-      openGraph: post.heroImage
-        ? {
-            images: [{ url: urlFor(post.heroImage).width(1200).height(630).url() }],
-          }
+      path: `/blog/${slug}`,
+      ogType: "article",
+      ogImage: post.heroImage
+        ? urlFor(post.heroImage).width(1200).height(630).url()
         : undefined,
-    };
+    });
   } catch {
     const fallback = getFallbackPostBySlug(slug);
     if (!fallback) return { title: "Post Not Found" };
-    return {
-      title: `${fallback.title} | ${DEFAULT_CONFIG.name}`,
-      description: fallback.metaDescription,
-    };
+    return pageFallback(fallback);
   }
 }
 

@@ -300,10 +300,20 @@ export interface IFeatureFlags {
   emailNotifications?: boolean;
 }
 
+export type EmailTemplateBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "list"; items: string[] }
+  | { type: "button"; text: string; url: string }
+  | { type: "image"; url: string; alt: string }
+  | { type: "divider" };
+
 export interface IEmailTemplate {
   subject: string;
   bodyHtml: string;
   enabled: boolean;
+  /** Optional structured blocks backing the visual (no-HTML) editor */
+  blocks?: EmailTemplateBlock[];
 }
 
 export interface IEmailConfig {
@@ -403,8 +413,24 @@ export interface IPlatformConfig {
   wallet: IWalletConfig;
   mediaUpload?: IMediaUploadConfig;
   dashboard?: IDashboardConfig;
+  blogConfig?: IBlogConfig;
   emailConfig?: IEmailConfig;
   devCredit?: IDevCredit;
+}
+
+export interface IBlogNewsletterConfig {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  buttonLabel: string;
+  successMessage: string;
+}
+
+export interface IBlogConfig {
+  heroTitle: string;
+  heroSubtitle: string;
+  newsletter: IBlogNewsletterConfig;
+  footerTagline: string;
 }
 
 export interface IBugReport {

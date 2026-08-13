@@ -12,9 +12,7 @@ const adminPrefix = "/admin";
 const protectedPrefixes = [
   "/dashboard",
   "/bookings",
-  "/profile/edit",
-  "/profile/media",
-  "/profile/setup",
+  "/profile",
   "/messages",
   "/wallet",
 ];
