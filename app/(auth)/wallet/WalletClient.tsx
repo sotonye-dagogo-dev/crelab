@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
 import { TopUpModal } from "@/components/wallet/TopUpModal";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
-import { ClButton } from "@/components/ui";
+import { ClButton, ClBackButton } from "@/components/ui";
 import type { IWalletTransaction, WalletTransactionType } from "@/types";
 import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 
@@ -71,6 +71,7 @@ export function WalletClient({
 
   return (
     <div>
+      <ClBackButton href="/dashboard" label="Back to dashboard" className="mb-5" />
       <WalletBalanceCard
         balanceKobo={balanceKobo}
         escrowKobo={escrowKobo}

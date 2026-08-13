@@ -14,10 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch {
     config = DEFAULT_CONFIG;
   }
-  return {
-    title: `Meet the Team — ${config.name}`,
+  const { buildSeoMetadata } = await import("@/lib/seo");
+  return buildSeoMetadata(config, {
+    title: `Meet the Team`,
     description: `Meet the team behind ${config.name}. Learn about the people building the future of creative hiring in Africa.`,
-  };
+    path: "/team",
+  });
 }
 
 export default async function TeamPage() {

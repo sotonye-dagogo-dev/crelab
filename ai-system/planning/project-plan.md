@@ -1,8 +1,8 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 22)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: update-ai-system (Session 23)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -92,3 +92,4 @@
 - [x] Dashboard Unauthorized Fix (2026-08-11) — `lib/auth.ts` `getSession()` now forwards request headers via `next/headers` instead of an empty `Headers()` (previously every authenticated `/dashboard` visit threw `Unauthorized`)
 - [x] Integrations Operational Readiness (2026-08-11) — Cloudinary + Resend foundations verified functional: `emailNotifications` default added to config (was silently disabling all email), `isResendConfigured()` + `/api/email/status` health route, subject template `{{name}}` fix, 11 new EmailService tests, `.env.example` now mirrors every env var referenced in code (added `RESEND_API_KEY`, `CRON_SECRET`). In-app notification centre confirmed Phase 2 → NOT delivered (per directive's "if part of Phase 1 MVP" condition)
 - [x] Cloudinary Asset Lifecycle (2026-08-11) — media asset registry (`media_assets` table, migration `0004`), `MediaAssetService` (record/list/referenced-URL scan/orphan cleanup/delete/replace), signed Cloudinary delete ops + env rename to `CLOUDINARY_*` (backward-compatible `NEXT_PUBLIC_*` fallbacks), `/api/media/upload` records assets, `/api/cron/media-cleanup` (registered in `vercel.json` 2026-08-12), `/api/admin/media` + `/api/media/assets` (list/delete/replace), `/admin/media` + `/profile/media` pages, `ClConfirmDialog` + `useUndoable` primitives, 220-line MediaAssetService test suite. Closed out (documented) 2026-08-12
+- [x] Config Persistence + Email Verification + SEO + Admin Management (2026-08-13) — `setNestedValue` deep-merge fixes admin edits not round-tripping; `lib/url.ts` + `lib/seo.ts` + `lib/email-blocks.ts`; Better Auth `emailVerification` flow (sendOnSignUp false, welcome fires after verification via `/api/verify-email/welcome`), `/verify-email` public page, `useAuth.signUp` → `/api/verify-email/send`; email templates Visual/HTML/Preview tabs + block editor + broadcast via `/api/admin/email/send`; `blogConfig` + `/admin/blog-templates` + newsletter section + `/api/newsletter` (MARKETING consent); admin user management (`/api/admin/users`, `/admin/users`); `ClBackButton`, `/profile` page, Navbar Profile/Admin links; `generateMetadata` SEO wiring; `.env.example` documents `NEXT_PUBLIC_APP_URL`. Tests: `__tests__/lib/config-helpers.test.ts`, 187/187 passing

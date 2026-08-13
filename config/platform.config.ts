@@ -155,6 +155,20 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
   dashboard: {
     availabilityLookaheadDays: 30,
   },
+  blogConfig: {
+    heroTitle: "Insights for Nigerian Creators & Brands",
+    heroSubtitle:
+      "Hiring guides, pricing tips, and spotlights on the creators making Nigeria's best content.",
+    newsletter: {
+      enabled: true,
+      title: "The Creator's Brief",
+      subtitle:
+        "One email a month with hiring trends, pricing benchmarks, and the creators moving the industry forward.",
+      buttonLabel: "Subscribe",
+      successMessage: "You're on the list — check your inbox for the first issue.",
+    },
+    footerTagline: "Get hired for your creativity, not your follower count.",
+  },
   emailConfig: {
     fromName: "Crellab",
     fromEmail: "noreply@crellab.com",
@@ -215,6 +229,36 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 <div style="text-align:center;margin:32px 0;">
 <a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Booking Details</a>
 </div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      verifyEmail: {
+        subject: "Verify your email — {{name}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#F2F2F2;margin:16px 0 0;">Verify your email</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Thanks for joining {{name}}. Please confirm your email address so we know it's really you — it only takes a second.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{verifyUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">Verify Email</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">If you didn't create an account on {{name}}, you can safely ignore this email. This link expires in 1 hour.</p>
+</div>`,
+        enabled: true,
+      },
+      emailChanged: {
+        subject: "Your email address was updated — {{name}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#F2F2F2;margin:16px 0 0;">Email updated</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">This is a quick confirmation that your {{name}} account email address was successfully changed.</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">If you didn't make this change, please contact support right away.</p>
 <p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
 </div>`,
         enabled: true,

@@ -6,19 +6,46 @@ import { eq } from "drizzle-orm";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import type { IPlatformConfig } from "@/types";
 
+export function setNestedValue(
+  target: Record<string, unknown>,
+  path: string,
+  value: unknown,
+): void {
+  const parts = path.split(".");
+  let current = target;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!current[part] || typeof current[part] !== "object" || Array.isArray(current[part])) {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+  // Null values are treated as "no change" so a partial admin write can never
+  // clobber a nested default with null.
+  if (value !== null) {
+    current[parts[parts.length - 1]] = value;
+  }
+}
+
 export class PlatformConfigService {
   static async get(): Promise<IPlatformConfig> {
     const rows = await db.select().from(platformConfig);
-    const merged = { ...DEFAULT_CONFIG };
+    const merged: Record<string, unknown> = { ...DEFAULT_CONFIG };
 
     for (const row of rows) {
-      const key = row.key as keyof IPlatformConfig;
-      if (key in merged && row.value !== null) {
-        (merged as Record<string, unknown>)[key] = row.value;
+      if (row.value === null) continue;
+      // Rows are stored with the exact key sent by the admin editors. Keys may be
+      // top-level ("name", "feeRate") or nested dotted paths ("emailConfig.templates",
+      // "features.guestBrowse", "dashboard.availabilityLookaheadDays"). Deep-set so
+      // admin edits actually round-trip back into the merged config.
+      if (row.key.includes(".")) {
+        setNestedValue(merged, row.key, row.value);
+      } else if (row.key in merged) {
+        merged[row.key] = row.value;
       }
     }
 
-    return merged;
+    return merged as unknown as IPlatformConfig;
   }
 
   static async set(

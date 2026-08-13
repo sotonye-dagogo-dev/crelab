@@ -22,22 +22,25 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props) {
+  const { buildSeoMetadata } = await import("@/lib/seo");
   const { category: slug } = await params;
   try {
     const config = await PlatformConfigService.getCached();
     const category = config.categories.find((c) => c.slug === slug);
     if (!category) return { title: "Category Not Found" };
-    return {
-      title: `Hire ${category.label}s in Nigeria | ${config.name}`,
+    return buildSeoMetadata(config, {
+      title: `Hire ${category.label}s in Nigeria`,
       description: category.description,
-    };
+      path: `/${slug}`,
+    });
   } catch {
     const category = DEFAULT_CONFIG.categories.find((c) => c.slug === slug);
     if (!category) return { title: "Category Not Found" };
-    return {
-      title: `Hire ${category.label}s in Nigeria | ${DEFAULT_CONFIG.name}`,
+    return buildSeoMetadata(DEFAULT_CONFIG, {
+      title: `Hire ${category.label}s in Nigeria`,
       description: category.description,
-    };
+      path: `/${slug}`,
+    });
   }
 }
 

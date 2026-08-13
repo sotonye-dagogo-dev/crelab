@@ -6,6 +6,25 @@ import { phoneNumber } from "better-auth/plugins";
 import { dash } from "@better-auth/infra";
 import * as schema from "@/drizzle/schema";
 
+async function sendTransactionalEmail(
+  templateKey: string,
+  to: string,
+  vars: Record<string, string>,
+) {
+  try {
+    const [{ EmailService }, { PlatformConfigService }] = await Promise.all([
+      import("@/services/EmailService"),
+      import("@/services/PlatformConfigService"),
+    ]);
+    const config = await PlatformConfigService.get();
+    if (!config.features?.emailNotifications) return;
+    await EmailService.send(to, templateKey, vars, config);
+  } catch (err) {
+    // Email sending must never break the auth flow.
+    console.error(`[auth] failed to send ${templateKey} email:`, err);
+  }
+}
+
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "dev-secret-do-not-use-in-production",
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
@@ -21,6 +40,22 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+  },
+  emailVerification: {
+    // Non-blocking verification: we trigger it manually after signup so we can
+    // control the callback URL (lands on /verify-email?done=1 where the welcome
+    // email is fired after success). Google-signed-up users are verified at
+    // creation and never hit these callbacks.
+    sendOnSignUp: false,
+    sendOnSignIn: false,
+    autoSignInAfterVerification: true,
+    expiresIn: 3600,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendTransactionalEmail("verifyEmail", user.email, {
+        userName: user.name,
+        verifyUrl: url,
+      });
+    },
   },
   socialProviders: {
     google: {
@@ -41,6 +76,16 @@ export const auth = betterAuth({
         required: true,
         defaultValue: "CLIENT",
         input: false,
+      },
+    },
+    changeEmail: {
+      enabled: true,
+      updateEmailWithoutVerification: false,
+      sendChangeEmailConfirmation: async ({ user, url }) => {
+        await sendTransactionalEmail("verifyEmail", user.email, {
+          userName: user.name,
+          verifyUrl: url,
+        });
       },
     },
   },

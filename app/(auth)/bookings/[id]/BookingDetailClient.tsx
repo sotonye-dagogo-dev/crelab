@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { ClButton, ClBadge } from "@/components/ui";
+import { ClButton, ClBadge, ClBackButton } from "@/components/ui";
 import { Check, Plus } from "lucide-react";
 import { EscrowTimeline } from "@/components/booking/EscrowTimeline";
 import { MilestoneTimeline } from "@/components/booking/MilestoneTimeline";
@@ -274,13 +274,7 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
         )}
 
         <div className="mt-5 flex justify-end">
-          <ClButton
-            variant="ghost"
-            size="sm"
-            onClick={() => window.history.back()}
-          >
-            Back to Bookings
-          </ClButton>
+          <ClBackButton href="/bookings" label="Back to Bookings" />
         </div>
       </div>
 

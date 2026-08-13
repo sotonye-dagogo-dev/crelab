@@ -7,6 +7,7 @@ import {
   ClBadge,
   ClConfirmDialog,
   ClEmptyState,
+  ClBackButton,
 } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { Film, RefreshCw, Trash2, CloudOff } from "lucide-react";
@@ -105,6 +106,7 @@ export default function ProfileMediaPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
+      <ClBackButton href="/profile" label="Back to profile" className="mb-6" />
       <div className="mb-8">
         <h1 className="font-[family-name:var(--font-display)] font-bold text-[24px] tracking-[-0.01em]">
           My Media
