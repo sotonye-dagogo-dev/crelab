@@ -6,7 +6,9 @@ import { ClButton, ClCard } from "@/components/ui";
 import { EmailTemplateBlocksEditor } from "@/components/admin/EmailTemplateBlocksEditor";
 import { useToast } from "@/lib/toast";
 import { blocksToHtml, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
-import { Plus } from "lucide-react";
+import { useEmailSimulation } from "@/components/shared/EmailSimulation";
+import { isWiredEmailTemplate, WIRED_EMAIL_TEMPLATES } from "@/lib/email-templates";
+import { Plus, Zap, MousePointerClick } from "lucide-react";
 import type { IEmailConfig, EmailTemplateBlock } from "@/types";
 
 type EditorTab = "visual" | "html" | "preview";
@@ -37,6 +39,7 @@ const tabButton = (active: boolean) =>
 export default function AdminEmailTemplatesPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { show: simulate, EmailSimulationModal } = useEmailSimulation();
   const [config, setConfig] = useState<IEmailConfig | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -120,6 +123,7 @@ export default function AdminEmailTemplatesPage() {
       setBlocks(tpl.blocks ? [...tpl.blocks] : null);
       setEditEnabled(tpl.enabled);
       setEditorTab(tpl.blocks?.length ? "visual" : "preview");
+      setSendDialog(null);
     }
   };
 
@@ -259,28 +263,37 @@ export default function AdminEmailTemplatesPage() {
               No templates configured.
             </div>
           )}
-          {templateKeys.map((key) => (
-            <button
-              key={key}
-              onClick={() => handleSelectTemplate(key)}
-              className={`
-                text-left px-4 py-3 rounded-[8px] text-[13px] font-medium cursor-pointer border-none
-                whitespace-nowrap lg:whitespace-normal
-                transition-colors duration-150
-                ${activeTemplate === key
-                  ? "bg-[var(--color-accent-muted)] text-[var(--color-accent)]"
-                  : "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-raised)]"
-                }
-              `.trim()}
-            >
-              <div className="capitalize">
-                {templates[key]?.name?.trim() || key.replace(/([A-Z])/g, " $1").trim()}
-              </div>
-              <div className="text-[11px] text-[var(--color-text-tertiary)] mt-0.5">
-                {templates[key]?.enabled ? "Active" : "Disabled"}
-              </div>
-            </button>
-          ))}
+          {templateKeys.map((key) => {
+            const wired = isWiredEmailTemplate(key);
+            return (
+              <button
+                key={key}
+                onClick={() => handleSelectTemplate(key)}
+                className={`
+                  text-left px-4 py-3 rounded-[8px] text-[13px] font-medium cursor-pointer border-none
+                  whitespace-nowrap lg:whitespace-normal
+                  transition-colors duration-150
+                  ${activeTemplate === key
+                    ? "bg-[var(--color-accent-muted)] text-[var(--color-accent)]"
+                    : "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-raised)]"
+                  }
+                `.trim()}
+              >
+                <div className="capitalize flex items-center gap-1.5">
+                  {templates[key]?.name?.trim() || key.replace(/([A-Z])/g, " $1").trim()}
+                  {wired && (
+                    <span className="inline-flex items-center gap-0.5 shrink-0 text-[9px] font-bold uppercase tracking-[0.08em] px-1.5 py-[2px] rounded-full border border-[var(--color-accent)]/40 text-[var(--color-accent)]">
+                      <Zap size={9} strokeWidth={2.5} />
+                      Wired
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-[var(--color-text-tertiary)] mt-0.5">
+                  {templates[key]?.enabled ? "Active" : "Disabled"}
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -300,17 +313,54 @@ export default function AdminEmailTemplatesPage() {
                     </button>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <ClButton variant="outlined" size="default" onClick={() => setSendDialog("test")} loading={sendMutation.isPending && sendDialog === "test"}>
-                      Send Test
-                    </ClButton>
-                    <ClButton variant="outlined" size="default" onClick={() => setSendDialog("marketing")} loading={sendMutation.isPending && sendDialog === "marketing"}>
-                      Send to Subscribers
-                    </ClButton>
+                    {isWiredEmailTemplate(activeTemplate) ? (
+                      <ClButton
+                        variant="outlined"
+                        size="default"
+                        onClick={() => {
+                          const previewVars = previewVarsFor(data as { name?: string; logoPath?: string } | undefined);
+                          simulate(
+                            substituteSampleVars(editSubject, previewVars),
+                            substituteSampleVars(htmlBody, previewVars),
+                            "you@example.com",
+                          );
+                        }}
+                      >
+                        <MousePointerClick size={14} strokeWidth={2} />
+                        Simulate
+                      </ClButton>
+                    ) : (
+                      <>
+                        <ClButton variant="outlined" size="default" onClick={() => setSendDialog("test")} loading={sendMutation.isPending && sendDialog === "test"}>
+                          Send Test
+                        </ClButton>
+                        <ClButton variant="outlined" size="default" onClick={() => setSendDialog("marketing")} loading={sendMutation.isPending && sendDialog === "marketing"}>
+                          Send to Subscribers
+                        </ClButton>
+                      </>
+                    )}
                     <ClButton variant="primary" size="default" onClick={handleSaveTemplate} loading={saveMutation.isPending}>
                       Save Template
                     </ClButton>
                   </div>
                 </div>
+
+                {isWiredEmailTemplate(activeTemplate) && (
+                  <div className="rounded-[10px] border border-[var(--color-accent)]/30 bg-[var(--color-accent-muted)]/60 px-4 py-3">
+                    <div className="flex items-start gap-2.5">
+                      <Zap size={14} strokeWidth={2} className="text-[var(--color-accent)] mt-0.5 shrink-0" />
+                      <div>
+                        <div className="text-[12px] font-semibold text-[var(--color-text-primary)]">
+                          Wired to code — triggered automatically
+                        </div>
+                        <div className="text-[12px] text-[var(--color-text-secondary)] mt-0.5 leading-relaxed">
+                          {WIRED_EMAIL_TEMPLATES[activeTemplate]?.trigger ?? "Triggered by a user event."}{" "}
+                          This template cannot be sent or broadcast from the admin — use Simulate to preview how a real send renders.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {sendDialog && (
                   <div className="rounded-[12px] border border-[var(--color-border-mid)] p-4">
@@ -431,7 +481,7 @@ export default function AdminEmailTemplatesPage() {
                 <div className="text-[11px] text-[var(--color-text-tertiary)] border-t border-[var(--color-border)] pt-3">
                   <span className="font-semibold">Available variables:</span>{" "}
                   <code className="font-[family-name:var(--font-mono)] text-[var(--color-accent)]">
-                    {`{{name}}`}, {`{{userName}}`}, {`{{providerName}}`}, {`{{amount}}`}, {`{{bookingDate}}`}, {`{{exploreUrl}}`}, {`{{bookingUrl}}`}, {`{{verifyUrl}}`}, {`{{logoUrl}}`}
+                    {`{{name}}`}, {`{{userName}}`}, {`{{providerName}}`}, {`{{amount}}`}, {`{{bookingDate}}`}, {`{{exploreUrl}}`}, {`{{bookingUrl}}`}, {`{{verifyUrl}}`}, {`{{resetUrl}}`}, {`{{logoUrl}}`}
                   </code>
                 </div>
               </div>
@@ -443,6 +493,7 @@ export default function AdminEmailTemplatesPage() {
           )}
         </div>
       </div>
+      {EmailSimulationModal}
     </div>
   );
 }

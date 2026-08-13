@@ -268,6 +268,23 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 </div>`,
         enabled: true,
       },
+      passwordReset: {
+        name: "Password Reset",
+        subject: "Reset your password — {{name}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:24px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Reset your password</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">We received a request to reset the password for your {{name}} account. Click the button below to choose a new password. This link expires in 1 hour.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{resetUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">Reset Password</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">If you didn't request this, you can safely ignore this email and your password will stay the same.</p>
+</div>`,
+        enabled: true,
+      },
     },
   },
   devCredit: {

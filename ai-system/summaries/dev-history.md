@@ -1,8 +1,27 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 25)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
+
+## Sprint 2026-08-13 — Wired Email Templates + Blog Post Management + Admin Responsive Fixes
+
+### What
+Made the six code-triggered transactional emails (welcome, verify email, email changed, booking confirmation, payment received, password reset) explicitly "wired" in the admin — preview + simulate only, never sendable/broadcastable — while leaving admin-created templates fully sendable/broadcastable. Gave the blog admin real post management (create/edit/publish/delete with hero image uploads, content built with the existing visual block builder) backed by a new `blog_posts` table + `BlogPostService` that merges DB → Sanity → fallback sources. Then made the admin sidebar mobile-only-collapsible and fixed admin/config page responsiveness so text never escapes its containers.
+
+### Why
+Wired templates (e.g. password reset, verification) are owned by code paths — their content and timing are triggered by user events, so letting an operator "send" or "broadcast" them produces wrong/duplicate emails. Blog admin previously only edited page templates/sections; there was no way to publish posts or upload images. The admin sidebar showed a collapse toggle on mobile (where there's no room) and config/change-log cells let long or escaped text overflow their cards.
+
+### Key Changes
+- **Wired email templates** — `lib/email-templates.ts`: `WIRED_EMAIL_TEMPLATES` (6 keys, each `label` + `trigger`) + `isWiredEmailTemplate()`. `/api/admin/email/send` rejects wired keys (test + broadcast). `/admin/email-templates`: ClBadge + Zap on wired templates, Simulate button (`useEmailSimulation`) replacing Send Test / Send to Subscribers, trigger banner, sendDialog reset on select. `passwordReset` template added to `DEFAULT_CONFIG`; `lib/auth.ts` `emailAndPassword.sendResetPassword` → `sendTransactionalEmail`; `{{resetUrl}}` added to sample vars + editor list.
+- **Blog post management** — `blog_posts` table (`drizzle/migrations/0005_blog_posts.sql`: slug unique index, `(published, published_at)` + `category` indexes, jsonb `content`/`tags`); `services/BlogPostService.ts` (adminList/list/getBySlug/getRelated/getAllSlugs/getById/create/update/remove; merge DB → Sanity → fallback, dedup by slug, admin/DB wins); `/api/admin/blog-posts` (GET/POST) + `[id]` (PATCH/DELETE); `/admin/blog-posts` page (ClDataTable + modal editor: live slugify, tags, meta description, publish toggle, confirm delete); `components/admin/ImageUploadField.tsx` (Cloudinary upload via `/api/media/upload` + paste-URL fallback) for the hero image.
+- **Public blog via service** — `/blog` + `/blog/[slug]` read through `BlogPostService`; block content (`type` → `EmailTemplateBlock[]`) rendered by `ContentBlocks`/`BlocksContent` (ToC/readTime) vs Sanity portable text (`_type` → `ArticleBody`); `components/blog/BlogCard.tsx` + `app/sitemap.ts` use `getAllSlugs`; `lib/blog-hero.ts` `getPostHeroUrl` resolves plain URLs or Sanity `image-` refs.
+- **Admin sidebar responsive** — collapse toggle `hidden lg:block` (mobile = hamburger overlay drawer only); new "Blog Posts" nav item (PenSquare).
+- **Config/admin responsiveness** — `/admin/config` change log renders nested values via `formatChangeValue()` (JSON stringify) with `break-words`/`min-w-0` columns; `ConfigField` refactored to a `fieldControl` variable, stacks on mobile, `min-w-0`/`break-words`.
+- **Tests** — `__tests__/lib/email-templates.test.ts` (wired map keys/labels/triggers + `isWiredEmailTemplate`). QA gate: typecheck clean, 206/206 tests pass, production build green.
+
+### Status
+Pass — typecheck clean, 206/206 tests pass, production build green. Note: `0005_blog_posts.sql` is standalone SQL (journal not regenerated) — must be applied manually to the target DB.
 
 ## Sprint 2026-08-13 — Email Logo / Preview Image Resolution via the URL Util
 

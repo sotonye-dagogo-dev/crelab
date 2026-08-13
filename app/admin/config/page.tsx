@@ -45,28 +45,48 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   }, obj as unknown);
 }
 
+function formatChangeValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
 const changeLogColumns: ClColumn<ChangeLogEntry>[] = [
   {
     key: "key",
     header: "Key",
-    cell: (entry) => <span className="text-[12px] font-[family-name:var(--font-mono)]">{entry.entity}</span>,
+    cell: (entry) => (
+      <span className="text-[12px] font-[family-name:var(--font-mono)] break-all">{entry.entity}</span>
+    ),
   },
   {
     key: "old",
     header: "Old Value",
-    cell: (entry) => <span className="text-[12px] text-[var(--color-text-secondary)]">{String(entry.oldValue ?? "—")}</span>,
+    cell: (entry) => (
+      <span className="text-[12px] text-[var(--color-text-secondary)] break-words min-w-0">
+        {formatChangeValue(entry.oldValue)}
+      </span>
+    ),
   },
   {
     key: "new",
     header: "New Value",
-    cell: (entry) => <span className="text-[12px]">{String(entry.newValue ?? "—")}</span>,
+    cell: (entry) => (
+      <span className="text-[12px] break-words min-w-0">{formatChangeValue(entry.newValue)}</span>
+    ),
   },
   {
     key: "timestamp",
     header: "Timestamp",
     hideOnMobile: true,
     cell: (entry) => (
-      <span className="text-[11px] font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)]">
+      <span className="text-[11px] font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)] whitespace-nowrap">
         {new Date(entry.createdAt).toLocaleString("en-GB", {
           day: "2-digit",
           month: "2-digit",

@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: pull-template-update (v3 migration)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -18,7 +18,7 @@ Client (Browser)
 Next.js App Router (app/)
     |-- (public)  -- Guest: Landing/Explore, Category Browse, Search, Profiles, Blog, Verify-email
     |-- (auth)    -- Authenticated: Dashboard, Bookings, Messages, Profile, Profile Edit
-    |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Media, Email Templates, Blog Templates, Users
+    |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Media, Email Templates, Blog Templates, Blog Posts, Users
     |-- api/      -- Route handlers: Auth, Bookings, Portfolio, Webhooks, Cron, Admin
     |
     v
@@ -35,7 +35,8 @@ Service Layer (services/)
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
     |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan, orphan cleanup, delete, replace
     |-- MockDataService         -- Mock data fallback when DB unavailable
-    |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate)
+    |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + password reset)
+    |-- BlogPostService         -- Blog post CRUD + DB→Sanity→fallback merge (admin/DB posts win, dedup by slug)
     |
     v
 Data Access Layer
@@ -121,7 +122,11 @@ Data Stores
    -> previews use substituteSampleVars() + previewVarsFor(config)/SAMPLE_EMAIL_VARS ({{name}} = platform name, {{logoUrl}} = configured logo resolved absolute) — relative img/link URLs resolved via lib/url resolveRelativeUrlsInHtml
    -> real sends resolve relative URLs too (EmailService.send runs resolveRelativeUrlsInHtml on the filled HTML)
 2. New templates created via create-new-template modal (added to emailConfig.templates)
-3. Test-send + "Send to Subscribers" broadcast to MARKETING-consented users -> POST /api/admin/email/send -> EmailService
+3. Wired (code-triggered) templates — welcome / verifyEmail / emailChanged / bookingConfirmation / paymentReceived / passwordReset (lib/email-templates.ts WIRED_EMAIL_TEMPLATES, each with a trigger description):
+   -> preview + Simulate ONLY (useEmailSimulation) — badge + Zap icon + trigger banner in the admin
+   -> /api/admin/email/send rejects wired keys for test-send AND broadcast (content/timing owned by code, not the operator)
+   -> passwordReset fired by Better Auth emailAndPassword.sendResetPassword -> sendTransactionalEmail ({{resetUrl}} var)
+4. Admin-created (non-wired) templates: test-send + "Send to Subscribers" broadcast to MARKETING-consented users -> POST /api/admin/email/send -> EmailService
 ```
 
 ### Blog Content Sections Flow
@@ -129,6 +134,16 @@ Data Stores
 1. /admin/blog-templates: "Content Sections" card uses the shared ContentBlocksEditor (same block builder as email templates)
 2. Sections saved to blogConfig.sections (EmailTemplateBlock[]); optional preview vars for placeholders
 3. app/(public)/blog renders cfg.sections via components/blog/ContentBlocks.tsx (BlogPageClient) alongside the config-driven hero + newsletter
+```
+
+### Blog Posts Flow
+```
+1. /admin/blog-posts: ClDataTable list + modal editor — live slugify, tags, meta description, publish toggle, confirm delete; hero image via ImageUploadField (Cloudinary upload or paste URL)
+2. Content is EmailTemplateBlock[] (reuses the visual-builder block types) stored in the blog_posts table (0005_blog_posts.sql)
+3. CRUD -> /api/admin/blog-posts (GET/POST) + /api/admin/blog-posts/[id] (PATCH/DELETE) -> BlogPostService
+4. Public reads via BlogPostService: blog_posts (DB) -> Sanity posts -> fallback posts, deduped by slug (admin/DB wins)
+5. app/(public)/blog + /blog/[slug] detect content shape: `type` = EmailTemplateBlock[] (renders BlocksContent via ContentBlocks, ToC/readTime), `_type` = Sanity portable text (renders ArticleBody); hero via lib/blog-hero getPostHeroUrl (plain URL or image- ref)
+6. app/sitemap.ts + components/blog/BlogCard.tsx use BlogPostService.getAllSlugs
 ```
 
 ### Admin User Management Flow
@@ -219,7 +234,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | CATEGORIES | Category slugs + field schema JSONB | platform.config.ts | ['content-creator', 'cinematographer'] |
 | FEATURES | Feature flags (guest browse, Drive sync, blog) | platform.config.ts | { guestBrowse: true, googleDriveSync: true, blogEnabled: true } |
 | MEDIA_UPLOAD | mediaUpload.enabled / cloudinaryEnabled / maxFileSizeMb / videoTypes / imageTypes / cleanupEnabled / cleanupOrphanAfterHours | platform.config.ts | { enabled: true, cloudinaryEnabled: true, maxFileSizeMb: 100, cleanupEnabled: true, cleanupOrphanAfterHours: 24 } |
-| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged) + fromName/fromEmail | platform.config.ts | template defaults + from settings |
+| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged, passwordReset) + fromName/fromEmail | platform.config.ts | template defaults + from settings. Wired (code-triggered) templates are preview/simulate-only; admin-created templates can be sent/broadcast |
 | BLOG_CONFIG | blogConfig.heroTitle / heroSubtitle / newsletter / footerTagline — drives blog page hero + newsletter section, admin-editable at /admin/blog-templates | platform.config.ts | hero + newsletter defaults |
 | NEXT_PUBLIC_APP_URL | Absolute origin for SEO canonical URLs + email logo links (falls back to VERCEL_URL, then http://localhost:3000) | .env | - |
 | ENABLE_DESIGN_VIEWER | Mounts the dev-only design-asset viewer at `/__design/*`; must be false in production builds | .env | false |
@@ -300,6 +315,16 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-08-13 — Wired Email Templates + Blog Post Management + Admin Responsive Fixes
+- `lib/email-templates.ts` (new): `WIRED_EMAIL_TEMPLATES` registry — welcome / verifyEmail / emailChanged / bookingConfirmation / paymentReceived / passwordReset, each with `label` + `trigger` (the user event that fires it) + `isWiredEmailTemplate(key)`. These emails are owned by code paths, so they are preview + simulate ONLY.
+- `/api/admin/email/send`: wired keys rejected for test-send AND broadcast. `/admin/email-templates`: wired badge + Zap icon, Simulate button (`useEmailSimulation`) in place of Send Test / Send to Subscribers, trigger info banner, sendDialog reset on template select.
+- Password reset wired: `passwordReset` template in `DEFAULT_CONFIG`; Better Auth `emailAndPassword.sendResetPassword` → `sendTransactionalEmail`; `{{resetUrl}}` added to sample vars + editor variable list.
+- Blog post management: `blog_posts` table (`0005_blog_posts.sql` — slug unique index, `(published, published_at)` + `category` indexes, jsonb content/tags), `services/BlogPostService.ts` (list/getBySlug/getRelated/getAllSlugs/adminList/getById/create/update/remove; merges DB → Sanity → fallback, deduped by slug, admin/DB wins), `/api/admin/blog-posts` (+`/[id]`), `/admin/blog-posts` page (ClDataTable + modal editor: live slugify, tags, meta description, publish toggle, confirm delete), `components/admin/ImageUploadField.tsx` (Cloudinary upload + paste-URL fallback) for the hero image.
+- Public blog now reads via `BlogPostService`; `/blog/[slug]` renders `EmailTemplateBlock[]` content (blocks) or Sanity portable text (ArticleBody) by shape detection; `components/blog/BlogCard.tsx` + `app/sitemap.ts` use `getAllSlugs`; `lib/blog-hero.ts` `getPostHeroUrl` resolves plain URLs or Sanity `image-` refs.
+- Admin sidebar: collapse toggle hidden on mobile (`hidden lg:block`) — mobile uses the hamburger overlay drawer only; "Blog Posts" nav item (PenSquare).
+- Responsive fixes: `/admin/config` change log renders nested values via `formatChangeValue()` (JSON) with `break-words`/`min-w-0` columns; `ConfigField` refactored to a `fieldControl` variable, stacks on mobile, `min-w-0`/`break-words`.
+- Tests: `__tests__/lib/email-templates.test.ts`. QA gate: typecheck clean, 206/206 tests, build green.
 
 ### 2026-08-13 — Email Logo/Preview Image Resolution via the URL Util
 - `lib/url.ts`: `resolveUrlForRender(value)` (relative → absolute, leaves `{{tokens}}` + absolute/protocol-relative/data/mailto/# untouched) + `resolveRelativeUrlsInHtml(html)` (rewrites relative `img src`/`a href` in a rendered HTML blob). Both run AFTER token substitution so the origin is resolved at render time — preview client-side, send server-side — never baked at edit time.

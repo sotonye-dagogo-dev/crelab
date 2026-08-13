@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { IBlogPost } from "@/types/blog";
-import { urlFor } from "@/lib/sanity";
+import { getPostHeroUrl } from "@/lib/blog-hero";
 
 const categoryStyles: Record<string, string> = {
   "content-creation":
@@ -47,7 +47,7 @@ export function BlogCard({ post, isSpotlight, spotlightAvatar }: BlogCardProps) 
           <div
             className="h-[200px] bg-cover bg-center"
             style={{
-              backgroundImage: `url(${urlFor(post.heroImage).width(600).height(200).url()})`,
+              backgroundImage: `url(${getPostHeroUrl(post, 600, 200)})`,
             }}
           />
         ) : (

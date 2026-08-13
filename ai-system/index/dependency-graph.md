@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 25)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -57,7 +57,7 @@ DashboardService
   → lib/currency.ts (formatKobo for display values)
   → types/dashboard.ts (IProviderDashboard, IClientDashboard, pipeline/stats/availability types) + BookingStatus, ExploreSort
 
-EmailService (+ isResendConfigured / getResendConfig + sendVerifyEmail / sendEmailChanged / sendTemplate)
+EmailService (+ isResendConfigured / getResendConfig + sendVerifyEmail / sendEmailChanged / sendTemplate + sendResetPassword path via Better Auth)
   → config/platform.config.ts (DEFAULT_CONFIG email templates + fromName/fromEmail)
   → types/index.ts (IEmailTemplate, IPlatformConfig, EmailTemplateBlock)
   → lib/url.ts (resolveAbsoluteUrl for logoUrl + resolveRelativeUrlsInHtml on the final filled HTML)
@@ -65,6 +65,30 @@ EmailService (+ isResendConfigured / getResendConfig + sendVerifyEmail / sendEma
   → global fetch → https://api.resend.com/emails (raw HTTP, no SDK)
   → env RESEND_API_KEY (read at call time; preview fallback when absent)
   → consumed by app/api/email/send + app/api/email/welcome + app/api/email/status + app/api/verify-email/send + app/api/verify-email/welcome + app/api/admin/email/send
+
+Wired email templates (lib/email-templates.ts)
+  → leaf module — WIRED_EMAIL_TEMPLATES map (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset, each with label + trigger) + isWiredEmailTemplate(key)
+  → consumed by app/api/admin/email/send (rejects wired keys for test-send + broadcast) + app/admin/email-templates/page.tsx (badge + Simulate-only UX)
+
+BlogPostService (blog post CRUD + content-source merge)
+  → lib/db.ts (Drizzle + postgres client)
+  → drizzle/schema.ts (blog_posts table) + drizzle-orm (and, desc, eq, ne)
+  → lib/blog-fallback.ts (getFallbackPosts/getFallbackPostBySlug/getFallbackRelatedPosts/getFallbackPostSlugs)
+  → lib/sanity.ts (dynamic import — getAllPosts/getPostBySlug/getRelatedPosts/getAllSlugs)
+  → types/blog.ts (IBlogPost, BlogCategory) + types/index.ts (EmailTemplateBlock content)
+  → consumed by app/api/admin/blog-posts (+ [id]) + app/(public)/blog/page.tsx + app/(public)/blog/[slug]/page.tsx + app/sitemap.ts + components/blog/BlogCard.tsx
+
+Blog post image helper (lib/blog-hero.ts)
+  → leaf module — getPostHeroUrl(heroImage): resolves plain URL or Sanity `image-` ref to an absolute URL
+  → consumed by components/blog/BlogCard.tsx + app/(public)/blog/[slug]/page.tsx
+
+Admin blog posts
+  → app/api/admin/blog-posts/route.ts (GET list / POST create) + [id]/route.ts (PATCH update / DELETE) → BlogPostService
+  → app/admin/blog-posts/page.tsx (ClDataTable list + modal editor: live slugify, tags, meta description, publish toggle, confirm delete) → components/admin/ImageUploadField
+
+ImageUploadField (components/admin)
+  → app/api/media/upload (Cloudinary upload) with paste-URL fallback (storage-agnostic)
+  → used by app/admin/blog-posts/page.tsx (hero image)
 
 MediaAssetService (registry-driven media asset lifecycle)
   → lib/db.ts (Drizzle + postgres client)
@@ -88,6 +112,7 @@ Auth (Better Auth)
   → middleware.ts (route protection — protectedPrefixes now includes /profile)
   → emailVerification plugin (sendOnSignUp false, autoSignInAfterVerification true, expiresIn 3600, custom sendVerificationEmail via sendTransactionalEmail helper)
   → user.changeEmail (enabled + sendChangeEmailConfirmation via sendTransactionalEmail)
+  → emailAndPassword.sendResetPassword → sendTransactionalEmail("passwordReset") (uses {{resetUrl}} var)
 
 Lib Module
   → Third-party SDKs (Paystack, Cloudinary, Google Drive, postgres, Supabase)
@@ -112,7 +137,8 @@ Newsletter
 
 Admin email send
   → app/api/admin/email/send/route.ts (test-send + broadcast to MARKETING-consented users) → EmailService
-  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs + editable template name via EmailTemplateBlocksEditor → ContentBlocksEditor)
+  → wired templates (lib/email-templates.ts isWiredEmailTemplate) rejected — preview/simulate only
+  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs + editable template name via EmailTemplateBlocksEditor → ContentBlocksEditor; wired badge/Simulate/banner)
 
 Admin user management
   → app/api/admin/users/route.ts (GET search/list) + app/api/admin/users/[id]/route.ts (PATCH role/emailVerified, DELETE with self-guard)
@@ -138,8 +164,13 @@ Blog content sections
   → components/blog/ContentBlocks.tsx renders EmailTemplateBlock[] sections (heading/paragraph/list/button/image/divider); image `src`/button `href` resolved absolute via lib/url resolveUrlForRender
   → consumed by app/(public)/blog/BlogPageClient.tsx (renders cfg.sections) — config-driven like the rest of blogConfig
 
+Blog posts (DB-backed)
+  → BlogPostService merges blog_posts (DB) → Sanity posts → fallback posts, deduped by slug (admin/DB wins); admin CRUD at /api/admin/blog-posts
+  → app/(public)/blog/page.tsx + [slug]/page.tsx read via BlogPostService — block-content detected by `type` (EmailTemplateBlock[] → BlocksContent/ContentBlocks) vs `_type` (Sanity portable text → ArticleBody); hero via getPostHeroUrl
+  → app/sitemap.ts + components/blog/BlogCard.tsx use BlogPostService.getAllSlugs
+
 Drizzle
-   → drizzle/schema.ts (441 lines, single source of truth — exports all tables, enums, relations)
+   → drizzle/schema.ts (single source of truth — exports all tables (incl. blog_posts), enums, relations)
   → postgres driver (lib/db.ts)
   → drizzle-kit (migrations)
 ```

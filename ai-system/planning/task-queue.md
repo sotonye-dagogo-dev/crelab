@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: pull-template-update (v3 migration)
+> - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
-> - last-synced: 2026-08-13 (session-log entry — ai-system v3 migration) — keeps `audit-drift.md` able to catch a queue that drifted from its checkpoint without a human noticing manually
+> - last-synced: 2026-08-13 (session-log entry — Session 27, wired email templates + blog posts + admin responsive)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -54,6 +54,9 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [S] | `{{name}}` resolves to platform name (preview sample var fix) + `logoUrl` origin hardening (`appOrigin` trailing-slash normalisation) | [x] |
 | [M] | Blog sections builder via shared `ContentBlocksEditor` + `ContentBlocks` renderer (blog page sections) | [x] |
 | [S] | Email logo/preview image resolution — preview uses `previewVarsFor(config)` (configured logo/name) and `substituteSampleVars`/`EmailService.send`/blog `ContentBlocks` resolve relative `img src`/`a href` via `lib/url` (`resolveUrlForRender` + `resolveRelativeUrlsInHtml`) so the logo renders in previews and real emails | [x] |
+| [M] | Wired email templates: `lib/email-templates.ts` marks the 6 code-triggered emails (welcome, verifyEmail, emailChanged, bookingConfirmation, paymentReceived, passwordReset) as preview/simulate-only; `/api/admin/email/send` rejects wired keys for test-send + broadcast; `/admin/email-templates` wired badge/Simulate/trigger banner; `passwordReset` template + Better Auth `sendResetPassword` wiring | [x] |
+| [M] | Blog post management: `blog_posts` table (`0005_blog_posts.sql`) + `BlogPostService` (DB → Sanity → fallback, dedup by slug) + `/api/admin/blog-posts` CRUD + `/admin/blog-posts` page (modal editor, publish toggle) + `ImageUploadField` hero image upload (Cloudinary/paste) + public `/blog` + `/blog/[slug]` render DB posts | [x] |
+| [S] | Admin responsive: sidebar collapse hidden on mobile (`hidden lg:block` — mobile = hamburger overlay only); `/admin/config` change log `formatChangeValue()` + `break-words`/`min-w-0`; `ConfigField` stacks on mobile | [x] |
 
 ---
 
@@ -76,6 +79,9 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Wired email templates: `lib/email-templates.ts` (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset — label + trigger), `/api/admin/email/send` wired-key guard, `/admin/email-templates` wired badge/Simulate/banner, `passwordReset` template + Better Auth `sendResetPassword`. Tests: `__tests__/lib/email-templates.test.ts`. 206 tests pass, build green | 2026-08-13 |
+| Blog post management: `blog_posts` table (`0005_blog_posts.sql`) + `BlogPostService` (DB→Sanity→fallback merge) + `/api/admin/blog-posts` CRUD + `/admin/blog-posts` page + `ImageUploadField` hero upload + public `/blog` + `/blog/[slug]` read via service | 2026-08-13 |
+| Admin responsive: sidebar collapse hidden on mobile (hamburger overlay only), `/admin/config` change log `formatChangeValue()` + `break-words`, `ConfigField` responsive stacking | 2026-08-13 |
 | Cloudinary asset lifecycle close-out: implementation (media_assets registry, MediaAssetService, admin/user media managers, ClConfirmDialog + useUndoable, cron cleanup) shipped 2026-08-11 but was never documented; session-log/dev-history/task-queue/project-plan entries added and in-progress.md cleared on close-out | 2026-08-12 |
 | Cron auth alignment: all 4 `/api/cron/*` routes now verify `Authorization: Bearer <CRON_SECRET>` (matches Vercel Cron's auto header); `/api/cron/media-cleanup` registered in `vercel.json` at `10 0 * * *`. 169 tests pass, build green | 2026-08-12 |
 | Integrations operational readiness: `emailNotifications` default (was silently off), `isResendConfigured()` + `getResendConfig()`, `/api/email/status` health route, subject `{{name}}` fill fix, 11 EmailService tests, `.env.example` mirrors all env vars (added RESEND_API_KEY + CRON_SECRET). 151 tests pass, build green | 2026-08-11 |
