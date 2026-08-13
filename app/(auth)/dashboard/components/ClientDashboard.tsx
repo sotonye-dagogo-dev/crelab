@@ -18,12 +18,20 @@ export function ClientDashboard({ data }: { data: IClientDashboard }) {
               Track your bookings and payments in one place.
             </p>
           </div>
-          <Link
-            href="/explore"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]"
-          >
-            Find Talent
-          </Link>
+                    <div className="flex items-center gap-4">
+            <Link
+              href="/profile"
+              className="text-[13px] text-[var(--color-accent)] no-underline transition-colors duration-150 hover:underline"
+            >
+              Account settings →
+            </Link>
+            <Link
+              href="/explore"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]"
+            >
+              Find Talent
+            </Link>
+          </div>
         </div>
 
         {data.stats.length > 0 && (

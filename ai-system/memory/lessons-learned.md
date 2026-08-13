@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 22)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: update-ai-system (Session 23)
+> - last-verified-against-code: 2026-08-13
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -329,6 +329,120 @@
 3. Completion for a feature is: session-log entry + task-queue/project-plan `[x]` + dev-history sprint + `in-progress.md` cleared + repo-map/dependency-graph/system-architecture reconciled
 
 **Apply When:** Beginning any session that references a prior `in-progress.md`, or after any feature where close-out was skipped.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Deep-Merge Config Keys When Round-Tripping DB Rows
+
+**Context:** Admin edits to nested config (e.g. `emailConfig.templates.verifyEmail.subject`) appeared saved but never took effect — merged config rows used shallow assignment, so a DB row for a top-level key (e.g. `emailConfig`) overwrote the whole default subtree with only the edited branch.
+
+**What We Learned:**
+1. `PlatformConfigService.get()` must deep-merge DB rows into the defaults key-by-key: parse the dotted path (e.g. `emailConfig.templates`) and deep-set it on the merged object (`setNestedValue(target, path, value)`) instead of `merged[row.key] = row.value`
+2. Skip null row values during the merge so defaults are never clobbered by an absent override
+3. Export `setNestedValue` from the service so it can be unit-tested directly (it is the core round-trip primitive)
+4. This class of bug is invisible to typecheckers — the shape is valid, only the merge strategy is wrong; a test that mutates a nested key, re-reads, and asserts the value survives is the only guard
+
+**Apply When:** Any admin-editable nested config, "saved but didn't stick" reports, or extending `PlatformConfigService` merging.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## `??` Chained with `&&` Without Parens Is a Syntax Error in esbuild
+
+**Context:** While writing code that used `cond && a ?? b`, the build failed with a parse error. esbuild treats `??` as requiring parentheses when combined with `&&`/`||` (the mixed logical-operator restriction), so bare `x && y ?? z` is a syntax error.
+
+**What We Learned:**
+1. `??` cannot be mixed with `&&`/`||` without explicit parentheses: `a && b ?? c` is invalid — write `(a && b) ?? c` or restructure into explicit `if/else`
+2. The error appears at build/bundle time (esbuild), not necessarily at typecheck time — check the full build output when tests/types pass but the build fails
+3. Prefer explicit `if/else` for mixed null-coalescing and boolean logic — it reads better and cannot trip the parser
+
+**Apply When:** Writing expressions that combine `??` with `&&` or `||`, or triaging esbuild parse errors on otherwise-valid-looking TS.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Hydration-Safe Client Components: No `typeof window` Branching in Render
+
+**Context:** Building `ClBackButton` (history.back with fallback href) and client pages. Branching on `typeof window !== "undefined"` in a client component's render path produces a hydration mismatch — the server renders one branch, the client another.
+
+**What We Learned:**
+1. Never branch on `typeof window` inside the render path of a client component — server-rendered HTML and client hydration must agree
+2. Instead, intercept the click: render the fallback href unconditionally and call `router.back()` / `window.history.back()` in an onClick handler (guard with a check that history exists), preventing navigation when it isn't available
+3. Defer any window-dependent reads (e.g. `history.length`) into event handlers or `useEffect` after mount, not into the initial render
+
+**Apply When:** Any client component that needs browser APIs (history, localStorage, matchMedia) — prefer click interception + effects over render-time branching.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Drizzle Enum Columns Reject `as string` Casts — Use the Enum Literal Directly
+
+**Context:** Writing code that cast a database enum value as `string` when passing it to a drizzle operation failed at runtime/type level — drizzle enum columns require the enum's literal type, not `string`.
+
+**What We Learned:**
+1. When a column is defined with `enum('consent_status', [...])` (or a ts enum), drizzle's types expect the literal union, not `string` — `value as string` does not satisfy it
+2. Type the variable as the enum type (`typeof CONSENT_STATUS_ENUM` or the literal union) or use the enum literal directly instead of casting to `string`
+3. This surfaces as a type error in strict drizzle typing — prefer the actual enum type over widening
+
+**Apply When:** Passing values to drizzle enum columns, especially consent/status fields, or when an `as string` cast fails against a drizzle column type.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## OGImage Type Is `string | URL | object` — Tests Must Narrow It
+
+**Context:** Writing tests for `lib/seo.ts` `buildSeoMetadata`. Next.js's `Metadata['openGraph']` images accept `string | URL | OGImage | array`, so asserting on `metadata.openGraph!.images` requires narrowing (e.g. `typeof img === "string"`) before string assertions.
+
+**What We Learned:**
+1. Next.js metadata `openGraph.images` / `twitter.images` values are a union (`string | URL | object | array`) — direct string access in tests fails the typecheck
+2. In tests, narrow first: if it's a string, assert; otherwise `expect(...).toEqual(...)` the object/array form
+3. Keep the helper's return type explicit so callers and tests can rely on the shape
+
+**Apply When:** Testing any `generateMetadata`/`buildSeoMetadata` output, or consuming `openGraph`/`twitter` metadata values.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Next Lint Flags Unescaped Apostrophes — Use `&apos;`
+
+**Context:** ESLint (next) reported `react/no-unescaped-entities` on JSX text containing an apostrophe (e.g. "don't"). 
+
+**What We Learned:**
+1. Next.js's ESLint config flags unescaped `'` and `"` in JSX text — write `&apos;` (or wrap in a string expression) instead
+2. Only applies to JSX text content, not attribute strings or code strings
+3. Since it's a lint error (not just a warning) in the strict config, an unescaped apostrophe fails the lint gate — fix in the source, don't suppress
+
+**Apply When:** Writing JSX text with apostrophes/quotes, or triaging `react/no-unescaped-entities` lint failures.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Better Auth Verification: `sendOnSignUp:false` + Client-Side Welcome After Verification
+
+**Context:** Wiring email verification with a custom `sendVerificationEmail`. Sending the welcome email from Better Auth's `afterEmailVerification` hook fires for BOTH verification-after-signup AND email-address-change verification — the latter would re-send a welcome email to an already-welcome'd user.
+
+**What We Learned:**
+1. Configure `emailVerification.sendOnSignUp: false` so verification is requested explicitly (client POSTs `/api/verify-email/send`) instead of Better Auth auto-sending on signup
+2. Don't fire the welcome email from `afterEmailVerification` — that hook also runs when a user changes their email address, so the welcome email would be re-sent on an unrelated action
+3. Instead, have the `/verify-email` page fire the welcome once client-side when the flow returns with `?done=1` (only for the verification-from-signup path), and keep Google signups (pre-verified emails) firing the welcome immediately from the register page
+4. Guard the `/api/verify-email/welcome` route: only send when the session user's `emailVerified` is true
+
+**Apply When:** Configuring Better Auth email verification, welcome emails, or email-change confirmation flows.
 
 **Supersedes:** None
 **Superseded by:** None

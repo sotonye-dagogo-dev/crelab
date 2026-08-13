@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ClBadge } from "@/components/ui";
+import { ClBadge, ClBackButton } from "@/components/ui";
 import { ChevronRight } from "lucide-react";
 import type { IBooking, IPayment } from "@/types";
 
@@ -64,6 +64,7 @@ export function BookingsListClient({ groups }: BookingsListClientProps) {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-[800px] mx-auto px-4 py-8">
+        <ClBackButton href="/dashboard" label="Back to dashboard" className="mb-6" />
         <h1 className="font-[family-name:var(--font-display)] font-bold text-[22px] text-[var(--color-text-primary)] mb-6">
           Bookings
         </h1>

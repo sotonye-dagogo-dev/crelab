@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Settings, Grid3X3, UserCheck, AlertTriangle, Users, Bug, Mail, FolderOpen } from "lucide-react";
+import { Settings, Grid3X3, UserCheck, AlertTriangle, Users, Bug, Mail, FolderOpen, FileText, UserCog } from "lucide-react";
 import { ClLogo } from "@/components/ui";
 
 const navItems = [
@@ -33,6 +33,11 @@ const navItems = [
     icon: <Users size={16} strokeWidth={1.5} />,
   },
   {
+    label: "Users",
+    href: "/admin/users",
+    icon: <UserCog size={16} strokeWidth={1.5} />,
+  },
+  {
     label: "Media",
     href: "/admin/media",
     icon: <FolderOpen size={16} strokeWidth={1.5} />,
@@ -41,6 +46,11 @@ const navItems = [
     label: "Email Templates",
     href: "/admin/email-templates",
     icon: <Mail size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "Blog Templates",
+    href: "/admin/blog-templates",
+    icon: <FileText size={16} strokeWidth={1.5} />,
   },
   {
     label: "Bug Reports",

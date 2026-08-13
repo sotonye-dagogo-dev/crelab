@@ -1,8 +1,34 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 22)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: update-ai-system (Session 23)
+> - last-verified-against-code: 2026-08-13
+
+## Sprint 2026-08-13 — Config Persistence, Email Verification, SEO Wiring, Admin User/Blog Management
+
+### What
+Fixed admin config edits not round-tripping (deep-merge dotted config keys), shipped a full email-verification lifecycle, config-driven blog templates + newsletter, admin user management, reusable back button + profile page, and config-driven SEO metadata. Pure feature session with docs closed out at the end.
+
+### Why
+Admin edits to nested config (e.g. `emailConfig.templates`) were clobbered by shallow merging of DB rows. Email/password signups had no verification path (only Google signups worked end-to-end). The blog page hero/newsletter were not config-driven, there was no way for admins to manage users or blog content, and SEO metadata (absolute logo og:image, canonical, twitter card, noindex) was not config-driven.
+
+### Key Changes
+- **`services/PlatformConfigService.ts`**: exported `setNestedValue(target, path, value)` — deep-sets dotted config keys when merging DB rows in `get()`; null values skipped so defaults are never clobbered (fixes admin edits not round-tripping)
+- **`lib/url.ts`** (new): `appOrigin()` (NEXT_PUBLIC_APP_URL → VERCEL_URL → http://localhost:3000) + `resolveAbsoluteUrl()` (prefixes relative paths, leaves http/https/`//` unchanged)
+- **`lib/seo.ts`** (new): `buildSeoMetadata(config, options)` — config-driven Next.js Metadata builder (absolute logo og:image + canonical + twitter card + noindex); wired into `app/layout.tsx` + per-page metadata (blog, blog/[slug], team, privacy, terms, search, [category], profile/[slug])
+- **`lib/email-blocks.ts`** (new): `blocksToHtml()` serializes `EmailTemplateBlock[]` to inline-styled email HTML; `substituteSampleVars()` + `SAMPLE_EMAIL_VARS` for previews
+- **`types/index.ts`**: `EmailTemplateBlock`, `IEmailTemplate.blocks?`, `IBlogConfig` + `IBlogNewsletterConfig`
+- **`config/platform.config.ts`**: `blogConfig` (heroTitle, heroSubtitle, newsletter, footerTagline) + `verifyEmail` + `emailChanged` email templates
+- **Email verification**: Better Auth `emailVerification` (sendOnSignUp false, autoSignInAfterVerification true, expiresIn 3600, custom sendVerificationEmail via `sendTransactionalEmail`) + `user.changeEmail.enabled`; `/api/verify-email/send` + `/api/verify-email/welcome`; `/verify-email` page (60s cooldown + `done=1` fires welcome POST); `useAuth.signUp` POSTs `/api/verify-email/send` instead of `/api/email/welcome` (Google signups pre-verified → welcome fires immediately from register page)
+- **Email templates admin**: Visual/HTML/Preview tabs + `EmailTemplateBlocksEditor` (block builder) + create-new-template modal + test-send/"Send to Subscribers" broadcast via `/api/admin/email/send`
+- **Blog**: config-driven hero title/subtitle + newsletter section; `/admin/blog-templates` page; `/api/newsletter` grants MARKETING consent to signed-in users
+- **Admin user management**: `/api/admin/users` (GET) + `/api/admin/users/[id]` (PATCH/DELETE self-guard) + `/admin/users` page (search, role, verify, delete)
+- **UI**: `ClBackButton` (hydration-safe history.back + fallback href) in profile/bookings/wallet pages; Navbar Profile + Admin links; `/app/(auth)/profile` page (avatar, name update, email verification status + resend, email change)
+- **`.env.example`**: documents `NEXT_PUBLIC_APP_URL`
+- **Tests**: `__tests__/lib/config-helpers.test.ts` — setNestedValue, lib/url, lib/email-blocks, lib/seo
+
+### Status
+Pass — typecheck clean, 187/187 tests pass, production build succeeds (only pre-existing lint warnings in unrelated files remain).
 
 ## Sprint 2026-08-12 — Cloudinary Asset Lifecycle Close-Out
 

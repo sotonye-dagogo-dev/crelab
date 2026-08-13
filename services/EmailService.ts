@@ -1,4 +1,5 @@
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { resolveAbsoluteUrl } from "@/lib/url";
 import type { IEmailTemplate, IPlatformConfig } from "@/types";
 
 type TemplateVars = Record<string, string>;
@@ -42,7 +43,9 @@ export class EmailService {
     const baseVars: TemplateVars = {
       ...vars,
       name: cfg.name,
-      logoUrl: cfg.logoPath,
+      // Resolve relative logo paths against the app origin so the image actually
+      // renders inside email clients (a bare "/primary-logo.png" does not).
+      logoUrl: resolveAbsoluteUrl(cfg.logoPath),
     };
     const subject = fillTemplate(template.subject, baseVars);
     const html = fillTemplate(template.bodyHtml, baseVars);
@@ -88,6 +91,36 @@ export class EmailService {
       userName,
       exploreUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/explore`,
     }, config);
+  }
+
+  static async sendVerifyEmail(
+    to: string,
+    userName: string,
+    verifyUrl: string,
+    config?: IPlatformConfig,
+  ): Promise<{ sent: boolean; preview?: string }> {
+    return EmailService.send(to, "verifyEmail", { userName, verifyUrl }, config);
+  }
+
+  static async sendEmailChanged(
+    to: string,
+    userName: string,
+    config?: IPlatformConfig,
+  ): Promise<{ sent: boolean; preview?: string }> {
+    return EmailService.send(to, "emailChanged", { userName }, config);
+  }
+
+  /**
+   * Send any configured template to a single address. Used by the admin email
+   * manager for test sends and ad-hoc marketing messages.
+   */
+  static async sendTemplate(
+    to: string,
+    templateKey: string,
+    vars: TemplateVars = {},
+    config?: IPlatformConfig,
+  ): Promise<{ sent: boolean; preview?: string }> {
+    return EmailService.send(to, templateKey, vars, config);
   }
 
   static async sendBookingConfirmation(

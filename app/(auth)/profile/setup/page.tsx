@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ClButton, ClInput, ClTextarea, ClSelect } from "@/components/ui";
+import { ClButton, ClInput, ClTextarea, ClSelect, ClBackButton } from "@/components/ui";
 import { ExploreVideoCard } from "@/components/shared/ExploreVideoCard";
 import { DriveConnectSettings } from "@/components/profile/DriveConnectSettings";
 import { MediaUpload } from "@/components/profile/MediaUpload";
@@ -236,6 +236,7 @@ export default function ProfileSetupPage() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-[680px] mx-auto px-4 py-12">
+        <ClBackButton href="/profile" label="Back to profile" className="mb-6" />
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="w-3 h-3 bg-[var(--color-accent)] rotate-45 rounded-sm" />
           <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--color-text-primary)]">

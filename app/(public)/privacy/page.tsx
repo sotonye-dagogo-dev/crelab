@@ -2,15 +2,17 @@ import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 
 export async function generateMetadata() {
+  const { buildSeoMetadata } = await import("@/lib/seo");
   let config;
   try {
     config = await PlatformConfigService.getCached();
   } catch {
     config = DEFAULT_CONFIG;
   }
-  return {
-    title: `Privacy Policy | ${config.name}`,
-  };
+  return buildSeoMetadata(config, {
+    title: `Privacy Policy`,
+    path: "/privacy",
+  });
 }
 
 export default async function PrivacyPage() {
