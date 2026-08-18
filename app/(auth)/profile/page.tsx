@@ -61,11 +61,23 @@ export default function ProfilePage() {
   const handleSendVerification = async () => {
     setVerifySending(true);
     try {
-      const res = await authClient.sendVerificationEmail({
-        email: user.email,
-        callbackURL: "/verify-email?done=1",
+      const res = await fetch("/api/verify-email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
       });
-      if (res.error) throw new Error(res.error.message ?? "Failed to send verification email");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to send verification email");
+      if (json.sent === false) {
+        const reasonText =
+          json.reason === "Email notifications disabled"
+            ? "Email notifications are currently disabled."
+            : json.reason === "Email sending is not configured"
+              ? "Email sending isn't configured yet."
+              : "We couldn't send the email right now.";
+        toast(`Verification email not sent. ${reasonText}`, "error");
+        return;
+      }
       setVerifySent(true);
       toast("Verification email sent", "success");
     } catch (err) {
@@ -99,7 +111,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
-      <div className="max-w-[720px] mx-auto px-4 py-8">
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <ClBackButton href="/dashboard" label="Back to dashboard" className="mb-6" />
 
         <div className="flex items-center gap-4 mb-8">
@@ -126,7 +138,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex flex-col gap-5">
-          <ClCard>
+          <ClCard className="p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <UserRound size={15} strokeWidth={2} className="text-[var(--color-accent)]" />
               <h2 className="font-[family-name:var(--font-display)] font-bold text-[17px]">Account details</h2>
@@ -154,7 +166,7 @@ export default function ProfilePage() {
             </div>
           </ClCard>
 
-          <ClCard>
+          <ClCard className="p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <Mail size={15} strokeWidth={2} className="text-[var(--color-accent)]" />
               <h2 className="font-[family-name:var(--font-display)] font-bold text-[17px]">Email verification</h2>
@@ -177,7 +189,7 @@ export default function ProfilePage() {
             )}
           </ClCard>
 
-          <ClCard>
+          <ClCard className="p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <ShieldCheck size={15} strokeWidth={2} className="text-[var(--color-accent)]" />
               <h2 className="font-[family-name:var(--font-display)] font-bold text-[17px]">Change email address</h2>

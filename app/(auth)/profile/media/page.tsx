@@ -8,9 +8,12 @@ import {
   ClConfirmDialog,
   ClEmptyState,
   ClBackButton,
+  ClCard,
 } from "@/components/ui";
 import { useToast } from "@/lib/toast";
-import { Film, RefreshCw, Trash2, CloudOff } from "lucide-react";
+import { Film, RefreshCw, Trash2, CloudOff, PlusCircle, Link2 } from "lucide-react";
+import { MediaUpload } from "@/components/profile/MediaUpload";
+import { DriveConnectSettings } from "@/components/profile/DriveConnectSettings";
 import type { IMediaAsset } from "@/types";
 
 interface MediaStatus {
@@ -22,6 +25,14 @@ interface MediaStatus {
   maxFileSizeMb: number;
 }
 
+interface MyProfile {
+  id: string;
+  slug: string;
+  driveFolderUrl: string | null;
+  packages: { id: string; label: string }[];
+  portfolio: { id: string; title: string | null; visible: boolean }[];
+}
+
 export default function ProfileMediaPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -29,6 +40,8 @@ export default function ProfileMediaPage() {
   const [assetToDelete, setAssetToDelete] = useState<IMediaAsset | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [replacingId, setReplacingId] = useState<string | null>(null);
+  const [showAddMedia, setShowAddMedia] = useState(false);
+  const [newMediaUrl, setNewMediaUrl] = useState("");
 
   const { data: assets = [], isLoading } = useQuery<IMediaAsset[]>({
     queryKey: ["my-media"],
@@ -47,6 +60,16 @@ export default function ProfileMediaPage() {
       const json = await res.json();
       if (json.success) return json.data ?? {};
       throw new Error(json.error ?? "Failed to load upload settings");
+    },
+  });
+
+  const { data: profile } = useQuery<MyProfile | null>({
+    queryKey: ["my-profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/profile");
+      const json = await res.json();
+      if (json.success) return json.data ?? null;
+      return null;
     },
   });
 
@@ -105,17 +128,79 @@ export default function ProfileMediaPage() {
   const uploadDisabled = !status?.enabled || !status.cloudinaryConfigured;
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
+    <div className="max-w-4xl mx-auto py-10 px-4 md:px-6">
       <ClBackButton href="/profile" label="Back to profile" className="mb-6" />
       <div className="mb-8">
         <h1 className="font-[family-name:var(--font-display)] font-bold text-[24px] tracking-[-0.01em]">
           My Media
         </h1>
         <p className="text-[13px] text-[var(--color-text-secondary)] mt-1">
-          Manage the files you&apos;ve uploaded. Replace a file to update it
-          everywhere it&apos;s used, or delete it to free storage.
+          Upload new files, connect your Google Drive portfolio, or manage files
+          you&apos;ve already uploaded. Replace a file to update it everywhere
+          it&apos;s used, or delete it to free storage.
         </p>
       </div>
+
+      {/* Add-new media card */}
+      <ClCard className="p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <PlusCircle size={17} strokeWidth={1.8} color="var(--color-accent)" />
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px]">
+              Add new media
+            </h2>
+          </div>
+          <ClButton
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAddMedia((v) => !v)}
+          >
+            {showAddMedia ? "Hide" : "Show"}
+          </ClButton>
+        </div>
+
+        {showAddMedia && (
+          <div className="flex flex-col gap-4">
+            <MediaUpload
+              label="Upload a file"
+              accept="both"
+              hint="Uploads are recorded to your library and can be referenced by your portfolio or profile."
+              value={newMediaUrl}
+              onChange={(url) => {
+                setNewMediaUrl(url);
+                if (url) {
+                  toast("Media uploaded to your library", "success");
+                  queryClient.invalidateQueries({ queryKey: ["my-media"] });
+                  setShowAddMedia(false);
+                  setNewMediaUrl("");
+                }
+              }}
+            />
+            <p className="text-[12px] text-[var(--color-text-tertiary)]">
+              <Link2 size={12} strokeWidth={1.8} className="inline mr-1" />
+              Prefer a link? Paste a public URL (Google Drive, YouTube, etc.) —
+              you can add it to your portfolio without uploading a file.
+            </p>
+          </div>
+        )}
+      </ClCard>
+
+      {/* Google Drive connect for creator accounts */}
+      {profile && (
+        <div className="mb-6">
+          <DriveConnectSettings
+            currentUrl={profile.driveFolderUrl}
+            providerId={profile.id}
+            mode="live"
+            onStateChange={() => {
+              queryClient.invalidateQueries({ queryKey: ["my-profile"] });
+            }}
+            onUrlChange={() => {
+              queryClient.invalidateQueries({ queryKey: ["my-profile"] });
+            }}
+          />
+        </div>
+      )}
 
       {uploadDisabled && (
         <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] text-[13px] text-[var(--color-text-secondary)]">
@@ -124,6 +209,15 @@ export default function ProfileMediaPage() {
           when adding media.
         </div>
       )}
+
+      <div className="mb-4">
+        <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px]">
+          Uploaded files
+        </h2>
+        <p className="text-[12px] text-[var(--color-text-tertiary)] mt-0.5">
+          {assets.length} file{assets.length === 1 ? "" : "s"} in your library
+        </p>
+      </div>
 
       {assets.length === 0 ? (
         <ClEmptyState

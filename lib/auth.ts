@@ -17,8 +17,19 @@ async function sendTransactionalEmail(
       import("@/services/PlatformConfigService"),
     ]);
     const config = await PlatformConfigService.get();
-    if (!config.features?.emailNotifications) return;
-    await EmailService.send(to, templateKey, vars, config);
+    if (!config.features?.emailNotifications) {
+      console.warn(`[auth] email "${templateKey}" to ${to} skipped: notifications disabled`);
+      return;
+    }
+    const result = await EmailService.send(to, templateKey, vars, config);
+    if (!result.sent) {
+      // Email sending must never break the auth flow, but the failure must be
+      // visible in logs so it isn't silently swallowed.
+      console.warn(
+        `[auth] email "${templateKey}" to ${to} NOT sent: ${result.reason ?? "unknown"}` +
+          (result.error ? ` — ${result.error}` : ""),
+      );
+    }
   } catch (err) {
     // Email sending must never break the auth flow.
     console.error(`[auth] failed to send ${templateKey} email:`, err);

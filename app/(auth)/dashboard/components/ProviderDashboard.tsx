@@ -9,7 +9,7 @@ import type { IProviderDashboard } from "@/types";
 export function ProviderDashboard({ data }: { data: IProviderDashboard }) {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
-      <div className="mx-auto max-w-[1200px] px-6 py-6">
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 py-8 sm:py-10">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-[family-name:var(--font-display)] text-[24px] font-bold text-[var(--color-text-primary)]">
@@ -84,7 +84,7 @@ export function ProviderDashboard({ data }: { data: IProviderDashboard }) {
               Portfolio Performance
             </h2>
             <Link
-              href="/profile/edit"
+              href="/profile/media"
               className="text-[13px] text-[var(--color-accent)] no-underline transition-colors duration-150 hover:underline"
             >
               Manage portfolio →

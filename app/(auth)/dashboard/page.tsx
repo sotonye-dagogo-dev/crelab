@@ -23,8 +23,14 @@ async function getDashboardData(
   userId: string,
 ): Promise<IProviderDashboard | IClientDashboard> {
   const service = new DashboardService();
-  if (role === "PROVIDER") {
-    return service.getProviderDashboard(userId);
+  // An ADMIN account can also act as a creator/brand. When the admin has a
+  // provider profile, show the provider (creator) dashboard; otherwise fall
+  // back to the client (brand) dashboard.
+  if (role === "PROVIDER" || role === "ADMIN") {
+    const providerData = await service.getProviderDashboard(userId);
+    if (role === "PROVIDER" || providerData.profile) {
+      return providerData;
+    }
   }
   return service.getClientDashboard(userId);
 }

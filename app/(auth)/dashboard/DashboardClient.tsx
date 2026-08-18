@@ -8,7 +8,10 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ role, data }: DashboardClientProps) {
-  if (role === "PROVIDER") {
+  // Admin accounts can also act as creator/brand — resolve the view from the
+  // data the server produced rather than the raw account role.
+  const effectiveRole = data.role ?? role;
+  if (effectiveRole === "PROVIDER") {
     return <ProviderDashboard data={data as IProviderDashboard} />;
   }
   return <ClientDashboard data={data as IClientDashboard} />;
