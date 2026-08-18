@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: update-ai-system (Session 28)
+> - last-verified-against-code: 2026-08-18
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -10,6 +10,30 @@
 ---
 
 ## Sessions
+
+## Session 28 — 2026-08-18 (Fix Build — Email Template Fallback + Resend Sender Recommendations)
+
+**Directive:** Vercel logs show `template_missing` when testing the verify-email flow even though a hardcoded `verifyEmail` template exists — apply hardcoded templates whenever they aren't saved in the DB. Also apply Resend's recommendations: don't use a "no-reply" sender (lowers trust), and send from a subdomain (not the root domain) to segment sending by purpose and protect domain reputation.
+
+**Completed:**
+
+1. **Hardcoded template fallback** — new `lib/email-templates.ts` resolvers: `resolveEmailTemplates(config)` merges `DEFAULT_CONFIG` templates under DB/admin-saved ones (DB wins per-key, hardcoded defaults fill keys never saved — e.g. `verifyEmail` added to code after the operator last saved templates — and admin-created keys are preserved), plus `resolveEmailTemplate(config, key)` and `resolveEmailConfig(config)`.
+2. **Config normalization** — `PlatformConfigService.get()` re-merges `emailConfig` through `resolveEmailConfig()` so every consumer (send paths, `/api/email/status`, `/admin/email-templates`) sees the merged set; a DB-saved `emailConfig.templates` object can no longer silently drop wired templates.
+3. **Send-path hardening** — `EmailService.send()` resolves the template via `resolveEmailTemplate()` (defensive fallback for directly-passed configs). `/api/verify-email/send` and `/api/admin/email/send` use the resolver for the enabled/known-template checks.
+4. **Resend sender identity** — default sender changed from `noreply@crellab.com` (root domain, no-reply) to a real address on a `mail.` subdomain: `Crellab <hello@mail.crellab.com>` (`DEFAULT_FROM_EMAIL`). Added `RESEND_FROM_EMAIL` / `RESEND_FROM_NAME` env overrides read at call time via `getResendSender(config)` (env → admin config → default); `/api/email/status` reports the resolved sender. `/admin/config` From Address field gained a hint explaining the subdomain/verification requirement. `.env.example` documents the new vars.
+5. **Tests** — `__tests__/lib/email-templates.test.ts` (+6: missing-key fallback, DB-wins, admin-created preserved, unknown-key undefined, resolveEmailConfig defaults + config-honouring) and `__tests__/services/EmailService.test.ts` (+4: 3 sender-identity + 1 hardcoded-fallback for a config missing verifyEmail). QA gate: typecheck clean, **218/218** tests pass, lint 0 new warnings, `next build` green.
+
+**Files Modified:**
+- `lib/email-templates.ts` (resolvers), `services/PlatformConfigService.ts` (emailConfig merge), `services/EmailService.ts` (template fallback + `getResendSender`/`DEFAULT_FROM_EMAIL`), `app/api/verify-email/send/route.ts`, `app/api/email/status/route.ts`, `app/api/admin/email/send/route.ts`, `config/platform.config.ts` (subdomain default), `.env.example` (`RESEND_FROM_NAME`/`RESEND_FROM_EMAIL`), `components/admin/ConfigField.tsx` (hint prop), `app/admin/config/page.tsx` (fromEmail hint), `__tests__/lib/email-templates.test.ts`, `__tests__/services/EmailService.test.ts`, `ai-system/` (repair-system, test-results, session-log, in-progress)
+
+**Build Status:** ✅ Typecheck clean, 218/218 tests pass, lint has no new warnings, production build passes.
+
+**Next Task:** Verify the `mail.` subdomain + sender address in the Resend dashboard and set `RESEND_FROM_EMAIL`/`RESEND_FROM_NAME` in Vercel env. Re-test the verify-email flow end-to-end. Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- The DB may still hold a stale `emailConfig.templates` row (missing `verifyEmail`). No DB migration is required — the merge now re-adds hardcoded defaults at read time; once an admin saves the template set again, the merged (complete) set is persisted.
+
+---
 
 ## Session 27 — 2026-08-13 (Wired Email Templates + Blog Post Management + Admin Responsive Fixes)
 

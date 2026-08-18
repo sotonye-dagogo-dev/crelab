@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { user, consentRecords } from "@/drizzle/schema";
 import { inArray } from "drizzle-orm";
 import { ConsentType } from "@/types";
-import { isWiredEmailTemplate } from "@/lib/email-templates";
+import { isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-templates";
 
 /**
  * ADMIN-only email trigger. Supports:
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const template = config.emailConfig?.templates?.[templateKey];
+    const template = resolveEmailTemplate(config, templateKey);
     if (!template) {
       return NextResponse.json(
         { success: false, error: `Unknown email template: ${templateKey}` },

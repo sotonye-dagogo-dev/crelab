@@ -3,11 +3,15 @@ import {
   EmailService,
   isResendConfigured,
   getResendConfig,
+  getResendSender,
+  DEFAULT_FROM_EMAIL,
 } from "@/services/EmailService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 
 const ORIGINAL_RESEND_KEY = process.env.RESEND_API_KEY;
 const ORIGINAL_APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+const ORIGINAL_RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL;
+const ORIGINAL_RESEND_FROM_NAME = process.env.RESEND_FROM_NAME;
 
 afterEach(() => {
   if (ORIGINAL_RESEND_KEY === undefined) {
@@ -19,6 +23,16 @@ afterEach(() => {
     delete process.env.NEXT_PUBLIC_APP_URL;
   } else {
     process.env.NEXT_PUBLIC_APP_URL = ORIGINAL_APP_URL;
+  }
+  if (ORIGINAL_RESEND_FROM_EMAIL === undefined) {
+    delete process.env.RESEND_FROM_EMAIL;
+  } else {
+    process.env.RESEND_FROM_EMAIL = ORIGINAL_RESEND_FROM_EMAIL;
+  }
+  if (ORIGINAL_RESEND_FROM_NAME === undefined) {
+    delete process.env.RESEND_FROM_NAME;
+  } else {
+    process.env.RESEND_FROM_NAME = ORIGINAL_RESEND_FROM_NAME;
   }
   vi.unstubAllGlobals();
 });
@@ -39,6 +53,42 @@ describe("services/EmailService — isResendConfigured", () => {
     expect(getResendConfig()).toEqual({ apiKeyPresent: false });
     process.env.RESEND_API_KEY = "re_test_key";
     expect(getResendConfig()).toEqual({ apiKeyPresent: true });
+  });
+});
+
+describe("services/EmailService — sender identity (Resend recommendations)", () => {
+  it("defaults to a real address on a subdomain, not a no-reply root address", () => {
+    delete process.env.RESEND_FROM_EMAIL;
+    delete process.env.RESEND_FROM_NAME;
+    const sender = getResendSender(DEFAULT_CONFIG);
+    expect(sender.fromEmail).toBe(DEFAULT_FROM_EMAIL);
+    expect(sender.fromEmail).toContain("mail.");
+    expect(sender.fromEmail).not.toMatch(/noreply|no-reply/i);
+    expect(sender.fromName).toBe("Crellab");
+  });
+
+  it("lets RESEND_FROM_EMAIL / RESEND_FROM_NAME env vars override the config", () => {
+    process.env.RESEND_FROM_EMAIL = "updates@mail.crellab.com";
+    process.env.RESEND_FROM_NAME = "Crellab Updates";
+    const sender = getResendSender(DEFAULT_CONFIG);
+    expect(sender.fromEmail).toBe("updates@mail.crellab.com");
+    expect(sender.fromName).toBe("Crellab Updates");
+  });
+
+  it("uses the admin-configured sender when no env override is set", () => {
+    delete process.env.RESEND_FROM_EMAIL;
+    delete process.env.RESEND_FROM_NAME;
+    const config = {
+      ...DEFAULT_CONFIG,
+      emailConfig: {
+        ...DEFAULT_CONFIG.emailConfig!,
+        fromName: "Crellab Team",
+        fromEmail: "team@mail.crellab.com",
+      },
+    };
+    const sender = getResendSender(config);
+    expect(sender.fromEmail).toBe("team@mail.crellab.com");
+    expect(sender.fromName).toBe("Crellab Team");
   });
 });
 
@@ -85,6 +135,31 @@ describe("services/EmailService — send without Resend key (preview fallback)",
     delete process.env.RESEND_API_KEY;
     const result = await EmailService.send("a@example.com", "doesNotExist", {}, DEFAULT_CONFIG);
     expect(result).toEqual({ sent: false, reason: "template_missing" });
+  });
+
+  it("falls back to the hardcoded template when the config/DB never saved it", async () => {
+    delete process.env.RESEND_API_KEY;
+    // A config whose emailConfig.templates is missing verifyEmail entirely —
+    // exactly the DB state that produced the production `template_missing`.
+    const config = {
+      ...DEFAULT_CONFIG,
+      emailConfig: {
+        ...DEFAULT_CONFIG.emailConfig!,
+        templates: {
+          welcome: DEFAULT_CONFIG.emailConfig!.templates.welcome,
+        },
+      },
+    };
+    const result = await EmailService.send(
+      "a@example.com",
+      "verifyEmail",
+      { userName: "Ada", verifyUrl: "https://crelab.ng/verify" },
+      config,
+    );
+    expect(result.sent).toBe(false);
+    expect(result.reason).toBe("resend_not_configured");
+    expect(result.preview).toContain("Verify your email");
+    expect(result.preview).toContain("https://crelab.ng/verify");
   });
 
   it("returns sent:false + reason without preview when the template is disabled", async () => {

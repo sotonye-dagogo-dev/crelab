@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { platformConfig, auditLog } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { resolveEmailConfig } from "@/lib/email-templates";
 import type { IPlatformConfig } from "@/types";
 
 export function setNestedValue(
@@ -44,6 +45,13 @@ export class PlatformConfigService {
         merged[row.key] = row.value;
       }
     }
+
+    // A DB-saved `emailConfig.templates` object replaces the whole set. Re-merge
+    // the hardcoded defaults so wired templates that were never saved to the DB
+    // (e.g. verifyEmail added to code after the operator last saved templates)
+    // remain available. DB values still win on conflicts and admin-created
+    // keys are preserved.
+    merged.emailConfig = resolveEmailConfig(merged as unknown as IPlatformConfig);
 
     return merged as unknown as IPlatformConfig;
   }

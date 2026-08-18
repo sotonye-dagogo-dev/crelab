@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: update-ai-system (Session 28)
+> - last-verified-against-code: 2026-08-18
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -116,7 +116,7 @@ crelab/
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
 │   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS/previewVarsFor (platform name + resolved logoUrl; relative URLs resolved via lib/url)
-│   ├── email-templates.ts  # WIRED_EMAIL_TEMPLATES registry (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset: label + trigger) + isWiredEmailTemplate — code-wired emails are preview/simulate only, never sendable/broadcastable
+│   ├── email-templates.ts  # WIRED_EMAIL_TEMPLATES registry (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset: label + trigger) + isWiredEmailTemplate — code-wired emails are preview/simulate only, never sendable/broadcastable; resolveEmailTemplates/resolveEmailTemplate/resolveEmailConfig merge hardcoded defaults under DB-saved templates (defaults apply when a template was never saved to DB)
 │   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
 │   ├── media.ts            # Media file/URL validation helpers (type, size, link)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)

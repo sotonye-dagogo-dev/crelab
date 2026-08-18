@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { isResendConfigured } from "@/services/EmailService";
+import { isResendConfigured, getResendSender } from "@/services/EmailService";
+import { resolveEmailTemplates } from "@/lib/email-templates";
 
 export async function GET() {
   let config;
@@ -11,10 +12,10 @@ export async function GET() {
     config = DEFAULT_CONFIG;
   }
 
-  const emailConfig = config.emailConfig ?? DEFAULT_CONFIG.emailConfig;
   const emailNotifications = config.features?.emailNotifications ?? false;
+  const sender = getResendSender(config);
 
-  const enabledTemplates = Object.values(emailConfig?.templates ?? {}).filter(
+  const enabledTemplates = Object.values(resolveEmailTemplates(config)).filter(
     (t) => t.enabled,
   ).map((t) => t.subject);
 
@@ -23,8 +24,8 @@ export async function GET() {
     data: {
       enabled: emailNotifications,
       resendConfigured: emailNotifications && isResendConfigured(),
-      fromEmail: emailConfig?.fromEmail ?? null,
-      fromName: emailConfig?.fromName ?? null,
+      fromEmail: sender.fromEmail,
+      fromName: sender.fromName,
       templateCount: enabledTemplates.length,
       templates: enabledTemplates,
     },

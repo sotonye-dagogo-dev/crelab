@@ -171,7 +171,12 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
   },
   emailConfig: {
     fromName: "Crellab",
-    fromEmail: "noreply@crellab.com",
+    // Resend best practice: no "no-reply" (blocks feedback/reply, lowers trust)
+    // and use a subdomain rather than the root domain so sending is segmented by
+    // purpose and root-domain reputation is protected. The `mail.` subdomain must
+    // be verified in the Resend dashboard. Override per environment via
+    // RESEND_FROM_EMAIL / RESEND_FROM_NAME.
+    fromEmail: "hello@mail.crellab.com",
     templates: {
       welcome: {
         name: "Welcome",
