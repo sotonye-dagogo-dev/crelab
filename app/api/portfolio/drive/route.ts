@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (session.user.role !== "PROVIDER") {
+    if (session.user.role !== "PROVIDER" && session.user.role !== "ADMIN") {
       return NextResponse.json(
         { success: false, error: "Forbidden: providers only" },
         { status: 403 },

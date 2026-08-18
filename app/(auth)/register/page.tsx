@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
 import { captureConsent } from "@/lib/consent";
 import { ConsentType } from "@/types";
+import { useToast } from "@/lib/toast";
 import { Check, Camera, Briefcase } from "lucide-react";
 import { ClLogo, ClPasswordInput, ClSpinner } from "@/components/ui";
 import {
@@ -34,6 +35,7 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading, signUp, signInWithGoogle } = useAuth();
+  const { toast } = useToast();
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
@@ -133,7 +135,21 @@ function RegisterForm() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: user.email, name: user.name }),
-        }).catch(() => {});
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((json) => {
+            if (json && json.sent === false) {
+              toast(
+                json.reason === "Email notifications disabled"
+                  ? "Welcome email is turned off in settings."
+                  : json.reason === "resend_not_configured"
+                    ? "Welcome email could not be sent — email sending isn't configured yet."
+                    : "Welcome email could not be sent. You can still continue.",
+                "error",
+              );
+            }
+          })
+          .catch(() => {});
       } else {
         const newUser = await signUp(name, email, password);
         if (!newUser?.id) {
