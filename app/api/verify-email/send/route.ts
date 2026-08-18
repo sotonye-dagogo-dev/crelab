@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { isResendConfigured } from "@/services/EmailService";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { resolveEmailTemplate } from "@/lib/email-templates";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 
 /**
@@ -28,7 +29,9 @@ export async function POST(req: NextRequest) {
     }
 
     const emailNotifications = config.features?.emailNotifications ?? false;
-    const templateEnabled = config.emailConfig?.templates?.verifyEmail?.enabled ?? false;
+    // Resolve the template against hardcoded defaults too — a wired template
+    // (verifyEmail) remains usable even when it was never saved to the DB config.
+    const templateEnabled = resolveEmailTemplate(config, "verifyEmail")?.enabled ?? false;
 
     await auth.api.sendVerificationEmail({
       body: { email, callbackURL: "/verify-email?done=1" },

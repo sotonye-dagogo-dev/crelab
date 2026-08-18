@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { WIRED_EMAIL_TEMPLATES, isWiredEmailTemplate } from "@/lib/email-templates";
+import {
+  WIRED_EMAIL_TEMPLATES,
+  isWiredEmailTemplate,
+  resolveEmailTemplates,
+  resolveEmailTemplate,
+  resolveEmailConfig,
+} from "@/lib/email-templates";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
 
 describe("lib/email-templates — wired email templates", () => {
   it("marks the code-triggered transactional emails as wired", () => {
@@ -37,5 +44,84 @@ describe("lib/email-templates — wired email templates", () => {
     const { DEFAULT_CONFIG } = await import("@/config/platform.config");
     expect(DEFAULT_CONFIG.emailConfig?.templates).toHaveProperty("passwordReset");
     expect(DEFAULT_CONFIG.emailConfig?.templates?.passwordReset?.enabled).toBe(true);
+  });
+});
+
+describe("lib/email-templates — template resolution fallbacks", () => {
+  it("keeps hardcoded defaults for templates not saved into the config/DB", () => {
+    // Simulate a DB config that was saved before verifyEmail existed in code.
+    const partial = {
+      emailConfig: {
+        fromName: "Crellab",
+        fromEmail: "hello@mail.crellab.com",
+        templates: {
+          welcome: DEFAULT_CONFIG.emailConfig!.templates.welcome,
+        },
+      },
+    };
+    const templates = resolveEmailTemplates(partial);
+    expect(templates.verifyEmail).toBeDefined();
+    expect(templates.verifyEmail?.enabled).toBe(true);
+    expect(templates.welcome).toBeDefined();
+  });
+
+  it("lets DB/config values win over hardcoded defaults", () => {
+    const partial = {
+      emailConfig: {
+        fromName: "Crellab",
+        fromEmail: "hello@mail.crellab.com",
+        templates: {
+          welcome: {
+            ...DEFAULT_CONFIG.emailConfig!.templates.welcome,
+            enabled: false,
+            subject: "Custom subject",
+          },
+        },
+      },
+    };
+    const templates = resolveEmailTemplates(partial);
+    expect(templates.welcome?.enabled).toBe(false);
+    expect(templates.welcome?.subject).toBe("Custom subject");
+  });
+
+  it("preserves admin-created templates that are not hardcoded defaults", () => {
+    const adminCreated = {
+      emailConfig: {
+        fromName: "Crellab",
+        fromEmail: "hello@mail.crellab.com",
+        templates: {
+          customPromo: {
+            subject: "Special offer",
+            bodyHtml: "<p>hi</p>",
+            enabled: true,
+          },
+        },
+      },
+    };
+    expect(resolveEmailTemplates(adminCreated).customPromo).toBeDefined();
+  });
+
+  it("resolveEmailTemplate returns undefined only for truly unknown keys", () => {
+    expect(resolveEmailTemplate(undefined, "verifyEmail")).toBeDefined();
+    expect(resolveEmailTemplate(undefined, "doesNotExist")).toBeUndefined();
+  });
+
+  it("resolveEmailConfig fills sender identity from hardcoded defaults", () => {
+    const resolved = resolveEmailConfig(undefined);
+    expect(resolved.fromName).toBe("Crellab");
+    expect(resolved.fromEmail).toBe("hello@mail.crellab.com");
+    expect(resolved.templates.verifyEmail).toBeDefined();
+  });
+
+  it("resolveEmailConfig honours config-saved sender identity", () => {
+    const resolved = resolveEmailConfig({
+      emailConfig: {
+        fromName: "Crellab Team",
+        fromEmail: "team@mail.crellab.com",
+        templates: {},
+      },
+    });
+    expect(resolved.fromName).toBe("Crellab Team");
+    expect(resolved.fromEmail).toBe("team@mail.crellab.com");
   });
 });

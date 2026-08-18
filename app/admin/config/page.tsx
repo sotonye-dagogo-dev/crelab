@@ -28,7 +28,7 @@ const configFields = [
   { key: "features.emailNotifications", label: "Email Notifications", type: "toggle" as const, section: "Features" },
   { key: "dashboard.availabilityLookaheadDays", label: "Availability Calendar Days", type: "number" as const, section: "Features", unit: "days" },
   { key: "emailConfig.fromName", label: "Email From Name", type: "text" as const, section: "Email" },
-  { key: "emailConfig.fromEmail", label: "Email From Address", type: "text" as const, section: "Email" },
+  { key: "emailConfig.fromEmail", label: "Email From Address", type: "text" as const, section: "Email", hint: "Resend recommends a real address on a subdomain (e.g. hello@mail.yourdomain.com), not a \"no-reply\" address — recipients need a reply path to build trust and report spam. The subdomain must be verified in Resend." },
   { key: "mediaUpload.enabled", label: "Media Uploads", type: "toggle" as const, section: "Media" },
   { key: "mediaUpload.cloudinaryEnabled", label: "Cloudinary Direct Uploads", type: "toggle" as const, section: "Media" },
   { key: "mediaUpload.maxFileSizeMb", label: "Max Upload Size", type: "number" as const, section: "Media", unit: "MB" },
@@ -264,6 +264,7 @@ export default function ConfigPage() {
                     value={currentValue}
                     defaultValue={defaultValue}
                     unit={"unit" in field ? (field as { unit?: string }).unit : undefined}
+                    hint={"hint" in field ? (field as { hint?: string }).hint : undefined}
                     onChange={handleChange}
                   />
                 );

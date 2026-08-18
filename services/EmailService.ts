@@ -1,6 +1,7 @@
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { resolveAbsoluteUrl, resolveRelativeUrlsInHtml } from "@/lib/url";
-import type { IEmailTemplate, IPlatformConfig } from "@/types";
+import { resolveEmailTemplate, resolveEmailConfig } from "@/lib/email-templates";
+import type { IPlatformConfig } from "@/types";
 
 type TemplateVars = Record<string, string>;
 
@@ -22,12 +23,39 @@ export interface EmailSendResult {
 
 const RESEND_FETCH_TIMEOUT_MS = 10_000;
 
+/**
+ * Resend recommends NOT using a "no-reply" address (a one-way address lowers
+ * trust and prevents recipients from replying — e.g. to report spam) and using
+ * a subdomain instead of the root domain so sending is segmented by purpose and
+ * root-domain reputation is protected. The default below follows both: a real
+ * local-part on a `mail.` subdomain. Override per environment via
+ * `RESEND_FROM_EMAIL` / `RESEND_FROM_NAME` (the subdomain must be verified in
+ * Resend before mail will deliver).
+ */
+export const DEFAULT_FROM_EMAIL = "hello@mail.crellab.com";
+
 function fillTemplate(template: string, vars: TemplateVars): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}`);
 }
 
 function getResendApiKey(): string | null {
   return process.env.RESEND_API_KEY ?? null;
+}
+
+/**
+ * Resolves the sender identity for a send, honouring per-environment overrides
+ * (`RESEND_FROM_NAME` / `RESEND_FROM_EMAIL`) above the admin-editable config,
+ * then the hardcoded default. Read at call time so changes apply immediately.
+ */
+export function getResendSender(config?: IPlatformConfig): {
+  fromName: string;
+  fromEmail: string;
+} {
+  const resolved = resolveEmailConfig(config);
+  return {
+    fromName: process.env.RESEND_FROM_NAME ?? resolved.fromName ?? DEFAULT_CONFIG.name,
+    fromEmail: process.env.RESEND_FROM_EMAIL ?? resolved.fromEmail ?? DEFAULT_FROM_EMAIL,
+  };
 }
 
 /**
@@ -51,7 +79,9 @@ export class EmailService {
     config?: IPlatformConfig,
   ): Promise<EmailSendResult> {
     const cfg = config ?? DEFAULT_CONFIG;
-    const template = cfg.emailConfig?.templates?.[templateKey] as IEmailTemplate | undefined;
+    // Resolve the template against the merged set: hardcoded defaults apply when
+    // the template was never saved to the DB/admin config.
+    const template = resolveEmailTemplate(cfg, templateKey);
 
     if (!template) {
       console.warn(
@@ -89,6 +119,7 @@ export class EmailService {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), RESEND_FETCH_TIMEOUT_MS);
+    const sender = getResendSender(cfg);
 
     try {
       const res = await fetch("https://api.resend.com/emails", {
@@ -98,7 +129,7 @@ export class EmailService {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          from: `${cfg.emailConfig?.fromName ?? cfg.name} <${cfg.emailConfig?.fromEmail ?? "noreply@crellab.com"}>`,
+          from: `${sender.fromName} <${sender.fromEmail}>`,
           to: [to],
           subject,
           html,

@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 21)
-> - last-verified-against-code: 2026-08-12
+> - last-updated-by: update-ai-system (Session 28)
+> - last-verified-against-code: 2026-08-18
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -75,7 +75,72 @@ On Vercel Cron, always verify the `authorization` header as `Bearer <CRON_SECRET
 
 ## Known Error Patterns
 
-### React / Next.js
+### Email `template_missing` Despite Hardcoded Template Existing (Verify Email Flow)
+
+**Symptom:**
+Testing the verify-email flow in production logs:
+```
+[warn] [EmailService] Template "verifyEmail" not found in config; email NOT sent to ***@gmail.com.
+[warn] [auth] email "verifyEmail" to ***@gmail.com NOT sent: template_missing
+```
+`verifyEmail` (and other wired templates) exist in `config/platform.config.ts` `DEFAULT_CONFIG`, yet the send path reports `template_missing`.
+
+**Root Cause:**
+`PlatformConfigService.get()` merges `DEFAULT_CONFIG` with DB rows via `setNestedValue`. A DB row with key `emailConfig.templates` (saved earlier by the `/admin/email-templates` editor) **replaces the entire** templates object with whatever was stored. If that DB value predates a template added to code (e.g. `verifyEmail`), the merged config loses it → `EmailService.send()` returns `template_missing`. The `/api/verify-email/send` route read the same merged value and reported "Verification template disabled".
+
+**Fix Applied:**
+- `lib/email-templates.ts` — added `resolveEmailTemplates()` (defaults merged under DB values; DB wins per-key, hardcoded defaults fill missing keys, admin-created keys preserved), `resolveEmailTemplate()`, `resolveEmailConfig()`.
+- `PlatformConfigService.get()` now normalizes `emailConfig` through `resolveEmailConfig()` so every consumer (send paths, status route, admin editor) sees the merged set.
+- `EmailService.send()` resolves the template via `resolveEmailTemplate()` (defensive fallback even if a config object is passed directly).
+- `/api/verify-email/send` + `/api/admin/email/send` use the resolver for the enabled/known checks.
+
+**Prevention:**
+Never treat a DB-saved nested object (`emailConfig.templates`) as authoritative — always merge it over the hardcoded defaults so wired templates added to code remain available. Route all template lookups through `resolveEmailTemplate()` / `resolveEmailTemplates()`.
+
+**Files Affected:**
+- `lib/email-templates.ts`
+- `services/PlatformConfigService.ts`
+- `services/EmailService.ts`
+- `app/api/verify-email/send/route.ts`
+- `app/api/email/status/route.ts`
+- `app/api/admin/email/send/route.ts`
+
+**Date:** 2026-08-18
+**Status:** Active
+
+---
+
+### Resend Sender Identity — "no-reply" Root-Domain Address Hurts Deliverability/Trust
+
+**Symptom:**
+Transactional emails were sent `From: Crellab <noreply@crellab.com>`. Resend deliverability guidance: a "no-reply" address signals one-way communication (recipients can't reply / report spam, lowering trust), and sending from the root domain mixes purposes with the product domain.
+
+**Root Cause:**
+Hardcoded default `fromEmail: "noreply@crellab.com"` in `config/platform.config.ts` (also the fallback inside `EmailService.send()`).
+
+**Fix Applied:**
+- Default sender changed to a real address on a `mail.` subdomain: `Crellab <hello@mail.crellab.com>` (`DEFAULT_FROM_EMAIL` exported from `services/EmailService.ts`).
+- Added `RESEND_FROM_EMAIL` / `RESEND_FROM_NAME` env overrides read at call time (like `RESEND_API_KEY`); `getResendSender(config)` resolves env → admin config → default. `/api/email/status` surfaces the resolved sender.
+- `/admin/config` Email From Address field now shows a hint explaining the subdomain requirement.
+- `.env.example` documents the new vars and the verified-subdomain requirement.
+
+**Prevention:**
+Never default to a `no-reply@` root-domain sender. Keep sender identity env-overridable and document that the sending subdomain must be verified in the Resend dashboard (root-domain senders are also rejected by Resend unless verified).
+
+**Files Affected:**
+- `services/EmailService.ts`
+- `config/platform.config.ts`
+- `.env.example`
+- `app/api/email/status/route.ts`
+- `components/admin/ConfigField.tsx`
+- `app/admin/config/page.tsx`
+
+**Date:** 2026-08-18
+**Status:** Active
+
+---
+
+## Known Error Patterns
 
 **Hydration Mismatch**
 - Symptom: `Hydration failed because the initial UI does not match what was rendered on the server`
