@@ -245,7 +245,7 @@ export default function ConfigPage() {
             <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)] mb-2 py-3">
               {section}
             </div>
-            <ClCard className="mb-6">
+            <ClCard className="mb-6 p-2 sm:p-4">
               {fields.map((field) => {
                 const currentValue = getNestedValue(
                   config as Record<string, unknown>,

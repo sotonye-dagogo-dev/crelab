@@ -81,13 +81,13 @@ describe("services/EmailService — send without Resend key (preview fallback)",
     expect(result.preview).toContain("https://crelab.example/explore");
   });
 
-  it("returns sent:false for an unknown template key", async () => {
+  it("returns sent:false + reason for an unknown template key", async () => {
     delete process.env.RESEND_API_KEY;
     const result = await EmailService.send("a@example.com", "doesNotExist", {}, DEFAULT_CONFIG);
-    expect(result).toEqual({ sent: false });
+    expect(result).toEqual({ sent: false, reason: "template_missing" });
   });
 
-  it("returns sent:false without preview when the template is disabled", async () => {
+  it("returns sent:false + reason without preview when the template is disabled", async () => {
     delete process.env.RESEND_API_KEY;
     const config = {
       ...DEFAULT_CONFIG,
@@ -103,7 +103,14 @@ describe("services/EmailService — send without Resend key (preview fallback)",
       },
     };
     const result = await EmailService.sendWelcome("a@example.com", "Ada", config);
-    expect(result).toEqual({ sent: false });
+    expect(result).toEqual({ sent: false, reason: "template_disabled" });
+  });
+
+  it("reports resend_not_configured when no API key is present", async () => {
+    delete process.env.RESEND_API_KEY;
+    const result = await EmailService.sendWelcome("a@example.com", "Ada", DEFAULT_CONFIG);
+    expect(result.sent).toBe(false);
+    expect(result.reason).toBe("resend_not_configured");
   });
 });
 
@@ -146,6 +153,7 @@ describe("services/EmailService — send with Resend key", () => {
     const result = await EmailService.sendWelcome("a@example.com", "Ada", DEFAULT_CONFIG);
     expect(result.sent).toBe(false);
     expect(result.preview).toContain("Hi Ada");
+    expect(result.reason).toBe("resend_api_error");
   });
 
   it("falls back to a preview when the Resend API throws", async () => {
@@ -155,5 +163,27 @@ describe("services/EmailService — send with Resend key", () => {
     const result = await EmailService.sendWelcome("a@example.com", "Ada", DEFAULT_CONFIG);
     expect(result.sent).toBe(false);
     expect(result.preview).toContain("Hi Ada");
+    expect(result.reason).toBe("network_error");
   });
+
+  it("reports network_error and times out when fetch hangs", async () => {
+    process.env.RESEND_API_KEY = "re_test_key";
+    // A fetch that never resolves — the AbortController timeout must abort it.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: { signal?: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () =>
+              reject(new Error("Aborted")),
+            );
+          }),
+      ),
+    );
+
+    const result = await EmailService.sendWelcome("a@example.com", "Ada", DEFAULT_CONFIG);
+    expect(result.sent).toBe(false);
+    expect(result.reason).toBe("network_error");
+    expect(result.error).toContain("timed out");
+  }, 15000);
 });

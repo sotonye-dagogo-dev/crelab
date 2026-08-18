@@ -24,10 +24,19 @@ export async function GET() {
 
     const service = new DashboardService();
 
-    const data =
-      role === "PROVIDER"
-        ? await service.getProviderDashboard(sessionUser.id)
-        : await service.getClientDashboard(sessionUser.id);
+    // Admin accounts can also act as creator/brand — show the provider dashboard
+    // when the admin holds a provider profile.
+    let data;
+    if (role === "PROVIDER" || role === "ADMIN") {
+      const providerData = await service.getProviderDashboard(sessionUser.id);
+      if (role === "PROVIDER" || providerData.profile) {
+        data = providerData;
+      } else {
+        data = await service.getClientDashboard(sessionUser.id);
+      }
+    } else {
+      data = await service.getClientDashboard(sessionUser.id);
+    }
 
     return NextResponse.json({ success: true, data, error: null });
   } catch (err) {

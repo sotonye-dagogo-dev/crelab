@@ -4,8 +4,26 @@ import type { IEmailTemplate, IPlatformConfig } from "@/types";
 
 type TemplateVars = Record<string, string>;
 
+/** Why an email was not dispatched. Surfaced to the UI so users get accurate
+ *  feedback instead of silently assuming a mail was sent. */
+export type EmailNotSentReason =
+  | "template_missing"
+  | "template_disabled"
+  | "resend_not_configured"
+  | "network_error"
+  | "resend_api_error";
+
+export interface EmailSendResult {
+  sent: boolean;
+  preview?: string;
+  reason?: EmailNotSentReason;
+  error?: string;
+}
+
+const RESEND_FETCH_TIMEOUT_MS = 10_000;
+
 function fillTemplate(template: string, vars: TemplateVars): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}`);
 }
 
 function getResendApiKey(): string | null {
@@ -31,12 +49,22 @@ export class EmailService {
     templateKey: string,
     vars: TemplateVars,
     config?: IPlatformConfig,
-  ): Promise<{ sent: boolean; preview?: string }> {
+  ): Promise<EmailSendResult> {
     const cfg = config ?? DEFAULT_CONFIG;
     const template = cfg.emailConfig?.templates?.[templateKey] as IEmailTemplate | undefined;
 
-    if (!template || !template.enabled) {
-      return { sent: false };
+    if (!template) {
+      console.warn(
+        `[EmailService] Template "${templateKey}" not found in config; email NOT sent to ${to}.`,
+      );
+      return { sent: false, reason: "template_missing" };
+    }
+
+    if (!template.enabled) {
+      console.warn(
+        `[EmailService] Template "${templateKey}" is disabled; email NOT sent to ${to}.`,
+      );
+      return { sent: false, reason: "template_disabled" };
     }
 
     const apiKey = getResendApiKey();
@@ -52,43 +80,64 @@ export class EmailService {
     // added via the visual builder) to absolute so they render in email clients.
     const html = resolveRelativeUrlsInHtml(fillTemplate(template.bodyHtml, baseVars));
 
-    if (apiKey) {
-      try {
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            from: `${cfg.emailConfig?.fromName ?? cfg.name} <${cfg.emailConfig?.fromEmail ?? "noreply@crellab.com"}>`,
-            to: [to],
-            subject,
-            html,
-          }),
-        });
-
-        if (!res.ok) {
-          const body = await res.text();
-          console.error("[EmailService] Resend error:", body);
-          return { sent: false, preview: html };
-        }
-
-        return { sent: true };
-      } catch (err) {
-        console.error("[EmailService] Failed to send via Resend:", err);
-        return { sent: false, preview: html };
-      }
+    if (!apiKey) {
+      console.warn(
+        `[EmailService] RESEND_API_KEY not configured; "${templateKey}" email to ${to} NOT sent (preview fallback).`,
+      );
+      return { sent: false, preview: html, reason: "resend_not_configured" };
     }
 
-    return { sent: false, preview: html };
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), RESEND_FETCH_TIMEOUT_MS);
+
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          from: `${cfg.emailConfig?.fromName ?? cfg.name} <${cfg.emailConfig?.fromEmail ?? "noreply@crellab.com"}>`,
+          to: [to],
+          subject,
+          html,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        console.error(
+          `[EmailService] Resend API rejected "${templateKey}" email to ${to} (${res.status} ${res.statusText}):`,
+          body,
+        );
+        return { sent: false, preview: html, reason: "resend_api_error", error: body };
+      }
+
+      return { sent: true };
+    } catch (err) {
+      const isTimeout = controller.signal.aborted;
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[EmailService] Failed to send "${templateKey}" email to ${to}: ${isTimeout ? `timed out after ${RESEND_FETCH_TIMEOUT_MS}ms (network failure)` : message}`,
+      );
+      return {
+        sent: false,
+        preview: html,
+        reason: "network_error",
+        error: isTimeout ? "Request timed out (network failure)" : message,
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   static async sendWelcome(
     to: string,
     userName: string,
     config?: IPlatformConfig,
-  ): Promise<{ sent: boolean; preview?: string }> {
+  ): Promise<EmailSendResult> {
     return EmailService.send(to, "welcome", {
       userName,
       exploreUrl: resolveAbsoluteUrl("/explore"),
@@ -100,7 +149,7 @@ export class EmailService {
     userName: string,
     verifyUrl: string,
     config?: IPlatformConfig,
-  ): Promise<{ sent: boolean; preview?: string }> {
+  ): Promise<EmailSendResult> {
     return EmailService.send(to, "verifyEmail", { userName, verifyUrl }, config);
   }
 
@@ -108,7 +157,7 @@ export class EmailService {
     to: string,
     userName: string,
     config?: IPlatformConfig,
-  ): Promise<{ sent: boolean; preview?: string }> {
+  ): Promise<EmailSendResult> {
     return EmailService.send(to, "emailChanged", { userName }, config);
   }
 
@@ -121,7 +170,7 @@ export class EmailService {
     templateKey: string,
     vars: TemplateVars = {},
     config?: IPlatformConfig,
-  ): Promise<{ sent: boolean; preview?: string }> {
+  ): Promise<EmailSendResult> {
     return EmailService.send(to, templateKey, vars, config);
   }
 
@@ -129,7 +178,7 @@ export class EmailService {
     to: string,
     vars: { userName: string; providerName: string; packageName: string; bookingDate: string; amount: string; bookingUrl: string },
     config?: IPlatformConfig,
-  ): Promise<{ sent: boolean; preview?: string }> {
+  ): Promise<EmailSendResult> {
     return EmailService.send(to, "bookingConfirmation", vars, config);
   }
 
@@ -137,7 +186,7 @@ export class EmailService {
     to: string,
     vars: { userName: string; providerName: string; amount: string; bookingUrl: string },
     config?: IPlatformConfig,
-  ): Promise<{ sent: boolean; preview?: string }> {
+  ): Promise<EmailSendResult> {
     return EmailService.send(to, "paymentReceived", vars, config);
   }
 }

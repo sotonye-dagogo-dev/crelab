@@ -569,14 +569,14 @@ export class DashboardService implements IDashboardService {
 
   private buildQuickActions(platformConfig: Awaited<ReturnType<typeof PlatformConfigService.get>>) {
     const actions: IProviderDashboard["quickActions"] = [
-      { label: "Add Portfolio Item", href: "/profile/edit", variant: "primary" },
-      { label: "Edit Packages", href: "/profile/edit", variant: "accent-outlined" },
+      { label: "Add Portfolio Item", href: "/profile/media", variant: "primary" },
+      { label: "Edit Packages", href: "/profile/setup", variant: "accent-outlined" },
       { label: "My Media", href: "/profile/media", variant: "accent-outlined" },
     ];
     if (platformConfig.features.googleDriveSync !== false) {
       actions.push({
         label: "Sync Google Drive",
-        href: "/profile/edit",
+        href: "/profile/media",
         variant: "ghost",
       });
     }

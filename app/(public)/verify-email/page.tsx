@@ -18,12 +18,18 @@ function VerifyEmailForm() {
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
   const welcomeFired = useRef(false);
+  const [welcomeNotSent, setWelcomeNotSent] = useState(false);
 
   useEffect(() => {
     if (done && !welcomeFired.current) {
       welcomeFired.current = true;
       // Fire welcome email after successful verification (non-blocking).
-      fetch("/api/verify-email/welcome", { method: "POST" }).catch(() => {});
+      fetch("/api/verify-email/welcome", { method: "POST" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => {
+          if (json && json.sent === false) setWelcomeNotSent(true);
+        })
+        .catch(() => {});
     }
   }, [done]);
 
@@ -49,6 +55,17 @@ function VerifyEmailForm() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to send verification email");
+      if (json.sent === false) {
+        const reasonText =
+          json.reason === "Email notifications disabled"
+            ? "Email notifications are currently disabled."
+            : json.reason === "Email sending is not configured"
+              ? "Email sending isn't configured yet."
+              : "We couldn't send the email right now.";
+        setStatus("error");
+        setMessage(`Verification email not sent. ${reasonText} Please try again later.`);
+        return;
+      }
       setStatus("sent");
       setMessage("We've sent a verification link. Check your inbox (and spam folder).");
       setCountdown(RESEND_COOLDOWN_SECONDS);
@@ -71,6 +88,12 @@ function VerifyEmailForm() {
           Your email address is now confirmed. Welcome aboard — we&apos;ve sent you a
           welcome email to get you started.
         </p>
+        {welcomeNotSent && (
+          <p className="text-[12px] text-[var(--color-warning)] mt-2">
+            The welcome email couldn&apos;t be sent right now (email sending isn&apos;t
+            fully configured). You can still explore the platform.
+          </p>
+        )}
         <div className="flex items-center gap-2 mt-6">
           <button
             onClick={() => router.push("/explore")}

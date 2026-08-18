@@ -137,7 +137,18 @@ export function useAuth(): UseAuthReturn {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: userResult.email }),
-        }).catch(() => {});
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((json) => {
+            if (json && json.sent === false) {
+              console.warn(
+                `[useAuth] verification email to ${userResult.email} not sent: ${json.reason ?? "unknown"}`,
+              );
+            }
+          })
+          .catch((err) => {
+            console.error("[useAuth] failed to trigger verification email:", err);
+          });
       }
 
       return userResult;

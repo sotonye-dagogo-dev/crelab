@@ -45,7 +45,7 @@ export function CompletenessBar({ completeness }: { completeness: IProfileComple
         </div>
       </div>
       <Link
-        href="/profile/edit"
+        href="/profile/media"
         className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
       >
         Complete your profile

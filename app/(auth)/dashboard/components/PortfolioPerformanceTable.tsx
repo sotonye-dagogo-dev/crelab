@@ -76,7 +76,7 @@ export function PortfolioPerformanceTable({
               </td>
               <td className="px-4 py-3">
                 <Link
-                  href="/profile/edit"
+                  href="/profile/media"
                   className="text-[12px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 hover:text-[var(--color-text-primary)]"
                 >
                   Manage
