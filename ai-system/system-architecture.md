@@ -121,6 +121,7 @@ Data Stores
    -> blocks serialized via lib/email-blocks blocksToHtml() -> inline-styled email HTML (h1 defaults to #E8FF47)
    -> previews use substituteSampleVars() + previewVarsFor(config)/SAMPLE_EMAIL_VARS ({{name}} = platform name, {{logoUrl}} = configured logo resolved absolute) — relative img/link URLs resolved via lib/url resolveRelativeUrlsInHtml
    -> real sends resolve relative URLs too (EmailService.send runs resolveRelativeUrlsInHtml on the filled HTML)
+    -> template lookup is resilient: resolveEmailTemplate/resolveEmailTemplates (lib/email-templates.ts) merge hardcoded DEFAULT_CONFIG templates under DB-saved ones, so a wired template (e.g. verifyEmail) still applies when it was never saved to the DB (PlatformConfigService re-merges emailConfig on every get)
 2. New templates created via create-new-template modal (added to emailConfig.templates)
 3. Wired (code-triggered) templates — welcome / verifyEmail / emailChanged / bookingConfirmation / paymentReceived / passwordReset (lib/email-templates.ts WIRED_EMAIL_TEMPLATES, each with a trigger description):
    -> preview + Simulate ONLY (useEmailSimulation) — badge + Zap icon + trigger banner in the admin
@@ -234,7 +235,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | CATEGORIES | Category slugs + field schema JSONB | platform.config.ts | ['content-creator', 'cinematographer'] |
 | FEATURES | Feature flags (guest browse, Drive sync, blog) | platform.config.ts | { guestBrowse: true, googleDriveSync: true, blogEnabled: true } |
 | MEDIA_UPLOAD | mediaUpload.enabled / cloudinaryEnabled / maxFileSizeMb / videoTypes / imageTypes / cleanupEnabled / cleanupOrphanAfterHours | platform.config.ts | { enabled: true, cloudinaryEnabled: true, maxFileSizeMb: 100, cleanupEnabled: true, cleanupOrphanAfterHours: 24 } |
-| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged, passwordReset) + fromName/fromEmail | platform.config.ts | template defaults + from settings. Wired (code-triggered) templates are preview/simulate-only; admin-created templates can be sent/broadcast |
+| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged, passwordReset) + fromName/fromEmail | platform.config.ts | template defaults + from settings. Wired (code-triggered) templates are preview/simulate-only; admin-created templates can be sent/broadcast. Templates saved in DB are merged OVER hardcoded defaults (resolveEmailTemplates) so wired templates never silently drop. Sender defaults to a real address on a subdomain (`hello@mail.crellab.com`) — no no-reply; overridable via RESEND_FROM_NAME/RESEND_FROM_EMAIL |
 | BLOG_CONFIG | blogConfig.heroTitle / heroSubtitle / newsletter / footerTagline — drives blog page hero + newsletter section, admin-editable at /admin/blog-templates | platform.config.ts | hero + newsletter defaults |
 | NEXT_PUBLIC_APP_URL | Absolute origin for SEO canonical URLs + email logo links (falls back to VERCEL_URL, then http://localhost:3000) | .env | - |
 | ENABLE_DESIGN_VIEWER | Mounts the dev-only design-asset viewer at `/__design/*`; must be false in production builds | .env | false |

@@ -1,26 +1,20 @@
 # In Progress
 
-**Session 27 — 2026-08-13 (Wired Email Templates + Blog Post Management + Admin Responsive Fixes)**
+**Session 28 — 2026-08-18 (Fix Build — Email Template Fallback + Resend Sender Recommendations)**
 
 ## Directive
 
-- Emails wired into code (welcome, verify email, password reset, etc.) must be marked as code-wired — preview and simulation only, never sendable/broadcastable. Admin-created templates CAN be sent/broadcast.
-- Blog admin beyond templates: making/uploading blog posts with image uploads.
-- Admin sidebar: mobile = hamburger-togglable overlay; collapsibility reserved for desktop.
-- Admin/config pages responsive — padding fixes so text never escapes containers.
+- Vercel logs show `template_missing` for the verify-email flow despite a hardcoded `verifyEmail` template existing → apply hardcoded templates whenever not saved in the DB.
+- Apply Resend recommendations: no "no-reply" sender (decreases trust), and use a subdomain instead of the root domain to segment sending by purpose.
 
 ## DONE
 
-1. ✅ `lib/email-templates.ts` — `WIRED_EMAIL_TEMPLATES` map (6 templates, each with `label` + `trigger`) + `isWiredEmailTemplate()`.
-2. ✅ `/api/admin/email/send` blocks wired keys for test-send + broadcast.
-3. ✅ `/admin/email-templates` — wired badge + Zap icon, Simulate button, trigger banner, sendDialog reset.
-4. ✅ `passwordReset` template in `DEFAULT_CONFIG` + `sendResetPassword` wired in `lib/auth.ts`; `resetUrl` sample var added.
-5. ✅ Blog posts: `blog_posts` table (`0005_blog_posts.sql`) + `BlogPostService` (DB → Sanity → fallback merge, dedup by slug) + admin API (GET/POST, PATCH/DELETE) + `/admin/blog-posts` page + `ImageUploadField` (Cloudinary upload + paste fallback) + public `/blog` + `/blog/[slug]` read via service + `BlogCard`/`sitemap` use `getAllSlugs`.
-6. ✅ Admin sidebar: collapse toggle `hidden lg:block` (mobile = drawer only) + Blog Posts nav item.
-7. ✅ Responsive fixes: `/admin/config` change log via `formatChangeValue()` + `break-words`/`min-w-0`; `ConfigField` fieldControl refactor (stacks on mobile).
-8. ✅ Tests — `__tests__/lib/email-templates.test.ts`. QA gate: typecheck clean, 206/206 tests, build green.
-9. ✅ `update-ai-system.md` — session-log, in-progress, repo-map, dependency-graph, system-architecture, project-plan, task-queue, dev-history, lessons-learned, ai-context reconciled.
+1. ✅ `lib/email-templates.ts` — `resolveEmailTemplates` / `resolveEmailTemplate` / `resolveEmailConfig` (hardcoded defaults merged under DB values; DB wins, defaults fill missing keys, admin-created keys preserved).
+2. ✅ `PlatformConfigService.get()` — re-merges `emailConfig` through `resolveEmailConfig()` so a DB-saved `emailConfig.templates` can't silently drop wired templates.
+3. ✅ `EmailService.send()` — resolves templates via `resolveEmailTemplate()` (defensive fallback); `/api/verify-email/send` + `/api/admin/email/send` use the resolver.
+4. ✅ Sender identity — default `noreply@crellab.com` → `Crellab <hello@mail.crellab.com>` (subdomain, real address). `RESEND_FROM_EMAIL`/`RESEND_FROM_NAME` env overrides via `getResendSender()`; `/api/email/status` reports resolved sender; `/admin/config` hint; `.env.example` updated.
+5. ✅ Tests — email-templates (+6), EmailService (+4). QA gate: typecheck clean, 218/218 tests, lint 0 new warnings, build green.
 
 ## REMAINING
 
-- None — closed out. Apply `drizzle/migrations/0005_blog_posts.sql` to the target DB (journal not regenerated — standalone SQL). Deploy via GitHub Action run.
+- Verify the `mail.` subdomain + sender in the Resend dashboard; set `RESEND_FROM_EMAIL`/`RESEND_FROM_NAME` in Vercel env. Re-test verify-email flow. (Deploy via GitHub Action run.)

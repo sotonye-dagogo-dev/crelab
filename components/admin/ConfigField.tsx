@@ -10,6 +10,7 @@ export interface ConfigFieldProps {
   value: unknown;
   defaultValue: unknown;
   unit?: string;
+  hint?: string;
   onChange: (key: string, value: unknown) => void;
 }
 
@@ -20,6 +21,7 @@ export function ConfigField({
   value,
   defaultValue,
   unit,
+  hint,
   onChange,
 }: ConfigFieldProps) {
   const platformConfig = usePlatformConfig();
@@ -141,7 +143,14 @@ export function ConfigField({
       <span className="text-[13px] font-medium text-[var(--color-text-primary)] sm:min-w-[180px] sm:flex-shrink-0 break-words">
         {label}
       </span>
-      <div className="flex-1 min-w-0 max-w-full sm:max-w-none">{fieldControl}</div>
+      <div className="flex-1 min-w-0 max-w-full sm:max-w-none">
+        {fieldControl}
+        {hint && (
+          <div className="text-[11px] text-[var(--color-text-tertiary)] mt-1.5 leading-relaxed break-words">
+            {hint}
+          </div>
+        )}
+      </div>
       <span className="text-[11px] text-[var(--color-text-tertiary)] sm:min-w-[120px] sm:text-right sm:flex-shrink-0 break-words">
         Default: {displayDefault}
       </span>

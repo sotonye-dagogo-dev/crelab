@@ -1,8 +1,8 @@
 # Project AI Context
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: update-ai-system (Session 28)
+> - last-verified-against-code: 2026-08-18
 > - installed-ai-system-version: 3.0.0
 > - staleness-policy: re-verify before trusting if project structure has changed
 
@@ -75,6 +75,7 @@ Start with: `.ai-system/protocols/entry-protocol.md`
 Active development — Milestones 1.0-1.4 substantially complete. See `.ai-system/summaries/dev-history.md` for sprint log.
 
 **Recently completed:**
+- **Email template fallback + Resend sender recommendations** (Session 28) — `lib/email-templates.ts` `resolveEmailTemplates`/`resolveEmailTemplate`/`resolveEmailConfig` merge hardcoded template defaults under DB-saved ones, so a wired template (e.g. `verifyEmail`) applies even when never saved to the DB; `PlatformConfigService` re-merges `emailConfig` on every read; `EmailService.send` + `/api/verify-email/send` + `/api/admin/email/send` use the resolver (fixes production `template_missing`). Sender identity: dropped `noreply@crellab.com` for `Crellab <hello@mail.crellab.com>` (real address on a `mail.` subdomain per Resend guidance) with `RESEND_FROM_EMAIL`/`RESEND_FROM_NAME` env overrides (`getResendSender`), admin hint on `/admin/config`, `.env.example` updated. 218 tests pass, build green.
 - **Wired email templates + blog post management + admin responsive fixes** (Session 27) — `lib/email-templates.ts` marks the 6 code-triggered emails (welcome, verifyEmail, emailChanged, bookingConfirmation, paymentReceived, passwordReset) as preview/simulate-only; `/api/admin/email/send` rejects wired keys; `passwordReset` template + `sendResetPassword` wiring in `lib/auth.ts`. Blog admin now creates/publishes posts: `blog_posts` table (`0005_blog_posts.sql` — apply manually, journal stale) + `BlogPostService` (DB → Sanity → fallback merge) + `/api/admin/blog-posts` CRUD + `/admin/blog-posts` page + `ImageUploadField` hero uploads; public `/blog` + `/blog/[slug]` render DB posts. Admin sidebar collapse hidden on mobile; `/admin/config` + `ConfigField` responsive. 206 tests pass, build green.
 - **ai-system upgraded to template v3.0.0** (pull-template-update) — skills/, tools/, design-references/ subsystems; 4 new commands; mandatory `Chains to` rows on all commands; engineering principles §11–§24; task-queue/checkpoint coupling + `last-synced` marker; `installed-ai-system-version` baseline set
 - Navbar (fixed, all public pages) with config-driven platform name and auth-aware actions
@@ -86,4 +87,4 @@ Active development — Milestones 1.0-1.4 substantially complete. See `.ai-syste
 - Team page fallback: renders mock data when DB unavailable
 - Design system docs in `.ai-system/` (DESIGN.md, tokens/components/team-page HTML specs)
 
-**Next:** Phase 2: messaging, in-app notification centre, reviews, pricing guidance, identity verification. Integrations (Cloudinary + Resend) are operational-ready — plug in env vars per `.env.example`.
+**Next:** Verify the `mail.` subdomain + sender address in the Resend dashboard, set `RESEND_FROM_EMAIL`/`RESEND_FROM_NAME` in Vercel env, and re-test the verify-email flow. Phase 2: messaging, in-app notification centre, reviews, pricing guidance, identity verification. Integrations (Cloudinary + Resend) are operational-ready — plug in env vars per `.env.example`.
