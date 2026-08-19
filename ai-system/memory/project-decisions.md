@@ -314,6 +314,28 @@ The project's ai-system predated v3 (no `installed-ai-system-version` baseline).
 
 ---
 
+## Persist Wired Email Templates Into the Config Row (Not Only at Read Time)
+
+**Decision:** When wired templates are added to code after an operator has already saved the template set, repair the persisted `platform_config` row (`emailConfig.templates`) to include the full merged set — hardcoded defaults merged under DB/admin values — and log it as an `audit_log` `config.update` entry. The runtime resolver merge (`resolveEmailConfig` in `PlatformConfigService.get()`) stays as the read-time safety net, but the row is repaired so templates are visible/available even on deployments running code without the resolver.
+**Date:** 2026-08-19
+**Made by:** Implementer (per execute-feature directive)
+**Supersedes:** The Session 28 note that "no DB migration is required — the merge re-adds defaults at read time".
+**Superseded by:** None
+
+**Reason:**
+A DB-saved `emailConfig.templates` object replaces the whole template set. The DB held only 4 templates; `verifyEmail`, `emailChanged` and `passwordReset` (added to code in Sessions 27–28) were never saved back, so any deployment running pre-resolver code showed them as missing. Repairing the row makes the fix independent of deploy timing while the resolver keeps future additions safe.
+
+**Alternatives Considered:**
+- Rely solely on the read-time merge — rejected: depends on the fixed code being deployed before operators notice.
+- Wiping the row so defaults apply wholesale — rejected: would drop admin-created templates (e.g. the "Tete" key) and any DB-saved customisation.
+
+**Implications:**
+- Admin edits re-save the full merged set via `/admin/email-templates` (the page already spreads the merged set before writing), so this repair is self-maintaining.
+- Future wired templates added to code should either be merged into the row on deploy or rely on the resolver; prefer the resolver (code) + this repair pattern for existing rows.
+- RLS policy migrations (0002_rls / 0003_wallet_rls) remain unapplied (residual risk): `auth.uid()` (uuid) vs text PKs is invalid here; the app uses the service role and never the Supabase client.
+
+---
+
 ## Centralised AuditService for platform audit trails
 
 **Decision:** All administrative mutations that change platform state write an audit

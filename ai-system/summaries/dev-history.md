@@ -1,8 +1,25 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: Session 30
+> - last-verified-against-code: 2026-08-19
+
+## Sprint 2026-08-19 — DB Migrations Applied + Email Template Resolver Verified on the Real Database
+
+### What
+Ran the pending DB migrations against the connected Supabase database and made the email-template resolver fix actually work on the platform. The persisted `platform_config.emailConfig.templates` row only contained 4 templates; the wired `verifyEmail`, `emailChanged` and `passwordReset` templates (added to code in Sessions 27–28) had never been saved back to the DB, so any deployment running pre-resolver code showed them as missing. Also confirmed the Session 28 resolver fix is sufficient by running the real config service against the DB.
+
+### Why
+"On the platform some templates aren't visible or available." Root cause confirmed as both (a) un-applied migrations and (b) a stale config row: the DB-saved `emailConfig.templates` object replaces the whole set, and only the Session 28 code merge (`resolveEmailConfig` in `PlatformConfigService.get()`) re-adds missing wired defaults at read time — which only works if that code is deployed.
+
+### Key Changes
+- **Migrations applied (idempotent):** `0003_explore.sql` (`providers.search_vector` + `providers_search_idx` GIN index; `featured` already present), `0004_media_assets.sql` (`media_assets` table + `media_asset_status` enum + indexes + FK), `0005_blog_posts.sql` (`blog_posts` table + slug/published/category indexes). Verified in the DB: `media_assets`/`blog_posts` tables and `search_vector` column now exist.
+- **Stale config data repaired:** merged all 6 wired templates into the persisted `emailConfig.templates` row (DB/admin-created keys win; hardcoded defaults fill missing wired keys), with an `audit_log` `config.update` entry recording old → new. Row now holds: Tete, welcome, verifyEmail, emailChanged, passwordReset, paymentReceived, bookingConfirmation.
+- **Resolver verified end-to-end:** `PlatformConfigService.get()` against the real DB resolves all 6 wired templates (bodyHtml + enabled); `/admin/email-templates` lists them; `/api/email/status` reports 6 enabled templates.
+- **RLS policies (0002_rls / 0003_wallet_rls) not applied — residual risk:** policy files compare `auth.uid()` (uuid) to text PKs (`operator does not exist: uuid = text`); app uses the service role (RLS bypassed) and never the Supabase anon/authenticated client, so the layer is inapplicable here.
+
+### Status
+Pass — no application code changed; typecheck clean, 233/233 tests pass, lint no new warnings. DB migrations and the config-data repair are applied to the connected Supabase database.
 
 ## Sprint 2026-08-13 — Wired Email Templates + Blog Post Management + Admin Responsive Fixes
 
