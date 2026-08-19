@@ -12,7 +12,8 @@ export type EmailNotSentReason =
   | "template_disabled"
   | "resend_not_configured"
   | "network_error"
-  | "resend_api_error";
+  | "resend_api_error"
+  | "notifications_disabled";
 
 export interface EmailSendResult {
   sent: boolean;

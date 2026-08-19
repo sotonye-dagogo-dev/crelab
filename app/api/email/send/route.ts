@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const config = await PlatformConfigService.getCached();
 
     if (!config.features?.emailNotifications) {
-      return NextResponse.json({ success: true, sent: false, reason: "Email notifications disabled" });
+      return NextResponse.json({ success: true, sent: false, reason: "notifications_disabled" });
     }
 
     let result: { sent: boolean; preview?: string };

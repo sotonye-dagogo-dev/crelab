@@ -77,9 +77,15 @@ export async function POST(req: NextRequest) {
         action: "email.send.test",
         entity: "emailTemplate",
         entityId: templateKey,
-        newValue: { to, sent: result.sent, templateKey },
+        newValue: { to, sent: result.sent, reason: result.reason, templateKey },
       });
-      return NextResponse.json({ success: true, sent: result.sent, preview: result.preview });
+      return NextResponse.json({
+        success: true,
+        sent: result.sent,
+        preview: result.preview,
+        reason: result.reason,
+        error: result.error,
+      });
     }
 
     // Broadcast to marketing-consented users.
@@ -113,18 +119,31 @@ export async function POST(req: NextRequest) {
 
       let sent = 0;
       let skipped = 0;
+      const failureReasons = new Map<string, number>();
       for (const u of users) {
         const result = await EmailService.sendTemplate(u.email, templateKey, { userName: u.name }, config);
-        if (result.sent) sent++;
-        else skipped++;
+        if (result.sent) {
+          sent++;
+        } else {
+          skipped++;
+          const reason = result.reason ?? "unknown";
+          failureReasons.set(reason, (failureReasons.get(reason) ?? 0) + 1);
+        }
       }
+
+      const reasonSummary =
+        failureReasons.size > 0
+          ? [...failureReasons.entries()]
+              .map(([reason, count]) => `${reason} (${count})`)
+              .join(", ")
+          : null;
 
       await AuditService.log({
         userId: session.user.id,
         action: "email.broadcast",
         entity: "emailTemplate",
         entityId: templateKey,
-        newValue: { segment, sent, skipped, total: users.length },
+        newValue: { segment, sent, skipped, total: users.length, reasonSummary },
       });
 
       return NextResponse.json({
@@ -132,7 +151,10 @@ export async function POST(req: NextRequest) {
         sent,
         skipped,
         total: users.length,
-        message: `Broadcast complete: ${sent} sent, ${skipped} skipped.`,
+        reason: reasonSummary,
+        message:
+          `Broadcast complete: ${sent} sent, ${skipped} skipped.` +
+          (reasonSummary ? ` Failures: ${reasonSummary}.` : ""),
       });
     }
 

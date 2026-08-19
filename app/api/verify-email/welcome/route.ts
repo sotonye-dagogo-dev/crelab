@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const config = await PlatformConfigService.get();
 
     if (!config.features?.emailNotifications) {
-      return NextResponse.json({ success: true, sent: false, reason: "Email notifications disabled" });
+      return NextResponse.json({ success: true, sent: false, reason: "notifications_disabled" });
     }
 
     const result = await EmailService.sendWelcome(session.user.email, session.user.name, config);

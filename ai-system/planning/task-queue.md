@@ -3,7 +3,7 @@
 > **Metadata**
 > - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
-> - last-synced: 2026-08-19 (session-log entry — Session 30, DB migrations run + email template resolver verified on the real DB)
+> - last-synced: 2026-08-19 (session-log entry — Session 31, iron-out: admin blog list merge, card padding, accurate email-send feedback)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -80,6 +80,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | Task | Completed |
 |------|-----------|
 | DB migrations run + email template resolver verified on the real DB: applied `0003_explore.sql` (providers.search_vector + GIN index), `0004_media_assets.sql`, `0005_blog_posts.sql`; repaired stale `emailConfig.templates` config row to persist all 6 wired templates (audit-logged); verified `PlatformConfigService.get()` resolves all 6 wired templates against the live DB. RLS policies (0002/0003_wallet) left unapplied as residual risk (`uuid = text` type mismatch; app uses service role). 233 tests pass, typecheck + lint clean. No app code changed. | 2026-08-19 |
+| Iron-out (Session 31): admin blog-posts list merges seeded fallback posts (no longer empty after migration); email-templates + blog-templates cards gain `p-5 sm:p-6` body padding; email endpoints surface real send results (`notifications_disabled`/`template_disabled`/`template_missing`/`resend_api_error`/`network_error` + error detail) instead of false `sent:true` — `lib/auth.ts` records callback send result, `/api/verify-email/send` + `/api/admin/email/send` return it, admin/public/register/profile UIs map reasons. 233 tests pass, typecheck + build green. | 2026-08-19 |
 | Audit trails + config change-log summary: `AuditService` (log/list/count + actor join), `lib/audit` summarise helpers, `AuditValueCell`, config "Recent Changes" summarised old/new + "Performed By" column, `/api/admin/audit-log` + `/admin/audit-log` page (filters + pagination), sidebar entry, audit logging on every remaining admin mutation (team, users, media, email send/broadcast, blog-posts, bug-reports, disputes), PortfolioPerformanceTable migrated to ClDataTable. 233 tests pass, build green | 2026-08-19 |
 | Wired email templates: `lib/email-templates.ts` (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset — label + trigger), `/api/admin/email/send` wired-key guard, `/admin/email-templates` wired badge/Simulate/banner, `passwordReset` template + Better Auth `sendResetPassword`. Tests: `__tests__/lib/email-templates.test.ts`. 206 tests pass, build green | 2026-08-13 |
 | Blog post management: `blog_posts` table (`0005_blog_posts.sql`) + `BlogPostService` (DB→Sanity→fallback merge) + `/api/admin/blog-posts` CRUD + `/admin/blog-posts` page + `ImageUploadField` hero upload + public `/blog` + `/blog/[slug]` read via service | 2026-08-13 |

@@ -5,6 +5,24 @@ import { db } from "@/lib/db";
 import { phoneNumber } from "better-auth/plugins";
 import { dash } from "@better-auth/infra";
 import * as schema from "@/drizzle/schema";
+import type { EmailSendResult } from "@/services/EmailService";
+
+/**
+ * Holds the outcome of the most recent transactional email send, so API routes
+ * that trigger Better Auth callbacks (which intentionally never fail the auth
+ * flow) can surface the *real* send result to the caller — e.g. when Resend
+ * rejects the request even though the auth API returned 200. Keyed by
+ * template + recipient so concurrent flows don't read a stale result.
+ */
+const lastSendResults = new Map<string, EmailSendResult>();
+
+export function getLastEmailSendResult(templateKey: string, to: string): EmailSendResult | undefined {
+  return lastSendResults.get(`${templateKey}:${to.toLowerCase()}`);
+}
+
+export function clearLastEmailSendResult(templateKey: string, to: string) {
+  lastSendResults.delete(`${templateKey}:${to.toLowerCase()}`);
+}
 
 async function sendTransactionalEmail(
   templateKey: string,
@@ -19,9 +37,14 @@ async function sendTransactionalEmail(
     const config = await PlatformConfigService.get();
     if (!config.features?.emailNotifications) {
       console.warn(`[auth] email "${templateKey}" to ${to} skipped: notifications disabled`);
+      lastSendResults.set(`${templateKey}:${to.toLowerCase()}`, {
+        sent: false,
+        reason: "notifications_disabled",
+      });
       return;
     }
     const result = await EmailService.send(to, templateKey, vars, config);
+    lastSendResults.set(`${templateKey}:${to.toLowerCase()}`, result);
     if (!result.sent) {
       // Email sending must never break the auth flow, but the failure must be
       // visible in logs so it isn't silently swallowed.
@@ -33,6 +56,11 @@ async function sendTransactionalEmail(
   } catch (err) {
     // Email sending must never break the auth flow.
     console.error(`[auth] failed to send ${templateKey} email:`, err);
+    lastSendResults.set(`${templateKey}:${to.toLowerCase()}`, {
+      sent: false,
+      reason: "network_error",
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 

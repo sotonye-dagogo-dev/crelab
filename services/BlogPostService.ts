@@ -197,11 +197,18 @@ export class BlogPostService {
     return out;
   }
 
-  /** Admin — all posts including drafts, newest first. */
+  /**
+   * Admin — all posts including drafts, newest first, merged with the seeded
+   * fallback posts so the admin list is never empty while the public blog shows
+   * content (e.g. right after the migration creates the table but before any
+   * rows are inserted). Admin (DB) posts take precedence over fallback posts.
+   */
   static async adminList(): Promise<IBlogPost[]> {
-    if (!(await isDbAvailable())) return getFallbackPosts();
-    const rows = await db.select().from(blogPosts).orderBy(desc(blogPosts.createdAt));
-    return rows.map(mapRow);
+    const dbAvailable = await isDbAvailable();
+    const rows = dbAvailable
+      ? await db.select().from(blogPosts).orderBy(desc(blogPosts.createdAt))
+      : [];
+    return mergeUnique(rows.map(mapRow), getFallbackPosts());
   }
 
   static async getById(id: string): Promise<IBlogPost | null> {

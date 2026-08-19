@@ -140,11 +140,15 @@ function RegisterForm() {
           .then((json) => {
             if (json && json.sent === false) {
               toast(
-                json.reason === "Email notifications disabled"
+                json.reason === "Email notifications disabled" || json.reason === "notifications_disabled"
                   ? "Welcome email is turned off in settings."
                   : json.reason === "resend_not_configured"
                     ? "Welcome email could not be sent — email sending isn't configured yet."
-                    : "Welcome email could not be sent. You can still continue.",
+                    : json.reason === "resend_api_error"
+                      ? `Welcome email could not be sent — the email provider rejected the request${json.error ? ` (${json.error})` : ""}.`
+                      : json.reason === "network_error"
+                        ? "Welcome email could not be sent — a network error occurred."
+                        : "Welcome email could not be sent. You can still continue.",
                 "error",
               );
             }

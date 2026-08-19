@@ -1,8 +1,24 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: Session 30
+> - last-updated-by: Session 31
 > - last-verified-against-code: 2026-08-19
+
+## Sprint 2026-08-19 — Iron Out: Admin Blog List, Card Padding, Accurate Email-Send Feedback
+
+### What
+Fixed three regressions/gaps: (1) the admin blog-posts list went empty once the `blog_posts` table existed but held no rows (public blog kept showing posts via the fallback merge); (2) email-templates and blog-templates cards had no body padding (ClCard has no default); (3) email endpoints reported `sent: true` even when Resend rejected the send (403), because the Better Auth callback result was swallowed.
+
+### Why
+Migration `0005` (Session 30) created the `blog_posts` table, so `adminList()` returned `[]` instead of the seeded fallback posts the admin previously saw. `ClCard` is a bare surface wrapper — pages that didn't add padding rendered content flush to the border. For emails, the platform API returned HTTP 200/`sent:true` while Resend returned 403 — a false positive that misled users into believing a verification/welcome email was delivered when it was not.
+
+### Key Changes
+- **Blog admin list** — `BlogPostService.adminList()` now merges DB rows with the seeded fallback posts (dedupe by slug, DB wins), so the admin view is never empty while the public blog renders content.
+- **Padding** — `p-5 sm:p-6` added to the email-template editor `ClCard` and the three blog-template `ClCard`s (config + live preview + content sections).
+- **Email feedback accuracy** — `EmailNotSentReason` + `notifications_disabled`; `lib/auth.ts` records the real send result per template/recipient and exposes `getLastEmailSendResult`/`clearLastEmailSendResult`; `/api/verify-email/send` returns the recorded `sent`/`reason`/`error` (preserving anti-enumeration behaviour when no callback ran); `/api/admin/email/send` echoes `reason`/`error` and aggregates broadcast failure reasons; admin/public/register/profile UIs map the full reason enum with actionable messages.
+
+### Status
+Pass — 233/233 tests pass, typecheck clean, ESLint no new warnings (pre-existing only), production build passes.
 
 ## Sprint 2026-08-19 — DB Migrations Applied + Email Template Resolver Verified on the Real Database
 

@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: Session 30
+> - last-updated-by: Session 31
 > - last-verified-against-code: 2026-08-19
 > - staleness-policy: append-only — never modify past entries
 
@@ -1018,3 +1018,28 @@ Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, ident
 
 **Next Task:**
 Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification). Consider end-to-end onboarding journey test against live Supabase + Cloudinary + Resend before wider beta. Cloudinary upload requires an unsigned upload preset named per `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`; Resend requires a verified sending domain for `fromEmail`.
+
+## Session 31 — 2026-08-19 (Iron Out: Admin Blog List, Card Padding, Accurate Email-Send Feedback)
+
+**Directive:** Blog posts stopped loading in the admin blog-posts view (they still load on the public blog page); email-templates and blog-templates pages still have divs missing padding (check nested components); the email service can return HTTP 200/success while Resend rejects the send (403) — responses must surface real feedback instead of false positives.
+
+**Root causes (confirmed by reading code + prod-style logs):**
+1. **Admin blog list empty after migration.** `BlogPostService.adminList()` returned only DB rows once the `blog_posts` table existed (migration `0005` applied in Session 30), so an empty table → `[]`, while the public `list()` merged DB + Sanity + fallback and still rendered posts. The admin list now merges DB rows with the seeded fallback posts (deduped by slug, admin/DB wins), so it is never empty while the public blog shows content.
+2. **Missing card padding.** `ClCard` carries no default padding; the email-templates editor card and all three blog-templates cards placed content directly inside, flush against the border. Added `p-5 sm:p-6` to the affected `ClCard`s (matching profile/config pages). Nested editors already pad their own blocks (`ContentBlocksEditor` `p-3`), and `ClModal`/simulation dialogs already carry padding — verified.
+3. **False-positive email feedback.** Better Auth's `sendVerificationEmail` callback fires `sendTransactionalEmail` → `EmailService.send`, which correctly returned `{ sent:false, reason:"resend_api_error", error }` on a Resend 403 — but `/api/verify-email/send` always reported `{ success:true, sent:true }` because the callback result was swallowed. The send outcome is now recorded per template+recipient in `lib/auth.ts` (`getLastEmailSendResult` / `clearLastEmailSendResult`) and the route reads it back, returning the real `sent`/`reason`/`error`. The admin test-send/broadcast route now echoes `reason`+`error` and aggregates broadcast failure reasons; admin + public UIs map the new enum reasons (`notifications_disabled`, `template_disabled`, `template_missing`, `resend_api_error`, `network_error`) instead of assuming "not configured".
+
+**Completed:**
+- `services/BlogPostService.ts` — `adminList()` merges DB rows + fallback posts.
+- `app/admin/email-templates/page.tsx`, `app/admin/blog-templates/page.tsx` — `p-5 sm:p-6` on the ClCard bodies.
+- `services/EmailService.ts` — `EmailNotSentReason` gained `notifications_disabled`.
+- `lib/auth.ts` — record + expose last send result per template/recipient (set for disabled-notifications, send failure, and caught exceptions).
+- `app/api/verify-email/send/route.ts` — clears, triggers Better Auth, then returns the recorded send outcome (or config-derived reasons when the callback never ran / account not found / already verified, preserving anti-enumeration behaviour).
+- `app/api/admin/email/send/route.ts` — test-send includes `reason`+`error`; broadcast aggregates failure reasons into the audit log + response message.
+- `app/api/email/send`, `app/api/email/welcome`, `app/api/verify-email/welcome` — emit enum `notifications_disabled` reason (consistency).
+- `app/(auth)/profile/page.tsx`, `app/(auth)/register/page.tsx`, `app/(public)/verify-email/page.tsx` — reason mapping covers the full enum with actionable messages.
+
+**Files Modified:** the 13 files listed above (no new files; no architecture change).
+
+**QA Gate:** `npx vitest run` 233/233 pass, `tsc --noEmit` clean, `npm run build` (ESLint + Next production build) passes — warnings are pre-existing and outside changed files.
+
+**Next Task:** None queued from this directive. Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification) remains the open track.

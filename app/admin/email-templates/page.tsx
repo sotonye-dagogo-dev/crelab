@@ -104,9 +104,17 @@ export default function AdminEmailTemplatesPage() {
     onSuccess: (result) => {
       setSendDialog(null);
       setTestTo("");
-      if (result.message) toast(result.message, "success");
+      if (result.message) toast(result.message, result.skipped ? "info" : "success");
       else if (result.sent) toast("Test email sent successfully", "success");
-      else toast("Resend is not configured — email logged to console instead.", "info");
+      else if (result.reason === "resend_api_error")
+        toast(`Test email not sent — the email provider rejected the request${result.error ? `: ${result.error}` : ""}.`, "error");
+      else if (result.reason === "network_error")
+        toast("Test email not sent — a network error occurred.", "error");
+      else if (result.reason === "template_disabled" || result.reason === "template_missing")
+        toast("Test email not sent — the template isn't available.", "error");
+      else if (result.reason === "resend_not_configured")
+        toast("Email sending isn't configured — the email was logged to console instead.", "info");
+      else toast("Test email could not be sent.", "error");
     },
     onError: (err: Error) => {
       toast(err.message, "error");
@@ -301,7 +309,7 @@ export default function AdminEmailTemplatesPage() {
 
         <div className="flex-1 min-w-0">
           {activeTemplate ? (
-            <ClCard>
+            <ClCard className="p-5 sm:p-6">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
