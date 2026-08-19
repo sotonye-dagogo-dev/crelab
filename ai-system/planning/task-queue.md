@@ -79,6 +79,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Audit trails + config change-log summary: `AuditService` (log/list/count + actor join), `lib/audit` summarise helpers, `AuditValueCell`, config "Recent Changes" summarised old/new + "Performed By" column, `/api/admin/audit-log` + `/admin/audit-log` page (filters + pagination), sidebar entry, audit logging on every remaining admin mutation (team, users, media, email send/broadcast, blog-posts, bug-reports, disputes), PortfolioPerformanceTable migrated to ClDataTable. 233 tests pass, build green | 2026-08-19 |
 | Wired email templates: `lib/email-templates.ts` (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset — label + trigger), `/api/admin/email/send` wired-key guard, `/admin/email-templates` wired badge/Simulate/banner, `passwordReset` template + Better Auth `sendResetPassword`. Tests: `__tests__/lib/email-templates.test.ts`. 206 tests pass, build green | 2026-08-13 |
 | Blog post management: `blog_posts` table (`0005_blog_posts.sql`) + `BlogPostService` (DB→Sanity→fallback merge) + `/api/admin/blog-posts` CRUD + `/admin/blog-posts` page + `ImageUploadField` hero upload + public `/blog` + `/blog/[slug]` read via service | 2026-08-13 |
 | Admin responsive: sidebar collapse hidden on mobile (hamburger overlay only), `/admin/config` change log `formatChangeValue()` + `break-words`, `ConfigField` responsive stacking | 2026-08-13 |

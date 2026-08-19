@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { BlogPostService } from "@/services/BlogPostService";
+import { AuditService } from "@/services/AuditService";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const { id } = await params;
     const body = await req.json();
+
+    const existing = await BlogPostService.getById(id);
 
     const post = await BlogPostService.update(id, {
       title: body.title,
@@ -29,6 +32,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       );
     }
 
+    await AuditService.log({
+      userId: session.user.id,
+      action: "blogPost.update",
+      entity: "blogPosts",
+      entityId: id,
+      oldValue: existing
+        ? { title: existing.title, slug: existing.slug.current, published: Boolean(existing.publishedAt) }
+        : null,
+      newValue: {
+        title: post.title,
+        slug: post.slug.current,
+        category: post.category,
+        published: Boolean(post.publishedAt),
+      },
+    });
+
     return NextResponse.json({ success: true, data: post });
   } catch (err) {
     if (err instanceof Error && (err.message === "Forbidden" || err.message === "Unauthorized")) {
@@ -44,8 +63,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const { id } = await params;
+    const existing = await BlogPostService.getById(id);
     const removed = await BlogPostService.remove(id);
 
     if (!removed) {
@@ -54,6 +74,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
         { status: 404 },
       );
     }
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "blogPost.delete",
+      entity: "blogPosts",
+      entityId: id,
+      oldValue: existing
+        ? { title: existing.title, slug: existing.slug.current, published: Boolean(existing.publishedAt) }
+        : null,
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

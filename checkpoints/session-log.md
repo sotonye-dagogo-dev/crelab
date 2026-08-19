@@ -63,3 +63,39 @@ Made the prototype truly interactable by enabling mock data mode, adding mock fa
 - Cloudinary and Google Drive API keys not configured — portfolio upload features won't work
 - Build verification blocked by SWC platform incompatibility on Windows (type checks pass)
 - Auth flow (login/register) depends on Better Auth at production URL — not verified locally
+---
+
+## 2026-08-19 — Audit trails across the platform + config change-log summary + table wrapper polish
+
+### Summary
+Ironed out three things from alpha testing: the config "Recent Changes" table now
+summarises/serialises old/new values instead of dumping entire HTML template bodies,
+every audit entry surfaces the performer (actor name/email), audit logging was applied
+to every remaining admin mutation, and the global table wrapper (ClDataTable) was
+verified/used everywhere with pagination, responsiveness and overflow handling.
+
+### Key Changes
+- `services/AuditService.ts` (new) — centralised `log()` + `list()`/`count()`; `list()`
+  left-joins the actor user so UIs can show who performed each action.
+- `lib/audit.ts` (new) — pure `serializeAuditValue` / `summarizeAuditValue` /
+  `describeAuditValue` helpers (collapse long HTML values, expand to full value).
+- `components/admin/AuditValueCell.tsx` (new) — reusable collapsed↔expanded value cell
+  used by the config change log and the new audit-log page.
+- `app/api/admin/config/route.ts` — `?log=true` now returns actor name/email via
+  AuditService instead of raw rows.
+- `app/admin/config/page.tsx` — old/new values rendered through `AuditValueCell` +
+  new "Performed By" column.
+- `app/api/admin/audit-log/route.ts` (new) — paginated, filterable audit listing.
+- `app/admin/audit-log/page.tsx` (new) — admin page with entity/action filters,
+  server-side pagination, actor + summarised values.
+- `components/admin/AdminSidebar.tsx` — added "Audit Log" nav item.
+- Audit logging added to: team POST/PATCH/DELETE/batch, users PATCH/DELETE,
+  media cleanup + delete, email test/broadcast sends, blog-posts POST/PATCH/DELETE,
+  bug-reports PATCH, disputes resolve.
+- `app/(auth)/dashboard/components/PortfolioPerformanceTable.tsx` — migrated from raw
+  `<table>` markup to the universal `ClDataTable` (pagination + overflow + empty state).
+- Tests: `__tests__/services/AuditService.test.ts` + `__tests__/lib/audit.test.ts`.
+
+### Status
+Pass — typecheck clean, 233 tests pass (15 new), lint has no new warnings, production
+build passes.

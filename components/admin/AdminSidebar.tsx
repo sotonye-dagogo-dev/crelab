@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  History,
 } from "lucide-react";
 import { ClLogo } from "@/components/ui";
 
@@ -27,6 +28,11 @@ const navItems = [
     label: "Config",
     href: "/admin/config",
     icon: <Settings size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "Audit Log",
+    href: "/admin/audit-log",
+    icon: <History size={16} strokeWidth={1.5} />,
   },
   {
     label: "Categories",

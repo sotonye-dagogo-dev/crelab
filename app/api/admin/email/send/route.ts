@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { user, consentRecords } from "@/drizzle/schema";
 import { inArray } from "drizzle-orm";
 import { ConsentType } from "@/types";
+import { AuditService } from "@/services/AuditService";
 import { isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-templates";
 
 /**
@@ -17,7 +18,7 @@ import { isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-template
  */
 export async function POST(req: NextRequest) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const { templateKey, to, segment } = await req.json();
 
     if (!templateKey) {
@@ -71,6 +72,13 @@ export async function POST(req: NextRequest) {
     // Test send to a specific address.
     if (to) {
       const result = await EmailService.sendTemplate(to, templateKey, { userName: "there" }, config);
+      await AuditService.log({
+        userId: session.user.id,
+        action: "email.send.test",
+        entity: "emailTemplate",
+        entityId: templateKey,
+        newValue: { to, sent: result.sent, templateKey },
+      });
       return NextResponse.json({ success: true, sent: result.sent, preview: result.preview });
     }
 
@@ -83,6 +91,13 @@ export async function POST(req: NextRequest) {
 
       const userIds = granted.map((r) => r.userId);
       if (userIds.length === 0) {
+        await AuditService.log({
+          userId: session.user.id,
+          action: "email.broadcast",
+          entity: "emailTemplate",
+          entityId: templateKey,
+          newValue: { segment, sent: 0, skipped: 0, total: 0 },
+        });
         return NextResponse.json({
           success: true,
           sent: 0,
@@ -103,6 +118,14 @@ export async function POST(req: NextRequest) {
         if (result.sent) sent++;
         else skipped++;
       }
+
+      await AuditService.log({
+        userId: session.user.id,
+        action: "email.broadcast",
+        entity: "emailTemplate",
+        entityId: templateKey,
+        newValue: { segment, sent, skipped, total: users.length },
+      });
 
       return NextResponse.json({
         success: true,

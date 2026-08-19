@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { MediaAssetService } from "@/services/MediaAssetService";
+import { AuditService } from "@/services/AuditService";
 
 export async function GET() {
   try {
@@ -14,7 +15,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const body = (await req.json().catch(() => ({}))) as {
       dryRun?: boolean;
       olderThanHours?: number;
@@ -22,6 +23,12 @@ export async function POST(req: NextRequest) {
     const result = await MediaAssetService.cleanupOrphans({
       dryRun: body.dryRun ?? false,
       olderThanHours: body.olderThanHours,
+    });
+    await AuditService.log({
+      userId: session.user.id,
+      action: "media.cleanup",
+      entity: "media",
+      newValue: result,
     });
     return NextResponse.json({ success: true, data: result });
   } catch (err) {

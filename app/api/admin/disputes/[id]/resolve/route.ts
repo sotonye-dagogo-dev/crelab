@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { disputes } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { EscrowService } from "@/services/EscrowService";
+import { AuditService } from "@/services/AuditService";
 
 export async function POST(
   req: NextRequest,
@@ -49,6 +50,15 @@ export async function POST(
       outcome as "RELEASED" | "REFUNDED",
       adminNotes ?? "",
     );
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "dispute.resolve",
+      entity: "disputes",
+      entityId: disputeId,
+      oldValue: { outcome: existing[0].outcome },
+      newValue: { outcome, adminNotes: adminNotes ?? "" },
+    });
 
     return NextResponse.json({ success: true, data: result });
   } catch (err) {

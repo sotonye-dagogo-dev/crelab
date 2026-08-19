@@ -311,3 +311,36 @@ The project's ai-system predated v3 (no `installed-ai-system-version` baseline).
 - `installed-ai-system-version: 3.0.0` is recorded in `ai-context.md` — `pull-template-update.md` now has a baseline for future comparisons.
 - Every command now declares a `Chains to` row; `verify-work.md` / `audit-drift.md` mechanically check chain order and task-queue coupling.
 - New v3 catalogs (`skills/`, `tools/registry.md`, `design-references/`) are live; agents consult `tools/registry.md` before doing by hand what a registered tool does.
+
+---
+
+## Centralised AuditService for platform audit trails
+
+**Decision:** All administrative mutations that change platform state write an audit
+row through `services/AuditService.log(...)`, and every audit read goes through
+`AuditService.list()/count()` which left-joins the acting user so UIs can display the
+performer (name + email). The config "Recent Changes" table and the new `/admin/audit-log`
+page render old/new values through `AuditValueCell`, which summarises long values (e.g.
+full HTML template bodies) to a one-line preview with an expand-to-full action.
+**Date:** 2026-08-19
+**Made by:** Implementer (per issue execute-feature directive)
+**Supersedes:** The ad-hoc `auditLog` inserts in individual routes.
+**Superseded by:** None
+
+**Reason:**
+Alpha-testing feedback: (1) editing an email template showed the entire HTML body in the
+change-log old/new columns; (2) the person who made a change was never shown; (3) audit
+logging existed only for config updates, providers and account export/delete, so most
+admin actions were invisible to history.
+
+**Alternatives Considered:**
+- Keep per-route `auditLog` inserts — rejected: inconsistent action/entity naming and no
+  way to join the actor for display without duplicating the query everywhere.
+- Store summaries at write time — rejected: losing the full old/new value makes future
+  diff tooling impossible; summarising at render time preserves both.
+
+**Implications:**
+- New admin mutations should call `AuditService.log()` rather than inserting into
+  `audit_log` directly.
+- `AuditValueCell` is the single place that renders audit values; adopt it wherever
+  audit history is shown so long values stay collapsed by default.

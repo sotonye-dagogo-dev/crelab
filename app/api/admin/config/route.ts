@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { auditLog } from "@/drizzle/schema";
-import { eq, desc } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { AuditService } from "@/services/AuditService";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,23 +11,14 @@ export async function GET(req: NextRequest) {
     const isLog = searchParams.get("log") === "true";
 
     if (isLog) {
-      const logs = await db
-        .select()
-        .from(auditLog)
-        .where(eq(auditLog.action, "config.update"))
-        .orderBy(desc(auditLog.createdAt))
-        .limit(50);
+      const logs = await AuditService.list({
+        action: "config.update",
+        limit: 50,
+      });
 
       return NextResponse.json({
         success: true,
-        data: logs.map((l) => ({
-          id: l.id,
-          entity: l.entity,
-          oldValue: l.oldValue,
-          newValue: l.newValue,
-          createdAt: l.createdAt.toISOString(),
-          userId: l.userId,
-        })),
+        data: logs,
       });
     }
 
