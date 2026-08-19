@@ -177,7 +177,7 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     // purpose and root-domain reputation is protected. The `mail.` subdomain must
     // be verified in the Resend dashboard. Override per environment via
     // RESEND_FROM_EMAIL / RESEND_FROM_NAME.
-    fromEmail: "hello@mail.crellab.com",
+    fromEmail: "mail@crellab.com",
     templates: {
       welcome: {
         name: "Welcome",
