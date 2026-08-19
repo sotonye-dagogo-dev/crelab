@@ -6,6 +6,7 @@ export { ClTextarea } from "./ClTextarea";
 export { ClSelect } from "./ClSelect";
 export { ClBadge } from "./ClBadge";
 export { ClDialog } from "./ClDialog";
+export { ClModal } from "./ClModal";
 export { ClSheet } from "./ClSheet";
 export { ClTabs, ClTabsList, ClTabsTrigger, ClTabsContent } from "./ClTabs";
 export { ClAvatar } from "./ClAvatar";

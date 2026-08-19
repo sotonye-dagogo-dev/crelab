@@ -168,6 +168,7 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
       successMessage: "You're on the list — check your inbox for the first issue.",
     },
     footerTagline: "Get hired for your creativity, not your follower count.",
+    sectionOrder: ["posts", "sections", "newsletter", "footer"],
   },
   emailConfig: {
     fromName: "Crellab",

@@ -6,8 +6,8 @@ import { ClButton, ClCard } from "@/components/ui";
 import { ContentBlocksEditor } from "@/components/admin/ContentBlocksEditor";
 import { ContentBlocks } from "@/components/blog/ContentBlocks";
 import { useToast } from "@/lib/toast";
-import { Eye } from "lucide-react";
-import type { IBlogConfig, EmailTemplateBlock } from "@/types";
+import { ArrowUp, ArrowDown, Eye } from "lucide-react";
+import type { BlogPageSection, IBlogConfig, EmailTemplateBlock } from "@/types";
 
 const inputClass =
   "h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none w-full focus:border-[var(--color-accent)]";
@@ -28,6 +28,16 @@ const DEFAULT_BLOG: IBlogConfig = {
     successMessage: "You're on the list — check your inbox for the first issue.",
   },
   footerTagline: "Get hired for your creativity, not your follower count.",
+  sectionOrder: ["posts", "sections", "newsletter", "footer"],
+};
+
+const DEFAULT_SECTION_ORDER: BlogPageSection[] = ["posts", "sections", "newsletter", "footer"];
+
+const SECTION_LABELS: Record<BlogPageSection, string> = {
+  posts: "Posts grid",
+  sections: "Content sections",
+  newsletter: "Newsletter",
+  footer: "Footer tagline",
 };
 
 export default function AdminBlogTemplatesPage() {
@@ -53,6 +63,19 @@ export default function AdminBlogTemplatesPage() {
       setBlocks(cfg.sections?.length ? [...cfg.sections] : null);
     }
   }, [data]);
+
+  const sectionOrder: BlogPageSection[] = blog?.sectionOrder?.length
+    ? blog.sectionOrder
+    : DEFAULT_SECTION_ORDER;
+
+  const moveSection = (index: number, delta: number) => {
+    if (!blog) return;
+    const next = [...sectionOrder];
+    const target = index + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setBlog({ ...blog, sectionOrder: next });
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (payload: { key: string; value: unknown }) => {
@@ -163,6 +186,46 @@ export default function AdminBlogTemplatesPage() {
               <label className={labelClass}>Footer tagline</label>
               <input className={inputClass} value={cfg.footerTagline} onChange={(e) => setBlog({ ...cfg, footerTagline: e.target.value })} />
             </div>
+
+            <div className="border-t border-[var(--color-border)] pt-4">
+              <label className={labelClass}>Section order</label>
+              <div className="text-[12px] text-[var(--color-text-secondary)] mt-0.5 mb-3">
+                The hero (and category chips) always stays at the top. Reorder the
+                remaining landing-page sections — e.g. lift the newsletter above the
+                posts grid.
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {sectionOrder.map((section, index) => (
+                  <div
+                    key={section}
+                    className="flex items-center gap-2 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-2"
+                  >
+                    <span className="text-[12px] text-[var(--color-text-tertiary)] w-5 flex-shrink-0">
+                      {index + 1}
+                    </span>
+                    <span className="flex-1 min-w-0 text-[13px] font-medium text-[var(--color-text-primary)] truncate">
+                      {SECTION_LABELS[section]}
+                    </span>
+                    <button
+                      onClick={() => moveSection(index, -1)}
+                      disabled={index === 0}
+                      className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] cursor-pointer disabled:opacity-40 border-none bg-transparent"
+                      aria-label={`Move ${SECTION_LABELS[section]} up`}
+                    >
+                      <ArrowUp size={14} strokeWidth={2} />
+                    </button>
+                    <button
+                      onClick={() => moveSection(index, 1)}
+                      disabled={index === sectionOrder.length - 1}
+                      className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] cursor-pointer disabled:opacity-40 border-none bg-transparent"
+                      aria-label={`Move ${SECTION_LABELS[section]} down`}
+                    >
+                      <ArrowDown size={14} strokeWidth={2} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </ClCard>
 
@@ -179,35 +242,47 @@ export default function AdminBlogTemplatesPage() {
               {cfg.heroSubtitle || "—"}
             </p>
 
-            {cfg.newsletter.enabled && (
-              <div className="mt-6 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-6 text-center">
-                <h4 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)]">
-                  {cfg.newsletter.title || "—"}
-                </h4>
-                <p className="text-[13px] text-[var(--color-text-secondary)] mt-1.5 max-w-[360px] mx-auto leading-normal">
-                  {cfg.newsletter.subtitle || "—"}
-                </p>
-                <div className="flex items-center gap-2 justify-center mt-4">
-                  <span className="h-9 flex-1 max-w-[240px] rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)]" />
-                  <span className="h-9 px-4 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] inline-flex items-center text-[13px] font-semibold">
-                    {cfg.newsletter.buttonLabel || "Subscribe"}
-                  </span>
-                </div>
-              </div>
-            )}
+            {sectionOrder.map((section) => {
+              if (section === "newsletter") {
+                return cfg.newsletter.enabled ? (
+                  <div key={section} className="mt-6 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-6 text-center">
+                    <h4 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)]">
+                      {cfg.newsletter.title || "—"}
+                    </h4>
+                    <p className="text-[13px] text-[var(--color-text-secondary)] mt-1.5 max-w-[360px] mx-auto leading-normal">
+                      {cfg.newsletter.subtitle || "—"}
+                    </p>
+                    <div className="flex items-center gap-2 justify-center mt-4">
+                      <span className="h-9 flex-1 max-w-[240px] rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)]" />
+                      <span className="h-9 px-4 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] inline-flex items-center text-[13px] font-semibold">
+                        {cfg.newsletter.buttonLabel || "Subscribe"}
+                      </span>
+                    </div>
+                  </div>
+                ) : null;
+              }
 
-            {blocks && blocks.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-[var(--color-border)]">
-                <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] mb-4">
-                  Content sections
-                </div>
-                <ContentBlocks blocks={blocks} />
-              </div>
-            )}
+              if (section === "sections") {
+                return blocks && blocks.length > 0 ? (
+                  <div key={section} className="mt-6 pt-4 border-t border-[var(--color-border)]">
+                    <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] mb-4">
+                      Content sections
+                    </div>
+                    <ContentBlocks blocks={blocks} />
+                  </div>
+                ) : null;
+              }
 
-            <div className="mt-6 pt-4 border-t border-[var(--color-border)] text-center text-[12px] text-[var(--color-text-tertiary)]">
-              {cfg.footerTagline || "—"}
-            </div>
+              if (section === "footer") {
+                return (
+                  <div key={section} className="mt-6 pt-4 border-t border-[var(--color-border)] text-center text-[12px] text-[var(--color-text-tertiary)]">
+                    {cfg.footerTagline || "—"}
+                  </div>
+                );
+              }
+
+              return null;
+            })}
           </div>
         </ClCard>
       </div>
