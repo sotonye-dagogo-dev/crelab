@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { BlogPostService } from "@/services/BlogPostService";
+import { AuditService } from "@/services/AuditService";
 
 export async function GET() {
   try {
@@ -21,7 +22,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const body = await req.json();
 
     if (!body.title || !body.slug || !body.category || !body.author) {
@@ -42,6 +43,19 @@ export async function POST(req: NextRequest) {
       author: body.author,
       published: Boolean(body.published),
       spotlightProviderSlug: body.spotlightProviderSlug ?? undefined,
+    });
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "blogPost.create",
+      entity: "blogPosts",
+      entityId: post._id,
+      newValue: {
+        title: post.title,
+        slug: post.slug.current,
+        category: post.category,
+        published: Boolean(post.publishedAt),
+      },
     });
 
     return NextResponse.json({ success: true, data: post }, { status: 201 });

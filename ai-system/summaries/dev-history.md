@@ -1,8 +1,25 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: Session 30
+> - last-verified-against-code: 2026-08-19
+
+## Sprint 2026-08-19 — DB Migrations Applied + Email Template Resolver Verified on the Real Database
+
+### What
+Ran the pending DB migrations against the connected Supabase database and made the email-template resolver fix actually work on the platform. The persisted `platform_config.emailConfig.templates` row only contained 4 templates; the wired `verifyEmail`, `emailChanged` and `passwordReset` templates (added to code in Sessions 27–28) had never been saved back to the DB, so any deployment running pre-resolver code showed them as missing. Also confirmed the Session 28 resolver fix is sufficient by running the real config service against the DB.
+
+### Why
+"On the platform some templates aren't visible or available." Root cause confirmed as both (a) un-applied migrations and (b) a stale config row: the DB-saved `emailConfig.templates` object replaces the whole set, and only the Session 28 code merge (`resolveEmailConfig` in `PlatformConfigService.get()`) re-adds missing wired defaults at read time — which only works if that code is deployed.
+
+### Key Changes
+- **Migrations applied (idempotent):** `0003_explore.sql` (`providers.search_vector` + `providers_search_idx` GIN index; `featured` already present), `0004_media_assets.sql` (`media_assets` table + `media_asset_status` enum + indexes + FK), `0005_blog_posts.sql` (`blog_posts` table + slug/published/category indexes). Verified in the DB: `media_assets`/`blog_posts` tables and `search_vector` column now exist.
+- **Stale config data repaired:** merged all 6 wired templates into the persisted `emailConfig.templates` row (DB/admin-created keys win; hardcoded defaults fill missing wired keys), with an `audit_log` `config.update` entry recording old → new. Row now holds: Tete, welcome, verifyEmail, emailChanged, passwordReset, paymentReceived, bookingConfirmation.
+- **Resolver verified end-to-end:** `PlatformConfigService.get()` against the real DB resolves all 6 wired templates (bodyHtml + enabled); `/admin/email-templates` lists them; `/api/email/status` reports 6 enabled templates.
+- **RLS policies (0002_rls / 0003_wallet_rls) not applied — residual risk:** policy files compare `auth.uid()` (uuid) to text PKs (`operator does not exist: uuid = text`); app uses the service role (RLS bypassed) and never the Supabase anon/authenticated client, so the layer is inapplicable here.
+
+### Status
+Pass — no application code changed; typecheck clean, 233/233 tests pass, lint no new warnings. DB migrations and the config-data repair are applied to the connected Supabase database.
 
 ## Sprint 2026-08-13 — Wired Email Templates + Blog Post Management + Admin Responsive Fixes
 
@@ -304,3 +321,42 @@ The user obtained real Cloudinary + Resend API keys and needs the systems to wor
 
 ### Status
 Pass — typecheck clean, 151 tests pass (11 new), lint has no new warnings, production build passes.
+
+## Sprint 2026-08-19 — Audit trails across the platform + config change-log summary + table wrapper polish
+
+### What
+Applied audit trails everywhere an admin mutates platform state, made the config
+"Recent Changes" table summarise/serialise old/new values (no more full HTML template
+dumps), captured the performer on every audit entry, and routed the last raw table
+(portfolio performance) through the universal `ClDataTable` wrapper.
+
+### Why
+Alpha-testing feedback: editing an email template produced a change-log row whose
+old/new columns contained the entire HTML body; the person who made the change was
+never shown; and audit logging only existed for config updates, providers and account
+export/delete — every other admin mutation (team, users, media, email sends, blog
+posts, bug reports, dispute resolution) was invisible to history.
+
+### Key Changes
+- **`services/AuditService.ts`** (new): centralised `log()` + `list()`/`count()`.
+  `list()` left-joins the actor so entries carry `actorName`/`actorEmail`.
+- **`lib/audit.ts`** (new): pure helpers that serialise any value and collapse long
+  values (HTML bodies) to a one-line summary with an expand-to-full action.
+- **`components/admin/AuditValueCell.tsx`** (new): reusable collapsed↔expanded value
+  cell used by both the config change log and the audit-log page.
+- **`app/api/admin/config/route.ts`**: `?log=true` now returns actor info via
+  AuditService.
+- **`app/admin/config/page.tsx`**: summarised old/new values + "Performed By" column.
+- **`app/api/admin/audit-log/route.ts` + `app/admin/audit-log/page.tsx`** (new):
+  paginated, filterable full audit-trail view (entity/action filters, actor, values).
+- **`components/admin/AdminSidebar.tsx`**: "Audit Log" nav item added.
+- **Audit logging added to** all remaining admin mutations: team create/update/delete/
+  batch, user update/delete, media cleanup + delete, email test + broadcast sends,
+  blog post create/update/delete, bug-report updates, dispute resolution.
+- **`app/(auth)/dashboard/components/PortfolioPerformanceTable.tsx`**: migrated from
+  raw `<table>` to `ClDataTable` (pagination + horizontal overflow + empty state).
+- **Tests**: `__tests__/services/AuditService.test.ts` (4), `__tests__/lib/audit.test.ts`
+  (11) — 233 total, all pass.
+
+### Status
+Pass — typecheck clean, 233 tests pass, lint has no new warnings, production build passes.

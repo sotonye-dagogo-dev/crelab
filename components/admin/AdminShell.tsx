@@ -39,7 +39,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg)]">
+    <div className="flex min-h-screen bg-[var(--color-bg)] lg:-mt-16">
       <AdminSidebar
         collapsed={collapsed}
         mobileOpen={mobileOpen}
@@ -59,11 +59,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <ClLogo variant="icon" showName iconWidth={22} iconHeight={22} />
       </div>
 
-      <main
-        className={`flex-1 min-w-0 transition-[margin-left] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] pt-14 lg:pt-0 ${
-          collapsed ? "lg:ml-[72px]" : "lg:ml-[240px]"
-        }`}
-      >
+      <main className="flex-1 min-w-0 pt-14 lg:pt-0">
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
     </div>

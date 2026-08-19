@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -18,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
+  History,
 } from "lucide-react";
 import { ClLogo } from "@/components/ui";
 
@@ -26,6 +28,11 @@ const navItems = [
     label: "Config",
     href: "/admin/config",
     icon: <Settings size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "Audit Log",
+    href: "/admin/audit-log",
+    icon: <History size={16} strokeWidth={1.5} />,
   },
   {
     label: "Categories",
@@ -157,24 +164,32 @@ export function AdminSidebar({
           collapsed ? "justify-center px-2" : ""
         }`}
       >
-        <div className="w-7 h-7 rounded-full bg-[var(--color-surface-raised)] flex items-center justify-center text-[11px] font-semibold text-[var(--color-text-secondary)] flex-shrink-0">
-          {user?.name?.[0]?.toUpperCase() ?? "A"}
-        </div>
-        {!collapsed && (
-          <>
+        <Link
+          href="/profile"
+          title={collapsed ? "View profile" : undefined}
+          className={`flex items-center gap-3 min-w-0 no-underline rounded-[8px] hover:bg-[var(--color-surface-raised)] ${
+            collapsed ? "justify-center px-1 py-1" : "px-2 py-1 flex-1"
+          }`}
+        >
+          <div className="w-7 h-7 rounded-full bg-[var(--color-surface-raised)] flex items-center justify-center text-[11px] font-semibold text-[var(--color-text-secondary)] flex-shrink-0">
+            {user?.name?.[0]?.toUpperCase() ?? "A"}
+          </div>
+          {!collapsed && (
             <div className="flex-1 min-w-0">
               <div className="text-[12px] text-[var(--color-text-secondary)] truncate">
                 {user?.name ?? "Admin"}
               </div>
             </div>
-            <button
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer bg-transparent border-none shrink-0 disabled:opacity-50"
-            >
-              {signingOut ? "Signing out…" : "Sign out"}
-            </button>
-          </>
+          )}
+        </Link>
+        {!collapsed && (
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer bg-transparent border-none shrink-0 disabled:opacity-50"
+          >
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
         )}
       </div>
 
@@ -204,10 +219,12 @@ export function AdminSidebar({
 
   return (
     <>
-      {/* Desktop sidebar (md and up) — fixed, collapsible */}
+      {/* Desktop sidebar (lg and up) — sticky so it scrolls with the admin content
+          and ends at the bottom of the admin wrapper instead of covering the app
+          footer that sits below the admin content. Collapsible via onToggle. */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-30 hidden lg:flex flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)] transition-[width] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          collapsed ? "w-[72px]" : "w-[240px]"
+        className={`hidden lg:sticky lg:flex top-0 h-screen z-30 flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)] transition-[width] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] flex-shrink-0 ${
+          collapsed ? "lg:w-[72px]" : "lg:w-[240px]"
         }`}
       >
         {navContent}

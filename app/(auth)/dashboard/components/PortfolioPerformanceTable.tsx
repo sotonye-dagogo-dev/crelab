@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Play, FileText, Image as ImageIcon } from "lucide-react";
+import { ClDataTable, type ClColumn } from "@/components/ui";
 import type { IPortfolioPerformanceRow } from "@/types";
 
 function typeIcon(mimeType: string) {
@@ -15,77 +16,86 @@ function typeLabel(mimeType: string) {
   return "FILE";
 }
 
-export function PortfolioPerformanceTable({
-  rows,
-}: {
-  rows: IPortfolioPerformanceRow[];
-}) {
-  if (rows.length === 0) {
-    return (
-      <div className="text-center py-8 text-[13px] text-[var(--color-text-tertiary)]">
-        No portfolio items yet — add work to see performance here.
+const columns: ClColumn<IPortfolioPerformanceRow>[] = [
+  {
+    key: "thumb",
+    header: "",
+    width: "w-[56px]",
+    cell: (row) => (
+      <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)]">
+        {typeIcon(row.mimeType)}
       </div>
-    );
-  }
+    ),
+  },
+  {
+    key: "title",
+    header: "Title",
+    cell: (row) => (
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium truncate">{row.title}</div>
+        <div className="text-[11px] text-[var(--color-text-tertiary)]">{typeLabel(row.mimeType)}</div>
+      </div>
+    ),
+  },
+  {
+    key: "type",
+    header: "Type",
+    hideOnMobile: true,
+    cell: (row) => <span className="text-[11px] text-[var(--color-text-tertiary)]">{typeLabel(row.mimeType)}</span>,
+  },
+  {
+    key: "plays",
+    header: "Plays",
+    cell: (row) => (
+      <span className="text-[12px] font-[family-name:var(--font-mono)] tabular-nums text-[var(--color-text-primary)]">
+        {row.plays.toLocaleString()}
+      </span>
+    ),
+  },
+  {
+    key: "clicks",
+    header: "Clicks",
+    cell: (row) => (
+      <span className="text-[12px] font-[family-name:var(--font-mono)] tabular-nums text-[var(--color-text-primary)]">
+        {row.clicks.toLocaleString()}
+      </span>
+    ),
+  },
+  {
+    key: "conversion",
+    header: "Conversion",
+    cell: (row) => (
+      <span className="text-[12px] font-[family-name:var(--font-mono)] tabular-nums text-[var(--color-text-primary)]">
+        {row.conversionRate}%
+      </span>
+    ),
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    cell: () => (
+      <Link
+        href="/profile/media"
+        className="text-[12px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 hover:text-[var(--color-text-primary)]"
+      >
+        Manage
+      </Link>
+    ),
+  },
+];
 
+export function PortfolioPerformanceTable({ rows }: { rows: IPortfolioPerformanceRow[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[12px]">
-        <thead>
-          <tr>
-              {["", "Title", "Type", "Plays", "Clicks", "Conversion", "Actions"].map(
-                (h, i) => (
-                  <th
-                    key={i}
-                    className="whitespace-nowrap bg-[var(--color-surface-raised)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]"
-                  >
-                    {h}
-                  </th>
-                ),
-              )}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              key={row.id}
-              className="border-b border-[var(--color-border)] odd:bg-transparent even:bg-[var(--color-surface-raised)]"
-            >
-              <td className="px-4 py-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)]">
-                  {typeIcon(row.mimeType)}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-[var(--color-text-primary)]">
-                <div className="text-[13px] font-medium">{row.title}</div>
-                <div className="text-[11px] text-[var(--color-text-tertiary)]">
-                  {typeLabel(row.mimeType)}
-                </div>
-              </td>
-              <td className="px-4 py-3 text-[11px] text-[var(--color-text-tertiary)]">
-                {typeLabel(row.mimeType)}
-              </td>
-              <td className="px-4 py-3 tabular-nums text-[var(--color-text-primary)]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                {row.plays.toLocaleString()}
-              </td>
-              <td className="px-4 py-3 tabular-nums text-[var(--color-text-primary)]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                {row.clicks.toLocaleString()}
-              </td>
-              <td className="px-4 py-3 tabular-nums text-[var(--color-text-primary)]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                {row.conversionRate}%
-              </td>
-              <td className="px-4 py-3">
-                <Link
-                  href="/profile/media"
-                  className="text-[12px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 hover:text-[var(--color-text-primary)]"
-                >
-                  Manage
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ClDataTable
+      columns={columns}
+      rows={rows}
+      rowKey={(row) => row.id}
+      pageSize={5}
+      emptyState={
+        <div className="text-center py-8 text-[13px] text-[var(--color-text-tertiary)]">
+          No portfolio items yet — add work to see performance here.
+        </div>
+      }
+    />
   );
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton, ClBadge, ClConfirmDialog, ClDataTable, type ClColumn } from "@/components/ui";
+import { ClButton, ClBadge, ClConfirmDialog, ClDataTable, ClModal, type ClColumn } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { ContentBlocksEditor } from "@/components/admin/ContentBlocksEditor";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
@@ -278,117 +278,15 @@ export default function AdminBlogPostsPage() {
       />
 
       {editorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
-          <div className="w-full max-w-3xl my-8 rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xl">
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--color-border)]">
-              <div>
-                <h3 className="font-[family-name:var(--font-display)] font-bold text-[18px]">
-                  {draft.id ? "Edit Post" : "New Blog Post"}
-                </h3>
-                <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
-                  Publish to make it live on the public blog.
-                </p>
-              </div>
-              <button
-                onClick={() => setEditorOpen(false)}
-                disabled={saveMutation.isPending}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-[8px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] cursor-pointer border-none disabled:opacity-50"
-                aria-label="Close editor"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="px-6 py-5 flex flex-col gap-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Title</label>
-                  <input
-                    className={inputClass}
-                    placeholder="e.g. How to Price Your Creative Services"
-                    value={draft.title}
-                    onChange={(e) =>
-                      setDraft({ ...draft, title: e.target.value, slug: draft.slug || slugify(e.target.value) })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Slug</label>
-                  <input
-                    className={inputClass}
-                    placeholder="how-to-price-your-services"
-                    value={draft.slug}
-                    onChange={(e) => setDraft({ ...draft, slug: slugify(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Category</label>
-                  <select
-                    className={inputClass}
-                    value={draft.category}
-                    onChange={(e) => setDraft({ ...draft, category: e.target.value as BlogCategory })}
-                  >
-                    {categories.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Author</label>
-                  <input
-                    className={inputClass}
-                    placeholder="e.g. Crelab Editorial"
-                    value={draft.author}
-                    onChange={(e) => setDraft({ ...draft, author: e.target.value })}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={labelClass}>Tags (comma separated)</label>
-                  <input
-                    className={inputClass}
-                    placeholder="pricing, freelancing, creative business"
-                    value={draft.tags}
-                    onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={labelClass}>Meta description</label>
-                  <textarea
-                    className={`${inputClass} h-auto py-2 resize-y`}
-                    rows={2}
-                    placeholder="Short summary shown in search results and cards."
-                    value={draft.metaDescription}
-                    onChange={(e) => setDraft({ ...draft, metaDescription: e.target.value })}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <ImageUploadField
-                    label="Hero image"
-                    value={draft.heroImageUrl}
-                    onChange={(url) => setDraft({ ...draft, heroImageUrl: url })}
-                    helper="Shown at the top of the post and on blog cards. Upload or paste a link."
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-[var(--color-border)] pt-4">
-                <div className="mb-3">
-                  <div className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-                    Content
-                  </div>
-                  <div className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
-                    Build the post body visually — headings, paragraphs, lists,
-                    images, buttons and dividers.
-                  </div>
-                </div>
-                <ContentBlocksEditor blocks={draft.blocks} onChange={(blocks) => setDraft({ ...draft, blocks })} />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)] rounded-b-[16px]">
-              <label className="flex items-center gap-2 cursor-pointer">
+        <ClModal
+          open={editorOpen}
+          onClose={() => setEditorOpen(false)}
+          size="lg"
+          title={draft.id ? "Edit Post" : "New Blog Post"}
+          description="Publish to make it live on the public blog."
+          footer={
+            <>
+              <div className="flex items-center gap-2 mr-auto">
                 <input
                   type="checkbox"
                   checked={draft.published}
@@ -398,25 +296,111 @@ export default function AdminBlogPostsPage() {
                 <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
                   Publish immediately
                 </span>
-              </label>
-              <div className="flex items-center gap-2">
-                <ClButton variant="ghost" size="default" onClick={() => setEditorOpen(false)} disabled={saveMutation.isPending}>
-                  Cancel
-                </ClButton>
-                <ClButton
-                  variant="primary"
-                  size="default"
-                  loading={saveMutation.isPending}
-                  disabled={!draft.title.trim() || !draft.slug.trim()}
-                  onClick={() => saveMutation.mutate(draft)}
+              </div>
+              <ClButton variant="ghost" size="default" onClick={() => setEditorOpen(false)} disabled={saveMutation.isPending}>
+                Cancel
+              </ClButton>
+              <ClButton
+                variant="primary"
+                size="default"
+                loading={saveMutation.isPending}
+                disabled={!draft.title.trim() || !draft.slug.trim()}
+                onClick={() => saveMutation.mutate(draft)}
+              >
+                <UploadCloud size={14} strokeWidth={2} />
+                {draft.id ? "Save Changes" : draft.published ? "Publish Post" : "Save Draft"}
+              </ClButton>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Title</label>
+                <input
+                  className={inputClass}
+                  placeholder="e.g. How to Price Your Creative Services"
+                  value={draft.title}
+                  onChange={(e) =>
+                    setDraft({ ...draft, title: e.target.value, slug: draft.slug || slugify(e.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Slug</label>
+                <input
+                  className={inputClass}
+                  placeholder="how-to-price-your-services"
+                  value={draft.slug}
+                  onChange={(e) => setDraft({ ...draft, slug: slugify(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Category</label>
+                <select
+                  className={inputClass}
+                  value={draft.category}
+                  onChange={(e) => setDraft({ ...draft, category: e.target.value as BlogCategory })}
                 >
-                  <UploadCloud size={14} strokeWidth={2} />
-                  {draft.id ? "Save Changes" : draft.published ? "Publish Post" : "Save Draft"}
-                </ClButton>
+                  {categories.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Author</label>
+                <input
+                  className={inputClass}
+                  placeholder="e.g. Crelab Editorial"
+                  value={draft.author}
+                  onChange={(e) => setDraft({ ...draft, author: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Tags (comma separated)</label>
+                <input
+                  className={inputClass}
+                  placeholder="pricing, freelancing, creative business"
+                  value={draft.tags}
+                  onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Meta description</label>
+                <textarea
+                  className={`${inputClass} h-auto py-2 resize-y`}
+                  rows={2}
+                  placeholder="Short summary shown in search results and cards."
+                  value={draft.metaDescription}
+                  onChange={(e) => setDraft({ ...draft, metaDescription: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <ImageUploadField
+                  label="Hero image"
+                  value={draft.heroImageUrl}
+                  onChange={(url) => setDraft({ ...draft, heroImageUrl: url })}
+                  helper="Shown at the top of the post and on blog cards. Upload or paste a link."
+                />
               </div>
             </div>
+
+            <div className="border-t border-[var(--color-border)] pt-4">
+              <div className="mb-3">
+                <div className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+                  Content
+                </div>
+                <div className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
+                  Build the post body visually — headings, paragraphs, lists,
+                  images, buttons and dividers.
+                </div>
+              </div>
+              <ContentBlocksEditor blocks={draft.blocks} onChange={(blocks) => setDraft({ ...draft, blocks })} />
+            </div>
           </div>
-        </div>
+        </ClModal>
       )}
 
       <ClConfirmDialog

@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { MediaAssetService } from "@/services/MediaAssetService";
+import { AuditService } from "@/services/AuditService";
 
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const { id } = await params;
     const result = await MediaAssetService.deleteAsset(id);
+    await AuditService.log({
+      userId: session.user.id,
+      action: "media.delete",
+      entity: "media",
+      entityId: id,
+      newValue: result,
+    });
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
     if (err instanceof Error && err.message === "Media asset not found") {

@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 28)
-> - last-verified-against-code: 2026-08-18
+> - last-updated-by: Session 30
+> - last-verified-against-code: 2026-08-19
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -10,6 +10,35 @@
 ---
 
 ## Sessions
+
+## Session 30 — 2026-08-19 (Run DB Migrations + Make Email Template Resolver Actually Work)
+
+**Directive:** Run DB migrations, and ensure the email template resolver fix actually works — on the platform some templates were not visible/available. Suspicion: a migration wasn't run or the fix wasn't sufficient.
+
+**Root cause (confirmed):** Both suspicions were partly right.
+1. Pending DB migrations had not been applied to the connected Supabase database — `providers.search_vector`+GIN index (`0003_explore.sql`), `media_assets` (`0004_media_assets.sql`) and `blog_posts` (`0005_blog_posts.sql`) were all missing.
+2. The persisted `platform_config` row `emailConfig.templates` was stale: it held only 4 keys (welcome, paymentReceived, bookingConfirmation, admin-created "Tete"). The wired `verifyEmail`, `emailChanged` and `passwordReset` templates were added to code later (Session 27/28) and never saved back to the DB, so any deployment running code without the Session 28 resolver merge showed those three as missing.
+
+**Completed:**
+
+1. **Migrations applied (idempotent):** `0003_explore.sql` (`providers.search_vector` tsvector GENERATED column + `providers_search_idx` GIN index; `featured` was already present), `0004_media_assets.sql` (`media_asset_status` enum + `media_assets` table + indexes + FK), `0005_blog_posts.sql` (`blog_posts` table + slug/published/category indexes). Verified: tables and columns now exist.
+2. **RLS policies (0002_rls.sql / 0003_wallet_rls.sql) — NOT applied, logged as residual risk:** RLS is already enabled on the app tables but zero policies exist. The policy files compare `auth.uid()` (uuid) against text primary keys (e.g. `user.id`), which errors in this Postgres (`operator does not exist: uuid = text`). The app connects via the DATABASE_URL service role (RLS bypassed) and never uses the Supabase anon/authenticated client, so the RLS policy layer is inapplicable/legacy here; applying it would require casts that deviate from the migration files' intent.
+3. **Stale config data repaired:** merged all 6 wired templates into the persisted `emailConfig.templates` row (DB values + admin-created keys win; hardcoded defaults fill the missing wired keys) via an idempotent repair script, with an `audit_log` `config.update` entry recording old → new. The row now contains: Tete, welcome, verifyEmail, emailChanged, passwordReset, paymentReceived, bookingConfirmation.
+4. **Resolver verified end-to-end:** ran `PlatformConfigService.get()` against the real DB — all 6 wired templates resolve with `bodyHtml` and are enabled; `/admin/email-templates` lists them and `/api/email/status` reports 6 enabled templates. This confirms the Session 28 resolver fix (`lib/email-templates.ts` + `PlatformConfigService.get()` merge) is sufficient; the DB repair additionally makes the templates visible even on deployments running pre-resolver code.
+5. **QA gate:** 233/233 tests pass, `tsc --noEmit` clean, `next lint` no new warnings (pre-existing unused-var warnings only). No application code changed — this session was migrations + data repair + verification.
+
+**Files Modified:**
+- `ai-system/checkpoints/in-progress.md`, `ai-system/checkpoints/session-log.md`, `ai-system/summaries/dev-history.md`, `ai-system/planning/task-queue.md`, `ai-system/memory/project-decisions.md` (log of this session's DB-repair decision)
+
+**Build Status:** ✅ Typecheck clean, 233/233 tests pass, lint no new warnings.
+
+**Next Task:** Verify the `mail.` subdomain + sender address in the Resend dashboard and set `RESEND_FROM_EMAIL`/`RESEND_FROM_NAME` in Vercel env. Decide whether to make the RLS policy files `uuid`-compatible (cast `auth.uid()::text`) if direct Supabase client access is ever introduced. Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- RLS policies remain unapplied (residual risk — see above). The running app is unaffected (service-role connection).
+- The `emailConfig.templates` repair was a data change, not a code change; no schema regeneration was needed.
+
+---
 
 ## Session 28 — 2026-08-18 (Fix Build — Email Template Fallback + Resend Sender Recommendations)
 

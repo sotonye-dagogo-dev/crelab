@@ -311,3 +311,58 @@ The project's ai-system predated v3 (no `installed-ai-system-version` baseline).
 - `installed-ai-system-version: 3.0.0` is recorded in `ai-context.md` — `pull-template-update.md` now has a baseline for future comparisons.
 - Every command now declares a `Chains to` row; `verify-work.md` / `audit-drift.md` mechanically check chain order and task-queue coupling.
 - New v3 catalogs (`skills/`, `tools/registry.md`, `design-references/`) are live; agents consult `tools/registry.md` before doing by hand what a registered tool does.
+
+---
+
+## Persist Wired Email Templates Into the Config Row (Not Only at Read Time)
+
+**Decision:** When wired templates are added to code after an operator has already saved the template set, repair the persisted `platform_config` row (`emailConfig.templates`) to include the full merged set — hardcoded defaults merged under DB/admin values — and log it as an `audit_log` `config.update` entry. The runtime resolver merge (`resolveEmailConfig` in `PlatformConfigService.get()`) stays as the read-time safety net, but the row is repaired so templates are visible/available even on deployments running code without the resolver.
+**Date:** 2026-08-19
+**Made by:** Implementer (per execute-feature directive)
+**Supersedes:** The Session 28 note that "no DB migration is required — the merge re-adds defaults at read time".
+**Superseded by:** None
+
+**Reason:**
+A DB-saved `emailConfig.templates` object replaces the whole template set. The DB held only 4 templates; `verifyEmail`, `emailChanged` and `passwordReset` (added to code in Sessions 27–28) were never saved back, so any deployment running pre-resolver code showed them as missing. Repairing the row makes the fix independent of deploy timing while the resolver keeps future additions safe.
+
+**Alternatives Considered:**
+- Rely solely on the read-time merge — rejected: depends on the fixed code being deployed before operators notice.
+- Wiping the row so defaults apply wholesale — rejected: would drop admin-created templates (e.g. the "Tete" key) and any DB-saved customisation.
+
+**Implications:**
+- Admin edits re-save the full merged set via `/admin/email-templates` (the page already spreads the merged set before writing), so this repair is self-maintaining.
+- Future wired templates added to code should either be merged into the row on deploy or rely on the resolver; prefer the resolver (code) + this repair pattern for existing rows.
+- RLS policy migrations (0002_rls / 0003_wallet_rls) remain unapplied (residual risk): `auth.uid()` (uuid) vs text PKs is invalid here; the app uses the service role and never the Supabase client.
+
+---
+
+## Centralised AuditService for platform audit trails
+
+**Decision:** All administrative mutations that change platform state write an audit
+row through `services/AuditService.log(...)`, and every audit read goes through
+`AuditService.list()/count()` which left-joins the acting user so UIs can display the
+performer (name + email). The config "Recent Changes" table and the new `/admin/audit-log`
+page render old/new values through `AuditValueCell`, which summarises long values (e.g.
+full HTML template bodies) to a one-line preview with an expand-to-full action.
+**Date:** 2026-08-19
+**Made by:** Implementer (per issue execute-feature directive)
+**Supersedes:** The ad-hoc `auditLog` inserts in individual routes.
+**Superseded by:** None
+
+**Reason:**
+Alpha-testing feedback: (1) editing an email template showed the entire HTML body in the
+change-log old/new columns; (2) the person who made a change was never shown; (3) audit
+logging existed only for config updates, providers and account export/delete, so most
+admin actions were invisible to history.
+
+**Alternatives Considered:**
+- Keep per-route `auditLog` inserts — rejected: inconsistent action/entity naming and no
+  way to join the actor for display without duplicating the query everywhere.
+- Store summaries at write time — rejected: losing the full old/new value makes future
+  diff tooling impossible; summarising at render time preserves both.
+
+**Implications:**
+- New admin mutations should call `AuditService.log()` rather than inserting into
+  `audit_log` directly.
+- `AuditValueCell` is the single place that renders audit values; adopt it wherever
+  audit history is shown so long values stay collapsed by default.

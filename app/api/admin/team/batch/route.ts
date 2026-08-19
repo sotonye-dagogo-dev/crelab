@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { teamMembers } from "@/drizzle/schema";
 import { requireRole } from "@/lib/auth";
 import { inArray, eq } from "drizzle-orm";
+import { AuditService } from "@/services/AuditService";
 import { z } from "zod";
 
 const batchSchema = z.object({
@@ -12,7 +13,7 @@ const batchSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
 
     const parsed = batchSchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -57,6 +58,14 @@ export async function POST(req: NextRequest) {
         break;
       }
     }
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: `team.batch.${action}`,
+      entity: "team",
+      entityId: ids.length === 1 ? ids[0] : null,
+      newValue: { action, ids },
+    });
 
     return NextResponse.json({ success: true, data: null });
   } catch (err) {

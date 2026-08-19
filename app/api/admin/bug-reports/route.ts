@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { bugReports } from "@/drizzle/schema";
 import { requireRole } from "@/lib/auth";
 import { eq, desc } from "drizzle-orm";
+import { AuditService } from "@/services/AuditService";
 
 export async function GET() {
   try {
@@ -26,13 +27,26 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const body = (await req.json()) as { id: string; status?: string; adminNotes?: string };
 
     if (!body.id) {
       return NextResponse.json(
         { success: false, error: "id is required" },
         { status: 400 },
+      );
+    }
+
+    const existing = await db
+      .select({ id: bugReports.id, status: bugReports.status })
+      .from(bugReports)
+      .where(eq(bugReports.id, body.id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Bug report not found" },
+        { status: 404 },
       );
     }
 
@@ -56,6 +70,15 @@ export async function PATCH(req: NextRequest) {
     updateData.updatedAt = new Date();
 
     await db.update(bugReports).set(updateData).where(eq(bugReports.id, body.id));
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "bugReport.update",
+      entity: "bugReports",
+      entityId: body.id,
+      oldValue: { status: existing[0].status },
+      newValue: updateData,
+    });
 
     return NextResponse.json({ success: true, data: null });
   } catch (err) {
