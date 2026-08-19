@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton, ClCard } from "@/components/ui";
+import { ClButton, ClCard, ClModal } from "@/components/ui";
 import { EmailTemplateBlocksEditor } from "@/components/admin/EmailTemplateBlocksEditor";
 import { useToast } from "@/lib/toast";
 import { blocksToHtml, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
@@ -225,35 +225,38 @@ export default function AdminEmailTemplatesPage() {
       </div>
 
       {showNewTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 shadow-xl">
-            <h3 className="font-[family-name:var(--font-display)] font-bold text-[18px] mb-4">
-              New Email Template
-            </h3>
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
-                  Template key
-                </label>
-                <input className={inputClass} placeholder="e.g. bookingReminder" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
-              </div>
-              <div>
-                <label className="block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
-                  Subject
-                </label>
-                <input className={inputClass} placeholder="e.g. Your booking is coming up" value={newSubject} onChange={(e) => setNewSubject(e.target.value)} />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
+        <ClModal
+          open={showNewTemplate}
+          onClose={() => setShowNewTemplate(false)}
+          size="sm"
+          title="New Email Template"
+          description="Admin-created templates can be sent or broadcast — wired (code-triggered) templates cannot."
+          footer={
+            <>
               <ClButton variant="ghost" size="default" onClick={() => setShowNewTemplate(false)}>
                 Cancel
               </ClButton>
               <ClButton variant="primary" size="default" onClick={handleCreateTemplate} loading={saveMutation.isPending}>
                 Create Template
               </ClButton>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
+                Template key
+              </label>
+              <input className={inputClass} placeholder="e.g. bookingReminder" value={newKey} onChange={(e) => setNewKey(e.target.value)} />
+            </div>
+            <div>
+              <label className="block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
+                Subject
+              </label>
+              <input className={inputClass} placeholder="e.g. Your booking is coming up" value={newSubject} onChange={(e) => setNewSubject(e.target.value)} />
             </div>
           </div>
-        </div>
+        </ClModal>
       )}
 
       <div className="flex flex-col lg:flex-row gap-6">

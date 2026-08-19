@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import type { IBlogPost, BlogCategory } from "@/types/blog";
-import type { IBlogConfig } from "@/types";
+import type { BlogPageSection, IBlogConfig } from "@/types";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { ContentBlocks } from "@/components/blog/ContentBlocks";
 import { ClEmptyState, ClButton, ClInput } from "@/components/ui";
 import { useToast } from "@/lib/toast";
+
+const DEFAULT_SECTION_ORDER: BlogPageSection[] = ["posts", "sections", "newsletter", "footer"];
 
 interface BlogPageClientProps {
   posts: IBlogPost[];
@@ -35,6 +37,7 @@ const FALLBACK_BLOG_CONFIG: IBlogConfig = {
     successMessage: "You're on the list — check your inbox for the first issue.",
   },
   footerTagline: "Get hired for your creativity, not your follower count.",
+  sectionOrder: DEFAULT_SECTION_ORDER,
 };
 
 export function BlogPageClient({ posts, blogConfig }: BlogPageClientProps) {
@@ -44,6 +47,7 @@ export function BlogPageClient({ posts, blogConfig }: BlogPageClientProps) {
   const [subscribed, setSubscribed] = useState(false);
 
   const cfg = blogConfig ?? FALLBACK_BLOG_CONFIG;
+  const sectionOrder = cfg.sectionOrder?.length ? cfg.sectionOrder : DEFAULT_SECTION_ORDER;
 
   const filteredPosts =
     activeCategory === "all"
@@ -96,70 +100,93 @@ export function BlogPageClient({ posts, blogConfig }: BlogPageClientProps) {
           ))}
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mt-8 pb-16 max-lg:grid-cols-2 max-sm:grid-cols-1 max-sm:gap-4 max-sm:px-0 max-sm:mt-6 max-sm:pb-12">
-          {filteredPosts.map((post) => (
-            <BlogCard
-              key={post._id}
-              post={post}
-              isSpotlight={post.category === "creator-spotlights"}
-              spotlightAvatar={
-                post.author
-                  ? post.author
-                      .split(" ")
-                      .map((w) => w[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2)
-                  : undefined
-              }
-            />
-          ))}
-        </div>
+        {sectionOrder.map((section) => {
+          if (section === "posts") {
+            return (
+              <div key={section}>
+                <div className="grid grid-cols-3 gap-6 mt-8 pb-16 max-lg:grid-cols-2 max-sm:grid-cols-1 max-sm:gap-4 max-sm:px-0 max-sm:mt-6 max-sm:pb-12">
+                  {filteredPosts.map((post) => (
+                    <BlogCard
+                      key={post._id}
+                      post={post}
+                      isSpotlight={post.category === "creator-spotlights"}
+                      spotlightAvatar={
+                        post.author
+                          ? post.author
+                              .split(" ")
+                              .map((w) => w[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
 
-        {filteredPosts.length === 0 && (
-          <ClEmptyState
-            title="No posts in this category yet"
-            message="Check back later for new content."
-          />
-        )}
+                {filteredPosts.length === 0 && (
+                  <ClEmptyState
+                    title="No posts in this category yet"
+                    message="Check back later for new content."
+                  />
+                )}
+              </div>
+            );
+          }
 
-        {cfg.sections && cfg.sections.length > 0 && (
-          <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] px-8 py-8 mb-16 max-sm:px-5 max-sm:py-6">
-            <ContentBlocks blocks={cfg.sections} />
-          </div>
-        )}
+          if (section === "sections") {
+            if (!cfg.sections || cfg.sections.length === 0) return null;
+            return (
+              <div
+                key={section}
+                className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] px-8 py-8 mb-16 max-sm:px-5 max-sm:py-6"
+              >
+                <ContentBlocks blocks={cfg.sections} />
+              </div>
+            );
+          }
 
-        {cfg.newsletter.enabled && (
-          <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] px-8 py-10 mb-16 max-sm:px-6 max-sm:py-8">
-            <div className="flex flex-col items-center text-center gap-2">
-              <h2 className="font-[family-name:var(--font-display)] font-bold text-[26px] text-[var(--color-text-primary)] tracking-[-0.01em] max-sm:text-[22px]">
-                {cfg.newsletter.title}
-              </h2>
-              <p className="font-[family-name:var(--font-body)] text-[15px] text-[var(--color-text-secondary)] max-w-[460px] leading-normal">
-                {cfg.newsletter.subtitle}
-              </p>
-            </div>
-            {subscribed ? (
-              <p className="text-center text-[14px] text-[var(--color-accent)] mt-6 font-semibold">
-                {cfg.newsletter.successMessage}
-              </p>
-            ) : (
-              <form onSubmit={handleSubscribe} className="flex items-center gap-3 mt-6 justify-center max-sm:flex-col">
-                <ClInput
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  className="max-w-[360px]"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <ClButton type="submit" variant="primary" size="default">
-                  {cfg.newsletter.buttonLabel}
-                </ClButton>
-              </form>
-            )}
-          </div>
-        )}
+          if (section === "newsletter") {
+            if (!cfg.newsletter.enabled) return null;
+            return (
+              <div
+                key={section}
+                className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] px-8 py-10 mb-16 max-sm:px-6 max-sm:py-8"
+              >
+                <div className="flex flex-col items-center text-center gap-2">
+                  <h2 className="font-[family-name:var(--font-display)] font-bold text-[26px] text-[var(--color-text-primary)] tracking-[-0.01em] max-sm:text-[22px]">
+                    {cfg.newsletter.title}
+                  </h2>
+                  <p className="font-[family-name:var(--font-body)] text-[15px] text-[var(--color-text-secondary)] max-w-[460px] leading-normal">
+                    {cfg.newsletter.subtitle}
+                  </p>
+                </div>
+                {subscribed ? (
+                  <p className="text-center text-[14px] text-[var(--color-accent)] mt-6 font-semibold">
+                    {cfg.newsletter.successMessage}
+                  </p>
+                ) : (
+                  <form onSubmit={handleSubscribe} className="flex items-center gap-3 mt-6 justify-center max-sm:flex-col">
+                    <ClInput
+                      type="email"
+                      required
+                      placeholder="you@example.com"
+                      className="max-w-[360px]"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <ClButton type="submit" variant="primary" size="default">
+                      {cfg.newsletter.buttonLabel}
+                    </ClButton>
+                  </form>
+                )}
+              </div>
+            );
+          }
+
+          // footer
+          return null;
+        })}
       </div>
     </div>
   );

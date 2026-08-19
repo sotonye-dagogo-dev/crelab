@@ -428,6 +428,8 @@ export interface IBlogNewsletterConfig {
   successMessage: string;
 }
 
+export type BlogPageSection = "posts" | "sections" | "newsletter" | "footer";
+
 export interface IBlogConfig {
   heroTitle: string;
   heroSubtitle: string;
@@ -435,6 +437,12 @@ export interface IBlogConfig {
   footerTagline: string;
   /** Optional visual-builder content sections rendered on the blog landing page */
   sections?: EmailTemplateBlock[];
+  /**
+   * Render order of the default landing-page sections. The hero (with category
+   * chips) is always first; the remaining sections can be reordered by the
+   * admin (e.g. moving the newsletter block above the posts grid).
+   */
+  sectionOrder?: BlogPageSection[];
 }
 
 export interface IBugReport {
