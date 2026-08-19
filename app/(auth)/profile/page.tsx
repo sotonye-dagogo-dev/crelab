@@ -70,11 +70,9 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error(json.error ?? "Failed to send verification email");
       if (json.sent === false) {
         const reasonText =
-          json.reason === "Email notifications disabled"
-            ? "Email notifications are currently disabled."
-            : json.reason === "Email sending is not configured"
-              ? "Email sending isn't configured yet."
-              : "We couldn't send the email right now.";
+          typeof json.reason === "string" && json.reason.trim()
+            ? json.reason
+            : "We couldn't send the email right now.";
         toast(`Verification email not sent. ${reasonText}`, "error");
         return;
       }
@@ -94,11 +92,24 @@ export default function ProfilePage() {
     }
     setEmailSaving(true);
     try {
-      const res = await authClient.changeEmail({
-        newEmail: newEmail.trim(),
-        callbackURL: "/profile?emailChanged=1",
+      const res = await fetch("/api/email/change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          newEmail: newEmail.trim(),
+          callbackURL: "/profile?emailChanged=1",
+        }),
       });
-      if (res.error) throw new Error(res.error.message ?? "Failed to change email");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to change email");
+      if (json.sent === false) {
+        const reasonText =
+          typeof json.reason === "string" && json.reason.trim()
+            ? json.reason
+            : "We couldn't send the confirmation right now.";
+        toast(`Confirmation not sent. ${reasonText}`, "error");
+        return;
+      }
       setEmailChangeSent(true);
       setNewEmail("");
       toast("Confirmation sent to your new email address", "success");

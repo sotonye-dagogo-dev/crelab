@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { emailNotSentLabel } from "@/services/EmailService";
+import type { EmailSendResult } from "@/services/EmailService";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,10 +20,10 @@ export async function POST(req: NextRequest) {
     const config = await PlatformConfigService.getCached();
 
     if (!config.features?.emailNotifications) {
-      return NextResponse.json({ success: true, sent: false, reason: "Email notifications disabled" });
+      return NextResponse.json({ success: true, sent: false, reason: "Email notifications are currently disabled." });
     }
 
-    let result: { sent: boolean; preview?: string };
+    let result: EmailSendResult;
 
     switch (type) {
       case "bookingConfirmation":
@@ -37,7 +39,14 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    return NextResponse.json({ success: true, ...result });
+    if (!result.sent) {
+      return NextResponse.json({
+        success: true,
+        sent: false,
+        reason: emailNotSentLabel(result.reason),
+      });
+    }
+    return NextResponse.json({ success: true, sent: true });
   } catch (err) {
     console.error("[POST /api/email/send] Error:", err);
     return NextResponse.json(
