@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClCard, ClDataTable, type ClColumn } from "@/components/ui";
 import { ConfigField } from "@/components/admin/ConfigField";
+import { AuditValueCell } from "@/components/admin/AuditValueCell";
 import { useToast } from "@/lib/toast";
 
 interface ChangeLogEntry {
@@ -13,6 +14,8 @@ interface ChangeLogEntry {
   newValue: unknown;
   createdAt: string;
   userId: string | null;
+  actorName: string | null;
+  actorEmail: string | null;
 }
 
 const configFields = [
@@ -45,18 +48,6 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   }, obj as unknown);
 }
 
-function formatChangeValue(value: unknown): string {
-  if (value === null || value === undefined) return "—";
-  if (typeof value === "object") {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
-  }
-  return String(value);
-}
-
 const changeLogColumns: ClColumn<ChangeLogEntry>[] = [
   {
     key: "key",
@@ -68,18 +59,33 @@ const changeLogColumns: ClColumn<ChangeLogEntry>[] = [
   {
     key: "old",
     header: "Old Value",
-    cell: (entry) => (
-      <span className="text-[12px] text-[var(--color-text-secondary)] break-words min-w-0">
-        {formatChangeValue(entry.oldValue)}
-      </span>
-    ),
+    cell: (entry) => <AuditValueCell value={entry.oldValue} />,
   },
   {
     key: "new",
     header: "New Value",
-    cell: (entry) => (
-      <span className="text-[12px] break-words min-w-0">{formatChangeValue(entry.newValue)}</span>
-    ),
+    cell: (entry) => <AuditValueCell value={entry.newValue} />,
+  },
+  {
+    key: "performedBy",
+    header: "Performed By",
+    cell: (entry) => {
+      if (!entry.actorName && !entry.actorEmail) {
+        return (
+          <span className="text-[11px] text-[var(--color-text-tertiary)]">System / unknown</span>
+        );
+      }
+      return (
+        <div className="min-w-0">
+          <div className="text-[12px] truncate">{entry.actorName ?? "—"}</div>
+          {entry.actorEmail && (
+            <div className="text-[11px] text-[var(--color-text-tertiary)] truncate">
+              {entry.actorEmail}
+            </div>
+          )}
+        </div>
+      );
+    },
   },
   {
     key: "timestamp",
@@ -275,7 +281,10 @@ export default function ConfigPage() {
       })}
 
       <div className="mt-8">
-        <div className="text-[14px] font-semibold mb-4">Recent Changes</div>
+        <div className="mb-1 text-[14px] font-semibold">Recent Changes</div>
+        <div className="text-[12px] text-[var(--color-text-tertiary)] mb-4">
+          Audit trail of configuration updates — who changed what, with old/new values summarised (expand to view the full value).
+        </div>
         <ClDataTable
           columns={changeLogColumns}
           rows={changeLog}

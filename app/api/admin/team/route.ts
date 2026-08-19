@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { teamMembers } from "@/drizzle/schema";
 import { requireRole } from "@/lib/auth";
-import { asc, eq } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
+import { AuditService } from "@/services/AuditService";
 import type { ITeamMember } from "@/types";
 
 export async function GET() {
@@ -28,7 +29,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const body = (await req.json()) as Partial<ITeamMember>;
 
     if (!body.name || !body.role) {
@@ -52,6 +53,18 @@ export async function POST(req: NextRequest) {
     };
 
     await db.insert(teamMembers).values(newMember);
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "team.create",
+      entity: "team",
+      entityId: newMember.id,
+      newValue: {
+        name: newMember.name,
+        role: newMember.role,
+        active: newMember.active,
+      },
+    });
 
     return NextResponse.json({ success: true, data: newMember }, { status: 201 });
   } catch (err) {

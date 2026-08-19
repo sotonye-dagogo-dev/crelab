@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { user } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { AuditService } from "@/services/AuditService";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -11,7 +12,7 @@ const ROLES = ["CLIENT", "PROVIDER", "ADMIN"] as const;
 /** ADMIN-only. Updates a user's role and/or email verification state. */
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
-    await requireRole("ADMIN");
+    const session = await requireRole("ADMIN");
     const { id } = await params;
 
     const body = await req.json();
@@ -56,6 +57,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
+    await AuditService.log({
+      userId: session.user.id,
+      action: "user.update",
+      entity: "user",
+      entityId: id,
+      newValue: {
+        role: updated.role,
+        emailVerified: updated.emailVerified,
+      },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -88,11 +100,25 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       );
     }
 
-    const deleted = await db.delete(user).where(eq(user.id, id)).returning({ id: user.id });
+    const existing = await db
+      .select({ id: user.id, name: user.name, email: user.email, role: user.role })
+      .from(user)
+      .where(eq(user.id, id))
+      .limit(1);
 
-    if (deleted.length === 0) {
+    if (existing.length === 0) {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
+
+    await db.delete(user).where(eq(user.id, id));
+
+    await AuditService.log({
+      userId: session.user.id,
+      action: "user.delete",
+      entity: "user",
+      entityId: id,
+      oldValue: existing[0],
+    });
 
     return NextResponse.json({ success: true, data: { id } });
   } catch (err) {
