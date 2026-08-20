@@ -1,8 +1,29 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: Session 32
+> - last-updated-by: Session 33
 > - last-verified-against-code: 2026-08-20
+
+## Sprint 2026-08-20 (2) — Wallet Page + Paystack Tightening
+
+### What
+Alpha-testing feedback on the wallet page: (1) the bank-transfer top-up didn't feel like a supported feature; (2) the top-up/withdraw modal covered most of the screen with no obvious way to dismiss it; (3) Paystack checkout never redirected back after a transaction and the wallet showed no trace of what happened. Tightened the whole payment surface accordingly.
+
+### Why
+Payments are the one surface where assumptions are unacceptable. Investigation while fixing exposed the root cause of the "no reflection" report: `initTransaction` never sent `metadata`, so the `charge.success` webhook's `purpose === "WALLET_TOPUP"` branch could never match — wallet top-ups were never credited by the webhook, and the platform's own 200 gave no truthful signal either.
+
+### Key Changes
+- `lib/paystack.ts`: `initTransaction` accepts `InitTransactionOptions` (`metadata`, `callbackUrl`); new `verifyTransaction(reference)` returns final status/amount/metadata from Paystack.
+- `POST /api/wallet/topup/card` now sends `metadata: { purpose: "WALLET_TOPUP", userId }` and `callback_url` → `/wallet/payment-status`.
+- New `GET /api/wallet/topup/verify?reference=…` verifies the charge, enforces `WALLET-TOPUP-<userId>-` prefix + echoed-metadata ownership, and credits idempotently (`WalletService.topUpFromCard`).
+- New `/wallet/payment-status` result page (success / not-completed / error with the credited amount).
+- `TopUpModal` + `WithdrawModal` migrated from full-height `ClSheet` to the universal `ClModal` (dismissible, max-height, inner scroll); honest `toast` error feedback; bank-transfer tab removed from the UI.
+- `WalletClient` refreshes the balance on mount and renders `?topup=success|failed` banners.
+- Webhook treats `DuplicateWebhookError` on the wallet branch as a 200 `duplicate`.
+- Tests: `__tests__/paystack.test.ts` (6 tests: init metadata/callback payload, verify status mapping, error propagation).
+
+### Status
+Pass — typecheck clean, `next build` green, lint no new warnings, 258/258 tests pass. Residual risk logged: DIRECT-mode booking "Add Payment" still routes through the wallet top-up init and `/api/bookings/*/pay` routes don't exist yet — a booking-payment flow remains to be built before real money moves.
 
 ## Sprint 2026-08-20 — Change-Email Confirmation Hardened to the New Address Only
 

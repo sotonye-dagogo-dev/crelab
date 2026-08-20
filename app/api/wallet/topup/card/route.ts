@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { initTransaction } from "@/lib/paystack";
+import { appOrigin } from "@/lib/url";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { WalletService } from "@/services/WalletService";
 
@@ -32,7 +33,14 @@ export async function POST(req: NextRequest) {
 
     await new WalletService().getOrCreate(userId);
 
-    const result = await initTransaction(amountKobo, email, ref);
+    const result = await initTransaction(amountKobo, email, ref, {
+      // Metadata lets the charge.success webhook attribute this payment to the
+      // right wallet without trusting the amount/reference alone.
+      metadata: { purpose: "WALLET_TOPUP", userId },
+      // Bring the customer back to a status page that verifies the transaction
+      // so the wallet reflects what actually happened after payment.
+      callbackUrl: `${appOrigin()}/wallet/payment-status`,
+    });
 
     return NextResponse.json({
       success: true,
