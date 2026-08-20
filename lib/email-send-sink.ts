@@ -21,16 +21,17 @@ export interface EmailSendSink {
 const storage = new AsyncLocalStorage<EmailSendSink>();
 
 /**
- * Runs `fn` inside a fresh email-send sink and returns the captured result.
- * `result` is `undefined` when no email send was attempted at all (e.g. Better
- * Auth resolved without invoking a send callback).
+ * Runs `fn` inside a fresh email-send sink and returns the captured results.
+ * `results` is empty when no email send was attempted at all (e.g. Better Auth
+ * resolved without invoking a send callback). `result` is the last captured
+ * outcome for convenience.
  */
 export async function runWithEmailSendSink<T>(
   fn: () => Promise<T>,
-): Promise<{ value: T; result?: EmailSendResult }> {
+): Promise<{ value: T; results: EmailSendResult[]; result?: EmailSendResult }> {
   const sink: EmailSendSink = { results: [] };
   const value = await storage.run(sink, () => fn());
-  return { value, result: sink.results.at(-1) };
+  return { value, results: sink.results, result: sink.results.at(-1) };
 }
 
 /** Returns the current request's sink (if any) so senders can record outcomes. */

@@ -1,8 +1,25 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: Session 31
-> - last-verified-against-code: 2026-08-19
+> - last-updated-by: Session 32
+> - last-verified-against-code: 2026-08-20
+
+## Sprint 2026-08-20 — Change-Email Confirmation Hardened to the New Address Only
+
+### What
+The change-email flow reported the confirmation going to "both the old mail and the new mail" instead of only the new mail. Verified Better Auth 1.6.23's `changeEmail` behaviour by live reproduction: with no `sendChangeEmailConfirmation`, the endpoint fires `sendVerificationEmail` exactly once and only ever addresses the NEW address (both verified and unverified old-email paths), and fires nothing when the link is clicked. The "old mail" receipt comes from stale deployed code (pre-Session-31) or from the profile page's separate "Send verification email" action against the current address. Hardened the flow so the app can never silently mail the old address or claim success when nothing was sent.
+
+### Why
+Accurate feedback and guaranteed delivery target were alpha-testing requirements: the confirmation must go to the new inbox the user typed, and the UI must never report "confirmation sent" when the send failed, was misaddressed, or was never attempted.
+
+### Key Changes
+- `EmailSendResult` gained `to?: string`; `EmailService.send` records the recipient on every return path so the destination is observable.
+- New `lib/email-change.ts` — pure `resolveEmailChangeOutcome(results, requestedNewEmail)`: any send aimed at the old/current address → hard error; no send attempted (e.g. address already in use) → honest `sent: false` with a neutral reason instead of a false `sent: true`; failed send → friendly reason label.
+- `/api/email/change` uses the resolver; `runWithEmailSendSink` now returns the full `results` array so every captured send is checked, not just the last.
+- Tests: `__tests__/lib/email-change.test.ts` (9 tests); updated three `EmailService` assertions for the `to` field.
+
+### Status
+Pass — typecheck clean, `next build` green, lint no new warnings, 252/252 tests pass.
 
 ## Sprint 2026-08-19 (2) — Email Target/Feedback Fixes + Admin Blog Load + Template Padding
 

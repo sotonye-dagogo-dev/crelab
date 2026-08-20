@@ -19,6 +19,8 @@ export interface EmailSendResult {
   preview?: string;
   reason?: EmailNotSentReason;
   error?: string;
+  /** The recipient address the send was (or would have been) addressed to. */
+  to?: string;
 }
 
 /**
@@ -109,14 +111,14 @@ export class EmailService {
       console.warn(
         `[EmailService] Template "${templateKey}" not found in config; email NOT sent to ${to}.`,
       );
-      return { sent: false, reason: "template_missing" };
+      return { sent: false, to, reason: "template_missing" };
     }
 
     if (!template.enabled) {
       console.warn(
         `[EmailService] Template "${templateKey}" is disabled; email NOT sent to ${to}.`,
       );
-      return { sent: false, reason: "template_disabled" };
+      return { sent: false, to, reason: "template_disabled" };
     }
 
     const apiKey = getResendApiKey();
@@ -136,7 +138,7 @@ export class EmailService {
       console.warn(
         `[EmailService] RESEND_API_KEY not configured; "${templateKey}" email to ${to} NOT sent (preview fallback).`,
       );
-      return { sent: false, preview: html, reason: "resend_not_configured" };
+      return { sent: false, to, preview: html, reason: "resend_not_configured" };
     }
 
     const controller = new AbortController();
@@ -165,10 +167,10 @@ export class EmailService {
           `[EmailService] Resend API rejected "${templateKey}" email to ${to} (${res.status} ${res.statusText}):`,
           body,
         );
-        return { sent: false, preview: html, reason: "resend_api_error", error: body };
+        return { sent: false, to, preview: html, reason: "resend_api_error", error: body };
       }
 
-      return { sent: true };
+      return { sent: true, to };
     } catch (err) {
       const isTimeout = controller.signal.aborted;
       const message = err instanceof Error ? err.message : String(err);
@@ -177,6 +179,7 @@ export class EmailService {
       );
       return {
         sent: false,
+        to,
         preview: html,
         reason: "network_error",
         error: isTimeout ? "Request timed out (network failure)" : message,

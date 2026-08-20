@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { emailNotSentLabel, isResendConfigured } from "@/services/EmailService";
+import { isResendConfigured } from "@/services/EmailService";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { runWithEmailSendSink } from "@/lib/email-send-sink";
+import { resolveEmailChangeOutcome } from "@/lib/email-change";
 
 /**
  * Authenticated endpoint that requests an email change. Mirrors Better Auth's
- * `changeEmail` (which sends a verification link to the NEW address the user
- * entered) but returns the REAL send outcome captured via the request-scoped
- * email sink — so the profile page never reports "confirmation sent" when the
- * mail actually failed to go out.
+ * `changeEmail`, which sends the verification link to the NEW address the user
+ * entered — the confirmation must never go to the current/old address.
+ *
+ * The REAL send outcome is captured via the request-scoped email sink so the
+ * profile page never reports "confirmation sent" when the mail actually failed
+ * to go out, and the captured recipient is verified to be the NEW address the
+ * user typed so the old address can never silently receive it either.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -23,6 +27,8 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    const normalizedNewEmail = newEmail.trim().toLowerCase();
 
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session?.user) {
@@ -51,22 +57,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { result } = await runWithEmailSendSink(() =>
+    const { results } = await runWithEmailSendSink(() =>
       auth.api.changeEmail({
-        body: { newEmail: newEmail.trim(), callbackURL },
+        body: { newEmail: normalizedNewEmail, callbackURL },
         headers: req.headers,
       }),
     );
 
-    if (result && !result.sent) {
-      return NextResponse.json({
-        success: true,
-        sent: false,
-        reason: emailNotSentLabel(result.reason),
-      });
+    const outcome = resolveEmailChangeOutcome(results, normalizedNewEmail);
+
+    if (outcome.status) {
+      return NextResponse.json(
+        { success: outcome.success, sent: outcome.sent, error: outcome.error },
+        { status: outcome.status },
+      );
     }
 
-    return NextResponse.json({ success: true, sent: true });
+    return NextResponse.json({
+      success: outcome.success,
+      sent: outcome.sent,
+      ...(outcome.reason ? { reason: outcome.reason } : {}),
+    });
   } catch (err) {
     if (err instanceof Error) {
       const status = err.name === "APIError" ? 400 : 500;
