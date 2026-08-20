@@ -21,18 +21,40 @@ export interface EmailSendResult {
   error?: string;
 }
 
+/**
+ * Maps a machine `EmailNotSentReason` to a short, user-facing explanation.
+ * Used by API routes so the UI can show why an email did not go out instead of
+ * silently reporting success.
+ */
+export function emailNotSentLabel(reason?: EmailNotSentReason): string | null {
+  switch (reason) {
+    case "template_missing":
+      return "The email template is missing.";
+    case "template_disabled":
+      return "The email template is disabled.";
+    case "resend_not_configured":
+      return "Email sending is not configured yet.";
+    case "network_error":
+      return "A network error prevented the email from being sent.";
+    case "resend_api_error":
+      return "The email provider rejected the request — please try again later.";
+    default:
+      return null;
+  }
+}
+
 const RESEND_FETCH_TIMEOUT_MS = 10_000;
 
 /**
  * Resend recommends NOT using a "no-reply" address (a one-way address lowers
- * trust and prevents recipients from replying — e.g. to report spam) and using
- * a subdomain instead of the root domain so sending is segmented by purpose and
- * root-domain reputation is protected. The default below follows both: a real
- * local-part on a `mail.` subdomain. Override per environment via
- * `RESEND_FROM_EMAIL` / `RESEND_FROM_NAME` (the subdomain must be verified in
- * Resend before mail will deliver).
+ * trust and prevents recipients from replying — e.g. to report spam) and, where
+ * possible, a subdomain instead of the root domain so sending is segmented by
+ * purpose and root-domain reputation is protected. The default below is a real
+ * local-part on the verified sending domain. Override per environment via
+ * `RESEND_FROM_EMAIL` / `RESEND_FROM_NAME`, or via the admin-editable platform
+ * config (which wins over this constant).
  */
-export const DEFAULT_FROM_EMAIL = "hello@mail.crellab.com";
+export const DEFAULT_FROM_EMAIL = "mail@crellab.com";
 
 function fillTemplate(template: string, vars: TemplateVars): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}`);

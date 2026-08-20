@@ -366,3 +366,33 @@ admin actions were invisible to history.
   `audit_log` directly.
 - `AuditValueCell` is the single place that renders audit values; adopt it wherever
   audit history is shown so long values stay collapsed by default.
+
+---
+
+## Change-Email Verification Sent to the New Address (No Current-Email Approval)
+
+**Decision:** Do not configure Better Auth's `sendChangeEmailConfirmation` handler. On a
+change-email request, the verification link is sent to the NEW email address the user
+enters (Better Auth default), and the current email does not receive an approval request.
+**Date:** 2026-08-19
+**Made by:** Implementer (per issue execute-feature directive)
+**Supersedes:** The prior `sendChangeEmailConfirmation` wiring in `lib/auth.ts`.
+**Superseded by:** None
+
+**Reason:**
+Alpha-testing feedback: the confirmation email went to the current (old) address, not the
+new one the user typed. The profile UI copy already promises the confirmation goes to the
+new inbox, so the code was out of sync with the intended behaviour.
+
+**Alternatives Considered:**
+- Keep `sendChangeEmailConfirmation` and rewrite its body to target the new email —
+  rejected: the handler receives the current-user context; targeting the new address from
+  it is not supported by the Better Auth API surface in use.
+- Approve-from-old + verify-new two-step flow — rejected: adds a step with no product
+  requirement and a current-email dependency the alpha testers explicitly flagged.
+
+**Implications:**
+- No approval email to the current inbox; a user must have access to the NEW inbox to
+  complete the change (which they typed, so this is expected).
+- `emailChanged` remains registered as a wired template but is not yet fired on a
+  successful change — no dedicated Better Auth hook; candidate for a follow-up.

@@ -5,6 +5,7 @@ import { user, consentRecords } from "@/drizzle/schema";
 import { inArray } from "drizzle-orm";
 import { ConsentType } from "@/types";
 import { AuditService } from "@/services/AuditService";
+import { emailNotSentLabel } from "@/services/EmailService";
 import { isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-templates";
 
 /**
@@ -79,7 +80,15 @@ export async function POST(req: NextRequest) {
         entityId: templateKey,
         newValue: { to, sent: result.sent, templateKey },
       });
-      return NextResponse.json({ success: true, sent: result.sent, preview: result.preview });
+      if (!result.sent) {
+        return NextResponse.json({
+          success: true,
+          sent: false,
+          reason: emailNotSentLabel(result.reason),
+          preview: result.preview,
+        });
+      }
+      return NextResponse.json({ success: true, sent: true, preview: result.preview });
     }
 
     // Broadcast to marketing-consented users.

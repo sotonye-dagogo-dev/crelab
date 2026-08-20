@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { phoneNumber } from "better-auth/plugins";
 import { dash } from "@better-auth/infra";
 import * as schema from "@/drizzle/schema";
+import { getEmailSendSink } from "@/lib/email-send-sink";
 
 async function sendTransactionalEmail(
   templateKey: string,
@@ -22,6 +23,9 @@ async function sendTransactionalEmail(
       return;
     }
     const result = await EmailService.send(to, templateKey, vars, config);
+    // Record the outcome in the request-scoped sink (if any) so the route that
+    // triggered this email can return accurate feedback to the user.
+    getEmailSendSink()?.results.push(result);
     if (!result.sent) {
       // Email sending must never break the auth flow, but the failure must be
       // visible in logs so it isn't silently swallowed.
@@ -100,12 +104,11 @@ export const auth = betterAuth({
     changeEmail: {
       enabled: true,
       updateEmailWithoutVerification: false,
-      sendChangeEmailConfirmation: async ({ user, url }) => {
-        await sendTransactionalEmail("verifyEmail", user.email, {
-          userName: user.name,
-          verifyUrl: url,
-        });
-      },
+      // NOTE: no `sendChangeEmailConfirmation`. When that callback is present,
+      // Better Auth sends the first (approval) email to the CURRENT address.
+      // Here we want the confirmation link to go to the NEW address the user
+      // enters, which is Better Auth's default behaviour: `sendVerificationEmail`
+      // fires with the proposed address as `user.email`.
     },
   },
   advanced: {

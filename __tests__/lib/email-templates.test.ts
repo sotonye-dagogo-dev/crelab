@@ -109,7 +109,7 @@ describe("lib/email-templates — template resolution fallbacks", () => {
   it("resolveEmailConfig fills sender identity from hardcoded defaults", () => {
     const resolved = resolveEmailConfig(undefined);
     expect(resolved.fromName).toBe("Crellab");
-    expect(resolved.fromEmail).toBe("hello@mail.crellab.com");
+    expect(resolved.fromEmail).toBe(DEFAULT_CONFIG.emailConfig?.fromEmail);
     expect(resolved.templates.verifyEmail).toBeDefined();
   });
 

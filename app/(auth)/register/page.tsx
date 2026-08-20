@@ -140,9 +140,9 @@ function RegisterForm() {
           .then((json) => {
             if (json && json.sent === false) {
               toast(
-                json.reason === "Email notifications disabled"
+                json.reason === "Email notifications are currently disabled."
                   ? "Welcome email is turned off in settings."
-                  : json.reason === "resend_not_configured"
+                  : json.reason === "Email sending is not configured yet."
                     ? "Welcome email could not be sent — email sending isn't configured yet."
                     : "Welcome email could not be sent. You can still continue.",
                 "error",

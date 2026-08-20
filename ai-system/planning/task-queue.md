@@ -3,7 +3,7 @@
 > **Metadata**
 > - last-updated-by: update-ai-system (Session 27)
 > - last-verified-against-code: 2026-08-13
-> - last-synced: 2026-08-19 (session-log entry — Session 30, DB migrations run + email template resolver verified on the real DB)
+> - last-synced: 2026-08-19 (session-log entry — Session 31, email accuracy + admin blog load fixes)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -79,6 +79,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Email accuracy + admin blog load fixes: change-email confirmation now goes to the NEW address entered (removed `sendChangeEmailConfirmation` so Better Auth verifies the new email); email feedback is no longer a false positive — request-scoped sink (`lib/email-send-sink.ts`) captures the real Resend result and `/api/verify-email/send`, `/api/email/change` (new), `/api/email/*`, `/api/admin/email/send` + profile/register/verify-email UI surface friendly reason labels (`emailNotSentLabel`); `BlogPostService.adminList()` hardened (createdAt → publishedAt → fallback) + admin blog-posts page shows `ClErrorState` with retry; padding added to email/blog template editor cards. `DEFAULT_FROM_EMAIL` synced to `mail@crellab.com`. 243 tests pass, build green | 2026-08-19 |
 | DB migrations run + email template resolver verified on the real DB: applied `0003_explore.sql` (providers.search_vector + GIN index), `0004_media_assets.sql`, `0005_blog_posts.sql`; repaired stale `emailConfig.templates` config row to persist all 6 wired templates (audit-logged); verified `PlatformConfigService.get()` resolves all 6 wired templates against the live DB. RLS policies (0002/0003_wallet) left unapplied as residual risk (`uuid = text` type mismatch; app uses service role). 233 tests pass, typecheck + lint clean. No app code changed. | 2026-08-19 |
 | Audit trails + config change-log summary: `AuditService` (log/list/count + actor join), `lib/audit` summarise helpers, `AuditValueCell`, config "Recent Changes" summarised old/new + "Performed By" column, `/api/admin/audit-log` + `/admin/audit-log` page (filters + pagination), sidebar entry, audit logging on every remaining admin mutation (team, users, media, email send/broadcast, blog-posts, bug-reports, disputes), PortfolioPerformanceTable migrated to ClDataTable. 233 tests pass, build green | 2026-08-19 |
 | Wired email templates: `lib/email-templates.ts` (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset — label + trigger), `/api/admin/email/send` wired-key guard, `/admin/email-templates` wired badge/Simulate/banner, `passwordReset` template + Better Auth `sendResetPassword`. Tests: `__tests__/lib/email-templates.test.ts`. 206 tests pass, build green | 2026-08-13 |

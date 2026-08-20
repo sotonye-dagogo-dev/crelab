@@ -57,11 +57,9 @@ function VerifyEmailForm() {
       if (!res.ok) throw new Error(json.error ?? "Failed to send verification email");
       if (json.sent === false) {
         const reasonText =
-          json.reason === "Email notifications disabled"
-            ? "Email notifications are currently disabled."
-            : json.reason === "Email sending is not configured"
-              ? "Email sending isn't configured yet."
-              : "We couldn't send the email right now.";
+          typeof json.reason === "string" && json.reason.trim()
+            ? json.reason
+            : "We couldn't send the email right now.";
         setStatus("error");
         setMessage(`Verification email not sent. ${reasonText} Please try again later.`);
         return;

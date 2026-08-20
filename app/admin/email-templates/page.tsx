@@ -106,7 +106,8 @@ export default function AdminEmailTemplatesPage() {
       setTestTo("");
       if (result.message) toast(result.message, "success");
       else if (result.sent) toast("Test email sent successfully", "success");
-      else toast("Resend is not configured — email logged to console instead.", "info");
+      else if (result.reason) toast(`Test email not sent — ${result.reason}`, "error");
+      else toast("Email sending isn't configured — email logged to console instead.", "info");
     },
     onError: (err: Error) => {
       toast(err.message, "error");
@@ -301,7 +302,7 @@ export default function AdminEmailTemplatesPage() {
 
         <div className="flex-1 min-w-0">
           {activeTemplate ? (
-            <ClCard>
+            <ClCard className="p-5 sm:p-6">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
