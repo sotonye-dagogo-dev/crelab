@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton, ClBadge, ClConfirmDialog, ClDataTable, ClModal, type ClColumn } from "@/components/ui";
+import { ClButton, ClBadge, ClConfirmDialog, ClDataTable, ClModal, ClErrorState, type ClColumn } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { ContentBlocksEditor } from "@/components/admin/ContentBlocksEditor";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
@@ -87,7 +87,7 @@ export default function AdminBlogPostsPage() {
   const [postToDelete, setPostToDelete] = useState<IBlogPost | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const { data: posts = [], isLoading } = useQuery<IBlogPost[]>({
+  const { data: posts = [], isLoading, isError, refetch } = useQuery<IBlogPost[]>({
     queryKey: ["admin-blog-posts"],
     queryFn: async () => {
       const res = await fetch("/api/admin/blog-posts");
@@ -235,6 +235,18 @@ export default function AdminBlogPostsPage() {
     return (
       <div className="text-[var(--color-text-secondary)] text-[14px]">
         Loading blog posts...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div>
+        <ClErrorState
+          title="Blog posts failed to load"
+          message="There was a problem loading blog posts. Try again — if it keeps happening, check the server logs."
+          action={{ label: "Try again", onClick: () => refetch() }}
+        />
       </div>
     );
   }

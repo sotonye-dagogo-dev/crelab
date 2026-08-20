@@ -132,7 +132,7 @@ export default function AdminBlogTemplatesPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-6 items-start max-lg:grid-cols-1">
-        <ClCard>
+        <ClCard className="p-5 sm:p-6">
           <div className="flex flex-col gap-4">
             <div>
               <label className={labelClass}>Hero title</label>
@@ -229,7 +229,7 @@ export default function AdminBlogTemplatesPage() {
           </div>
         </ClCard>
 
-        <ClCard>
+        <ClCard className="p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Eye size={15} strokeWidth={2} className="text-[var(--color-accent)]" />
             <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">Live preview</span>
@@ -287,7 +287,7 @@ export default function AdminBlogTemplatesPage() {
         </ClCard>
       </div>
 
-      <ClCard className="mt-6">
+      <ClCard className="mt-6 p-5 sm:p-6">
         <div className="flex flex-col gap-4">
           <div>
             <div className="text-[14px] font-semibold text-[var(--color-text-primary)]">Content Sections</div>

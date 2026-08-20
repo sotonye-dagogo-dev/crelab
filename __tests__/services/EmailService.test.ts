@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   EmailService,
+  emailNotSentLabel,
   isResendConfigured,
   getResendConfig,
   getResendSender,
@@ -57,12 +58,12 @@ describe("services/EmailService — isResendConfigured", () => {
 });
 
 describe("services/EmailService — sender identity (Resend recommendations)", () => {
-  it("defaults to a real address on a subdomain, not a no-reply root address", () => {
+  it("defaults to a real address (not a no-reply), overridable via env/config", () => {
     delete process.env.RESEND_FROM_EMAIL;
     delete process.env.RESEND_FROM_NAME;
     const sender = getResendSender(DEFAULT_CONFIG);
     expect(sender.fromEmail).toBe(DEFAULT_FROM_EMAIL);
-    expect(sender.fromEmail).toContain("mail.");
+    expect(sender.fromEmail).toContain("@");
     expect(sender.fromEmail).not.toMatch(/noreply|no-reply/i);
     expect(sender.fromName).toBe("Crellab");
   });
@@ -261,4 +262,31 @@ describe("services/EmailService — send with Resend key", () => {
     expect(result.reason).toBe("network_error");
     expect(result.error).toContain("timed out");
   }, 15000);
+});
+
+describe("services/EmailService — emailNotSentLabel", () => {
+  it("returns a human-readable label for every machine reason", () => {
+    const reasons = [
+      "template_missing",
+      "template_disabled",
+      "resend_not_configured",
+      "network_error",
+      "resend_api_error",
+    ] as const;
+    for (const reason of reasons) {
+      expect(emailNotSentLabel(reason)).toBeTypeOf("string");
+      expect(emailNotSentLabel(reason)!.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("returns null for an unknown/absent reason", () => {
+    expect(emailNotSentLabel(undefined)).toBeNull();
+    expect(emailNotSentLabel("something_else" as never)).toBeNull();
+  });
+
+  it("labels are user-facing, not raw codes", () => {
+    expect(emailNotSentLabel("resend_api_error")).toContain("rejected");
+    expect(emailNotSentLabel("network_error")).toContain("network");
+    expect(emailNotSentLabel("template_missing")).toContain("missing");
+  });
 });

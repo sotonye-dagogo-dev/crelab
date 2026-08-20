@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: Session 30
+> - last-updated-by: Session 31
 > - last-verified-against-code: 2026-08-19
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,36 @@
 ---
 
 ## Sessions
+
+## Session 31 — 2026-08-19 (Email Target/Feedback Fixes + Admin Blog Load + Template Padding)
+
+**Directive:** (a) Fix the change-email flow sending the confirmation to the old/current address instead of the new one the user enters; (b) admin Blog Posts view not loading (public blog still works); (c) remaining missing padding in email/blog template pages (nested components); (d) email service false-positive feedback — the API returns 200 "sent" even when Resend rejects the mail.
+
+**Root causes / approach:**
+1. **Change-email target:** `lib/auth.ts` configured Better Auth's `sendChangeEmailConfirmation`, which sends the first (approval) email to the CURRENT address. Removed it so Better Auth's default flow fires `sendVerificationEmail` — the verification link now goes to the NEW address the user entered (matching the profile UI copy).
+2. **False-positive feedback:** Better Auth email callbacks swallow send failures (`runInBackgroundOrAwait` catches and logs), so `/api/verify-email/send` and the change-email flow returned `sent: true` even when Resend rejected (403). Added `lib/email-send-sink.ts` (request-scoped `AsyncLocalStorage`) that captures the real `EmailSendResult`; `sendTransactionalEmail` records outcomes into the sink; routes now read the captured result and return the actual outcome with a user-facing label (`emailNotSentLabel` in `EmailService`). New `/api/email/change` route (sink + accurate feedback); profile/verify-email/register/admin send-test pages surface the real reason instead of a false success.
+3. **Admin blog posts not loading:** `BlogPostService.adminList()` ordered by `createdAt`; on deployments where the table predates that column the whole admin list errored (500 → silent empty table) while the public page (orders by `published_at`) still worked. Hardened `adminList()` to degrade through orderings and fall back to seeded posts; the admin page now shows a `ClErrorState` with retry when the API call fails.
+4. **Padding:** `ClCard` wrappers in `/admin/email-templates` and `/admin/blog-templates` (editor + preview + content-sections cards) had no padding — added `p-5 sm:p-6`.
+
+**Completed:**
+- `lib/auth.ts`: removed `sendChangeEmailConfirmation` (verify link → new address); `sendTransactionalEmail` records result into the email send sink.
+- `lib/email-send-sink.ts` (new): `runWithEmailSendSink` + `getEmailSendSink`.
+- `services/EmailService.ts`: `emailNotSentLabel()` mapping; `DEFAULT_FROM_EMAIL` synced to config default `mail@crellab.com`.
+- `app/api/verify-email/send`, `app/api/verify-email/welcome`, `app/api/email/send`, `app/api/email/welcome`, `app/api/email/change` (new), `app/api/admin/email/send`: return real send outcomes with friendly reason labels.
+- `app/(auth)/profile/page.tsx`: change-email via `/api/email/change`; friendly failure feedback.
+- `app/(public)/verify-email/page.tsx`, `app/(auth)/register/page.tsx`, `app/admin/email-templates/page.tsx`: use returned reason labels.
+- `services/BlogPostService.ts`: resilient `adminList()` (createdAt → publishedAt → fallback).
+- `app/admin/blog-posts/page.tsx`: `ClErrorState` + retry on load failure.
+- `app/admin/email-templates/page.tsx`, `app/admin/blog-templates/page.tsx`: card padding.
+- Tests: `__tests__/services/BlogPostService.test.ts` (adminList resilience), `__tests__/lib/email-send-sink.test.ts`, EmailService `emailNotSentLabel` tests. Fixed two stale sender-identity tests caused by the HEAD config change (`fromEmail: mail@crellab.com`).
+
+**QA gate:** `tsc --noEmit` clean, `next lint` no new warnings, `next build` green, **243/243 tests pass**.
+
+**Next Task:** Verify `RESEND_FROM_EMAIL`/domain on Vercel env (subdomain verified in Resend). Phase 2 backlog (messaging, notifications centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- The change-email flow no longer requires current-email approval (Better Auth default: verify the NEW address). This matches the profile UI copy and the user's expectation that the confirmation goes to the new inbox.
+- `emailChanged` template remains registered as wired but is not yet fired on successful change (no dedicated Better Auth hook) — candidate for a follow-up.
 
 ## Session 30 — 2026-08-19 (Run DB Migrations + Make Email Template Resolver Actually Work)
 

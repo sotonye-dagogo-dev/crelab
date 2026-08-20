@@ -1,8 +1,27 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: Session 30
+> - last-updated-by: Session 31
 > - last-verified-against-code: 2026-08-19
+
+## Sprint 2026-08-19 (2) — Email Target/Feedback Fixes + Admin Blog Load + Template Padding
+
+### What
+Fixed three alpha findings in one pass: (1) the change-email confirmation was mailed to the current/old address instead of the new address the user types in; (2) the admin Blog Posts view silently failed to load while the public blog kept working; (3) nested divs in the email/blog template admin pages still lacked padding. Plus a correctness fix: email APIs could report "sent" success even when Resend rejected the mail.
+
+### Why
+For (1), Better Auth's `sendChangeEmailConfirmation` handler sends the approval email to the current email; removing it makes Better Auth verify the NEW address instead. For (3/false-positive), Better Auth runs email callbacks in a background task that swallows errors, so route handlers returned success regardless of Resend's actual outcome — feedback needed to reflect reality. For (2), `adminList()` ordered by `created_at`; tables created before that column made the whole list error (public list orders by `published_at`, so it kept working).
+
+### Key Changes
+- **Change-email target:** removed `sendChangeEmailConfirmation` from `lib/auth.ts` → `auth.api.changeEmail` now sends the verification link to the new email (matches profile UI copy). No approval email to the old inbox.
+- **Accurate email feedback:** new `lib/email-send-sink.ts` (AsyncLocalStorage, request-scoped) — `sendTransactionalEmail` records the real `EmailSendResult`; `EmailService.emailNotSentLabel()` maps machine reasons to friendly text; `/api/verify-email/send`, `/api/verify-email/welcome`, `/api/email/send`, `/api/email/welcome`, `/api/admin/email/send` and the new `/api/email/change` return `{ sent: false, reason }` instead of a false `sent: true`. Profile, register, verify-email and admin email-template pages surface the friendly reason.
+- **Admin blog load:** `BlogPostService.adminList()` now degrades gracefully (createdAt → publishedAt → fallback posts); `/admin/blog-posts` renders `ClErrorState` with a retry action on failure.
+- **Padding:** `ClCard` in `/admin/email-templates` and the three cards in `/admin/blog-templates` got `p-5 sm:p-6`.
+- **Config sync:** `DEFAULT_FROM_EMAIL` updated to `mail@crellab.com` (matches the repo's committed config default).
+- **Tests:** new `__tests__/services/BlogPostService.test.ts` (adminList resilience) and `__tests__/lib/email-send-sink.test.ts`; `emailNotSentLabel` coverage; fixed two stale sender-identity assertions.
+
+### Status
+Pass — typecheck clean, `next build` green, lint no new warnings, 243/243 tests pass.
 
 ## Sprint 2026-08-19 — DB Migrations Applied + Email Template Resolver Verified on the Real Database
 
