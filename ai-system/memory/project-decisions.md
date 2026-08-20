@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: pull-template-update (v3 migration)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: Session 32
+> - last-verified-against-code: 2026-08-20
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -33,6 +33,26 @@
 ---
 
 ## Decisions
+
+## Change-Email Confirmation Must Target the New Address Only
+
+**Decision:** The change-email confirmation may only ever be addressed to the new address the user types; the platform must never claim success when the send was misaddressed, failed, or never attempted.
+**Date:** 2026-08-20
+**Made by:** Agent (execute-feature)
+**Supersedes:** None (strengthens Session 31's removal of `sendChangeEmailConfirmation`)
+**Superseded by:** None
+
+**Reason:**
+Alpha feedback reported the change-email confirmation reaching "both the old mail and the new mail". Better Auth 1.6.23 (lockfile-pinned) was reproduced in isolation: with no `sendChangeEmailConfirmation`, `changeEmail` fires `sendVerificationEmail` exactly once, addressed to the new email only, in both verified and unverified paths. The old-address receipts trace to stale deployed code or the separate "Send verification email" action. To guarantee correctness regardless of upstream behaviour, the send destination is now captured (`EmailSendResult.to`) and verified before any success is reported.
+
+**Alternatives Considered:**
+- Implementing `sendChangeEmailConfirmation` to send to `newEmail` — rejected: it triggers Better Auth's two-step confirmation flow (first click mints a second verification email, so the user receives two emails and must click twice).
+- Trusting Better Auth's callback without verification — rejected: it made the app dependent on opaque callback semantics and allowed false positives (e.g. `status:true` with no send when the address already exists).
+
+**Implications:**
+- `EmailSendResult.to` is additive and backward-compatible.
+- `/api/email/change` returns a hard 500 if any captured send is aimed at the old/current address, and an honest `sent:false` with a neutral reason when no send was attempted (preserving Better Auth's existing-address non-disclosure).
+- `runWithEmailSendSink` now returns the full results array so all captured sends are checked, not just the last.
 
 ## Launch Categories: Content Creators + Cinematographers
 

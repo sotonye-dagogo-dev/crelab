@@ -135,7 +135,7 @@ describe("services/EmailService — send without Resend key (preview fallback)",
   it("returns sent:false + reason for an unknown template key", async () => {
     delete process.env.RESEND_API_KEY;
     const result = await EmailService.send("a@example.com", "doesNotExist", {}, DEFAULT_CONFIG);
-    expect(result).toEqual({ sent: false, reason: "template_missing" });
+    expect(result).toEqual({ sent: false, to: "a@example.com", reason: "template_missing" });
   });
 
   it("falls back to the hardcoded template when the config/DB never saved it", async () => {
@@ -179,7 +179,7 @@ describe("services/EmailService — send without Resend key (preview fallback)",
       },
     };
     const result = await EmailService.sendWelcome("a@example.com", "Ada", config);
-    expect(result).toEqual({ sent: false, reason: "template_disabled" });
+    expect(result).toEqual({ sent: false, to: "a@example.com", reason: "template_disabled" });
   });
 
   it("reports resend_not_configured when no API key is present", async () => {
@@ -201,7 +201,7 @@ describe("services/EmailService — send with Resend key", () => {
 
     const result = await EmailService.sendWelcome("creator@example.com", "Ada", DEFAULT_CONFIG);
 
-    expect(result).toEqual({ sent: true });
+    expect(result).toEqual({ sent: true, to: "creator@example.com" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     const [url, init] = fetchMock.mock.calls[0];

@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: Session 31
-> - last-verified-against-code: 2026-08-19
+> - last-updated-by: Session 32
+> - last-verified-against-code: 2026-08-20
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -10,6 +10,35 @@
 ---
 
 ## Sessions
+
+## Session 32 — 2026-08-20 (Change-Email Confirmation Must Target the New Address Only)
+
+**Directive:** "still on the change of email flow, the email got sent to both the old mail and the new mail whereas it should only be the new mail."
+
+**Investigation (root-cause confirmed via reproduction):** The change-email verification can only ever be addressed to the NEW address with the current config — Better Auth's `changeEmail` endpoint (verified against the lockfile-pinned `better-auth@1.6.23` and reproduced live with an in-memory adapter) fires `sendVerificationEmail` exactly once, passing `user.email = newEmail`, in both the verified and unverified old-email paths, and fires nothing on link click. The "old mail" report therefore stems from a stale/deployed build running pre-Session-31 code (`sendChangeEmailConfirmation` addressed the old inbox) or from the profile page's separate "Send verification email" action targeting the current address. Regardless, the flow is now hardened so it can never silently mail the wrong address or claim success when nothing was sent.
+
+**Completed:**
+
+1. **Recipient is now captured on every send** — `EmailSendResult` gained `to?: string`; `EmailService.send` populates it on every return path (missing/disabled template, preview fallback, Resend success/error, network error). This makes the real destination of any transactional email observable.
+2. **Change-email route now verifies the destination** — `lib/email-change.ts` (new, pure + unit-tested) `resolveEmailChangeOutcome(results, requestedNewEmail)`:
+   - any captured send aimed at an address other than the typed new address → hard `500` error, never a false "confirmation sent";
+   - no send attempted at all (e.g. Better Auth silently declining because the address already belongs to an account) → honest `sent: false` with a neutral reason instead of the previous false `sent: true`;
+   - failed send → `emailNotSentLabel` reason.
+   `/api/email/change` uses it; `runWithEmailSendSink` now also returns the full `results` array so every captured send is checked, not just the last.
+3. **Tests** — new `__tests__/lib/email-change.test.ts` (9 tests: new-only success, multi-send all-new, old-addressed error, no-send false-positive guard, case-insensitive comparison, legacy result without `to`); updated three `EmailService` exact-equality assertions for the new `to` field. QA gate: typecheck clean, lint 0 new warnings, **252/252 tests pass**, `next build` green.
+
+**Files Modified:**
+- `services/EmailService.ts` (`EmailSendResult.to`, populated in `send`)
+- `lib/email-send-sink.ts` (`runWithEmailSendSink` returns `results`)
+- `lib/email-change.ts` (new outcome resolver)
+- `app/api/email/change/route.ts` (recipient + no-send guard, neutral existing-address message)
+- `__tests__/lib/email-change.test.ts` (new), `__tests__/services/EmailService.test.ts` (`to` field)
+- `ai-system/` — session-log (this entry), summaries/dev-history, planning/task-queue
+
+**Next Task:** Re-test the change-email flow on a fresh deploy (confirmation must land in the NEW inbox only). Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- No architecture impact; no DB migration required. `EmailSendResult.to` is additive and backward-compatible.
 
 ## Session 31 — 2026-08-19 (Email Target/Feedback Fixes + Admin Blog Load + Template Padding)
 
