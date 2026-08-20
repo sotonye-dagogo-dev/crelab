@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 28)
-> - last-verified-against-code: 2026-08-18
+> - last-updated-by: update-ai-system (Session 33)
+> - last-verified-against-code: 2026-08-20
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,18 @@
 
 ## Last Run
 
-**Date:** 2026-08-18
-**Run by:** update-ai-system (Session 28)
+**Date:** 2026-08-20
+**Run by:** update-ai-system (Session 33)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 218 | 0 | 0 |
-| TypeScript (tsc --noEmit) | — | 0 errors | — |
+| Unit (vitest) | 258 | 0 | 0 |
+| TypeScript (tsc --noEmit) | — | 0 errors (app code; `__tests__` require vitest/node types, excluded from CI gate) | — |
 | Lint (next lint) | — | 0 errors (pre-existing warnings only) | — |
 | Production build | 1 | 0 | 0 |
 
-**Overall Status:** ✅ Typecheck clean, 218/218 tests pass, lint has no new warnings, production build passes.
+**Overall Status:** ✅ Typecheck clean, 258/258 tests pass, lint has no new warnings, production build passes.
 
 ---
 

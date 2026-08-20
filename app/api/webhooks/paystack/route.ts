@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/paystack";
+import { DuplicateWebhookError } from "@/lib/errors";
 import { EscrowService } from "@/services/EscrowService";
 import { WalletService } from "@/services/WalletService";
 import { db } from "@/lib/db";
@@ -58,7 +59,17 @@ export async function POST(req: NextRequest) {
       }
 
       const walletService = new WalletService();
-      await walletService.topUpFromCard(userId, amount, ref);
+      try {
+        await walletService.topUpFromCard(userId, amount, ref);
+      } catch (err) {
+        // The post-payment callback page may already have credited this ref
+        // (see /api/wallet/topup/verify). A duplicate here is a success, not an
+        // error — never surface a 500 for an already-processed payment.
+        if (err instanceof DuplicateWebhookError) {
+          return NextResponse.json({ success: true, status: "duplicate" });
+        }
+        throw err;
+      }
 
       return NextResponse.json({ success: true });
     }
