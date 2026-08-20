@@ -6,14 +6,16 @@ import { createAuthClient } from "better-auth/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/lib/toast";
 import { ClButton, ClCard, ClInput, ClBadge, ClBackButton } from "@/components/ui";
-import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight } from "lucide-react";
+import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight, LogOut } from "lucide-react";
 
 const authClient = createAuthClient();
 
 export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
+
+  const [signingOut, setSigningOut] = useState(false);
 
   const [name, setName] = useState(user?.name ?? "");
   const [nameSaving, setNameSaving] = useState(false);
@@ -43,6 +45,18 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.push("/login");
+    } catch {
+      toast("Failed to sign out", "error");
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   const handleSaveName = async () => {
     setNameSaving(true);
@@ -125,27 +139,32 @@ export default function ProfilePage() {
       <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <ClBackButton href="/dashboard" label="Back to dashboard" className="mb-6" />
 
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[22px] font-bold text-[var(--color-text-secondary)] overflow-hidden">
-            {user.image ? (
-              <img src={user.image} alt="" className="w-full h-full object-cover" />
-            ) : (
-              user.name?.[0]?.toUpperCase() ?? "?"
-            )}
-          </div>
-          <div>
-            <h1 className="font-[family-name:var(--font-display)] font-bold text-[24px] tracking-[-0.01em] text-[var(--color-text-primary)]">
-              {user.name}
-            </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-[13px] text-[var(--color-text-secondary)]">{user.email}</span>
-              {user.emailVerified ? (
-                <ClBadge variant="success"><ShieldCheck size={11} strokeWidth={2} /> Verified</ClBadge>
+        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-16 h-16 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[22px] font-bold text-[var(--color-text-secondary)] overflow-hidden">
+              {user.image ? (
+                <img src={user.image} alt="" className="w-full h-full object-cover" />
               ) : (
-                <ClBadge variant="warning"><ShieldAlert size={11} strokeWidth={2} /> Unverified</ClBadge>
+                user.name?.[0]?.toUpperCase() ?? "?"
               )}
             </div>
+            <div className="min-w-0">
+              <h1 className="font-[family-name:var(--font-display)] font-bold text-[24px] tracking-[-0.01em] text-[var(--color-text-primary)] truncate">
+                {user.name}
+              </h1>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">{user.email}</span>
+                {user.emailVerified ? (
+                  <ClBadge variant="success"><ShieldCheck size={11} strokeWidth={2} /> Verified</ClBadge>
+                ) : (
+                  <ClBadge variant="warning"><ShieldAlert size={11} strokeWidth={2} /> Unverified</ClBadge>
+                )}
+              </div>
+            </div>
           </div>
+          <ClButton variant="outlined" size="default" onClick={handleSignOut} loading={signingOut}>
+            <LogOut size={15} strokeWidth={2} /> Sign out
+          </ClButton>
         </div>
 
         <div className="flex flex-col gap-5">
