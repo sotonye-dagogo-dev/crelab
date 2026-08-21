@@ -20,23 +20,42 @@ function getHeaders(): Record<string, string> {
   };
 }
 
+export interface InitTransactionOptions {
+  /** Optional metadata echoed back on verify + webhook — used to attribute
+   * charge.success events (e.g. { purpose: "WALLET_TOPUP", userId }). Without
+   * it the webhook cannot tell a wallet top-up apart from a booking payment. */
+  metadata?: Record<string, unknown>;
+  /** Where Paystack redirects the customer after payment. Omit to keep the
+   * user on the hosted page until they click through. */
+  callbackUrl?: string;
+}
+
 export async function initTransaction(
   amountKobo: number,
   email: string,
   ref: string,
+  options: InitTransactionOptions = {},
 ): Promise<{
   authorizationUrl: string;
   accessCode: string;
   reference: string;
 }> {
+  const payload: Record<string, unknown> = {
+    amount: amountKobo,
+    email,
+    reference: ref,
+  };
+  if (options.metadata && Object.keys(options.metadata).length > 0) {
+    payload.metadata = options.metadata;
+  }
+  if (options.callbackUrl) {
+    payload.callback_url = options.callbackUrl;
+  }
+
   const res = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, {
     method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify({
-      amount: amountKobo,
-      email,
-      reference: ref,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -53,6 +72,66 @@ export async function initTransaction(
     authorizationUrl: json.data.authorization_url,
     accessCode: json.data.access_code,
     reference: json.data.reference,
+  };
+}
+
+export type VerifiedTransactionStatus = "success" | "failed" | "abandoned" | "pending";
+
+export interface VerifiedTransaction {
+  status: VerifiedTransactionStatus;
+  reference: string;
+  amountKobo: number;
+  customerEmail: string | null;
+  metadata: Record<string, unknown>;
+}
+
+/**
+ * Queries Paystack for a transaction's final status. Used on the post-payment
+ * callback page so the wallet reflects what actually happened instead of
+ * assuming success — a 200 on the platform API never means money moved.
+ */
+export async function verifyTransaction(reference: string): Promise<VerifiedTransaction> {
+  const res = await fetch(`${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
+    method: "GET",
+    headers: getHeaders(),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Paystack verify failed: ${res.status} ${body}`);
+  }
+
+  const json = (await res.json()) as {
+    status: boolean;
+    data: {
+      status: string;
+      reference: string;
+      amount: number;
+      customer?: { email?: string } | null;
+      metadata?: Record<string, unknown> | null;
+    };
+  };
+
+  if (!json.status || !json.data) {
+    throw new Error(`Paystack verify error: ${json.status ? json.status : "transaction not found"}`);
+  }
+
+  const rawStatus = json.data.status;
+  const status: VerifiedTransactionStatus =
+    rawStatus === "success"
+      ? "success"
+      : rawStatus === "failed"
+        ? "failed"
+        : rawStatus === "abandoned"
+          ? "abandoned"
+          : "pending";
+
+  return {
+    status,
+    reference: json.data.reference,
+    amountKobo: json.data.amount,
+    customerEmail: json.data.customer?.email ?? null,
+    metadata: json.data.metadata ?? {},
   };
 }
 

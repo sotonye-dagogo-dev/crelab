@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
-> - last-synced: 2026-08-19 (session-log entry — Session 31, email accuracy + admin blog load fixes)
+> - last-updated-by: update-ai-system (Session 33)
+> - last-verified-against-code: 2026-08-20
+> - last-synced: 2026-08-20 (session-log entry — Session 33, wallet + paystack tightening)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -79,6 +79,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Wallet + Paystack tightening (alpha feedback): bank-transfer top-up tab removed from UI; TopUp/Withdraw modals migrated from full-height `ClSheet` to universal `ClModal` (dismissible, max-height) with honest `toast` error feedback; `initTransaction` now sends `metadata` (`purpose: WALLET_TOPUP`, userId) + `callback_url` → `/wallet/payment-status` (previously no metadata → webhook could never route/credit wallet top-ups); new `verifyTransaction()` + `GET /api/wallet/topup/verify` (idempotent credit, ownership check); new `/wallet/payment-status` result page; WalletClient refreshes balance on mount + `?topup=` banners; webhook treats `DuplicateWebhookError` as 200. 6 new paystack tests. 258 tests pass, build green. Residual risk logged: DIRECT-mode booking "Add Payment" still routes through wallet top-up (no `/api/bookings/*/pay` yet) | 2026-08-20 |
 | Change-email confirmation targets the NEW address only + no false success: `EmailSendResult.to` records the recipient on every send; new `lib/email-change.ts` `resolveEmailChangeOutcome` surfaces a hard error if any captured send is addressed to the old/current address, an honest `sent:false` (neutral reason) when no send was attempted (e.g. address already in use), and the friendly label on failure; `/api/email/change` applies it and `runWithEmailSendSink` now returns all captured results. `better-auth@1.6.23` behaviour verified by live reproduction (fires `sendVerificationEmail` once, addressed to new email only). 9 new tests. 252 tests pass, build green | 2026-08-20 |
 | Email accuracy + admin blog load fixes: change-email confirmation now goes to the NEW address entered (removed `sendChangeEmailConfirmation` so Better Auth verifies the new email); email feedback is no longer a false positive — request-scoped sink (`lib/email-send-sink.ts`) captures the real Resend result and `/api/verify-email/send`, `/api/email/change` (new), `/api/email/*`, `/api/admin/email/send` + profile/register/verify-email UI surface friendly reason labels (`emailNotSentLabel`); `BlogPostService.adminList()` hardened (createdAt → publishedAt → fallback) + admin blog-posts page shows `ClErrorState` with retry; padding added to email/blog template editor cards. `DEFAULT_FROM_EMAIL` synced to `mail@crellab.com`. 243 tests pass, build green | 2026-08-19 |
 | DB migrations run + email template resolver verified on the real DB: applied `0003_explore.sql` (providers.search_vector + GIN index), `0004_media_assets.sql`, `0005_blog_posts.sql`; repaired stale `emailConfig.templates` config row to persist all 6 wired templates (audit-logged); verified `PlatformConfigService.get()` resolves all 6 wired templates against the live DB. RLS policies (0002/0003_wallet) left unapplied as residual risk (`uuid = text` type mismatch; app uses service role). 233 tests pass, typecheck + lint clean. No app code changed. | 2026-08-19 |

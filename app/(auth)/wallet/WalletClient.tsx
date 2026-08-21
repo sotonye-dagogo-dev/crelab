@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
 import { TopUpModal } from "@/components/wallet/TopUpModal";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { ClButton, ClBackButton } from "@/components/ui";
 import type { IWalletTransaction, WalletTransactionType } from "@/types";
-import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, CheckCircle2, XCircle } from "lucide-react";
 
 interface WalletClientProps {
   balanceKobo: number;
@@ -30,11 +31,15 @@ const typeLabels: Partial<Record<WalletTransactionType, string>> = {
 };
 
 export function WalletClient({
-  balanceKobo,
-  escrowKobo,
-  totalEarnedKobo,
+  balanceKobo: initialBalanceKobo,
+  escrowKobo: initialEscrowKobo,
+  totalEarnedKobo: initialTotalEarnedKobo,
   isProvider,
 }: WalletClientProps) {
+  const searchParams = useSearchParams();
+  const [balanceKobo, setBalanceKobo] = useState(initialBalanceKobo);
+  const [escrowKobo, setEscrowKobo] = useState(initialEscrowKobo);
+  const [totalEarnedKobo, setTotalEarnedKobo] = useState(initialTotalEarnedKobo);
   const [showTopUp, setShowTopUp] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [transactions, setTransactions] = useState<IWalletTransaction[]>([]);
@@ -42,6 +47,23 @@ export function WalletClient({
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("");
+
+  const topupStatus = searchParams.get("topup");
+  const topupAmount = searchParams.get("amount");
+
+  const refreshBalance = useCallback(async () => {
+    try {
+      const res = await fetch("/api/wallet/balance");
+      const json = await res.json();
+      if (json.success) {
+        setBalanceKobo(json.data.balanceKobo);
+        setEscrowKobo(json.data.escrowKobo);
+        setTotalEarnedKobo(json.data.totalEarnedKobo);
+      }
+    } catch {
+      // Keep server-rendered values; not fatal.
+    }
+  }, []);
 
   const fetchTransactions = useCallback(async (reset = false) => {
     setLoading(true);
@@ -64,6 +86,13 @@ export function WalletClient({
     }
   }, [cursor, typeFilter]);
 
+  // Re-pull the balance on mount so returning from the Paystack callback (or a
+  // browser back) reflects the credited top-up instead of a stale server value.
+  useEffect(() => {
+    refreshBalance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     fetchTransactions(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,6 +101,24 @@ export function WalletClient({
   return (
     <div>
       <ClBackButton href="/dashboard" label="Back to dashboard" className="mb-5" />
+
+      {topupStatus === "success" && (
+        <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[var(--color-success)]/30 bg-[rgba(74,222,128,0.08)] px-4 py-3">
+          <CheckCircle2 size={18} strokeWidth={2} color="var(--color-success)" />
+          <p className="text-[13px] text-[var(--color-text-primary)]">
+            Payment received{topupAmount ? ` — ₦${Number(topupAmount).toLocaleString()} added to your balance` : ""}.
+          </p>
+        </div>
+      )}
+      {topupStatus === "failed" && (
+        <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] px-4 py-3">
+          <XCircle size={18} strokeWidth={2} color="#ef4444" />
+          <p className="text-[13px] text-[var(--color-text-primary)]">
+            Payment was not completed. Your balance is unchanged.
+          </p>
+        </div>
+      )}
+
       <WalletBalanceCard
         balanceKobo={balanceKobo}
         escrowKobo={escrowKobo}
@@ -87,7 +134,7 @@ export function WalletClient({
         </h2>
 
         <div className="flex gap-2 mb-4 overflow-x-auto">
-          {["", "TOPUP_CARD", "TOPUP_BANK", "WITHDRAWAL", "ESCROW_RELEASE", "MILESTONE_RELEASE", "DIRECT_PAYMENT_CREDIT", "BOOKING_DEBIT"].map(
+          {["", "TOPUP_CARD", "WITHDRAWAL", "ESCROW_RELEASE", "MILESTONE_RELEASE", "DIRECT_PAYMENT_CREDIT", "BOOKING_DEBIT"].map(
             (type) => (
               <button
                 key={type}

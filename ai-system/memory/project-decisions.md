@@ -1,7 +1,7 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: Session 32
+> - last-updated-by: Session 33
 > - last-verified-against-code: 2026-08-20
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -33,6 +33,27 @@
 ---
 
 ## Decisions
+
+## Payment Truthfulness: Verify, Don't Assume, on Paystack Returns
+
+**Decision:** Wallet top-ups are never reported as successful based on the platform's own 200. Every Paystack `initTransaction` now carries `metadata` (`purpose`, `userId`) and a `callback_url` back to `/wallet/payment-status`, which verifies the charge via `GET /api/wallet/topup/verify` (Paystack `transaction/verify`) before crediting — idempotently — and then shows an honest success / not-completed / error state. The wallet page refreshes its balance on mount so the state reflects what actually happened.
+**Date:** 2026-08-20
+**Made by:** Agent (execute-feature)
+**Supersedes:** None (extends the earlier "verify webhook before any mutation" invariant to the return path)
+**Superseded by:** None
+
+**Reason:**
+Alpha feedback: after Paystack checkout there was no redirect and the wallet showed no trace of the transaction. Root cause found while fixing it — `initTransaction` never sent `metadata`, so the `charge.success` webhook's `purpose === "WALLET_TOPUP"` branch could never match and wallet top-ups were never credited. Payments are the one surface where a false positive is unacceptable, so the return path now verifies with Paystack directly and credits only on a confirmed `success`.
+
+**Alternatives Considered:**
+- Relying solely on the webhook and a plain "you'll be credited shortly" message — rejected: gives no immediate truthful reflection and hides webhook routing bugs like the missing-metadata one above.
+- Crediting from the callback without verifying — rejected: the callback URL is reachable by anyone, so the charge must be verified + ownership-checked (reference prefix `WALLET-TOPUP-<userId>-` AND echoed `metadata.userId`) before any balance mutation.
+
+**Implications:**
+- `lib/paystack.ts` gained `InitTransactionOptions` (metadata/callbackUrl) and `verifyTransaction(reference)`; callers of `initTransaction` may now pass attribution metadata.
+- The verify endpoint and the webhook both credit through `WalletService.topUpFromCard`, which is idempotent via `processed_webhook_events`; the webhook treats a `DuplicateWebhookError` as a 200 `duplicate`.
+- Bank-transfer (DVA) top-up is no longer surfaced in the wallet UI; the route/service/columns remain for a future re-enable.
+- Booking "Add Payment" (DIRECT mode) still routes through the wallet top-up init and `/api/bookings/*/pay` does not exist yet — a booking-payment flow remains to be built before real money moves (residual risk).
 
 ## Change-Email Confirmation Must Target the New Address Only
 

@@ -11,6 +11,38 @@
 
 ## Sessions
 
+## Session 33 — 2026-08-20 (Wallet Page + Paystack Tightening)
+
+**Directive:** Alpha-testing feedback on the wallet page: (1) bank-transfer top-up doesn't feel like something actually supported, (2) the top-up/withdraw modal covered most of the screen with no obvious dismiss, (3) Paystack checkout never redirected back after payment and the wallet showed no reflection of what happened. "Tightening" requested across the whole payment surface.
+
+**Completed:**
+
+1. **Bank-transfer top-up removed from the UI** — the `TopUpModal` "Bank Transfer" (DVA) tab is gone; card top-up via Paystack is the sole funding method surfaced to users. The DVA API route/service/schema columns remain untouched (re-enablable later) but are no longer surfaced.
+2. **Universal modal adopted for wallet flows** — both `TopUpModal` and `WithdrawModal` now use `ClModal` (visible close button, centered, `max-height` + inner scroll) instead of the full-height `ClSheet`, fixing the "covers the whole screen / no way to dismiss" report. Error paths now surface honest `toast()` feedback instead of silently swallowing failures.
+3. **Paystack callback + verification (state reflection)** —
+   - `lib/paystack.ts`: `initTransaction` now accepts `metadata` + `callbackUrl`; new `verifyTransaction(reference)` returns final status/amount/metadata.
+   - `POST /api/wallet/topup/card` sends `metadata: { purpose: "WALLET_TOPUP", userId }` and `callback_url` → `/wallet/payment-status`. (Previously no metadata was sent, so the webhook's `purpose` routing could never match and wallet top-ups were never credited.)
+   - New `GET /api/wallet/topup/verify?reference=…` verifies the charge with Paystack, enforces `WALLET_TOPUP-<userId>-` prefix + echoed metadata ownership, and credits idempotently via `WalletService.topUpFromCard`.
+   - New `/wallet/payment-status` page (server + `PaymentStatusClient`) shows success / not-completed / error states with the credited amount and links back to the wallet.
+   - `WalletClient` re-pulls the balance on mount so returning from Paystack reflects the credit, plus `?topup=success|failed` banners.
+4. **Webhook idempotency hardening** — `charge.success` wallet branch treats `DuplicateWebhookError` (from the verify-endpoint credit racing the webhook) as a 200 `duplicate`, never a 500.
+5. **Tests** — new `__tests__/paystack.test.ts` (6 tests): init payload metadata/callback_url, verify status mapping (success/failed/abandoned/pending), non-2xx error propagation. QA gate: 258/258 tests pass, `tsc --noEmit` clean (app code), lint no new warnings, `next build` green with `/wallet/payment-status` + `/api/wallet/topup/verify` routes.
+
+**Files Modified:**
+- `lib/paystack.ts` — metadata/callbackUrl support + `verifyTransaction`
+- `app/api/wallet/topup/card/route.ts` — metadata + callback_url
+- `app/api/wallet/topup/verify/route.ts` (new)
+- `app/(auth)/wallet/payment-status/page.tsx` + `PaymentStatusClient.tsx` (new)
+- `components/wallet/TopUpModal.tsx`, `components/wallet/WithdrawModal.tsx` — `ClModal` + honest error feedback, bank-transfer tab removed
+- `app/(auth)/wallet/WalletClient.tsx` — balance refresh on mount, status banners
+- `app/api/webhooks/paystack/route.ts` — duplicate-handling for wallet top-up branch
+- `__tests__/paystack.test.ts` (new)
+- `ai-system/` — session-log (this entry), summaries/dev-history, planning/task-queue, project-decisions, testing/test-results
+
+**Build Status:** ✅ Production build passes. TypeScript compiles with zero errors. ESLint no new warnings. 258/258 tests pass.
+
+**Next Task:** Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification). Residual risk: the DIRECT-mode "Add Payment" button on booking details still calls the wallet top-up init (and the `/api/bookings/*/pay` routes don't exist yet), so a DIRECT payment currently tops up the client's own wallet rather than paying the provider — a booking-payment flow to be completed before real money moves.
+
 ## Session 32 — 2026-08-20 (Change-Email Confirmation Must Target the New Address Only)
 
 **Directive:** "still on the change of email flow, the email got sent to both the old mail and the new mail whereas it should only be the new mail."

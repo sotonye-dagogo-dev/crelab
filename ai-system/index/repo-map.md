@@ -42,7 +42,7 @@ crelab/
 │   │   ├── login/          # Sign in page (email/password + phone/OTP + Google OAuth)
 │   │   ├── profile/        # Profile page, edit/setup + media asset manager
 │   │   ├── register/       # Sign up page (multi-step email/password + Google OAuth)
-│   │   └── wallet/         # Wallet page (balance, topup, withdraw, transactions)
+│   │   └── wallet/         # Wallet page (balance, topup, withdraw, transactions) + payment-status callback
 │   ├── admin/               # ADMIN role only
 │   │   ├── page.tsx        # Dashboard
 │   │   ├── layout.tsx      # Admin layout + collapsible sidebar shell (AdminShell)
@@ -70,7 +70,7 @@ crelab/
 │       ├── portfolio/      # Portfolio CRUD
 │       ├── profile/        # Profile management (setup)
 │       ├── verify-email/   # Verify-email: /send (sendVerificationEmail) + /welcome (fires welcome once verified)
-│       ├── wallet/         # Wallet: topup (card + bank DVA), withdraw, balance, transactions
+│       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog, ClBackButton, ClDataTable, ClPagination)
