@@ -1,13 +1,14 @@
 "use client";
 
-import { Film } from "lucide-react";
+import { Film, ExternalLink } from "lucide-react";
 import type { IProvider } from "@/types";
 
 interface ProviderHeroProps {
   provider: IProvider;
+  isOwnProfile?: boolean;
 }
 
-export function ProviderHero({ provider }: ProviderHeroProps) {
+export function ProviderHero({ provider, isOwnProfile }: ProviderHeroProps) {
   const coverUrl = provider.coverVideoUrl;
 
   return (
@@ -46,6 +47,17 @@ export function ProviderHero({ provider }: ProviderHeroProps) {
               {provider.location ?? "Nigeria"}
             </p>
           </div>
+          {isOwnProfile && (
+            <a
+              href={`/profile/${provider.id}?preview=1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] border border-[var(--color-border-mid)] bg-transparent text-[12px] font-semibold text-[var(--color-text-secondary)] no-underline hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]"
+            >
+              <ExternalLink size={13} strokeWidth={1.8} />
+              Preview
+            </a>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { providers, portfolioItems, servicePackages, reviews, user, bookings } from "@/drizzle/schema";
 import { eq, and, asc, like } from "drizzle-orm";
@@ -6,15 +7,23 @@ import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { MockDataService } from "@/services/MockDataService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { parseProviderSlug } from "@/lib/slug";
+import { requireAuth } from "@/lib/auth";
 import { ProviderHero } from "@/components/profile/ProviderHero";
 import { PortfolioGrid } from "@/components/profile/PortfolioGrid";
 import { DrivePortfolioSection } from "@/components/profile/DrivePortfolioSection";
-import { ServicePackages } from "@/components/profile/ServicePackages";
 import { WorkHistory } from "@/components/profile/WorkHistory";
 import { ReviewsSection } from "@/components/profile/ReviewsSection";
-import { BookingSidebar } from "@/components/profile/BookingSidebar";
-import { BookingBottomBar } from "@/components/profile/BookingBottomBar";
+import { ProfileClient } from "./ProfileClient";
 import type { IProvider, IServicePackage, IPortfolioItem } from "@/types";
+
+async function getSessionUser() {
+  try {
+    const session = await requireAuth();
+    return session.user;
+  } catch {
+    return null;
+  }
+}
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -210,6 +219,9 @@ export default async function ProfilePage({ params }: Props) {
 
   if (!provider) notFound();
 
+  const currentUser = await getSessionUser();
+  const isOwnProfile = currentUser && provider.userId === currentUser.id;
+
   const [portfolio, packages, reviewData, workHistory] = await Promise.all([
     getPortfolioItems(provider.id),
     getServicePackages(provider.id),
@@ -219,6 +231,98 @@ export default async function ProfilePage({ params }: Props) {
 
   const driveItems = portfolio.filter((item) => item.source === "DRIVE");
   const directItems = portfolio.filter((item) => item.source === "DIRECT");
+
+  if (isOwnProfile) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)]">
+        <div className="max-w-[1200px] mx-auto px-4 py-6">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="font-[family-name:var(--font-display)] font-bold text-[24px] text-[var(--color-text-primary)]">
+                Your Creator Profile
+              </h1>
+              <p className="text-[13px] text-[var(--color-text-secondary)] mt-1">
+                Manage your profile and preview how it looks to clients
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[var(--color-border-mid)] bg-transparent px-4 text-sm font-semibold text-[var(--color-text-secondary)] no-underline transition-colors duration-150 hover:text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/profile/setup"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 hover:bg-[var(--color-accent-dim)]"
+              >
+                Edit Profile
+              </Link>
+              <Link
+                href={`/profile/${slug}?preview=1`}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-[var(--color-success)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 hover:opacity-90"
+              >
+                Preview Public Profile
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+            <div className="flex items-center gap-3 mb-4 p-3 rounded-[10px] bg-[var(--color-accent-muted)] border border-[var(--color-accent)]">
+              <span className="w-2 h-2 rounded-full bg-[var(--color-success)]" />
+              <span className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                You are viewing your own profile. Clients see the public version.
+              </span>
+            </div>
+            <ProviderHero provider={provider} isOwnProfile />
+            <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
+              <div className="min-w-0">
+                <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                  <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px] text-[var(--color-text-primary)] mb-1">
+                    About
+                  </h2>
+                  <p className="text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
+                    {provider.bio ?? "No bio yet"}
+                  </p>
+                  {provider.yearsActive && (
+                    <p className="text-[13px] text-[var(--color-text-tertiary)] mt-2">
+                      {provider.yearsActive}+ years of experience
+                    </p>
+                  )}
+                </div>
+
+                {directItems.length > 0 && (
+                  <div className="mt-6">
+                    <h2 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)] mb-3">
+                      Portfolio
+                    </h2>
+                    <PortfolioGrid items={directItems} />
+                  </div>
+                )}
+
+                {driveItems.length > 0 && (
+                  <DrivePortfolioSection
+                    items={portfolio}
+                    providerName={provider.displayName}
+                  />
+                )}
+
+                <ProfileClient
+                  packages={packages}
+                  providerName={provider.displayName}
+                  providerId={provider.id}
+                />
+                <WorkHistory items={workHistory} />
+                <ReviewsSection reviews={reviewData} />
+
+                <div className="h-20 md:hidden" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -257,25 +361,18 @@ export default async function ProfilePage({ params }: Props) {
               />
             )}
 
-            <ServicePackages packages={packages} />
+            <ProfileClient
+              packages={packages}
+              providerName={provider.displayName}
+              providerId={provider.id}
+            />
             <WorkHistory items={workHistory} />
             <ReviewsSection reviews={reviewData} />
 
             <div className="h-20 md:hidden" />
           </div>
-
-          <div className="hidden lg:block">
-            <BookingSidebar
-              packages={packages}
-              providerName={provider.displayName}
-            />
-          </div>
         </div>
       </div>
-
-      <BookingBottomBar
-        selectedPackage={packages[0] ?? null}
-      />
     </div>
   );
 }

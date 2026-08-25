@@ -9,7 +9,7 @@ import { DriveConnectSettings } from "@/components/profile/DriveConnectSettings"
 import { MediaUpload } from "@/components/profile/MediaUpload";
 import { usePlatformConfig } from "@/lib/config-context";
 import { useToast } from "@/lib/toast";
-import { nairaToKobo, formatNaira } from "@/lib/currency";
+import { nairaToKobo, formatPriceSmart } from "@/lib/currency";
 import { Check, X } from "lucide-react";
 import type { IFieldSchemaField, IPortfolioItem } from "@/types";
 
@@ -515,7 +515,7 @@ export default function ProfileSetupPage() {
                       </p>
                       <p className="font-bold text-[var(--color-text-primary)] mt-1">
                         {pkg.price
-                          ? formatNaira(parseFloat(pkg.price))
+                          ? formatPriceSmart(parseFloat(pkg.price))
                           : "₦0"}
                       </p>
                     </div>
