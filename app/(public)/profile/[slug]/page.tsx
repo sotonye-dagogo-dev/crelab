@@ -13,6 +13,7 @@ import { PortfolioGrid } from "@/components/profile/PortfolioGrid";
 import { DrivePortfolioSection } from "@/components/profile/DrivePortfolioSection";
 import { WorkHistory } from "@/components/profile/WorkHistory";
 import { ReviewsSection } from "@/components/profile/ReviewsSection";
+import { BookingSidebarDisplay } from "@/components/profile/BookingSidebarDisplay";
 import { ProfileClient } from "./ProfileClient";
 import type { IProvider, IServicePackage, IPortfolioItem } from "@/types";
 
@@ -213,6 +214,84 @@ export async function generateMetadata({ params }: Props) {
   });
 }
 
+function ProfileContent({
+  provider,
+  portfolio,
+  packages,
+  reviewData,
+  workHistory,
+  isOwnProfile,
+}: {
+  provider: IProvider;
+  portfolio: IPortfolioItem[];
+  packages: IServicePackage[];
+  reviewData: Awaited<ReturnType<typeof getReviews>>;
+  workHistory: Awaited<ReturnType<typeof getWorkHistory>>;
+  isOwnProfile: boolean;
+}) {
+  const driveItems = portfolio.filter((item) => item.source === "DRIVE");
+  const directItems = portfolio.filter((item) => item.source === "DIRECT");
+
+  return (
+    <>
+      <ProviderHero provider={provider} isOwnProfile={isOwnProfile} />
+
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
+        <div className="min-w-0">
+          <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px] text-[var(--color-text-primary)] mb-1">
+              About
+            </h2>
+            <p className="text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
+              {provider.bio ?? "No bio yet"}
+            </p>
+            {provider.yearsActive && (
+              <p className="text-[13px] text-[var(--color-text-tertiary)] mt-2">
+                {provider.yearsActive}+ years of experience
+              </p>
+            )}
+          </div>
+
+          {directItems.length > 0 && (
+            <div className="mt-6">
+              <h2 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)] mb-3">
+                Portfolio
+              </h2>
+              <PortfolioGrid items={directItems} />
+            </div>
+          )}
+
+          {driveItems.length > 0 && (
+            <DrivePortfolioSection
+              items={portfolio}
+              providerName={provider.displayName}
+            />
+          )}
+
+          <ProfileClient
+            packages={packages}
+            providerId={provider.id}
+          />
+          <WorkHistory items={workHistory} />
+          <ReviewsSection reviews={reviewData} />
+
+          <div className="h-20 md:hidden" />
+        </div>
+
+        <div className="hidden lg:block">
+          {packages.length > 0 && (
+            <BookingSidebarDisplay
+              packages={packages}
+              providerName={provider.displayName}
+              providerId={provider.id}
+            />
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default async function ProfilePage({ params }: Props) {
   const { slug } = await params;
   const provider = await getProvider(slug);
@@ -228,9 +307,6 @@ export default async function ProfilePage({ params }: Props) {
     getReviews(provider.id),
     getWorkHistory(provider.id),
   ]);
-
-  const driveItems = portfolio.filter((item) => item.source === "DRIVE");
-  const directItems = portfolio.filter((item) => item.source === "DIRECT");
 
   if (isOwnProfile) {
     return (
@@ -274,50 +350,14 @@ export default async function ProfilePage({ params }: Props) {
                 You are viewing your own profile. Clients see the public version.
               </span>
             </div>
-            <ProviderHero provider={provider} isOwnProfile />
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
-              <div className="min-w-0">
-                <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-                  <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px] text-[var(--color-text-primary)] mb-1">
-                    About
-                  </h2>
-                  <p className="text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
-                    {provider.bio ?? "No bio yet"}
-                  </p>
-                  {provider.yearsActive && (
-                    <p className="text-[13px] text-[var(--color-text-tertiary)] mt-2">
-                      {provider.yearsActive}+ years of experience
-                    </p>
-                  )}
-                </div>
-
-                {directItems.length > 0 && (
-                  <div className="mt-6">
-                    <h2 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)] mb-3">
-                      Portfolio
-                    </h2>
-                    <PortfolioGrid items={directItems} />
-                  </div>
-                )}
-
-                {driveItems.length > 0 && (
-                  <DrivePortfolioSection
-                    items={portfolio}
-                    providerName={provider.displayName}
-                  />
-                )}
-
-                <ProfileClient
-                  packages={packages}
-                  providerName={provider.displayName}
-                  providerId={provider.id}
-                />
-                <WorkHistory items={workHistory} />
-                <ReviewsSection reviews={reviewData} />
-
-                <div className="h-20 md:hidden" />
-              </div>
-            </div>
+            <ProfileContent
+              provider={provider}
+              portfolio={portfolio}
+              packages={packages}
+              reviewData={reviewData}
+              workHistory={workHistory}
+              isOwnProfile
+            />
           </div>
         </div>
       </div>
@@ -327,51 +367,14 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-[1200px] mx-auto px-4 py-6">
-        <ProviderHero provider={provider} />
-
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
-          <div className="min-w-0">
-            <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-              <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px] text-[var(--color-text-primary)] mb-1">
-                About
-              </h2>
-              <p className="text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
-                {provider.bio ?? "No bio yet"}
-              </p>
-              {provider.yearsActive && (
-                <p className="text-[13px] text-[var(--color-text-tertiary)] mt-2">
-                  {provider.yearsActive}+ years of experience
-                </p>
-              )}
-            </div>
-
-            {directItems.length > 0 && (
-              <div className="mt-6">
-                <h2 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)] mb-3">
-                  Portfolio
-                </h2>
-                <PortfolioGrid items={directItems} />
-              </div>
-            )}
-
-            {driveItems.length > 0 && (
-              <DrivePortfolioSection
-                items={portfolio}
-                providerName={provider.displayName}
-              />
-            )}
-
-            <ProfileClient
-              packages={packages}
-              providerName={provider.displayName}
-              providerId={provider.id}
-            />
-            <WorkHistory items={workHistory} />
-            <ReviewsSection reviews={reviewData} />
-
-            <div className="h-20 md:hidden" />
-          </div>
-        </div>
+        <ProfileContent
+          provider={provider}
+          portfolio={portfolio}
+          packages={packages}
+          reviewData={reviewData}
+          workHistory={workHistory}
+          isOwnProfile={false}
+        />
       </div>
     </div>
   );

@@ -9,7 +9,20 @@ import { ContentBlocksEditor } from "@/components/admin/ContentBlocksEditor";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import type { IBlogPost, BlogCategory } from "@/types/blog";
 import type { EmailTemplateBlock } from "@/types";
-import { Plus, Edit3, Trash2, Eye, FileText, UploadCloud } from "lucide-react";
+import { Plus, Edit3, Trash2, Eye, FileText, UploadCloud, Database, HardDrive } from "lucide-react";
+
+const fallbackIds = new Set([
+  "fallback-1",
+  "fallback-2",
+  "fallback-3",
+  "fallback-4",
+  "fallback-5",
+  "fallback-6",
+]);
+
+function isFallbackPost(post: IBlogPost): boolean {
+  return fallbackIds.has(post._id);
+}
 
 const inputClass =
   "h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none w-full focus:border-[var(--color-accent)]";
@@ -86,6 +99,7 @@ export default function AdminBlogPostsPage() {
   const [draft, setDraft] = useState<PostDraft>(emptyDraft());
   const [postToDelete, setPostToDelete] = useState<IBlogPost | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [savingFallback, setSavingFallback] = useState<string | null>(null);
 
   const { data: posts = [], isLoading, isError, refetch } = useQuery<IBlogPost[]>({
     queryKey: ["admin-blog-posts"],
@@ -156,6 +170,39 @@ export default function AdminBlogPostsPage() {
     setEditorOpen(true);
   };
 
+  const saveFallbackToDb = async (post: IBlogPost) => {
+    if (!isFallbackPost(post)) return;
+    setSavingFallback(post._id);
+    try {
+      const payload = {
+        title: post.title,
+        slug: post.slug.current,
+        metaDescription: post.metaDescription,
+        heroImageUrl:
+          post.heroImage &&
+          (post.heroImage as unknown as { asset?: { url?: string } }).asset?.url,
+        category: post.category,
+        tags: post.tags,
+        author: post.author,
+        published: Boolean(post.publishedAt),
+        content: Array.isArray(post.content) ? post.content : [],
+      };
+      const res = await fetch("/api/admin/blog-posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Failed to save post");
+      toast("Fallback post saved to database", "success");
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to save", "error");
+    } finally {
+      setSavingFallback(null);
+    }
+  };
+
   const columns: ClColumn<IBlogPost>[] = [
     {
       key: "title",
@@ -164,6 +211,12 @@ export default function AdminBlogPostsPage() {
         <div className="min-w-0">
           <div className="text-[13px] font-medium text-[var(--color-text-primary)] truncate max-w-[280px]">
             {post.title}
+            {isFallbackPost(post) && (
+              <span className="ml-2 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-warning-muted)] text-[var(--color-warning)] border border-[var(--color-warning)]">
+                <HardDrive size={9} strokeWidth={2} />
+                Fallback
+              </span>
+            )}
           </div>
           <div className="text-[11px] text-[var(--color-text-tertiary)] truncate max-w-[280px]">
             /blog/{post.slug.current}
@@ -189,6 +242,17 @@ export default function AdminBlogPostsPage() {
       ),
     },
     {
+      key: "source",
+      header: "Source",
+      hideOnMobile: true,
+      cell: (post) =>
+        isFallbackPost(post) ? (
+          <ClBadge variant="warning">Config / Fallback</ClBadge>
+        ) : (
+          <ClBadge variant="success">Database</ClBadge>
+        ),
+    },
+    {
       key: "status",
       header: "Status",
       cell: (post) =>
@@ -201,33 +265,53 @@ export default function AdminBlogPostsPage() {
     {
       key: "actions",
       header: "Actions",
-      cell: (post) => (
-        <div className="flex items-center gap-1">
-          <a
-            href={`/blog/${post.slug.current}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center w-7 h-7 rounded-[6px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)]"
-            aria-label="View post"
-          >
-            <Eye size={14} strokeWidth={1.8} />
-          </a>
-          <button
-            onClick={() => openEdit(post)}
-            className="inline-flex items-center justify-center w-7 h-7 rounded-[6px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] cursor-pointer border-none"
-            aria-label="Edit post"
-          >
-            <Edit3 size={14} strokeWidth={1.8} />
-          </button>
-          <button
-            onClick={() => setPostToDelete(post)}
-            className="inline-flex items-center justify-center w-7 h-7 rounded-[6px] text-[var(--color-text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--color-surface-raised)] cursor-pointer border-none"
-            aria-label="Delete post"
-          >
-            <Trash2 size={14} strokeWidth={1.8} />
-          </button>
-        </div>
-      ),
+      cell: (post) => {
+        const fallback = isFallbackPost(post);
+        return (
+          <div className="flex items-center gap-1">
+            <a
+              href={`/blog/${post.slug.current}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center w-7 h-7 rounded-[6px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)]"
+              aria-label="View post"
+            >
+              <Eye size={14} strokeWidth={1.8} />
+            </a>
+            <button
+              onClick={() => openEdit(post)}
+              className="inline-flex items-center justify-center w-7 h-7 rounded-[6px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] cursor-pointer border-none"
+              aria-label="Edit post"
+            >
+              <Edit3 size={14} strokeWidth={1.8} />
+            </button>
+            {fallback && (
+              <button
+                onClick={() => saveFallbackToDb(post)}
+                disabled={savingFallback === post._id}
+                className="inline-flex items-center justify-center w-7 h-7 rounded-[6px] text-[var(--color-text-tertiary)] hover:text-[var(--color-success)] hover:bg-[var(--color-surface-raised)] cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Save to database"
+                title="Save to database"
+              >
+                {savingFallback === post._id ? (
+                  <div className="w-4 h-4 border-2 border-[var(--color-success)] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Database size={14} strokeWidth={1.8} />
+                )}
+              </button>
+            )}
+            {!fallback && (
+              <button
+                onClick={() => setPostToDelete(post)}
+                className="inline-flex items-center justify-center w-7 h-7 rounded-[6px] text-[var(--color-text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--color-surface-raised)] cursor-pointer border-none"
+                aria-label="Delete post"
+              >
+                <Trash2 size={14} strokeWidth={1.8} />
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
