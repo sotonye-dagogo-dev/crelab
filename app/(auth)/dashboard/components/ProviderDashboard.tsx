@@ -5,6 +5,7 @@ import { PipelineKanban } from "./PipelineKanban";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { PortfolioPerformanceTable } from "./PortfolioPerformanceTable";
 import type { IProviderDashboard } from "@/types";
+import { buildProviderSlug } from "@/lib/slug";
 
 export function ProviderDashboard({ data }: { data: IProviderDashboard }) {
   return (
@@ -29,7 +30,7 @@ export function ProviderDashboard({ data }: { data: IProviderDashboard }) {
               Account settings →
             </Link>
             <Link
-              href={data.profile ? `/profile/${data.profile.id}` : "/explore"}
+              href={data.profile ? `/profile/${buildProviderSlug(data.profile.displayName, data.profile.id)}` : "/explore"}
               className="text-[13px] text-[var(--color-accent)] no-underline transition-colors duration-150 hover:underline"
             >
               View public profile →

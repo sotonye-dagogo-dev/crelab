@@ -2,6 +2,7 @@
 
 import { Film, ExternalLink } from "lucide-react";
 import type { IProvider } from "@/types";
+import { buildProviderSlug } from "@/lib/slug";
 
 interface ProviderHeroProps {
   provider: IProvider;
@@ -49,7 +50,7 @@ export function ProviderHero({ provider, isOwnProfile }: ProviderHeroProps) {
           </div>
           {isOwnProfile && (
             <a
-              href={`/profile/${provider.id}?preview=1`}
+              href={`/profile/${buildProviderSlug(provider.displayName, provider.id)}?preview=1`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] border border-[var(--color-border-mid)] bg-transparent text-[12px] font-semibold text-[var(--color-text-secondary)] no-underline hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]"
