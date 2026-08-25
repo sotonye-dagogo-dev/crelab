@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ClBackButton } from "@/components/ui";
 import { Check, XCircle, Loader2, AlertTriangle } from "lucide-react";
@@ -36,6 +37,7 @@ interface VerifyResult {
 type Phase = "loading" | "success" | "not-paid" | "error";
 
 export function PaymentStatusClient({ reference }: { reference: string | null }) {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
   const [result, setResult] = useState<VerifyResult | null>(null);
 
@@ -54,13 +56,17 @@ export function PaymentStatusClient({ reference }: { reference: string | null })
       setResult(json.data);
       if (json.data.status === "success") {
         setPhase("success");
+        // Redirect to wallet with success status
+        router.replace(`/wallet?topup=success&amount=${json.data.amountKobo}`);
       } else {
         setPhase("not-paid");
+        router.replace(`/wallet?topup=failed`);
       }
     } catch {
       setPhase("error");
+      router.replace(`/wallet?topup=failed`);
     }
-  }, [reference]);
+  }, [reference, router]);
 
   useEffect(() => {
     verify();

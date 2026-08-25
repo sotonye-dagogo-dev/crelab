@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { emailNotSentLabel, isResendConfigured } from "@/services/EmailService";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { resolveEmailTemplate } from "@/lib/email-templates";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { runWithEmailSendSink } from "@/lib/email-send-sink";
+import { eq } from "drizzle-orm";
 
 /**
  * Public endpoint that triggers Better Auth's (non-blocking) email-verification
@@ -62,14 +61,31 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { result } = await runWithEmailSendSink(() =>
-      auth.api.sendVerificationEmail({
-        body: { email, callbackURL: "/verify-email?done=1" },
-        headers: req.headers,
-      }),
-    );
+    // Generate verification token and URL ourselves so we can send the email
+    // directly via EmailService and get a reliable send result, instead of
+    // relying on Better Auth's callback which may execute outside the
+    // AsyncLocalStorage sink context.
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour
+    const { db } = await import("@/lib/db");
+    const { verification } = await import("@/drizzle/schema");
 
-    if (result && !result.sent) {
+    await db.insert(verification).values({
+      id: crypto.randomUUID(),
+      identifier: email.toLowerCase(),
+      value: token,
+      expiresAt,
+    });
+
+    const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+    const verifyUrl = `${baseUrl}/verify-email?done=1&token=${token}`;
+
+    const { EmailService } = await import("@/services/EmailService");
+    const result = await EmailService.sendVerifyEmail(email, "User", verifyUrl, config);
+
+    if (!result.sent) {
+      // Clean up the token since the email failed
+      await db.delete(verification).where(eq(verification.value, token));
       return NextResponse.json({
         success: true,
         sent: false,

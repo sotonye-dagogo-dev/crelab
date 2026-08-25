@@ -191,7 +191,6 @@ export default function ProvidersPage() {
       <BatchToolbar
         ids={providerIds}
         selectedIds={selectedIds}
-        onToggle={toggleSelect}
         onSelectAll={() => selectAll(providerIds)}
         onInvert={() => invertSelect(providerIds)}
         onClear={clearSelection}

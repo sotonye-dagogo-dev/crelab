@@ -58,8 +58,6 @@ export function ClDataTable<T>({
     return rows.slice(start, start + pageSize);
   }, [rows, page, pageSize]);
 
-  const safePage = Math.min(Math.max(page, 1), totalPages);
-
   return (
     <div className={className}>
       <div className="rounded-[12px] bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden">
