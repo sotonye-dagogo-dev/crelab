@@ -1,15 +1,20 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { ClButton } from "@/components/ui";
 import type { IServicePackage } from "@/types";
 
 interface BookingBottomBarProps {
   selectedPackage: IServicePackage | null;
+  providerId: string;
 }
 
 export function BookingBottomBar({
   selectedPackage,
+  providerId,
 }: BookingBottomBarProps) {
+  const router = useRouter();
+
   if (!selectedPackage) return null;
 
   return (
@@ -27,7 +32,7 @@ export function BookingBottomBar({
           {selectedPackage.turnaroundDays} day delivery
         </span>
       </div>
-      <ClButton variant="primary" fullWidth>
+      <ClButton variant="primary" fullWidth onClick={() => router.push(`/booking?provider=${providerId}&package=${selectedPackage.id}`)}>
         Continue to Booking
       </ClButton>
     </div>

@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { isResendConfigured } from "@/services/EmailService";
+import { isResendConfigured, EmailService } from "@/services/EmailService";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
-import { runWithEmailSendSink } from "@/lib/email-send-sink";
-import { resolveEmailChangeOutcome } from "@/lib/email-change";
+import { db } from "@/lib/db";
+import { verification } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
 
 /**
- * Authenticated endpoint that requests an email change. Mirrors Better Auth's
- * `changeEmail`, which sends the verification link to the NEW address the user
- * entered — the confirmation must never go to the current/old address.
+ * Authenticated endpoint that requests an email change. Sends the verification
+ * link ONLY to the NEW address the user entered — the confirmation must never
+ * go to the current/old address.
  *
- * The REAL send outcome is captured via the request-scoped email sink so the
- * profile page never reports "confirmation sent" when the mail actually failed
- * to go out, and the captured recipient is verified to be the NEW address the
- * user typed so the old address can never silently receive it either.
+ * We implement this directly instead of using Better Auth's changeEmail to
+ * avoid Better Auth sending a notification to the old address.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -33,6 +33,14 @@ export async function POST(req: NextRequest) {
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Not signed in" }, { status: 401 });
+    }
+
+    const oldEmail = session.user.email;
+    if (oldEmail.toLowerCase() === normalizedNewEmail) {
+      return NextResponse.json(
+        { success: false, error: "New email must be different from current email" },
+        { status: 400 },
+      );
     }
 
     let config;
@@ -57,27 +65,35 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { results } = await runWithEmailSendSink(() =>
-      auth.api.changeEmail({
-        body: { newEmail: normalizedNewEmail, callbackURL },
-        headers: req.headers,
-      }),
-    );
+    // Generate verification token
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour
 
-    const outcome = resolveEmailChangeOutcome(results, normalizedNewEmail);
+    // Store token with both old and new email for verification
+    await db.insert(verification).values({
+      id: crypto.randomUUID(),
+      identifier: oldEmail,
+      value: JSON.stringify({ token, newEmail: normalizedNewEmail }),
+      expiresAt,
+    });
 
-    if (outcome.status) {
-      return NextResponse.json(
-        { success: outcome.success, sent: outcome.sent, error: outcome.error },
-        { status: outcome.status },
-      );
+    const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+    const verifyUrl = `${baseUrl}/verify-email?done=1&token=${token}&emailChange=1`;
+
+    // Send verification email ONLY to the new address
+    const result = await EmailService.sendVerifyEmail(normalizedNewEmail, session.user.name, verifyUrl, config ?? DEFAULT_CONFIG);
+
+    if (!result.sent) {
+      // Clean up the token since the email failed
+      await db.delete(verification).where(eq(verification.value, JSON.stringify({ token, newEmail: normalizedNewEmail })));
+      return NextResponse.json({
+        success: true,
+        sent: false,
+        reason: result.reason ? `Email not sent: ${result.reason}` : "Failed to send verification email",
+      });
     }
 
-    return NextResponse.json({
-      success: outcome.success,
-      sent: outcome.sent,
-      ...(outcome.reason ? { reason: outcome.reason } : {}),
-    });
+    return NextResponse.json({ success: true, sent: true });
   } catch (err) {
     if (err instanceof Error) {
       const status = err.name === "APIError" ? 400 : 500;

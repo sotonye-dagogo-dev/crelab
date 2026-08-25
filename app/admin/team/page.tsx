@@ -266,7 +266,6 @@ export default function AdminTeamPage() {
       <BatchToolbar
         ids={memberIds}
         selectedIds={selectedIds}
-        onToggle={toggleSelect}
         onSelectAll={() => selectAll(memberIds)}
         onInvert={() => invertSelect(memberIds)}
         onClear={clearSelection}

@@ -18,3 +18,16 @@ export function formatNaira(naira: number): string {
 export function formatKobo(kobo: number): string {
   return `₦${(kobo / 100).toLocaleString("en-NG")}`;
 }
+
+/**
+ * Safely formats a price value that might be in naira or kobo.
+ * If the value is >= 10,000,000 (100k naira), assumes it's kobo and converts.
+ * Otherwise treats it as naira.
+ */
+export function formatPriceSmart(value: number): string {
+  if (value >= 10_000_000) {
+    // Likely kobo (100k naira = 10M kobo)
+    return formatKobo(value);
+  }
+  return formatNaira(value);
+}

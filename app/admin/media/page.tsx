@@ -255,7 +255,6 @@ export default function AdminMediaPage() {
       <BatchToolbar
         ids={assetIds}
         selectedIds={selectedIds}
-        onToggle={toggleSelect}
         onSelectAll={() => selectAll(assetIds)}
         onInvert={() => invertSelect(assetIds)}
         onClear={clearSelection}

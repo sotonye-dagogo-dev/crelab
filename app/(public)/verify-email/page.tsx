@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ClLogo, ClSpinner } from "@/components/ui";
@@ -12,6 +12,7 @@ function VerifyEmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const done = searchParams.get("done") === "1";
+  const token = searchParams.get("token");
 
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -32,6 +33,33 @@ function VerifyEmailForm() {
         .catch(() => {});
     }
   }, [done]);
+
+  const verifyToken = useCallback(async (verificationToken: string) => {
+    try {
+      const res = await fetch("/api/verify-email/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: verificationToken }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        if (json.emailChange) {
+          router.replace("/profile?emailChanged=1");
+        } else {
+          router.replace("/verify-email?done=1");
+        }
+      }
+    } catch {
+      // Ignore verification errors, let user use the manual form
+    }
+  }, [router]);
+
+  // If we have a token, verify the email automatically
+  useEffect(() => {
+    if (token && !done) {
+      verifyToken(token);
+    }
+  }, [token, done, verifyToken]);
 
   useEffect(() => {
     if (countdown <= 0) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAuthClient } from "better-auth/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +26,16 @@ export default function ProfilePage() {
   const [newEmail, setNewEmail] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailChangeSent, setEmailChangeSent] = useState(false);
+
+  // Check for email change confirmation from query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("emailChanged") === "1") {
+      setEmailChangeSent(true);
+      // Clean up the URL
+      router.replace("/profile");
+    }
+  }, [router]);
 
   if (isLoading) {
     return (

@@ -179,7 +179,6 @@ export default function CategoriesPage() {
       <BatchToolbar
         ids={categorySlugs}
         selectedIds={selectedIds}
-        onToggle={toggleSelect}
         onSelectAll={() => selectAll(categorySlugs)}
         onInvert={() => invertSelect(categorySlugs)}
         onClear={clearSelection}

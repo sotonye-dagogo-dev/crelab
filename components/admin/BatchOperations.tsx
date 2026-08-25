@@ -18,13 +18,10 @@ export interface BatchAction<T = string> {
 interface BatchOperationsProps<T = string> {
   ids: T[];
   selectedIds: Set<T>;
-  onToggle: (id: T) => void;
   onSelectAll: () => void;
   onInvert: () => void;
   onClear: () => void;
   actions: BatchAction<T>[];
-  /** Render the checkbox cell for a row */
-  renderCheckbox?: (id: T) => React.ReactNode;
 }
 
 export function useBatchSelect<T = string>() {
@@ -63,12 +60,10 @@ export function useBatchSelect<T = string>() {
 export function BatchToolbar<T = string>({
   ids,
   selectedIds,
-  onToggle,
   onSelectAll,
   onInvert,
   onClear,
   actions,
-  renderCheckbox,
 }: BatchOperationsProps<T>) {
   const { toast } = useToast();
   const [confirmAction, setConfirmAction] = useState<BatchAction<T> | null>(null);
