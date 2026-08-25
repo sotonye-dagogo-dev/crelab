@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ClButton, ClCard, ClInput } from "@/components/ui";
+import { ClButton, ClCard, ClInput, ClBackButton } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { Calendar, Clock, Shield, User, ArrowLeft } from "lucide-react";
 import type { IProvider, IServicePackage } from "@/types";
 import Link from "next/link";
+import { buildProviderSlug } from "@/lib/slug";
 
 interface BookingClientProps {
   provider: IProvider;
@@ -80,12 +81,12 @@ export function BookingClient({ provider, package: selectedPackage, currentUserI
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-[600px] mx-auto px-4 py-8">
         <Link
-          href={`/profile/${provider.id}`}
-          className="inline-flex items-center gap-2 text-[13px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] mb-6"
-        >
-          <ArrowLeft size={15} strokeWidth={2} />
-          Back to Profile
-        </Link>
+        href={`/profile/${buildProviderSlug(provider.displayName, provider.id)}`}
+        className="inline-flex items-center gap-2 text-[13px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] mb-6"
+      >
+        <ArrowLeft size={15} strokeWidth={2} />
+        Back to Profile
+      </Link>
 
         <div className="mb-6">
           <div className="flex items-center gap-3">
@@ -218,16 +219,11 @@ export function BookingClient({ provider, package: selectedPackage, currentUserI
           )}
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <ClButton
-              variant="ghost"
-              size="lg"
+            <ClBackButton
+              href={`/profile/${buildProviderSlug(provider.displayName, provider.id)}`}
+              label="Back"
               className="flex-1"
-              onClick={() => router.back()}
-              disabled={isSubmitting}
-            >
-              <ArrowLeft size={16} strokeWidth={2} className="mr-2" />
-              Back
-            </ClButton>
+            />
             <ClButton
               variant="primary"
               size="lg"
