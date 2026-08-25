@@ -7,6 +7,7 @@ import { EscrowTimeline } from "@/components/booking/EscrowTimeline";
 import { MilestoneTimeline } from "@/components/booking/MilestoneTimeline";
 import { DisputeModal } from "@/components/booking/DisputeModal";
 import { useAuth } from "@/hooks/useAuth";
+import { buildProviderSlug } from "@/lib/slug";
 import type { IBooking, IPayment, IBookingMilestone } from "@/types";
 
 interface BookingDetailData {
@@ -274,7 +275,10 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
         )}
 
         <div className="mt-5 flex justify-end">
-          <ClBackButton href="/bookings" label="Back to Bookings" />
+          <ClBackButton
+            href={data.provider ? `/profile/${buildProviderSlug(data.provider.displayName, data.provider.id)}` : "/bookings"}
+            label={data.provider ? "Back to Profile" : "Back to Bookings"}
+          />
         </div>
       </div>
 

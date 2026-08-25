@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { providers, servicePackages } from "@/drizzle/schema";
@@ -111,7 +111,24 @@ export default async function BookingPage({ searchParams }: Props) {
   ]);
 
   if (!providerData || !packageData) {
-    notFound();
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+        <div className="max-w-[400px] mx-auto px-4 text-center">
+          <h1 className="font-[family-name:var(--font-display)] font-bold text-[28px] text-[var(--color-text-primary)]">
+            Booking Unavailable
+          </h1>
+          <p className="mt-4 text-[14px] text-[var(--color-text-secondary)]">
+            This provider or package could not be found. They may not be active or verified on the platform yet.
+          </p>
+          <Link
+            href="/explore"
+            className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline"
+          >
+            Browse Available Providers
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const isOwnProfile = currentUser && providerData.userId === currentUser.id;
