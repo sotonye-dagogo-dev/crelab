@@ -197,22 +197,23 @@ export class BlogPostService {
     return out;
   }
 
-  /** Admin — all posts including drafts, newest first. */
+  /** Admin — all posts including drafts, newest first, merged with fallback posts. */
   static async adminList(): Promise<IBlogPost[]> {
-    if (!(await isDbAvailable())) return getFallbackPosts();
+    const fallbackPosts = getFallbackPosts();
+    if (!(await isDbAvailable())) return fallbackPosts;
     // Some deployments created `blog_posts` before the `created_at` column
     // existed. Ordering by a missing column makes the whole admin list error out
     // while the public page (which orders by `published_at`) still works — so
     // degrade through fallbacks rather than letting the view go empty.
     try {
       const rows = await db.select().from(blogPosts).orderBy(desc(blogPosts.createdAt));
-      return rows.map(mapRow);
+      return mergeUnique(rows.map(mapRow), fallbackPosts);
     } catch {
       try {
         const rows = await db.select().from(blogPosts).orderBy(desc(blogPosts.publishedAt));
-        return rows.map(mapRow);
+        return mergeUnique(rows.map(mapRow), fallbackPosts);
       } catch {
-        return getFallbackPosts();
+        return fallbackPosts;
       }
     }
   }

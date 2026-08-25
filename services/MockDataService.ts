@@ -568,6 +568,12 @@ export class MockDataService {
     return this.getMockProviders().find((p) => p.id === card.id) ?? null;
   }
 
+  static getMockProviderById(id: string): IProvider | null {
+    if (!this.isEnabled()) return null;
+    const provider = this.getMockProviders().find((p) => p.id === id) ?? null;
+    return provider;
+  }
+
   static getMockReviewsForProvider(providerId: string): IReview[] {
     if (!this.isEnabled()) return [];
     return this.getMockReviews().filter((r) => r.providerId === providerId);
