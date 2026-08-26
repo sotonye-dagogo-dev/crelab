@@ -305,8 +305,7 @@ export function MediaUpload({
             </div>
           ) : (
             <p className="text-[12px] text-[var(--color-text-tertiary)] mb-2">
-              Direct upload is temporarily unavailable — paste a public link
-              instead.
+              Paste a public link to a folder on your Google Drive housing your projects.
             </p>
           )}
 
