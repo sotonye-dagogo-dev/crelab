@@ -25,6 +25,8 @@ This directory contains design-system reference files used during AI-assisted de
 | `18-booking-list.html` | Booking list page |
 | `19-legal-pages.html` | Privacy & Terms pages |
 | `20-team.html` | Refined Team page (NavBar, ClFooter, ClCard, ClBadge, ClButton, ClThemeToggle, TeamMemberCard, skeleton loading, values section, stats bar) |
+| `21-about-page.html` | About page — mission, vision, values, quick links (config-driven, admin manageable) |
+| `22-how-it-works-page.html` | How It Works page — creator/client/escrow guides, interactive sandboxes, FAQ (config-driven, admin manageable) |
 
 ## Usage
 

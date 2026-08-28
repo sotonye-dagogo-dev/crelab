@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Page — CreLab Design Reference</title>
+  <style>
+    :root {
+      --color-bg: #0A0A0A;
+      --color-surface: #141414;
+      --color-surface-raised: #1C1C1C;
+      --color-border: #2A2A2A;
+      --color-border-mid: #3D3D3D;
+      --color-accent: #E8FF47;
+      --color-accent-dim: #C8DF3C;
+      --color-accent-muted: #1E2200;
+      --color-text-primary: #F2F2F2;
+      --color-text-secondary: #9A9A9A;
+      --color-text-tertiary: #5C5C5C;
+      --color-text-inverse: #0A0A0A;
+      --color-success: #4ADE80;
+      --color-warning: #FACC15;
+      --color-error: #F87171;
+      --color-info: #60A5FA;
+      --font-display: 'Syne', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    .light {
+      --color-bg: #FAFAF9;
+      --color-surface: #FFFFFF;
+      --color-surface-raised: #F2F2F0;
+      --color-border: #E4E4E0;
+      --color-border-mid: #D4D4D0;
+      --color-accent: #A3B800;
+      --color-accent-dim: #8FA000;
+      --color-accent-muted: #F0F4D0;
+      --color-text-primary: #161615;
+      --color-text-secondary: #6B6B68;
+      --color-text-tertiary: #9C9C98;
+      --color-text-inverse: #FAFAF9;
+      --color-success: #16A34A;
+      --color-warning: #CA8A04;
+      --color-error: #DC2626;
+      --color-info: #2563EB;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-body); background: var(--color-bg); color: var(--color-text-primary); line-height: 1.6; }
+    .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+    h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(32px, 5vw, 48px); letter-spacing: -0.02em; margin-bottom: 16px; }
+    h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 32px 0 12px; }
+    p { color: var(--color-text-secondary); font-size: 16px; margin-bottom: 16px; }
+    .subtitle { color: var(--color-text-secondary); font-size: 18px; max-width: 680px; margin: 0 auto 40px; text-align: center; }
+    .hero { text-align: center; margin-bottom: 48px; }
+    .section { margin-bottom: 48px; }
+    .quick-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    .quick-link { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary); font-size: 14px; font-weight: 500; text-decoration: none; border-radius: 8px; transition: all 0.2s; }
+    .quick-link:hover { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-surface-raised); }
+    .cta-group { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-top: 32px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 24px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; transition: all 0.2s; }
+    .btn-primary { background: var(--color-accent); color: var(--color-text-inverse); }
+    .btn-primary:hover { background: var(--color-accent-dim); }
+    .btn-secondary { border: 1px solid var(--color-border); background: transparent; color: var(--color-text-primary); }
+    .btn-secondary:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .theme-toggle { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; gap: 8px; background: var(--color-surface); border: 1px solid var(--color-border); padding: 8px; border-radius: 8px; }
+    .theme-btn { padding: 8px 16px; border: none; background: transparent; color: var(--color-text-secondary); cursor: pointer; font-size: 13px; font-weight: 500; border-radius: 4px; transition: all 0.2s; }
+    .theme-btn.active { background: var(--color-accent); color: var(--color-text-inverse); }
+    .theme-btn:hover:not(.active) { color: var(--color-text-primary); }
+    .footer-cta { text-align: center; margin-top: 64px; padding-top: 32px; border-top: 1px solid var(--color-border); }
+    .footer-cta h2 { font-size: 28px; margin-bottom: 12px; }
+    .divider { height: 1px; background: var(--color-border); margin: 32px 0; }
+    .config-badge { display: inline-block; padding: 4px 10px; background: var(--color-accent-muted); color: var(--color-accent); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border-radius: 4px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="theme-toggle">
+    <button class="theme-btn active" data-theme="dark">Dark</button>
+    <button class="theme-btn" data-theme="light">Light</button>
+    <button class="theme-btn" data-theme="system">System</button>
+  </div>
+
+  <div class="container">
+    <span class="config-badge">Config-Driven · Admin Manageable</span>
+    
+    <div class="hero">
+      <h1>About CreLab</h1>
+      <p class="subtitle">We're building the future of creative hiring in Africa — connecting brands with talented creators, cinematographers, and videographers.</p>
+    </div>
+
+    <div class="section">
+      <h2>Our Mission</h2>
+      <p>To democratize access to creative opportunities across Africa. We believe talent shouldn't be limited by geography, network, or follower count.</p>
+    </div>
+
+    <div class="section">
+      <h2>Our Vision</h2>
+      <p>A thriving creative economy where every creator can build a sustainable career doing what they love, and every brand can find the perfect creative partner.</p>
+    </div>
+
+    <div class="section">
+      <h2>Our Values</h2>
+      <p>Creator-first • Transparency • Quality over quantity • Community-driven • Built for Africa</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <h2>Quick Links</h2>
+      <div class="quick-links">
+        <a href="#" class="quick-link">How It Works</a>
+        <a href="#" class="quick-link">Terms of Service</a>
+        <a href="#" class="quick-link">Privacy Policy</a>
+        <a href="#" class="quick-link">Report a Bug</a>
+        <a href="#" class="quick-link">Contact Us</a>
+      </div>
+    </div>
+
+    <div class="footer-cta">
+      <h2>Ready to get started?</h2>
+      <p style="max-width: 480px; margin: 0 auto 24px; color: var(--color-text-secondary);">Join thousands of creators and brands already using CreLab to build amazing things together.</p>
+      <div class="cta-group">
+        <a href="#" class="btn btn-primary">Explore Creators</a>
+        <a href="#" class="btn btn-secondary">Create a Creator Profile</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const html = document.documentElement;
+    const buttons = document.querySelectorAll('.theme-btn');
+    
+    function applyTheme(theme) {
+      if (theme === 'system') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        html.classList.toggle('light', !prefersDark);
+      } else {
+        html.classList.toggle('light', theme === 'light');
+      }
+      localStorage.setItem('app-theme', theme);
+      buttons.forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+    }
+    
+    // Load saved theme
+    const saved = localStorage.getItem('app-theme') || 'system';
+    applyTheme(saved);
+    
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+    });
+    
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      const saved = localStorage.getItem('app-theme');
+      if (saved === 'system' || !saved) applyTheme('system');
+    });
+  </script>
+</body>
+</html>

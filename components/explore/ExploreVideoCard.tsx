@@ -2,11 +2,11 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { Play, HardDrive, Cloud, Image as ImageIcon, Film } from "lucide-react";
 import type { IExploreCard, IPortfolioItem } from "@/types";
 
 interface ExploreVideoCardProps {
-  provider: IExploreCard;
+  provider?: IExploreCard;
   portfolioItem?: IPortfolioItem;
 }
 
@@ -17,6 +17,18 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
   const [showVideo, setShowVideo] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  const isGalleryMode = !!portfolioItem && !provider;
+  const displayName = provider?.displayName ?? portfolioItem?.providerName ?? "Unknown";
+  const providerSlug = provider?.slug ?? portfolioItem?.providerSlug ?? "";
+  const categoryLabel = provider?.categoryLabel ?? portfolioItem?.providerCategoryLabel ?? "";
+  const providerAvatar = provider?.avatarUrl ?? portfolioItem?.providerAvatarUrl ?? null;
+  const providerVerified = provider?.verified ?? portfolioItem?.providerVerified ?? false;
+  const providerFeatured = provider?.featured ?? portfolioItem?.providerFeatured ?? false;
+  const rating = provider?.rating ?? portfolioItem?.avgRating ?? null;
+  const reviewCount = provider?.reviewCount ?? portfolioItem?.reviewCount ?? 0;
+  const packagePriceFromKobo = provider?.packagePriceFromKobo ?? null;
+  const source = portfolioItem?.source;
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -71,7 +83,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
   }, [isInView, handleVideoPlay, handleVideoPause]);
 
   const thumbnailUrl = portfolioItem?.thumbnailUrl ?? null;
-  const videoUrl = portfolioItem?.url ?? provider.previewVideoUrl;
+  const videoUrl = portfolioItem?.url ?? provider?.previewVideoUrl;
   const hasVideo = !prefersReducedMotion && videoUrl && (portfolioItem?.mimeType ?? "").startsWith("video/");
 
   const formatPrice = (kobo: number | null) => {
@@ -79,8 +91,22 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
     return `₦${(kobo / 100).toLocaleString("en-NG")}`;
   };
 
+  const getSourceIcon = () => {
+    if (source === "DRIVE") return <HardDrive size={10} strokeWidth={1.8} className="inline mr-1" />;
+    return <Cloud size={10} strokeWidth={1.8} className="inline mr-1" />;
+  };
+
+  const getSourceLabel = () => {
+    return source === "DRIVE" ? "Google Drive" : "Direct Upload";
+  };
+
+  const getMediaTypeIcon = () => {
+    if (portfolioItem?.mimeType.startsWith("video/")) return <Film size={10} strokeWidth={1.8} className="inline mr-1" />;
+    return <ImageIcon size={10} strokeWidth={1.8} className="inline mr-1" />;
+  };
+
   return (
-    <Link href={`/profile/${provider.slug}`} className="block no-underline">
+    <Link href={`/profile/${providerSlug}`} className="block no-underline">
       <div
         ref={cardRef}
         className="group relative rounded-[12px] overflow-hidden bg-[var(--color-surface)] cursor-pointer transition-[transform,box-shadow] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] hover:shadow-[0_0_0_1px_var(--color-accent),0_0_16px_rgba(232,255,71,0.15)] break-inside-avoid mb-2"
@@ -89,7 +115,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
-              alt={provider.displayName}
+              alt={displayName}
               className={`w-full h-auto object-cover transition-opacity duration-[300ms] ${
                 showVideo ? "opacity-0 absolute inset-0" : "opacity-100"
               } ${isLoaded ? "" : "opacity-0"}`}
@@ -119,7 +145,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
               muted
               loop
               playsInline
-              aria-label={`${provider.displayName} preview video`}
+              aria-label={`${displayName} preview video`}
               className={`w-full h-auto object-cover absolute inset-0 transition-opacity duration-[300ms] ${
                 showVideo ? "opacity-100" : "opacity-0"
               }`}
@@ -134,30 +160,51 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col gap-[2px]">
-            <span className="self-start mb-2 inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-[family-name:var(--font-body)] text-[11px] font-medium whitespace-nowrap">
-              {provider.categoryLabel || provider.categorySlug}
-            </span>
-            <span className="font-[family-name:var(--font-display)] text-[14px] font-medium text-[var(--color-text-primary)] leading-[1.2]">
-              {provider.displayName}
-            </span>
-            <div className="flex items-center gap-2">
-              {provider.rating !== null && (
-                <span className="font-[family-name:var(--font-mono)] text-[12px] font-medium text-[var(--color-warning)] tabular-nums">
-                  ★ {Number(provider.rating).toFixed(1)}
+            <div className="flex items-center gap-2 self-start mb-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-[family-name:var(--font-body)] text-[11px] font-medium whitespace-nowrap">
+                {categoryLabel}
+              </span>
+              {isGalleryMode && source && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)] font-[family-name:var(--font-body)] text-[9px] font-medium whitespace-nowrap border border-[var(--color-border)]">
+                  {getSourceIcon()}
+                  {getSourceLabel()}
                 </span>
               )}
-              {provider.packagePriceFromKobo !== null && (
+            </div>
+            <span className="font-[family-name:var(--font-display)] text-[14px] font-medium text-[var(--color-text-primary)] leading-[1.2]">
+              {displayName}
+            </span>
+            <div className="flex items-center gap-2">
+              {rating !== null && (
+                <span className="font-[family-name:var(--font-mono)] text-[12px] font-medium text-[var(--color-warning)] tabular-nums">
+                  ★ {Number(rating).toFixed(1)}
+                </span>
+              )}
+              {packagePriceFromKobo !== null && (
                 <span className="font-[family-name:var(--font-body)] text-[12px] text-[var(--color-text-secondary)]">
                   from{" "}
                   <span className="font-[family-name:var(--font-mono)] text-[var(--color-accent)] font-medium">
-                    {formatPrice(provider.packagePriceFromKobo)}
+                    {formatPrice(packagePriceFromKobo)}
                   </span>
                 </span>
               )}
             </div>
+            {isGalleryMode && portfolioItem && (
+              <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-tertiary)] mt-1">
+                {getMediaTypeIcon()}
+                <span>{portfolioItem.mimeType}</span>
+                {source && (
+                  <>
+                    <span>·</span>
+                    {getSourceIcon()}
+                    <span>{getSourceLabel()}</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
-          {provider.verified && (
+          {providerVerified && (
             <div className="absolute bottom-2 right-2 bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-tertiary)] font-[family-name:var(--font-body)] text-[10px] px-1.5 py-0.5 rounded-[4px] leading-[1.4] z-[2]">
               Verified
             </div>

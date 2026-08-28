@@ -6,9 +6,18 @@ const SUPPORTED_MIME_TYPES: Record<string, string> = {
   "video/webm": "video/webm",
   "video/quicktime": "video/quicktime",
   "video/x-msvideo": "video/x-msvideo",
+  "video/x-matroska": "video/x-matroska",
+  "video/3gpp": "video/3gpp",
+  "video/3gpp2": "video/3gpp2",
+  "video/x-flv": "video/x-flv",
+  "video/mpeg": "video/mpeg",
   "image/jpeg": "image/jpeg",
   "image/png": "image/png",
   "image/webp": "image/webp",
+  "image/gif": "image/gif",
+  "image/avif": "image/avif",
+  "image/heic": "image/heic",
+  "image/heif": "image/heif",
   "application/pdf": "application/pdf",
 };
 

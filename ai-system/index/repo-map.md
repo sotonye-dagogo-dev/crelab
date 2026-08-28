@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 28)
-> - last-verified-against-code: 2026-08-18
+> - last-updated-by: update-ai-system (Session 34)
+> - last-verified-against-code: 2026-08-28
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -26,9 +26,11 @@ crelab/
 │   ├── sitemap.ts           # sitemap.xml generation
 │   ├── (public)/            # Guest-accessible routes
 │   │   ├── [category]/     # Category browse page
+│   │   ├── about/          # About page (config-driven, admin manageable)
 │   │   ├── blog/           # Blog index + [slug] article pages
 │   │   ├── bug-report/     # Bug report form page
-│   │   ├── explore/        # Explore page
+│   │   ├── explore/        # Explore page (creators + portfolio gallery views)
+│   │   ├── how-it-works/   # How It Works page (config-driven with sandboxes/FAQ)
 │   │   ├── privacy/        # NDPR-compliant privacy policy
 │   │   ├── profile/[slug]/ # Provider public profile
 │   │   ├── search/         # Search results
@@ -62,12 +64,12 @@ crelab/
 │       ├── bug-report/     # Bug report submission
 │       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)
 │       ├── dashboard/      # Provider/Client dashboard payload
-│       ├── explore/        # Provider search/filter/sort
+│       ├── explore/        # Provider search/filter/sort + portfolio gallery
 │       ├── milestones/     # Milestone CRUD
 │       ├── media/          # Media upload (Cloudinary) + status + asset registry (list/delete/replace)
 │       ├── email/          # Email send (welcome, booking, payment) + status health route
 │       ├── newsletter/     # Newsletter subscribe (grants MARKETING consent for signed-in users)
-│       ├── portfolio/      # Portfolio CRUD
+│       ├── portfolio/      # Portfolio CRUD (+ items list, reorder, individual item PATCH/DELETE)
 │       ├── profile/        # Profile management (setup)
 │       ├── verify-email/   # Verify-email: /send (sendVerificationEmail) + /welcome (fires welcome once verified)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
@@ -154,7 +156,7 @@ crelab/
 | `testing/` | Test results tracking | `test-results.md` |
 | `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager, email templates, blog templates, blog posts, user management | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx`, `blog-posts/page.tsx` |
 | `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx`, `ClConfirmDialog.tsx`, `ClBackButton.tsx`, `ClDataTable.tsx`, `ClPagination.tsx` |
-| `components/explore/` | Explore feed: filter bar, masonry grid, video cards | ExploreFilterBar, ExploreGrid |
+| `components/explore/` | Explore feed: filter bar, masonry grid, video cards, portfolio gallery | ExploreFilterBar, ExploreGrid, ExploreVideoCard, PortfolioGallery |
 | `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings, media upload | ProviderHero, PortfolioGrid, ServicePackages, MediaUpload |
 | `components/booking/` | Booking flow: drawer, escrow timeline, dispute modal | BookingDrawer, EscrowTimeline |
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
@@ -164,7 +166,7 @@ crelab/
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts`, `dashboard.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (441+ lines, 22 tables + 12 enums + relations — incl. `blog_posts`), `migrations/` (0000-0004 tracked + standalone 0005_blog_posts.sql) |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |

@@ -132,6 +132,17 @@ export interface IPortfolioItem {
   createdAt: string;
   /** ISO 8601 */
   updatedAt: string;
+  // Extended fields for gallery view (from explore portfolio API)
+  providerName?: string;
+  providerSlug?: string;
+  providerAvatarUrl?: string | null;
+  providerCategorySlug?: string;
+  providerCategoryLabel?: string;
+  providerLocation?: string | null;
+  providerVerified?: boolean;
+  providerFeatured?: boolean;
+  avgRating?: number | null;
+  reviewCount?: number;
 }
 
 export interface IServicePackage {
@@ -474,6 +485,58 @@ export interface IAuditLogEntry {
   oldValue: unknown;
   newValue: unknown;
   createdAt: string;
+}
+
+/* ── Public Pages ── */
+
+export interface IAboutPage {
+  id: string;
+  heroTitle: string;
+  heroSubtitle?: string;
+  sections: {
+    id: string;
+    title: string;
+    content: string;
+  }[];
+  quickLinks: {
+    label: string;
+    href: string;
+  }[];
+  metaTitle?: string;
+  metaDescription?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IHowItWorksPage {
+  id: string;
+  heroTitle: string;
+  heroSubtitle?: string;
+  sections: {
+    id: string;
+    title: string;
+    subtitle?: string;
+    steps: {
+      step: number;
+      title: string;
+      description: string;
+    }[];
+  }[];
+  sandboxes: {
+    id: string;
+    title: string;
+    description: string;
+    type: string;
+  }[];
+  faqs: {
+    question: string;
+    answer: string;
+    category: string;
+  }[];
+  metaTitle?: string;
+  metaDescription?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /* ── API Wrappers ── */

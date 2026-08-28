@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: update-ai-system (Session 34)
+> - last-verified-against-code: 2026-08-28
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -16,7 +16,7 @@ Client (Browser)
     |
     v
 Next.js App Router (app/)
-    |-- (public)  -- Guest: Landing/Explore, Category Browse, Search, Profiles, Blog, Verify-email
+    |-- (public)  -- Guest: Landing/Explore, Category Browse, Search, Profiles, Blog, Verify-email, About, How It Works, Portfolio Gallery
     |-- (auth)    -- Authenticated: Dashboard, Bookings, Messages, Profile, Profile Edit
     |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Media, Email Templates, Blog Templates, Blog Posts, Users
     |-- api/      -- Route handlers: Auth, Bookings, Portfolio, Webhooks, Cron, Admin
@@ -45,7 +45,7 @@ Data Access Layer
     |
     v
 Data Stores
-    |-- PostgreSQL (Supabase)     -- Primary DB: users, bookings, payments, etc.
+    |-- PostgreSQL (Supabase)     -- Primary DB: users, bookings, payments, about_page, how_it_works_page, media_assets, portfolio_items, etc.
     |-- Sanity CMS                -- Blog content, creator spotlights
     |-- Cloudinary                -- Video/image upload, thumbnails
     |-- Mux                       -- Video streaming
@@ -58,7 +58,7 @@ Data Stores
 
 | Module | Responsibility | Key Files | Dependencies |
 |--------|---------------|-----------|--------------|
-| Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search, blog, verify-email | `app/(public)/` | Components, Services |
+| Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search, blog, verify-email, about, how-it-works, portfolio gallery | `app/(public)/` | Components, Services |
 | Auth Routes | Authenticated pages: dashboard, booking, profile (page/setup/media), register, login | `app/(auth)/` | AuthGate, Services |
 | Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, media, email templates, blog templates, users | `app/admin/` | requireRole('ADMIN'), Services |
 | API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, verify-email, newsletter, webhooks, cron | `app/api/` | Services, Lib |

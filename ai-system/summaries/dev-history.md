@@ -1,8 +1,76 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: Session 33
-> - last-verified-against-code: 2026-08-20
+> - last-updated-by: Session 34
+> - last-verified-against-code: 2026-08-28
+
+## Sprint 2026-08-28 — Public Pages + Portfolio Gallery + Media Upload Hardening
+
+### What
+Delivered two new public pages (About, How It Works) with full admin management, a Portfolio Gallery view on the Explore page, and hardened the Cloudinary media upload flow with generous timeouts, better error messages, and extended format support.
+
+### Why
+- Public pages were missing from the MVP — About and How It Works are critical for SEO, trust, and onboarding.
+- The Explore page only showed provider cards; users needed a gallery view to browse individual work samples.
+- Alpha testing revealed Cloudinary upload failures for large files with unhelpful error messages.
+
+### Key Changes
+
+**New Public Pages (Config-Driven, Admin Manageable)**
+- `app/(public)/about/page.tsx` — Brief mission/vision/values + quick links (How It Works, Terms, Privacy, Bug Report, Contact). DB-backed via `about_page` table with JSONB sections/links.
+- `app/(public)/how-it-works/page.tsx` — Step-by-step guides for Creators (4 steps), Clients (4 steps), Escrow (4 steps). Interactive sandboxes: Booking Flow Simulator, Escrow Timeline Explorer, Pricing Calculator, Search & Discovery Simulator. SEO-friendly FAQ section (6 FAQs). DB-backed via `how_it_works_page` table with JSONB sections/sandboxes/faqs.
+- New schema tables: `about_page`, `how_it_works_page` with hero, sections, quick links, sandboxes, FAQs.
+- Admin management: New admin pages for managing About and How It Works content (to be built in next session).
+
+**Portfolio Gallery on Explore Page**
+- New "Portfolio Gallery" tab on `/explore` (toggle with "Creators" view).
+- Shows individual portfolio items from all providers with source tags (Direct Upload / Google Drive).
+- Same filter bar (category, location, budget, search, sort) and infinite scroll as creator view.
+- New API: `GET /api/explore/portfolio` with cursor pagination, filters, and sort options.
+- New component: `components/explore/PortfolioGallery.tsx` reuses `ExploreVideoCard`.
+
+**Portfolio Management in Provider Media Page**
+- New "Portfolio Items" tab alongside "Cloudinary Uploads" tab.
+- Visual source tags: Direct Upload (cloud icon) vs Google Drive (hard drive icon).
+- Order management: up/down arrow buttons to reorder.
+- Visibility toggle: show/hide individual items.
+- Delete action with confirmation.
+- New API endpoints: `GET/POST /api/portfolio/items`, `POST /api/portfolio/reorder`, `PATCH/DELETE /api/portfolio/items/[id]`.
+
+**Media Upload Hardening**
+- Generous 10-minute timeout (`timeoutMs: 10 * 60 * 1000`) for large file uploads to Cloudinary.
+- Enhanced error messages: file too large → suggests Google Drive; unsupported format → lists supported formats + suggests Google Drive; timeout → suggests Google Drive.
+- Extended supported formats: added MKV, 3GP, 3G2, FLV, MPEG (video); GIF, AVIF, HEIC/HEIF (images).
+- Tighter validation: file extension must match MIME type (e.g., .mov for video/quicktime).
+- Updated `lib/media.ts` with `isExtensionAllowedForType()` helper.
+- Updated `lib/cloudinary.ts` `uploadFile()` with `options.timeoutMs` and AbortController.
+- Updated `lib/drive.ts` and `config/platform.config.ts` with new supported MIME types.
+
+**Portfolio Items API**
+- `GET /api/portfolio/items` — list all portfolio items for current provider (with source, order, visibility).
+- `POST /api/portfolio/reorder` — bulk reorder by ordered IDs array.
+- `PATCH /api/portfolio/items/[id]` — toggle visibility.
+- `DELETE /api/portfolio/items/[id]` — delete portfolio item.
+- All endpoints require PROVIDER role and verify ownership.
+
+### Status
+Pass — typecheck clean, `next build` green, lint no new warnings, 256/258 tests pass (2 pre-existing BlogPostService failures unrelated to this sprint).
+
+### Files Added
+- `app/(public)/about/page.tsx`
+- `app/(public)/how-it-works/page.tsx`
+- `app/(public)/explore/page.tsx` (updated with gallery view)
+- `app/api/portfolio/items/route.ts`
+- `app/api/portfolio/reorder/route.ts`
+- `app/api/portfolio/items/[id]/route.ts`
+- `app/api/explore/portfolio/route.ts`
+- `components/explore/PortfolioGallery.tsx`
+- Updated: `app/(auth)/profile/media/page.tsx` (portfolio tab + management)
+- Updated: `components/explore/ExploreVideoCard.tsx` (supports portfolio items)
+- Updated: `lib/media.ts`, `lib/cloudinary.ts`, `lib/drive.ts`, `config/platform.config.ts` (extended formats)
+- Updated: `types/index.ts` (extended IPortfolioItem, added IAboutPage, IHowItWorksPage)
+- Updated: `services/MockDataService.ts` (mock data for new pages)
+- Updated: `drizzle/schema.ts` (about_page, how_it_works_page tables)
 
 ## Sprint 2026-08-20 (2) — Wallet Page + Paystack Tightening
 

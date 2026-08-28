@@ -121,6 +121,7 @@ function cloudinaryUrl(path: string): string {
 export async function uploadFile(
   file: File | Blob,
   mimeType?: string,
+  options?: { timeoutMs?: number; onProgress?: (progress: number) => void }
 ): Promise<MediaUploadResult> {
   assertCloudinaryConfigured();
   const creds = getCloudinaryCredentials()!;
@@ -135,38 +136,65 @@ export async function uploadFile(
   formData.append("upload_preset", creds.uploadPreset);
   formData.append("resource_type", resourceType);
 
-  const res = await fetch(
-    `${CLOUDINARY_UPLOAD_HOST}/${creds.cloudName}/${resourceType}/upload`,
-    { method: "POST", body: formData },
-  );
+  // Default to 10 minutes timeout for large files
+  const timeoutMs = options?.timeoutMs ?? 10 * 60 * 1000;
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(
-      `Cloudinary ${resourceType} upload failed: ${res.status} ${res.statusText}${body ? ` - ${body}` : ""}`,
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(
+      `${CLOUDINARY_UPLOAD_HOST}/${creds.cloudName}/${resourceType}/upload`,
+      {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      },
     );
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      const errorMsg = `Cloudinary ${resourceType} upload failed: ${res.status} ${res.statusText}${body ? ` - ${body}` : ""}`;
+      
+      // Provide more specific error messages based on status code
+      if (res.status === 413 || res.status === 400) {
+        throw new Error(`${errorMsg}. File may be too large or in an unsupported format. Consider using Google Drive integration for larger files.`);
+      }
+      if (res.status === 429) {
+        throw new Error(`${errorMsg}. Rate limit exceeded. Please try again later.`);
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data = await res.json();
+
+    const url = data.secure_url as string;
+    const publicId = (data.public_id as string) ?? extractPublicId(url) ?? "";
+    let thumbnailUrl: string | null = null;
+
+    if (resourceType === "video") {
+      thumbnailUrl = publicId
+        ? cloudinaryUrl(`video/upload/w_600,q_auto,g_auto/${publicId}.jpg`)
+        : url.replace(/\.(mp4|webm|mov|avi)$/i, ".jpg");
+    }
+
+    return {
+      url,
+      thumbnailUrl,
+      mimeType: file.type,
+      resourceType,
+      publicId,
+      cloudName: creds.cloudName,
+    };
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(`Upload timed out after ${timeoutMs / 1000 / 60} minutes. For large files, consider using Google Drive integration instead.`);
+    }
+    throw err;
   }
-
-  const data = await res.json();
-
-  const url = data.secure_url as string;
-  const publicId = (data.public_id as string) ?? extractPublicId(url) ?? "";
-  let thumbnailUrl: string | null = null;
-
-  if (resourceType === "video") {
-    thumbnailUrl = publicId
-      ? cloudinaryUrl(`video/upload/w_600,q_auto,g_auto/${publicId}.jpg`)
-      : url.replace(/\.(mp4|webm|mov|avi)$/i, ".jpg");
-  }
-
-  return {
-    url,
-    thumbnailUrl,
-    mimeType: file.type,
-    resourceType,
-    publicId,
-    cloudName: creds.cloudName,
-  };
 }
 
 export async function uploadVideo(

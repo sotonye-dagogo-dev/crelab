@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: update-ai-system (Session 34)
+> - last-verified-against-code: 2026-08-28
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -547,6 +547,58 @@
 4. Dynamic-import the optional Sanity client inside the service (`await import("@/lib/sanity")` in try/catch) so an unconfigured CMS degrades to DB/fallback instead of crashing.
 
 **Apply When:** Layering a new content source (DB, CMS, fallback) over existing reads, or unifying multiple post/page data sources.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Media Upload Hardening: Generous Timeouts + Clear Error Messages + Format Extension
+
+**Context:** Alpha testing revealed Cloudinary direct uploads failing silently or with generic "Internal server error" for large files (>50MB) and unsupported formats. Users had no guidance on what to do next.
+
+**What We Learned:**
+1. Set generous timeouts (10 minutes) for Cloudinary uploads using `AbortController` + `setTimeout` — large video files over slow connections need it.
+2. Error messages must be actionable: "File too large (max 100MB). Try Google Drive integration for larger files" is infinitely better than "Upload failed".
+3. Extend supported formats proactively: MKV, 3GP, 3G2, FLV, MPEG (video); GIF, AVIF, HEIC/HEIF (images). Cloudinary accepts them; the bottleneck was our validation allowlist.
+4. Validate file extension matches MIME type (e.g., `.mov` for `video/quicktime`) to catch corrupted/mislabeled files early.
+5. For formats Cloudinary doesn't support or files over the limit, surface Google Drive integration as the recommended alternative — it handles large uploads and transcoding better.
+
+**Apply When:** Building or troubleshooting file upload flows, especially for media-heavy applications.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Portfolio Gallery View: Reuse Existing Video Card Component
+
+**Context:** The Explore page showed provider cards, but users needed to browse individual portfolio items (work samples) across all providers.
+
+**What We Learned:**
+1. The existing `ExploreVideoCard` component already supported both `provider` and `portfolioItem` props — extending it to render portfolio items in a gallery view required minimal changes.
+2. New `PortfolioGallery` component reuses `ExploreVideoCard` with `portfolioItem` prop, sharing the same masonry grid, infinite scroll, and filter bar infrastructure.
+3. API separation: `GET /api/explore` for provider cards, `GET /api/explore/portfolio` for individual work samples — both share the same filter/sort/pagination parameters.
+4. Portfolio items carry provider context (name, slug, avatar, category, verified, rating) so clicking through lands on the provider profile.
+
+**Apply When:** Adding a secondary "item-level" browse view to an existing "entity-level" listing page.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Config-Driven Public Pages with Admin Management
+
+**Context:** About and How It Works pages needed to be admin-editable without code changes, following the platform's config-first philosophy.
+
+**What We Learned:**
+1. Store content as JSONB in dedicated tables (`about_page`, `how_it_works_page`) with structured fields: hero (title/subtitle), sections (array of {id, title, content}), quickLinks (array of {label, href}), sandboxes (array of {id, title, description, type}), faqs (array of {question, answer, category}).
+2. MockDataService provides fallback content when DB is unavailable — keeps pages working in demo mode.
+3. Admin management UI can reuse existing patterns (ContentBlocksEditor for rich content, JSON editor for structured data) — to be built in a follow-up session.
+4. SEO metadata generated via existing `lib/seo.ts` `buildSeoMetadata` helper.
+
+**Apply When:** Adding any static/landing page that needs admin content management.
 
 **Supersedes:** None
 **Superseded by:** None

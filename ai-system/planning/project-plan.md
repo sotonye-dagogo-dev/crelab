@@ -1,8 +1,8 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 27)
-> - last-verified-against-code: 2026-08-13
+> - last-updated-by: update-ai-system (Session 34)
+> - last-verified-against-code: 2026-08-28
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -48,6 +48,15 @@
 
 - [x] Admin Panel: config editor, category manager (with CategoryModal), provider review queue, dispute dashboard, admin layout + sidebar
 - [x] Blog System: Sanity CMS + DB-backed blog posts (`blog_posts`, `BlogPostService` — admin/DB posts merged over Sanity), /blog, /blog/[slug], creator spotlights, ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar
+
+### Milestone 1.5 — Public Pages & Portfolio Gallery (Week 6)
+
+- [x] About Page: config-driven, admin manageable (/about), brief mission/vision/values + quick links (How It Works, Terms, Privacy, Bug Report, Contact)
+- [x] How It Works Page: config-driven, admin manageable (/how-it-works), sections for Creators/Clients/Escrow with step-by-step guides, interactive sandboxes (Booking Flow Simulator, Escrow Timeline Explorer, Pricing Calculator, Search & Discovery Simulator), SEO-friendly FAQ section
+- [x] Portfolio Gallery on Explore: new "Portfolio Gallery" view alongside "Creators" view, shows individual portfolio items from all providers with source tags (Direct Upload / Google Drive), infinite scroll, same filters as creator view
+- [x] Media Upload Improvements: generous 10-minute timeout for large files, enhanced error messages with Google Drive fallback suggestions, tighter file format validation (extension + MIME type matching), extended supported formats (MKV, 3GP, FLV, MPEG, GIF, AVIF, HEIC)
+- [x] Portfolio Management: order management (up/down arrows), visibility toggle (show/hide), source tags (Direct/Drive), delete action
+- [x] Schema Extensions: `about_page` and `how_it_works_page` tables with JSONB content blocks, `portfolio_items` API for CRUD + reorder
 - [x] sitemap.ts, robots.ts (Next.js generated sitemap.xml + robots.txt)
 
 ---
