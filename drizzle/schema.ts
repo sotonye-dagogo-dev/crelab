@@ -512,3 +512,43 @@ export const blogPosts = pgTable("blog_posts", {
 });
 
 export const blogPostsRelations = relations(blogPosts, () => ({}));
+
+/* ── Public pages (admin-managed content) ── */
+
+export const aboutPage = pgTable("about_page", {
+  id: text("id").primaryKey(),
+  /** Hero section */
+  heroTitle: text("hero_title").notNull(),
+  heroSubtitle: text("hero_subtitle"),
+  /** Main content sections - stored as JSONB */
+  sections: jsonb("sections").notNull().default([]),
+  /** Links in the footer/quick links section */
+  quickLinks: jsonb("quick_links").notNull().default([]),
+  /** SEO */
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const aboutPageRelations = relations(aboutPage, () => ({}));
+
+export const howItWorksPage = pgTable("how_it_works_page", {
+  id: text("id").primaryKey(),
+  /** Hero section */
+  heroTitle: text("hero_title").notNull(),
+  heroSubtitle: text("hero_subtitle"),
+  /** Process sections - stored as JSONB */
+  sections: jsonb("sections").notNull().default([]),
+  /** Sandbox/playground configurations */
+  sandboxes: jsonb("sandboxes").notNull().default([]),
+  /** FAQ section */
+  faqs: jsonb("faqs").notNull().default([]),
+  /** SEO */
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const howItWorksPageRelations = relations(howItWorksPage, () => ({}));

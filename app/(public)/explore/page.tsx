@@ -2,16 +2,20 @@
 
 import { useCallback, useState, useMemo, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, Grid, List } from "lucide-react";
 import { usePlatformConfig } from "@/lib/config-context";
 import { ExploreFilterBar } from "@/components/explore/ExploreFilterBar";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
-import type { IExploreFilters, PaginatedResponse, IExploreCard } from "@/types";
+import { PortfolioGallery } from "@/components/explore/PortfolioGallery";
+import type { IExploreFilters, PaginatedResponse, IExploreCard, IPortfolioItem } from "@/types";
+
+type PortfolioGalleryResponse = PaginatedResponse<IPortfolioItem>;
 
 export default function ExplorePage() {
   const platformConfig = usePlatformConfig();
   const [filters, setFilters] = useState<IExploreFilters>({});
   const [scrollY, setScrollY] = useState(0);
+  const [viewMode, setViewMode] = useState<"creators" | "gallery">("creators");
 
   useEffect(() => {
     const handler = () => setScrollY(window.scrollY);
@@ -38,6 +42,25 @@ export default function ExplorePage() {
     [filters],
   );
 
+  const fetchPortfolioItems = useCallback(
+    async ({ pageParam }: { pageParam: string | undefined }) => {
+      const params = new URLSearchParams();
+      if (filters.category) params.set("category", filters.category);
+      if (filters.location) params.set("location", filters.location);
+      if (filters.budgetMin !== undefined) params.set("budgetMin", String(filters.budgetMin));
+      if (filters.budgetMax !== undefined) params.set("budgetMax", String(filters.budgetMax));
+      if (filters.q) params.set("q", filters.q);
+      if (filters.sort) params.set("sort", filters.sort);
+      if (pageParam) params.set("cursor", pageParam);
+
+      const res = await fetch(`/api/explore/portfolio?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const json: PortfolioGalleryResponse = await res.json();
+      return json;
+    },
+    [filters],
+  );
+
   const {
     data,
     isLoading,
@@ -50,11 +73,32 @@ export default function ExplorePage() {
     queryFn: fetchProviders,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.cursor : undefined),
+    enabled: viewMode === "creators",
+  });
+
+  const {
+    data: galleryData,
+    isLoading: galleryLoading,
+    fetchNextPage: fetchGalleryNextPage,
+    hasNextPage: galleryHasNextPage,
+    isFetchingNextPage: galleryFetching,
+    isError: galleryError,
+  } = useInfiniteQuery({
+    queryKey: ["explore-portfolio", filters],
+    queryFn: fetchPortfolioItems,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.cursor : undefined),
+    enabled: viewMode === "gallery",
   });
 
   const providers = useMemo(
     () => data?.pages.flatMap((p) => p.data) ?? [],
     [data],
+  );
+
+  const portfolioItems = useMemo(
+    () => galleryData?.pages.flatMap((p) => p.data) ?? [],
+    [galleryData],
   );
 
   const handleScrollToTop = useCallback(() => {
@@ -69,14 +113,53 @@ export default function ExplorePage() {
         onFiltersChange={setFilters}
       />
 
-      <ExploreGrid
-        providers={providers}
-        isLoading={isLoading}
-        hasMore={!!hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        fetchNextPage={fetchNextPage}
-        isError={isError}
-      />
+      {/* View Mode Toggle */}
+      <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode("creators")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              viewMode === "creators"
+                ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)]"
+                : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)]"
+            }`}
+          >
+            <List size={14} strokeWidth={2} className="inline mr-1" />
+            Creators
+          </button>
+          <button
+            onClick={() => setViewMode("gallery")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              viewMode === "gallery"
+                ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)]"
+                : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)]"
+            }`}
+          >
+            <Grid size={14} strokeWidth={2} className="inline mr-1" />
+            Portfolio Gallery
+          </button>
+        </div>
+      </div>
+
+      {viewMode === "creators" ? (
+        <ExploreGrid
+          providers={providers}
+          isLoading={isLoading}
+          hasMore={!!hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          fetchNextPage={fetchNextPage}
+          isError={isError}
+        />
+      ) : (
+        <PortfolioGallery
+          items={portfolioItems}
+          isLoading={galleryLoading}
+          hasMore={!!galleryHasNextPage}
+          isFetchingNextPage={galleryFetching}
+          fetchNextPage={fetchGalleryNextPage}
+          isError={galleryError}
+        />
+      )}
 
       <button
         onClick={handleScrollToTop}

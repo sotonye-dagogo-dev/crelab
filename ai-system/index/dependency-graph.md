@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 28)
-> - last-verified-against-code: 2026-08-18
+> - last-updated-by: update-ai-system (Session 34)
+> - last-verified-against-code: 2026-08-28
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -47,15 +47,60 @@ PlatformConfigService
   → Next.js unstable_cache / revalidateTag
   → setNestedValue(target, path, value) deep-sets dotted config keys when merging DB rows in get(); null values skipped so defaults never clobbered
 
-DashboardService
+About Page (app/(public)/about/page.tsx)
+  → lib/seo.ts (buildSeoMetadata for generateMetadata)
+  → services/PlatformConfigService (config for metadata + config-driven content)
+  → services/MockDataService (fallback when DB unavailable)
+  → drizzle/schema.ts (about_page table)
+  → UI Wrappers (ClButton, ClBackButton)
+  → types/index.ts (IAboutPage)
+
+How It Works Page (app/(public)/how-it-works/page.tsx)
+  → lib/seo.ts (buildSeoMetadata for generateMetadata)
+  → services/PlatformConfigService (config for metadata + config-driven content)
+  → services/MockDataService (fallback when DB unavailable)
+  → drizzle/schema.ts (how_it_works_page table)
+  → UI Wrappers (ClButton, ClCard, ClBadge)
+  → types/index.ts (IHowItWorksPage)
+
+Portfolio Gallery (components/explore/PortfolioGallery.tsx)
+  → components/explore/ExploreVideoCard.tsx (shared video card component)
+  → UI Wrappers (ClEmptyState, ClErrorState)
+  → types/index.ts (IPortfolioItem)
+  → TanStack Query (useInfiniteQuery for pagination)
+
+Explore Page — Gallery View (app/(public)/explore/page.tsx)
+  → components/explore/PortfolioGallery.tsx
+  → components/explore/ExploreGrid.tsx (creators view)
+  → components/explore/ExploreFilterBar.tsx
+  → lib/config-context.tsx (PlatformConfig context)
+  → services/ExploreService (provider cards)
+  → app/api/explore/portfolio/route.ts (portfolio items API)
+  → TanStack Query (useInfiniteQuery for both views)
+
+Portfolio Items API (app/api/portfolio/items/route.ts)
+  → services/PortfolioService (getAllByProvider)
+  → lib/auth.ts (auth helpers)
+  → drizzle/schema.ts (providers, portfolio_items)
+  → types/index.ts (IPortfolioItem)
+
+Portfolio Reorder API (app/api/portfolio/reorder/route.ts)
+  → services/PortfolioService (reorder)
+  → lib/auth.ts (auth helpers)
+  → drizzle/schema.ts (providers, portfolio_items)
+
+Portfolio Item API (app/api/portfolio/items/[id]/route.ts)
+  → services/PortfolioService (setHidden, deleteItem)
+  → lib/auth.ts (auth helpers)
+  → drizzle/schema.ts (providers, portfolio_items)
+
+Explore Portfolio API (app/api/explore/portfolio/route.ts)
   → lib/db.ts (Drizzle + postgres client)
-  → drizzle/schema.ts (providers, bookings, portfolio_items, service_packages, user, wallets, payments)
-  → drizzle-orm (eq, and, sql, gte)
-  → PlatformConfigService (availabilityLookaheadDays config)
-  → MockDataService (fallback mock dashboards when NEXT_PUBLIC_MOCK_DATA=true)
-  → ExploreService (queryExploreCards for client discover rail)
-  → lib/currency.ts (formatKobo for display values)
-  → types/dashboard.ts (IProviderDashboard, IClientDashboard, pipeline/stats/availability types) + BookingStatus, ExploreSort
+  → drizzle/schema.ts (providers, portfolio_items, service_packages, reviews, bookings)
+  → drizzle-orm (and, desc, asc, like, sql)
+  → lib/slug.ts (buildProviderSlug)
+  → types/index.ts (IPortfolioItem + extended gallery fields)
+  → consumed by app/(public)/explore/page.tsx (gallery view)
 
 EmailService (+ isResendConfigured / getResendConfig / getResendSender + DEFAULT_FROM_EMAIL + sendVerifyEmail / sendEmailChanged / sendTemplate + sendResetPassword path via Better Auth)
   → config/platform.config.ts (DEFAULT_CONFIG email templates + fromName/fromEmail — subdomain sender default)

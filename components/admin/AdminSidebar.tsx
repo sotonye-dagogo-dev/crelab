@@ -20,6 +20,8 @@ import {
   PanelLeftOpen,
   X,
   History,
+  Info,
+  BookOpen,
 } from "lucide-react";
 import { ClLogo } from "@/components/ui";
 
@@ -83,6 +85,16 @@ const navItems = [
     label: "Bug Reports",
     href: "/admin/bug-reports",
     icon: <Bug size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "About Page",
+    href: "/admin/about-page",
+    icon: <Info size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "How It Works",
+    href: "/admin/how-it-works-page",
+    icon: <BookOpen size={16} strokeWidth={1.5} />,
   },
 ];
 
