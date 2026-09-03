@@ -37,27 +37,44 @@ export function isMediaFileAllowed(
 ): FileValidationResult {
   const maxBytes = config.maxFileSizeMb * 1024 * 1024;
 
-  if (!file.type) {
-    return { ok: false, reason: "Could not determine the file type" };
+  if (file.size === 0) {
+    return { ok: false, reason: "File is empty (0 bytes). Please re-select the file" };
   }
-
-  const accepted = getAcceptedTypes(config);
-  if (!accepted.includes(file.type)) {
-    return {
-      ok: false,
-      reason: `${file.type} is not supported. Upload a ${accepted.join(", ")} file instead. For other formats, consider using Google Drive integration.`,
-    };
-  }
-
   if (file.size > maxBytes) {
     return {
       ok: false,
-      reason: `File is too large. Maximum size is ${config.maxFileSizeMb}MB. For larger files, consider using Google Drive integration.`,
+      reason: `File is ${(file.size / 1024 / 1024).toFixed(1)} MB — exceeds the ${config.maxFileSizeMb} MB per-file limit (each file is judged individually). Compress the file or use Google Drive for larger files.`,
     };
   }
 
-  // Additional validation: check file extension matches MIME type
-  const extension = file.name.split(".").pop()?.toLowerCase();
+  // When MIME is missing (some browsers / drag-drop edge cases) infer from extension
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const accepted = getAcceptedTypes(config);
+
+  if (!file.type) {
+    if (extension) {
+      const inferred = mimeFromExtension(extension);
+      if (inferred && accepted.includes(inferred)) {
+        // Allow it — Cloudinary will detect correctly; extension mapping covers it
+        return { ok: true, reason: null };
+      }
+    }
+    return { ok: false, reason: "Could not determine the file type. Check the file extension or try a different format. Supported: " + accepted.join(", ") };
+  }
+
+  if (!accepted.includes(file.type)) {
+    // Before rejecting, check if extension maps to a supported type — some browsers report generic types
+    if (extension) {
+      const inferred = mimeFromExtension(extension);
+      if (inferred && accepted.includes(inferred)) return { ok: true, reason: null };
+    }
+    return {
+      ok: false,
+      reason: `${file.type} is not supported. Upload a ${accepted.join(", ")} file instead. For other formats, use Google Drive.`,
+    };
+  }
+
+  // Additional validation: check file extension matches MIME type (warn, don't block when extension missing)
   if (extension && !isExtensionAllowedForType(extension, file.type)) {
     return {
       ok: false,
@@ -66,6 +83,16 @@ export function isMediaFileAllowed(
   }
 
   return { ok: true, reason: null };
+}
+
+function mimeFromExtension(ext: string): string | null {
+  const map: Record<string, string> = {
+    mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime", qt: "video/quicktime",
+    avi: "video/x-msvideo", mkv: "video/x-matroska", "3gp": "video/3gpp", "3g2": "video/3gpp2", flv: "video/x-flv",
+    mpeg: "video/mpeg", mpg: "video/mpeg", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+    webp: "image/webp", gif: "image/gif", avif: "image/avif", heic: "image/heic", heif: "image/heif",
+  };
+  return map[ext] ?? null;
 }
 
 function isExtensionAllowedForType(extension: string, mimeType: string): boolean {
