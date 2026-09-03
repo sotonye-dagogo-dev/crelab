@@ -167,6 +167,7 @@ export function MediaUpload({
     setUploads(prev => prev.filter(u => u.status !== "error"));
   }, []);
 
+  const uploadStartTimesRef = useRef<Map<string, number>>(new Map());
   const uploadSingleFileRef = useRef<typeof uploadSingleFile | null>(null);
   const uploadSingleFile = useCallback(async (file: File, uploadId: string) => {
     if (!status) return;
@@ -189,8 +190,10 @@ export function MediaUpload({
     }
 
     // Update status to uploading
+    const startedAt = Date.now();
+    uploadStartTimesRef.current.set(uploadId, startedAt);
     setUploads(prev => prev.map(u => 
-      u.id === uploadId ? { ...u, status: "uploading" as const, startTime: Date.now(), error: undefined } : u
+      u.id === uploadId ? { ...u, status: "uploading" as const, startTime: startedAt, error: undefined } : u
     ));
 
     const controller = new AbortController();
@@ -199,6 +202,28 @@ export function MediaUpload({
     try {
       const formData = new FormData();
       formData.append("file", file);
+
+      // Helper to turn any API error payload into a readable string (avoids [object Object])
+      const extractErrorMessage = (json: unknown, fallback: string): string => {
+        if (typeof json === "object" && json !== null) {
+          const j = json as Record<string, unknown>;
+          const parts: string[] = [];
+          if (typeof j.error === "string" && j.error) parts.push(j.error);
+          else if (j.error && typeof j.error === "object") {
+            try { parts.push(JSON.stringify(j.error)); } catch { parts.push(String(j.error)); }
+          }
+          if (Array.isArray(j.details) && j.details.length) {
+            const detailStr = j.details.map((d) => (typeof d === "string" ? d : JSON.stringify(d))).join("; ");
+            if (detailStr) parts.push(detailStr);
+          } else if (typeof j.details === "string" && j.details) {
+            parts.push(j.details);
+          }
+          // if json itself is array
+          if (parts.length) return parts.join(" — ");
+          if (typeof j.message === "string") return j.message;
+        }
+        return fallback;
+      };
 
       // Use XMLHttpRequest for progress tracking
       const result = await new Promise<{
@@ -214,8 +239,8 @@ export function MediaUpload({
         xhr.upload.addEventListener("progress", (event) => {
           if (event.lengthComputable) {
             const progress = (event.loaded / event.total) * 100;
-            const upload = uploads.find(u => u.id === uploadId);
-            const elapsed = upload ? Date.now() - upload.startTime : Date.now();
+            const started = uploadStartTimesRef.current.get(uploadId) ?? startedAt;
+            const elapsed = Date.now() - started;
             const speed = elapsed > 0 ? (event.loaded / elapsed) * 1000 : 0;
             const remaining = speed > 0 ? (event.total - event.loaded) / speed : 0;
             
@@ -232,19 +257,28 @@ export function MediaUpload({
             try {
               const json = JSON.parse(xhr.responseText);
               if (json.success && json.data) {
-                resolve(json.data);
+                // batch-upload returns an array, single upload returns an object — handle both
+                const data = Array.isArray(json.data) ? json.data[0] : json.data;
+                if (data && data.url) resolve(data);
+                else reject(new Error(extractErrorMessage(json, "Upload failed: invalid response shape")));
               } else {
-                reject(new Error(json.error ?? "Upload failed"));
+                reject(new Error(extractErrorMessage(json, "Upload failed")));
               }
-            } catch {
-              reject(new Error("Invalid response from server"));
+            } catch (e) {
+              if (e instanceof Error && e.message !== "Invalid response from server") {
+                reject(e);
+              } else {
+                reject(new Error("Invalid response from server"));
+              }
             }
           } else {
             try {
               const json = JSON.parse(xhr.responseText);
-              reject(new Error(json.error ?? `Upload failed with status ${xhr.status}`));
+              reject(new Error(extractErrorMessage(json, `Upload failed with status ${xhr.status}`)));
             } catch {
-              reject(new Error(`Upload failed with status ${xhr.status}`));
+              const text = xhr.responseText?.trim();
+              if (text && text !== "[object Object]") reject(new Error(text.slice(0, 500)));
+              else reject(new Error(`Upload failed with status ${xhr.status}`));
             }
           }
         });
@@ -257,11 +291,10 @@ export function MediaUpload({
           reject(new Error("Upload cancelled"));
         });
 
-        xhr.open("POST", "/api/media/batch-upload");
+        // Single-file uploads should hit /api/media/upload (expects "file").
+        // batch-upload is kept as fallback but also now accepts "file" for compat.
+        xhr.open("POST", "/api/media/upload");
         xhr.setRequestHeader("Accept", "application/json");
-        
-        // Get auth token from cookies/headers if needed
-        // For now, rely on cookie-based auth
         
         xhr.send(formData);
       });
@@ -281,7 +314,15 @@ export function MediaUpload({
       if (err instanceof DOMException && err.name === "AbortError") {
         setUploads(prev => prev.filter(u => u.id !== uploadId));
       } else {
-        const errorMessage = err instanceof Error ? err.message : "Upload failed";
+        let errorMessage: string;
+        if (err instanceof Error) errorMessage = err.message;
+        else if (typeof err === "string") errorMessage = err;
+        else if (err && typeof err === "object" && "message" in (err as Record<string, unknown>) && typeof (err as Record<string, unknown>).message === "string") {
+          errorMessage = (err as Record<string, unknown>).message as string;
+        } else {
+          try { errorMessage = JSON.stringify(err); } catch { errorMessage = String(err); }
+          if (!errorMessage || errorMessage === "{}" || errorMessage === "[object Object]") errorMessage = "Upload failed";
+        }
         setUploads(prev => prev.map(u => 
           u.id === uploadId 
             ? { ...u, status: "error" as const, error: errorMessage, progress: 0 }
@@ -290,8 +331,9 @@ export function MediaUpload({
       }
     } finally {
       abortControllersRef.current.delete(uploadId);
+      uploadStartTimesRef.current.delete(uploadId);
     }
-  }, [status, uploads, value, onChange]);
+  }, [status, value, onChange]);
 
   uploadSingleFileRef.current = uploadSingleFile;
 
