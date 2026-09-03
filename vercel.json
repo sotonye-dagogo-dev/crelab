@@ -9,6 +9,12 @@
       "preview": true
     }
   },
+  "functions": {
+    "app/api/media/upload/route.ts": { "maxDuration": 300 },
+    "app/api/media/batch-upload/route.ts": { "maxDuration": 300 },
+    "app/api/media/confirm/route.ts": { "maxDuration": 60 },
+    "app/api/media/assets/[id]/replace/route.ts": { "maxDuration": 300 }
+  },
   "crons": [
     {
       "path": "/api/cron/drive-sync",

@@ -26,6 +26,7 @@ interface MediaStatus {
   maxFileSizeMb: number;
   videoTypes: string[];
   imageTypes: string[];
+  directUpload?: { cloudName: string; uploadPreset: string } | null;
 }
 
 interface UploadProgress {
@@ -57,14 +58,6 @@ interface MediaUploadProps {
   onChange: (url: string) => void;
   maxFiles?: number;
   multiple?: boolean;
-}
-
-interface MediaStatus {
-  enabled: boolean;
-  cloudinaryConfigured: boolean;
-  maxFileSizeMb: number;
-  videoTypes: string[];
-  imageTypes: string[];
 }
 
 function inferPreviewKind(url: string, accept: AcceptKind): PreviewKind {
@@ -169,6 +162,13 @@ export function MediaUpload({
 
   const uploadStartTimesRef = useRef<Map<string, number>>(new Map());
   const uploadSingleFileRef = useRef<typeof uploadSingleFile | null>(null);
+
+  const getResourceTypeFromMime = useCallback((mime: string): "video" | "image" | null => {
+    if (mime.startsWith("video/")) return "video";
+    if (mime.startsWith("image/")) return "image";
+    return null;
+  }, []);
+
   const uploadSingleFile = useCallback(async (file: File, uploadId: string) => {
     if (!status) return;
 
@@ -183,8 +183,15 @@ export function MediaUpload({
     });
 
     if (!validation.ok) {
+      const reason = validation.reason ?? "Invalid file";
+      const isTooLarge = file.size > status.maxFileSizeMb * 1024 * 1024;
+      const hint = isTooLarge
+        ? ` Your file is ${(file.size / 1024 / 1024).toFixed(1)} MB (limit ${status.maxFileSizeMb} MB each — each file is judged individually, not the batch total). Try compressing it or use Google Drive for files over ${status.maxFileSizeMb} MB.`
+        : file.type && !status.videoTypes.includes(file.type) && !status.imageTypes.includes(file.type)
+          ? ` Supported: ${[...status.videoTypes, ...status.imageTypes].join(", ")}.`
+          : "";
       setUploads(prev => prev.map(u => 
-        u.id === uploadId ? { ...u, status: "error" as const, error: validation.reason ?? "Invalid file" } : u
+        u.id === uploadId ? { ...u, status: "error" as const, error: reason + hint } : u
       ));
       return;
     }
@@ -199,65 +206,59 @@ export function MediaUpload({
     const controller = new AbortController();
     abortControllersRef.current.set(uploadId, controller);
 
-    try {
+    // Helper to turn any API error payload into a readable string (avoids [object Object])
+    const extractErrorMessage = (json: unknown, fallback: string): string => {
+      if (typeof json === "object" && json !== null) {
+        const j = json as Record<string, unknown>;
+        const parts: string[] = [];
+        if (typeof j.error === "string" && j.error) parts.push(j.error);
+        else if (j.error && typeof j.error === "object") {
+          try { parts.push(JSON.stringify(j.error)); } catch { parts.push(String(j.error)); }
+        }
+        if (Array.isArray(j.details) && j.details.length) {
+          const detailStr = j.details.map((d) => (typeof d === "string" ? d : JSON.stringify(d))).join("; ");
+          if (detailStr) parts.push(detailStr);
+        } else if (typeof j.details === "string" && j.details) {
+          parts.push(j.details);
+        }
+        if (Array.isArray(j.failures) && j.failures.length) {
+          const fStr = (j.failures as unknown[]).map((f) => typeof f === "string" ? f : JSON.stringify(f)).join("; ");
+          if (fStr) parts.push(fStr);
+        }
+        if (parts.length) return parts.join(" — ");
+        if (typeof j.message === "string") return j.message;
+      }
+      return fallback;
+    };
+
+    const attachProgress = (xhr: XMLHttpRequest) => {
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const progress = (event.loaded / event.total) * 100;
+          const started = uploadStartTimesRef.current.get(uploadId) ?? startedAt;
+          const elapsed = Date.now() - started;
+          const speed = elapsed > 0 ? (event.loaded / elapsed) * 1000 : 0;
+          const remaining = speed > 0 ? (event.total - event.loaded) / speed : 0;
+          setUploads(prev => prev.map(u => 
+            u.id === uploadId 
+              ? { ...u, progress, loaded: event.loaded, total: event.total, speed, remainingTime: remaining }
+              : u
+          ));
+        }
+      });
+    };
+
+    const uploadViaServer = (): Promise<{ assetId: string; url: string; thumbnailUrl: string | null; mimeType: string; resourceType: "video" | "image"; publicId: string }> => {
       const formData = new FormData();
       formData.append("file", file);
-
-      // Helper to turn any API error payload into a readable string (avoids [object Object])
-      const extractErrorMessage = (json: unknown, fallback: string): string => {
-        if (typeof json === "object" && json !== null) {
-          const j = json as Record<string, unknown>;
-          const parts: string[] = [];
-          if (typeof j.error === "string" && j.error) parts.push(j.error);
-          else if (j.error && typeof j.error === "object") {
-            try { parts.push(JSON.stringify(j.error)); } catch { parts.push(String(j.error)); }
-          }
-          if (Array.isArray(j.details) && j.details.length) {
-            const detailStr = j.details.map((d) => (typeof d === "string" ? d : JSON.stringify(d))).join("; ");
-            if (detailStr) parts.push(detailStr);
-          } else if (typeof j.details === "string" && j.details) {
-            parts.push(j.details);
-          }
-          // if json itself is array
-          if (parts.length) return parts.join(" — ");
-          if (typeof j.message === "string") return j.message;
-        }
-        return fallback;
-      };
-
-      // Use XMLHttpRequest for progress tracking
-      const result = await new Promise<{
-        assetId: string;
-        url: string;
-        thumbnailUrl: string | null;
-        mimeType: string;
-        resourceType: "video" | "image";
-        publicId: string;
-      }>((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener("progress", (event) => {
-          if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
-            const started = uploadStartTimesRef.current.get(uploadId) ?? startedAt;
-            const elapsed = Date.now() - started;
-            const speed = elapsed > 0 ? (event.loaded / elapsed) * 1000 : 0;
-            const remaining = speed > 0 ? (event.total - event.loaded) / speed : 0;
-            
-            setUploads(prev => prev.map(u => 
-              u.id === uploadId 
-                ? { ...u, progress, loaded: event.loaded, total: event.total, speed, remainingTime: remaining }
-                : u
-            ));
-          }
-        });
-
+        attachProgress(xhr);
         xhr.addEventListener("load", () => {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const json = JSON.parse(xhr.responseText);
               if (json.success && json.data) {
-                // batch-upload returns an array, single upload returns an object — handle both
                 const data = Array.isArray(json.data) ? json.data[0] : json.data;
                 if (data && data.url) resolve(data);
                 else reject(new Error(extractErrorMessage(json, "Upload failed: invalid response shape")));
@@ -265,11 +266,8 @@ export function MediaUpload({
                 reject(new Error(extractErrorMessage(json, "Upload failed")));
               }
             } catch (e) {
-              if (e instanceof Error && e.message !== "Invalid response from server") {
-                reject(e);
-              } else {
-                reject(new Error("Invalid response from server"));
-              }
+              if (e instanceof Error && e.message !== "Invalid response from server") reject(e);
+              else reject(new Error("Invalid response from server"));
             }
           } else {
             try {
@@ -278,26 +276,115 @@ export function MediaUpload({
             } catch {
               const text = xhr.responseText?.trim();
               if (text && text !== "[object Object]") reject(new Error(text.slice(0, 500)));
-              else reject(new Error(`Upload failed with status ${xhr.status}`));
+              else reject(new Error(`Upload failed with status ${xhr.status}. For large files, the direct upload usually succeeds — or use Google Drive.`));
             }
           }
         });
-
-        xhr.addEventListener("error", () => {
-          reject(new Error("Network error during upload"));
-        });
-
-        xhr.addEventListener("abort", () => {
-          reject(new Error("Upload cancelled"));
-        });
-
-        // Single-file uploads should hit /api/media/upload (expects "file").
-        // batch-upload is kept as fallback but also now accepts "file" for compat.
+        xhr.addEventListener("error", () => reject(new Error("Network error during upload — check your connection and try again.")));
+        xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
         xhr.open("POST", "/api/media/upload");
         xhr.setRequestHeader("Accept", "application/json");
-        
+        // Hook abort controller
+        controller.signal.addEventListener("abort", () => { try { xhr.abort(); } catch {} });
         xhr.send(formData);
       });
+    };
+
+    const uploadViaDirect = async (): Promise<{ assetId: string; url: string; thumbnailUrl: string | null; mimeType: string; resourceType: "video" | "image"; publicId: string }> => {
+      const creds = status.directUpload;
+      if (!creds?.cloudName || !creds?.uploadPreset) throw new Error("Direct upload not configured");
+      const resourceType = getResourceTypeFromMime(file.type);
+      if (!resourceType) throw new Error(`Unsupported file type: ${file.type}`);
+      // Step 1: direct to Cloudinary
+      const cloudResult = await new Promise<{ secure_url: string; public_id: string; resource_type: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        attachProgress(xhr);
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const json = JSON.parse(xhr.responseText);
+              if (json.secure_url && json.public_id) resolve(json);
+              else reject(new Error(json.error?.message ?? "Cloudinary response missing URL"));
+            } catch (e) {
+              reject(e instanceof Error ? e : new Error("Invalid Cloudinary response"));
+            }
+          } else {
+            try {
+              const json = JSON.parse(xhr.responseText);
+              const msg = json.error?.message ?? json.error ?? `Cloudinary upload failed ${xhr.status}`;
+              reject(new Error(typeof msg === "string" ? msg : JSON.stringify(msg)));
+            } catch {
+              const t = xhr.responseText?.trim();
+              reject(new Error(t && t !== "[object Object]" ? t.slice(0, 500) : `Cloudinary upload failed ${xhr.status}`));
+            }
+          }
+        });
+        xhr.addEventListener("error", () => reject(new Error("Network error during direct upload")));
+        xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
+        const url = `https://api.cloudinary.com/v1_1/${creds.cloudName}/${resourceType}/upload`;
+        xhr.open("POST", url);
+        controller.signal.addEventListener("abort", () => { try { xhr.abort(); } catch {} });
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("upload_preset", creds.uploadPreset);
+        xhr.send(fd);
+      });
+
+      // Step 2: register with our API (ACID: server deletes cloud binary if DB fails)
+      const thumb = resourceType === "video" ? `https://res.cloudinary.com/${creds.cloudName}/video/upload/w_600,q_auto,g_auto/${cloudResult.public_id}.jpg` : null;
+      const res = await fetch("/api/media/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          url: cloudResult.secure_url,
+          publicId: cloudResult.public_id,
+          cloudName: creds.cloudName,
+          resourceType: cloudResult.resource_type ?? resourceType,
+          mimeType: file.type,
+          thumbnailUrl: thumb,
+        }),
+        signal: controller.signal,
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        const msg = json ? extractErrorMessage(json, "Failed to register upload") : `Register failed ${res.status}`;
+        // Try to avoid orphan: the confirm endpoint already tries to delete, but if register failed before that, we attempt via URL parse
+        throw new Error(msg);
+      }
+      const data = json.data;
+      return {
+        assetId: data.id,
+        url: data.url,
+        thumbnailUrl: data.thumbnailUrl ?? thumb,
+        mimeType: data.mimeType ?? file.type,
+        resourceType: data.resourceType ?? resourceType,
+        publicId: data.publicId,
+      };
+    };
+
+    try {
+      // Strategy: for files > 4 MB (Vercel Hobby limit) prefer direct; for small files either path works but direct avoids server load
+      const shouldTryDirect = Boolean(status.directUpload?.cloudName && status.directUpload?.uploadPreset);
+      let result: { assetId: string; url: string; thumbnailUrl: string | null; mimeType: string; resourceType: "video" | "image"; publicId: string };
+      if (shouldTryDirect) {
+        try {
+          result = await uploadViaDirect();
+        } catch (directErr) {
+          const msg = directErr instanceof Error ? directErr.message : String(directErr);
+          // If direct failed due to user abort, propagate
+          if (msg.includes("cancelled") || controller.signal.aborted) throw directErr;
+          // Fallback to server for non-direct errors (e.g. preset not unsigned, CORS)
+          // For large files the server will likely still 413 — surface direct error plus fallback hint
+          try {
+            result = await uploadViaServer();
+          } catch (serverErr) {
+            const sMsg = serverErr instanceof Error ? serverErr.message : String(serverErr);
+            throw new Error(`${msg} — server fallback also failed: ${sMsg}. For files over ${status.maxFileSizeMb}MB use Google Drive.`);
+          }
+        }
+      } else {
+        result = await uploadViaServer();
+      }
 
       // Update with result
       setUploads(prev => prev.map(u => 
@@ -306,12 +393,13 @@ export function MediaUpload({
           : u
       ));
 
-      // If this is the first completed upload and we don't have a value yet, use it
       if (!value) {
         onChange(result.url);
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
+        setUploads(prev => prev.filter(u => u.id !== uploadId));
+      } else if (controller.signal.aborted) {
         setUploads(prev => prev.filter(u => u.id !== uploadId));
       } else {
         let errorMessage: string;
@@ -323,6 +411,10 @@ export function MediaUpload({
           try { errorMessage = JSON.stringify(err); } catch { errorMessage = String(err); }
           if (!errorMessage || errorMessage === "{}" || errorMessage === "[object Object]") errorMessage = "Upload failed";
         }
+        // Attach actionable hint for large-file server-limit failures
+        if ((errorMessage.includes("413") || errorMessage.includes("Body exceeded") || errorMessage.includes("proxy limit")) && file.size > 4 * 1024 * 1024) {
+          errorMessage += ` Your file is ${(file.size/1024/1024).toFixed(1)} MB. The server proxy caps at ~4.5 MB on this host — large files now upload directly from your browser; if that also failed, use Google Drive or compress the file.`;
+        }
         setUploads(prev => prev.map(u => 
           u.id === uploadId 
             ? { ...u, status: "error" as const, error: errorMessage, progress: 0 }
@@ -333,7 +425,7 @@ export function MediaUpload({
       abortControllersRef.current.delete(uploadId);
       uploadStartTimesRef.current.delete(uploadId);
     }
-  }, [status, value, onChange]);
+  }, [status, value, onChange, getResourceTypeFromMime]);
 
   uploadSingleFileRef.current = uploadSingleFile;
 
@@ -370,6 +462,7 @@ export function MediaUpload({
     setError("");
 
     for (const file of fileArray.slice(0, availableSlots)) {
+      const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const validation = isMediaFileAllowed(file, {
         enabled: true,
         cloudinaryEnabled: true,
@@ -381,11 +474,28 @@ export function MediaUpload({
       });
 
       if (!validation.ok) {
-        setError(`${file.name}: ${validation.reason ?? "Invalid file"}`);
+        const isLarge = file.size > status.maxFileSizeMb * 1024 * 1024;
+        const hint = isLarge
+          ? ` File is ${(file.size / 1024 / 1024).toFixed(1)} MB (limit ${status.maxFileSizeMb} MB each). Compress or use Google Drive.`
+          : "";
+        const reason = `${file.name}: ${validation.reason ?? "Invalid file"}${hint}`;
+        // Surface as an errored upload row so the user gets per-file feedback + Retry/Drive actions
+        const errorUpload: UploadProgress = {
+          id: uploadId,
+          file,
+          progress: 0,
+          loaded: 0,
+          total: file.size,
+          speed: 0,
+          startTime: Date.now(),
+          status: "error",
+          error: validation.reason ? `${validation.reason}${hint}` : reason,
+        };
+        setUploads(prev => [...prev, errorUpload]);
+        setError(reason);
         continue;
       }
 
-      const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       const newUpload: UploadProgress = {
         id: uploadId,
@@ -400,7 +510,7 @@ export function MediaUpload({
 
       setUploads(prev => [...prev, newUpload]);
       
-      // Start upload immediately
+      // Start upload immediately (each file is its own transaction — not capped by batch total)
       uploadSingleFile(file, uploadId);
     }
   }, [status, uploads, maxFiles, uploadSingleFile]);
@@ -699,13 +809,23 @@ export function MediaUpload({
                   <p className="text-[11px] font-semibold text-[var(--color-text-tertiary)] uppercase tracking-[0.06em]">
                     Errors ({erroredUploads.length})
                   </p>
-                  {erroredUploads.map((upload) => (
+                  {erroredUploads.map((upload) => {
+                    const suggestDrive = /Drive|too large|MB each|compress/i.test(upload.error ?? "");
+                    return (
                     <div key={upload.id} className="p-2 rounded-[8px] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20">
                       <div className="flex items-start gap-2">
                         <AlertCircle size={14} color="var(--color-error)" className="shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-medium text-[var(--color-text-primary)]">{upload.file.name}</p>
+                          <p className="text-[12px] font-medium text-[var(--color-text-primary)]">{upload.file.name} <span className="text-[11px] text-[var(--color-text-tertiary)]">· {formatBytes(upload.file.size)}</span></p>
                           <p className="text-[11px] text-[var(--color-error)] mt-0.5">{upload.error}</p>
+                          {suggestDrive && (
+                            <div className="mt-1.5 flex gap-1.5">
+                              <ClButton variant="ghost" size="sm" onClick={() => setTab("link")}>
+                                Use Drive link
+                              </ClButton>
+                              <span className="text-[11px] text-[var(--color-text-tertiary)] self-center">or compress to ~{(status?.maxFileSizeMb ?? 100) - 5} MB</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex gap-1 shrink-0">
                           <ClButton variant="ghost" size="sm" onClick={() => retryUpload(upload.id)}>
@@ -717,7 +837,7 @@ export function MediaUpload({
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );})}
                   {erroredUploads.length > 0 && (
                     <ClButton variant="ghost" size="sm" onClick={clearErroredUploads} className="w-full">
                       Clear all errors
