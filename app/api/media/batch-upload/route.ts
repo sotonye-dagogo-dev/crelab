@@ -55,7 +55,21 @@ export async function POST(req: Request) {
     }
 
     const formData = await req.formData();
-    const files = formData.getAll("files") as File[];
+    // Accept both "files" (plural, batch) and "file" (singular, per-file XHR) for robustness
+    let files = (formData.getAll("files") as unknown[]).filter((v): v is File => v instanceof File);
+    if (!files.length) {
+      const single = formData.get("file");
+      if (single instanceof File) {
+        files = [single];
+      } else {
+        // Also try collecting any File entries regardless of key (defensive)
+        const allEntries: File[] = [];
+        for (const value of formData.values()) {
+          if (value instanceof File && value.size > 0) allEntries.push(value);
+        }
+        if (allEntries.length) files = allEntries;
+      }
+    }
 
     if (!files.length) {
       return NextResponse.json(
