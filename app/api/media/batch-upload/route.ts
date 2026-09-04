@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import {
-  uploadFile,
-  CloudinaryNotConfiguredError,
-  deleteAssetsByUrl,
-} from "@/lib/cloudinary";
+import { uploadFile, CloudinaryNotConfiguredError, deleteAssetsByUrl } from "@/lib/cloudinary";
 import { MediaAssetService } from "@/services/MediaAssetService";
 import { isMediaFileAllowed } from "@/lib/media";
+
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
 interface BatchUploadResult {
   assetId: string;
@@ -20,15 +19,15 @@ interface BatchUploadResult {
   fileName: string;
 }
 
+function formatBytes(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
-
     if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
     }
 
     let config;
@@ -37,89 +36,113 @@ export async function POST(req: Request) {
     } catch {
       config = DEFAULT_CONFIG;
     }
-
     const mediaUpload = config.mediaUpload ?? DEFAULT_CONFIG.mediaUpload!;
-
     if (!mediaUpload.enabled) {
-      return NextResponse.json(
-        { success: false, error: "Media uploads are currently disabled" },
-        { status: 403 },
-      );
+      return NextResponse.json({ success: false, error: "Media uploads are currently disabled", code: "DISABLED" }, { status: 403 });
     }
-
     if (!mediaUpload.cloudinaryEnabled) {
-      return NextResponse.json(
-        { success: false, error: "Direct uploads are disabled. Please paste a link instead or use Google Drive integration." },
-        { status: 403 },
-      );
+      return NextResponse.json({ success: false, error: "Direct uploads are disabled. Paste a link or use Google Drive.", code: "CLOUDINARY_DISABLED" }, { status: 403 });
     }
 
-    const formData = await req.formData();
-    // Accept both "files" (plural, batch) and "file" (singular, per-file XHR) for robustness
-    let files = (formData.getAll("files") as unknown[]).filter((v): v is File => v instanceof File);
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // Common when payload exceeds Vercel/Next body limit (~4.5 MB on Hobby).
+      // Tell client to use direct-to-Cloudinary or Drive.
+      const hint = msg.includes("413") || msg.includes("too large") || msg.includes("Body exceeded")
+        ? " The file may be too large for the server proxy (≈4.5 MB limit on this host). Try again — large files now upload directly to Cloudinary from your browser — or use Google Drive for files over 50 MB."
+        : "";
+      return NextResponse.json({ success: false, error: `Could not read upload: ${msg}.${hint}`, code: "FORM_PARSE_FAILED" }, { status: 413 });
+    }
+
+    // Robust file collection: accept "files", "file", and any File values
+    let files = (formData.getAll("files") as unknown[]).filter((v): v is File => v instanceof File && v.size >= 0);
     if (!files.length) {
       const single = formData.get("file");
-      if (single instanceof File) {
-        files = [single];
-      } else {
-        // Also try collecting any File entries regardless of key (defensive)
-        const allEntries: File[] = [];
-        for (const value of formData.values()) {
-          if (value instanceof File && value.size > 0) allEntries.push(value);
-        }
-        if (allEntries.length) files = allEntries;
+      if (single instanceof File) files = [single];
+      else {
+        const all: File[] = [];
+        for (const v of formData.values()) if (v instanceof File && v.size >= 0) all.push(v);
+        // filter out empty placeholder files (some browsers send 0-byte entries)
+        const nonEmpty = all.filter((f) => f.size > 0);
+        files = nonEmpty.length ? nonEmpty : all;
       }
     }
 
+    // Remove 0-byte entries but keep error feedback
+    const emptyFiles = files.filter((f) => f.size === 0);
+    if (emptyFiles.length) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "One or more files are empty (0 bytes). Please re-select the files and try again. If the file was truncated, try the direct upload or Google Drive.",
+          code: "EMPTY_FILE",
+          details: emptyFiles.map((f) => `${f.name || "unnamed"} is empty (0 bytes)`),
+        },
+        { status: 400 },
+      );
+    }
+
     if (!files.length) {
       return NextResponse.json(
-        { success: false, error: "At least one file is required" },
+        {
+          success: false,
+          error: "At least one file is required",
+          code: "NO_FILE",
+          details: ["No file was received. Make sure the form field is named 'file' or 'files' and try again."],
+        },
         { status: 400 },
       );
     }
 
     if (files.length > 5) {
-      return NextResponse.json(
-        { success: false, error: "Maximum 5 files allowed per upload batch" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: "Maximum 5 files per batch. You sent " + files.length + ".", code: "TOO_MANY_FILES" }, { status: 400 });
     }
 
-    // Validate all files first before any uploads
-    const validationErrors: string[] = [];
+    // Per-file validation (do NOT cap total batch size — each file is judged individually against maxFileSizeMb)
+    const maxBytes = mediaUpload.maxFileSizeMb * 1024 * 1024;
+    const failedValidations: { fileName: string; reason: string }[] = [];
+    const validFiles: File[] = [];
+
     for (const file of files) {
-      if (!(file instanceof File)) {
-        validationErrors.push(`Invalid file object: ${String(file)}`);
-        continue;
-      }
       const validation = isMediaFileAllowed(file, mediaUpload);
       if (!validation.ok) {
         let suggestion = "";
-        if (file.size > mediaUpload.maxFileSizeMb * 1024 * 1024) {
-          suggestion = ` Consider using Google Drive integration for files larger than ${mediaUpload.maxFileSizeMb}MB.`;
+        if (file.size > maxBytes) {
+          suggestion = ` File is ${formatBytes(file.size)} but the limit is ${mediaUpload.maxFileSizeMb} MB per file. Compress the file (e.g. Handbrake for video) or use Google Drive, which handles large files better.`;
         } else if (!mediaUpload.videoTypes.includes(file.type) && !mediaUpload.imageTypes.includes(file.type)) {
-          suggestion = ` Supported formats: ${[...mediaUpload.videoTypes, ...mediaUpload.imageTypes].join(", ")}. Consider using Google Drive integration for other formats.`;
+          suggestion = ` Supported: ${[...mediaUpload.videoTypes, ...mediaUpload.imageTypes].join(", ")}.`;
         }
-        validationErrors.push(`${file.name}: ${validation.reason}.${suggestion}`);
+        failedValidations.push({ fileName: file.name, reason: `${validation.reason}.${suggestion}` });
+      } else {
+        validFiles.push(file);
       }
     }
 
-    if (validationErrors.length > 0) {
+    // If every file failed validation, return 400 early — no uploads attempted (ACID: no side effects)
+    if (validFiles.length === 0 && failedValidations.length) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: validationErrors },
+        {
+          success: false,
+          error: "Validation failed for all files",
+          code: "VALIDATION_FAILED",
+          details: failedValidations.map((v) => `${v.fileName}: ${v.reason}`),
+          failures: failedValidations,
+        },
         { status: 400 },
       );
     }
 
-    // Upload all files with ACID compliance - track all successful uploads for cleanup on failure
-    const successfulUploads: BatchUploadResult[] = [];
-    const uploadErrors: string[] = [];
+    // Per-file ACID uploads: each file is its own transaction (upload + DB record).
+    // Failures do NOT roll back earlier successes — the batch is not atomic, each file is isolated.
+    const successes: BatchUploadResult[] = [];
+    const failures: { fileName: string; error: string; code?: string }[] = [];
 
-    for (const file of files) {
+    for (const file of validFiles) {
       try {
-        // Use generous timeout (10 minutes) for large files
         const result = await uploadFile(file, file.type, { timeoutMs: 10 * 60 * 1000 });
-
         let assetId: string | null = null;
         try {
           const asset = await MediaAssetService.recordUpload({
@@ -133,12 +156,10 @@ export async function POST(req: Request) {
           });
           assetId = asset.id;
         } catch {
-          // Registration failed — clean up the upload
           await deleteAssetsByUrl([result.url]).catch(() => {});
-          throw new Error(`Failed to register asset for ${file.name}`);
+          throw new Error(`Uploaded to Cloudinary but failed to register ${file.name}. The upload was cleaned up — please try again.`);
         }
-
-        successfulUploads.push({
+        successes.push({
           assetId: assetId!,
           url: result.url,
           thumbnailUrl: result.thumbnailUrl,
@@ -148,67 +169,41 @@ export async function POST(req: Request) {
           fileName: file.name,
         });
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : `Failed to upload ${file.name}`;
-        uploadErrors.push(errorMessage);
-        
-        // ACID compliance: cleanup all successfully uploaded files from this batch
-        if (successfulUploads.length > 0) {
-          const urlsToDelete = successfulUploads.map(u => u.url);
-          await deleteAssetsByUrl(urlsToDelete).catch(() => {});
-          // Also try to delete the media asset records
-          for (const upload of successfulUploads) {
-            try {
-              await MediaAssetService.deleteAsset(upload.assetId);
-            } catch {
-              // Ignore cleanup errors
-            }
-          }
-          successfulUploads.length = 0;
-        }
-        break; // Stop processing remaining files on first failure
+        const raw = err instanceof Error ? err.message : String(err);
+        let enhanced = raw;
+        if (raw.includes("timed out")) enhanced = `${raw} The upload timed out — your connection may be slow or the file is large. Try again or use Google Drive for files over ${mediaUpload.maxFileSizeMb}MB.`;
+        else if (raw.includes("too large") || raw.includes("413")) enhanced = `${raw} File is ${formatBytes(file.size)} (limit ${mediaUpload.maxFileSizeMb}MB). Compress or use Drive.`;
+        failures.push({ fileName: file.name, error: enhanced });
       }
     }
 
-    if (uploadErrors.length > 0) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: "Batch upload failed",
-          details: uploadErrors 
-        },
-        { status: 500 },
-      );
+    // Also surface validation failures alongside upload failures
+    for (const v of failedValidations) failures.push({ fileName: v.fileName, error: v.reason, code: "VALIDATION_FAILED" });
+
+    if (successes.length === 0 && failures.length > 0) {
+      return NextResponse.json({ success: false, error: "All uploads failed", code: "ALL_FAILED", details: failures.map((f) => `${f.fileName}: ${f.error}`), failures, data: [] }, { status: 500 });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: successfulUploads,
-    });
+    if (failures.length > 0) {
+      // Partial success — 207 Multi-Status semantics but we return 200 with success:true for compat and details
+      return NextResponse.json({
+        success: true,
+        partial: true,
+        data: successes,
+        failures,
+        error: `${successes.length} file(s) uploaded, ${failures.length} failed`,
+        details: failures.map((f) => `${f.fileName}: ${f.error}`),
+      });
+    }
+
+    return NextResponse.json({ success: true, data: successes });
   } catch (err) {
     if (err instanceof CloudinaryNotConfiguredError) {
-      return NextResponse.json(
-        { success: false, error: "Direct upload is not available. Please paste a link instead or use Google Drive integration." },
-        { status: 503 },
-      );
+      return NextResponse.json({ success: false, error: "Direct upload is not available. Paste a link or use Google Drive.", code: "CLOUDINARY_NOT_CONFIGURED" }, { status: 503 });
     }
-    
-    const errorMessage = err instanceof Error ? err.message : "Internal server error";
-    
-    let enhancedError = errorMessage;
-    if (errorMessage.includes("timed out")) {
-      enhancedError = `${errorMessage} For large files, consider using Google Drive integration which handles large uploads more reliably.`;
-    } else if (errorMessage.includes("too large") || errorMessage.includes("413")) {
-      enhancedError = `${errorMessage} Try reducing file size or use Google Drive integration.`;
-    } else if (errorMessage.includes("Unsupported") || errorMessage.includes("format")) {
-      enhancedError = `${errorMessage} Supported formats: MP4, WebM, MOV, AVI (video) and JPEG, PNG, WebP (images). You can also use Google Drive integration for broader format support.`;
-    }
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: enhancedError,
-      },
-      { status: 500 },
-    );
+    const msg = err instanceof Error ? err.message : "Internal server error";
+    let enhanced = msg;
+    if (msg.includes("timed out")) enhanced = `${msg} Try again or use Drive for large files.`;
+    return NextResponse.json({ success: false, error: enhanced }, { status: 500 });
   }
 }
