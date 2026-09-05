@@ -126,6 +126,17 @@ export class DashboardService implements IDashboardService {
         },
       ];
 
+      const portfolioGallery = portfolioRows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        url: r.url,
+        thumbnailUrl: r.thumbnailUrl,
+        mimeType: r.mimeType,
+        source: r.source as string,
+        visible: r.visible,
+        orderIndex: r.orderIndex,
+      }));
+
       return {
         role: "PROVIDER",
         profile: {
@@ -141,6 +152,7 @@ export class DashboardService implements IDashboardService {
         stats,
         pipeline,
         portfolioPerformance: this.buildPortfolioPerformance(portfolioRows),
+        portfolioGallery,
         availability: await this.getAvailability(provider.id),
         quickActions: this.buildQuickActions(platformConfig),
       };
@@ -155,6 +167,7 @@ export class DashboardService implements IDashboardService {
         stats: [],
         pipeline: [],
         portfolioPerformance: [],
+        portfolioGallery: [],
         availability: [],
         quickActions: [],
       };
@@ -383,6 +396,9 @@ export class DashboardService implements IDashboardService {
         title: portfolioItems.title,
         mimeType: portfolioItems.mimeType,
         thumbnailUrl: portfolioItems.thumbnailUrl,
+        url: portfolioItems.url,
+        source: portfolioItems.source,
+        orderIndex: portfolioItems.orderIndex,
         visible: portfolioItems.visible,
         portfolioPlays: sql<number>`0`.as("portfolio_plays"),
         portfolioClicks: sql<number>`0`.as("portfolio_clicks"),

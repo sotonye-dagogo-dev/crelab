@@ -98,6 +98,16 @@ export interface IProviderDashboard {
   stats: IDashboardStat[];
   pipeline: IDashboardPipelineColumn[];
   portfolioPerformance: IPortfolioPerformanceRow[];
+  portfolioGallery: {
+    id: string;
+    title: string | null;
+    url: string;
+    thumbnailUrl: string | null;
+    mimeType: string;
+    source: string;
+    visible: boolean;
+    orderIndex: number;
+  }[];
   availability: IDashboardAvailabilitySlot[];
   quickActions: IDashboardQuickAction[];
 }

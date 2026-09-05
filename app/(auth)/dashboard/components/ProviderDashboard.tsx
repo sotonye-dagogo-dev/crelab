@@ -4,6 +4,7 @@ import { StatCard } from "./StatCard";
 import { PipelineKanban } from "./PipelineKanban";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { PortfolioPerformanceTable } from "./PortfolioPerformanceTable";
+import { PortfolioGalleryGrid } from "./PortfolioGalleryGrid";
 import type { IProviderDashboard } from "@/types";
 import { buildProviderSlug } from "@/lib/slug";
 
@@ -78,6 +79,24 @@ export function ProviderDashboard({ data }: { data: IProviderDashboard }) {
             </div>
           </div>
         )}
+
+        {/* Portfolio Gallery — visual showcase, previously lost */}
+        <div className="mb-6 overflow-hidden rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+            <h2 className="font-[family-name:var(--font-display)] text-[16px] font-bold text-[var(--color-text-primary)]">
+              Portfolio Gallery
+            </h2>
+            <Link
+              href="/profile/media"
+              className="text-[13px] text-[var(--color-accent)] no-underline transition-colors duration-150 hover:underline"
+            >
+              Manage →
+            </Link>
+          </div>
+          <div className="p-4">
+            <PortfolioGalleryGrid items={data.portfolioGallery ?? []} />
+          </div>
+        </div>
 
         <div className="mb-6 overflow-hidden rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)]">
           <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">

@@ -6,7 +6,10 @@ export interface IExploreCard {
   categoryLabel: string;
   location: string | null;
   avatarUrl: string | null;
+  coverVideoUrl: string | null;
   previewVideoUrl: string | null;
+  portfolioThumbnails: string[];
+  portfolioCount: number;
   packagePriceFromKobo: number | null;
   rating: number | null;
   reviewCount: number;

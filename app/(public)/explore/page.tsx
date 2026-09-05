@@ -113,31 +113,34 @@ export default function ExplorePage() {
         onFiltersChange={setFilters}
       />
 
-      {/* View Mode Toggle */}
-      <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      {/* View Mode Toggle — gallery + creators, restored and prominent */}
+      <div className="max-w-[1200px] mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="inline-flex rounded-[10px] border border-[var(--color-border)] p-1 bg-[var(--color-surface)] w-fit">
           <button
             onClick={() => setViewMode("creators")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-4 py-1.5 text-[13px] font-semibold rounded-[6px] transition-colors inline-flex items-center gap-1.5 cursor-pointer border-none ${
               viewMode === "creators"
-                ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)]"
-                : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)]"
+                ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)] shadow-sm"
+                : "bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
             }`}
           >
-            <List size={14} strokeWidth={2} className="inline mr-1" />
+            <List size={14} strokeWidth={2} />
             Creators
           </button>
           <button
             onClick={() => setViewMode("gallery")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-4 py-1.5 text-[13px] font-semibold rounded-[6px] transition-colors inline-flex items-center gap-1.5 cursor-pointer border-none ${
               viewMode === "gallery"
-                ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)]"
-                : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)]"
+                ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)] shadow-sm"
+                : "bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
             }`}
           >
-            <Grid size={14} strokeWidth={2} className="inline mr-1" />
+            <Grid size={14} strokeWidth={2} />
             Portfolio Gallery
           </button>
+        </div>
+        <div className="text-[12px] text-[var(--color-text-tertiary)]">
+          {viewMode === "creators" ? "Browse creators — tiles cycle through avatar & portfolio shots so nothing stays blank" : "Browse individual portfolio pieces from all creators"}
         </div>
       </div>
 

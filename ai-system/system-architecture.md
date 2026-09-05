@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 34)
-> - last-verified-against-code: 2026-08-28
+> - last-updated-by: update-ai-system (Sprint: asset display + orphan reconcile)
+> - last-verified-against-code: 2026-09-05
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -29,11 +29,11 @@ Service Layer (services/)
     |-- DriveService            -- Google Drive folder sync, validate, ingest
     |-- PaymentService          -- Paystack integration, subaccount split
     |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
-    |-- ExploreService          -- Provider search, filter, sort, cursor pagination
-    |-- DashboardService        -- Role-aware Provider/Client dashboards (pipeline, stats, availability, payments)
+    |-- ExploreService          -- Provider search, filter, sort, cursor pagination + portfolio thumbnails for tile carousel
+    |-- DashboardService        -- Role-aware Provider/Client dashboards (pipeline, stats, availability, payments, portfolio gallery)
     |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
-    |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan, orphan cleanup, delete, replace
+    |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile
     |-- MockDataService         -- Mock data fallback when DB unavailable
     |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + password reset)
     |-- BlogPostService         -- Blog post CRUD + DB→Sanity→fallback merge (admin/DB posts win, dedup by slug)
@@ -190,13 +190,15 @@ Data Stores
 6. Drive folder during onboarding is collect-only; DriveService.ingestFolder() runs server-side after provider creation
 ```
 
-### Media Asset Lifecycle (Cleanup + Admin/User Management)
+### Media Asset Lifecycle (Cleanup + Admin/User Management + Reconcile)
 ```
 1. Every upload records a row in media_assets (publicId, cloudName, assetId, uploaderId, url, thumbnailUrl, mimeType, sizeBytes, status)
 2. GET /api/media/assets (own list), DELETE /api/media/assets/[id], POST /api/media/assets/[id]/replace (swap references + delete old binary)
-3. Admin: GET /api/admin/media (all assets) + manual "Run cleanup" + DELETE /api/admin/media/[id] (with ClConfirmDialog)
-4. Daily cron: /api/cron/media-cleanup scans media_assets for rows older than mediaUpload.cleanupOrphanAfterHours whose publicId is not referenced in providers/portfolio_items -> Cloudinary deleteAsset() + row removal. Gated by mediaUpload.cleanupEnabled.
-5. Delete clears references first (providers cover/avatar -> null; portfolio_items -> row removed) then deletes the Cloudinary binary. Irreversible at the binary level -> delete flows use ClConfirmDialog; reversible destructive actions (team member delete, portfolio removal) use useUndoable undo toasts
+3. Admin: GET /api/admin/media (all assets with referenced/grace/orphan filters, preview, search, dry-run) + POST /api/admin/media (Run cleanup) + POST /api/admin/media/reconcile (attach orphan to provider as portfolio/avatar/cover, audit-logged) + DELETE /api/admin/media/[id] (with ClConfirmDialog) + inline admin upload via MediaUpload (records with admin ownerId; shows Unlinked · grace until reconciled)
+4. Daily cron: /api/cron/media-cleanup scans media_assets for rows older than mediaUpload.cleanupOrphanAfterHours whose publicId is not referenced in providers/portfolio_items/blog_posts/team_members -> Cloudinary deleteAsset() + row removal. Gated by mediaUpload.cleanupEnabled. Recent uploads (<24h) show as Unlinked · grace, not Orphan, so the scheduled job never deletes fresh uploads even if the UI marks them unlinked.
+5. Delete clears references first (providers cover/avatar -> null; portfolio_items -> row removed; blog hero/team avatar like-checks in isReferenced) then deletes the Cloudinary binary. Irreversible at the binary level -> delete flows use ClConfirmDialog; reversible destructive actions (team member delete, portfolio removal) use useUndoable undo toasts
+6. Explore tiles avoid blank state: ExploreService supplies portfolioThumbnails (up to 4 visible thumbnails) + avatarUrl + coverVideoUrl per provider; ExploreVideoCard cycles them on a 3.5s interval (avatar first, then thumbnails, dotted indicator) and falls back to initials avatar when nothing exists; video preview (previewVideoUrl/coverVideoUrl) overlays the carousel when in view.
+7. Provider dashboard gallery restored: DashboardService.queryPortfolioByProvider now returns full gallery (url/thumbnail/source/orderIndex) as portfolioGallery, rendered in ProviderDashboard via PortfolioGalleryGrid (2-4 col grid, 8-item cap, hidden badge, empty-state CTA), separate from the existing Portfolio Performance table.
 ```
 
 ### Provider Slug Resolution

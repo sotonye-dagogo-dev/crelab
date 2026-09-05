@@ -94,6 +94,7 @@ export class ExploreService {
       categorySlug: providers.categorySlug,
       location: providers.location,
       avatarUrl: providers.avatarUrl,
+      coverVideoUrl: providers.coverVideoUrl,
       featured: providers.featured,
       verified: providers.verified,
       yearsActive: providers.yearsActive,
@@ -124,6 +125,11 @@ export class ExploreService {
         WHERE b2.provider_id = ${providers.id}
           AND b2.status = 'RELEASED'
       )`.as("booking_count"),
+      portfolioCount: sql<number>`(
+        SELECT COUNT(*) FROM ${portfolioItems} pi_cnt
+        WHERE pi_cnt.provider_id = ${providers.id}
+          AND pi_cnt.visible = true
+      )`.as("portfolio_count"),
     };
 
     if (filters.cursor) {
@@ -146,6 +152,43 @@ export class ExploreService {
     const hasMore = rows.length > limit;
     const slice = rows.slice(0, limit);
 
+    // Fetch up to 4 thumbnail URLs per provider to power the interval carousel on cards
+    let thumbMap = new Map<string, string[]>();
+    if (slice.length) {
+      try {
+        const ids = slice.map((r) => r.id);
+        const thumbRows = await db
+          .select({
+            providerId: portfolioItems.providerId,
+            thumbnailUrl: portfolioItems.thumbnailUrl,
+            url: portfolioItems.url,
+          })
+          .from(portfolioItems)
+          .where(
+            and(
+              sql`${portfolioItems.providerId} IN (${sql.join(
+                ids.map((id) => sql`${id}`),
+                sql`, `,
+              )})`,
+              eq(portfolioItems.visible, true),
+            ),
+          )
+          .orderBy(asc(portfolioItems.orderIndex));
+
+        for (const r of thumbRows) {
+          const candidate = r.thumbnailUrl ?? (r.url?.match(/\.(jpe?g|png|webp|gif|avif|heic)$/i) ? r.url : null);
+          if (!candidate) continue;
+          const arr = thumbMap.get(r.providerId) ?? [];
+          if (arr.length < 4 && !arr.includes(candidate)) {
+            arr.push(candidate);
+            thumbMap.set(r.providerId, arr);
+          }
+        }
+      } catch {
+        // thumbnails are best-effort; empty map means fallback to avatar
+      }
+    }
+
     const data: IExploreCard[] = slice.map((row) => ({
       id: row.id,
       displayName: row.displayName,
@@ -154,7 +197,10 @@ export class ExploreService {
       categoryLabel: "",
       location: row.location,
       avatarUrl: row.avatarUrl,
+      coverVideoUrl: (row as unknown as { coverVideoUrl?: string | null }).coverVideoUrl ?? null,
       previewVideoUrl: row.previewVideoUrl ?? null,
+      portfolioThumbnails: thumbMap.get(row.id) ?? [],
+      portfolioCount: Number((row as unknown as { portfolioCount?: number }).portfolioCount ?? 0),
       packagePriceFromKobo: row.packagePriceFromKobo ?? null,
       rating: row.avgRating,
       reviewCount: row.reviewCount ?? 0,
