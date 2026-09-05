@@ -22,11 +22,8 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
   const displayName = provider?.displayName ?? portfolioItem?.providerName ?? "Unknown";
   const providerSlug = provider?.slug ?? portfolioItem?.providerSlug ?? "";
   const categoryLabel = provider?.categoryLabel ?? portfolioItem?.providerCategoryLabel ?? "";
-  const providerAvatar = provider?.avatarUrl ?? portfolioItem?.providerAvatarUrl ?? null;
   const providerVerified = provider?.verified ?? portfolioItem?.providerVerified ?? false;
-  const providerFeatured = provider?.featured ?? portfolioItem?.providerFeatured ?? false;
   const rating = provider?.rating ?? portfolioItem?.avgRating ?? null;
-  const reviewCount = provider?.reviewCount ?? portfolioItem?.reviewCount ?? 0;
   const packagePriceFromKobo = provider?.packagePriceFromKobo ?? null;
   const source = portfolioItem?.source;
 
@@ -54,8 +51,45 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
     return () => observer.disconnect();
   }, []);
 
+  // Provider carousel: avatar + portfolio thumbnails, rotating interval (best-of-both-worlds)
+  const providerCarouselImages = provider
+    ? [
+        // avatar first (if image), then portfolio thumbnails from ExploreService
+        ...(provider.avatarUrl ? [provider.avatarUrl] : []),
+        ...(provider.portfolioThumbnails ?? []),
+      ].filter(Boolean).slice(0, 5)
+    : [];
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
+  useEffect(() => {
+    if (!provider || providerCarouselImages.length <= 1 || prefersReducedMotion) return;
+    // Don't animate when hovering video preview (video takes over)
+    const id = setInterval(() => {
+      setCarouselIndex((i) => (i + 1) % providerCarouselImages.length);
+    }, 3500);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider?.id, providerCarouselImages.length, prefersReducedMotion, isInView ? "in" : "out"]);
+
+  useEffect(() => {
+    setCarouselIndex(0);
+  }, [provider?.id]);
+
+  const portfolioThumb = portfolioItem?.thumbnailUrl ?? null;
+  const providerCarouselSrc = provider ? providerCarouselImages[carouselIndex] ?? null : null;
+  const thumbnailUrl = portfolioThumb ?? providerCarouselSrc ?? provider?.avatarUrl ?? null;
+
+  const hasAvatarFallback = !thumbnailUrl && !!provider?.displayName;
+  const initials = hasAvatarFallback ? provider!.displayName.slice(0, 2).toUpperCase() : "";
+
+  const videoUrl = portfolioItem?.url ?? provider?.previewVideoUrl ?? provider?.coverVideoUrl ?? null;
+  const hasVideo = !prefersReducedMotion && !!videoUrl && (
+    portfolioItem ? (portfolioItem.mimeType?.startsWith("video/") ?? false) : true
+  );
+
   const handleVideoPlay = useCallback(() => {
-    if (prefersReducedMotion || !portfolioItem?.url || !portfolioItem.mimeType.startsWith("video/")) return;
+    if (prefersReducedMotion || !videoUrl) return;
+    if (portfolioItem && !portfolioItem.mimeType.startsWith("video/")) return;
     setShowVideo(true);
     setTimeout(() => {
       const video = videoRef.current;
@@ -63,7 +97,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
         video.play().catch(() => {});
       }
     }, 300);
-  }, [prefersReducedMotion, portfolioItem]);
+  }, [prefersReducedMotion, videoUrl, portfolioItem]);
 
   const handleVideoPause = useCallback(() => {
     setShowVideo(false);
@@ -81,10 +115,6 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
       handleVideoPause();
     }
   }, [isInView, handleVideoPlay, handleVideoPause]);
-
-  const thumbnailUrl = portfolioItem?.thumbnailUrl ?? null;
-  const videoUrl = portfolioItem?.url ?? provider?.previewVideoUrl;
-  const hasVideo = !prefersReducedMotion && videoUrl && (portfolioItem?.mimeType ?? "").startsWith("video/");
 
   const formatPrice = (kobo: number | null) => {
     if (kobo === null) return null;
@@ -114,14 +144,24 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
         <div className="relative bg-[var(--color-surface-raised)] flex items-center justify-center w-full">
           {thumbnailUrl ? (
             <img
+              key={provider ? `${provider.id}-${carouselIndex}` : thumbnailUrl}
               src={thumbnailUrl}
               alt={displayName}
-              className={`w-full h-auto object-cover transition-opacity duration-[300ms] ${
+              className={`w-full h-auto object-cover transition-opacity duration-[500ms] ${
                 showVideo ? "opacity-0 absolute inset-0" : "opacity-100"
               } ${isLoaded ? "" : "opacity-0"}`}
               onLoad={() => setIsLoaded(true)}
               style={{ aspectRatio: "4/5" }}
             />
+          ) : hasAvatarFallback ? (
+            <div
+              className="w-full flex items-center justify-center bg-gradient-to-br from-[var(--color-surface-raised)] to-[var(--color-surface)]"
+              style={{ aspectRatio: "4/5" }}
+            >
+              <div className="w-14 h-14 rounded-full bg-[var(--color-accent-muted)] border border-[var(--color-accent)]/30 flex items-center justify-center text-[18px] font-bold font-[family-name:var(--font-display)] text-[var(--color-accent)]">
+                {initials}
+              </div>
+            </div>
           ) : (
             <div
               className="w-full bg-[var(--color-surface-raised)] flex items-center justify-center"
@@ -133,9 +173,20 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
 
           {!isLoaded && thumbnailUrl && (
             <div
-              className="w-full bg-[var(--color-surface-raised)] animate-pulse"
+              className="w-full bg-[var(--color-surface-raised)] animate-pulse absolute inset-0"
               style={{ aspectRatio: "4/5" }}
             />
+          )}
+          {/* Carousel dots when multiple images */}
+          {provider && providerCarouselImages.length > 1 && !showVideo && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-1 z-[2]">
+              {providerCarouselImages.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`w-1 h-1 rounded-full transition-all ${idx === carouselIndex ? "bg-[var(--color-accent)] w-4" : "bg-white/40"}`}
+                />
+              ))}
+            </div>
           )}
 
           {hasVideo && (

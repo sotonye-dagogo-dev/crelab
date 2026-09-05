@@ -1,8 +1,30 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: Session 34
-> - last-verified-against-code: 2026-08-28
+> - last-updated-by: asset-display + orphan reconcile sprint
+> - last-verified-against-code: 2026-09-05
+
+## Sprint 2026-09-05 — Asset Display Polish + Orphan Tightening + Admin Reconcile
+
+### What
+Fixed the asset display gaps reported after the upload hardening sprint: provider tiles no longer render blank, the portfolio gallery is back in the provider dashboard, and the admin orphan workflow is honest and actionable.
+
+### Why
+- Provider tiles showed a bare Play icon when a creator had no video preview, no portfolio thumbnail, and no avatar — "just don't want the tiles to be blank unless there's really nothing to show".
+- The dashboard's portfolio gallery section had been lost (only the performance table remained).
+- Fresh admin uploads instantly showed "Orphan" even though the 24h cleanup grace period should protect them, making operators think the upload failed.
+- The admin had no way to inspect, preview, or rescue an orphan (re-attach it to a provider).
+
+### Key Changes
+- **ExploreService + IExploreCard**: added `coverVideoUrl`, `portfolioThumbnails: string[]` (up to 4 visible thumbnails), `portfolioCount`; query now fetches thumbnails per provider (single extra SELECT + in-memory group) so tiles have carousel payload.
+- **ExploreVideoCard (provider mode)**: best-of-both-worlds carousel — `avatarUrl` first, then `portfolioThumbnails`, 3.5s interval (respects `prefers-reduced-motion` + pauses for video preview), dot indicators, initials fallback when nothing exists; `previewVideoUrl`/`coverVideoUrl` still play as muted loop when in view; blank tiles eliminated.
+- **Provider dashboard gallery restored**: `DashboardService.queryPortfolioByProvider` now returns `url/source/orderIndex` + gallery array; `IProviderDashboard.portfolioGallery` added; `PortfolioGalleryGrid` (new) renders a 2–4 col grid (8-cap, hidden badge, empty-state CTA) above the performance table; toggle pill on `/explore` rewritten to make Creators vs Portfolio Gallery prominent with explainer copy.
+- **Orphan tightening**: `MediaAssetService.loadReferencedPublicIds` now scans `blog_posts.heroImageUrl` + `blog_posts.content` image blocks + `team_members.avatarUrl`; `isReferenced` LIKE-checks those tables too; `collectReferencedPublicIds` + `collectExtraPublicIds` helpers added. Profile and admin pages now show `Unlinked · grace` (fresh) vs `Orphan · cleanup eligible` (>=24h) vs `In use`; grace remaining computed from `cleanupOrphanAfterHours`.
+- **Admin media manager overhaul**: `app/admin/media/page.tsx` rewritten — search, status (All/In use/Unlinked/Orphan) + type filters, stats badges, per-row preview with `thumbnailUrl || url` fallback, View / Reconcile / Delete actions, inline admin upload via `MediaUpload` (with grace explanation), dry-run preview dialog, cleanup eligible logic tied to `cleanupOrphanAfterHours`; new `POST /api/admin/media/reconcile` (ADMIN, audit-logged) attaches an orphan asset to a provider as `portfolio` (creates `portfolio_items` row), `avatar`, or `cover`; `/api/admin/providers?all=1&q=` now lists all providers for the reconcile picker.
+- **Mock & tests**: `MockDataService.getExploreProviders` + `getMockProviderDashboard` now carry `portfolioThumbnails`/`portfolioGallery`; `MediaAssetService.test.ts` mocks extended for the two extra SELECTs in `loadReferencedPublicIds`.
+
+### Status
+Pass — typecheck clean (skipLibCheck), lint 0 errors on changed files, `vitest run __tests__/services/MediaAssetService.test.ts __tests__/services/DashboardService.test.ts` 25 tests pass.
 
 ## Sprint 2026-08-28 — Public Pages + Portfolio Gallery + Media Upload Hardening
 

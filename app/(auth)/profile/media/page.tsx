@@ -370,9 +370,17 @@ export default function ProfileMediaPage() {
                       <span className="font-[family-name:var(--font-mono)] text-[12px] text-[var(--color-text-primary)] truncate">
                         {asset.publicId}
                       </span>
-                      <ClBadge variant={asset.referenced ? "success" : "warning"}>
-                        {asset.referenced ? "In use" : "Orphan"}
-                      </ClBadge>
+                      {(() => {
+                        if (asset.referenced) return <ClBadge variant="success">In use</ClBadge>;
+                        const ageMs = Date.now() - new Date(asset.createdAt).getTime();
+                        const thresholdMs = (status?.cleanupOrphanAfterHours ?? 24) * 60 * 60 * 1000;
+                        const eligible = ageMs >= thresholdMs && (status?.cleanupEnabled ?? true);
+                        return eligible ? (
+                          <ClBadge variant="warning">Orphan · cleanup eligible</ClBadge>
+                        ) : (
+                          <ClBadge variant="default">Unlinked · grace</ClBadge>
+                        );
+                      })()}
                     </div>
                     <div className="text-[11px] text-[var(--color-text-tertiary)] truncate mt-0.5">
                       {asset.url}

@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 34)
-> - last-verified-against-code: 2026-08-28
+> - last-updated-by: update-ai-system (Sprint: asset display + orphan reconcile)
+> - last-verified-against-code: 2026-09-05
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -54,12 +54,12 @@ crelab/
 │   │   ├── config/         # Platform config editor
 │   │   ├── disputes/       # Dispute resolution dashboard
 │   │   ├── email-templates/ # Admin-editable email templates (Visual/HTML/Preview tabs)
-│   │   ├── media/          # Media asset manager (list, preview, delete, cleanup)
+│   │   ├── media/          # Media asset manager (filters, preview, upload, reconcile orphan → portfolio/avatar/cover, dry-run + cleanup)
 │   │   ├── providers/      # Provider review queue
 │   │   └── users/          # User management (search, role, verify, delete)
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
-│       ├── admin/          # Admin CRUD endpoints (+ /admin/media/[id], /admin/email/send, /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id])
+│       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/email/send, /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/providers?all)
 │       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission
 │       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)
@@ -76,7 +76,7 @@ crelab/
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog, ClBackButton, ClDataTable, ClPagination)
-│   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard
+│   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard (avatar+thumbnails carousel, 3.5s interval, initials fallback)
 │   ├── profile/            # ProviderHero, PortfolioGrid, ServicePackages, MediaUpload, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
 │   ├── blog/               # ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks
@@ -93,8 +93,8 @@ crelab/
 │   ├── DriveService.ts
 │   ├── EscrowService.ts
 │   ├── EmailService.ts       # Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate)
-│   ├── ExploreService.ts
-│   ├── MediaAssetService.ts  # Media asset registry: record, list, referenced-URL scan, orphan cleanup, delete, replace
+│   ├── ExploreService.ts   # Provider search + portfolioThumbnails (carousel payload)
+│   ├── MediaAssetService.ts  # Media asset registry: record, list, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile
 │   ├── MilestoneService.ts
 │   ├── MockDataService.ts
 │   ├── PaymentService.ts
@@ -103,7 +103,8 @@ crelab/
 │   └── WalletService.ts
 ├── types/                   # Global TypeScript interfaces
 │   ├── index.ts            # Barrel export + all entity/config/API types
-│   ├── dashboard.ts        # IDashboard* types (pipeline, stats, availability, payments)
+│   ├── dashboard.ts        # IDashboard* types (pipeline, stats, availability, payments, portfolioGallery)
+│   └── explore.ts          # IExploreCard, IExploreFilters, ExploreSort (+ portfolioThumbnails, coverVideoUrl)
 │   └── explore.ts          # IExploreCard, IExploreFilters, ExploreSort
 ├── config/
 │   └── platform.config.ts   # Hardcoded fallback, DB overrides at runtime
@@ -156,7 +157,7 @@ crelab/
 | `testing/` | Test results tracking | `test-results.md` |
 | `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager, email templates, blog templates, blog posts, user management | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx`, `blog-posts/page.tsx` |
 | `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx`, `ClConfirmDialog.tsx`, `ClBackButton.tsx`, `ClDataTable.tsx`, `ClPagination.tsx` |
-| `components/explore/` | Explore feed: filter bar, masonry grid, video cards, portfolio gallery | ExploreFilterBar, ExploreGrid, ExploreVideoCard, PortfolioGallery |
+| `components/explore/` | Explore feed: filter bar, masonry grid, video cards (interval carousel), portfolio gallery | ExploreFilterBar, ExploreGrid, ExploreVideoCard, PortfolioGallery |
 | `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings, media upload | ProviderHero, PortfolioGrid, ServicePackages, MediaUpload |
 | `components/booking/` | Booking flow: drawer, escrow timeline, dispute modal | BookingDrawer, EscrowTimeline |
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
