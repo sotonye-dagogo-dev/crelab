@@ -4,9 +4,21 @@ import { db } from "@/lib/db";
 import { providers, portfolioItems } from "@/drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await requireRole("ADMIN");
+    const { searchParams } = new URL(req.url);
+    const all = searchParams.get("all") === "true" || searchParams.get("all") === "1";
+    const q = searchParams.get("q")?.trim() ?? "";
+
+    const conditions: ReturnType<typeof sql>[] = [];
+    if (!all) {
+      conditions.push(eq(providers.active, true));
+      conditions.push(eq(providers.verified, false));
+    }
+    if (q) {
+      conditions.push(sql`${providers.displayName} ILIKE ${`%${q}%`}`);
+    }
 
     const pendingProviders = await db
       .select({
@@ -17,13 +29,9 @@ export async function GET() {
         portfolioCount: sql<number>`(SELECT COUNT(*) FROM ${portfolioItems} WHERE ${portfolioItems.providerId} = ${providers.id})`,
       })
       .from(providers)
-      .where(
-        and(
-          eq(providers.active, true),
-          eq(providers.verified, false),
-        ),
-      )
-      .orderBy(providers.createdAt);
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(providers.createdAt)
+      .limit(all ? 100 : 50);
 
     return NextResponse.json({
       success: true,

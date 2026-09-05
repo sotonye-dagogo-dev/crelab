@@ -189,6 +189,8 @@ describe("services/MediaAssetService — cleanupOrphans", () => {
           { coverVideoUrl: null, avatarUrl: "https://res.cloudinary.com/demo/image/upload/v1/in-use.png" },
         ]),
       )
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
       .mockReturnValueOnce(q([]));
     dbMock.delete.mockReturnValue(q({ rowCount: 1 }));
     cloudinaryMock.isCloudinaryAdminConfigured.mockReturnValue(true);
@@ -207,6 +209,8 @@ describe("services/MediaAssetService — cleanupOrphans", () => {
         q([assetRow({ id: "old-orphan", publicId: "orphan", createdAt: new Date("2026-01-01") })]),
       )
       .mockReturnValueOnce(q([{ coverVideoUrl: null, avatarUrl: null }]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
       .mockReturnValueOnce(q([]));
     dbMock.delete.mockReturnValue(q({ rowCount: 1 }));
     cloudinaryMock.isCloudinaryAdminConfigured.mockReturnValue(false);
