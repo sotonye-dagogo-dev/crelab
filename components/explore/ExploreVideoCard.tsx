@@ -2,16 +2,21 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Play, HardDrive, Cloud, Image as ImageIcon, Film } from "lucide-react";
+import { Play, HardDrive, Cloud, Image as ImageIcon, Film, ExternalLink } from "lucide-react";
 import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
+import { AssetLightbox } from "@/components/profile/AssetLightbox";
 import type { IExploreCard, IPortfolioItem } from "@/types";
 
 interface ExploreVideoCardProps {
   provider?: IExploreCard;
   portfolioItem?: IPortfolioItem;
+  /** Optional external handler for content-view click; if omitted, an internal lightbox is used */
+  onAssetClick?: (item: IPortfolioItem) => void;
+  /** 1-based index for sanitized asset label inside lightbox */
+  assetIndexOneBased?: number;
 }
 
-export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardProps) {
+export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetIndexOneBased }: ExploreVideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isInView, setIsInView] = useState(false);
@@ -27,6 +32,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
   const rating = provider?.rating ?? portfolioItem?.avgRating ?? null;
   const packagePriceFromKobo = provider?.packagePriceFromKobo ?? null;
   const source = portfolioItem?.source;
+  const [lightboxItem, setLightboxItem] = useState<IPortfolioItem | null>(null);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -136,6 +142,117 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
     if (portfolioItem?.mimeType.startsWith("video/")) return <Film size={10} strokeWidth={1.8} className="inline mr-1" />;
     return <ImageIcon size={10} strokeWidth={1.8} className="inline mr-1" />;
   };
+
+  // Gallery (content) mode: tile is directly playable, with provider portfolio link preserved
+  if (isGalleryMode && portfolioItem) {
+    const handleGalleryClick = () => {
+      if (onAssetClick) onAssetClick(portfolioItem);
+      else setLightboxItem(portfolioItem);
+    };
+    return (
+      <>
+        <div
+          ref={cardRef}
+          role="button"
+          tabIndex={0}
+          onClick={handleGalleryClick}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleGalleryClick(); } }}
+          className="group relative rounded-[12px] overflow-hidden bg-[var(--color-surface)] cursor-pointer transition-[transform,box-shadow] duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] hover:shadow-[0_0_0_1px_var(--color-accent),0_0_16px_rgba(232,255,71,0.15)] break-inside-avoid mb-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+        >
+          <div className="relative bg-[var(--color-surface-raised)] flex items-center justify-center w-full">
+            {thumbnailUrl ? (
+              <img
+                src={thumbnailUrl}
+                alt={displayName}
+                className={`w-full h-auto object-cover transition-opacity duration-[500ms] ${isLoaded ? "opacity-100" : "opacity-0"}`}
+                onLoad={() => setIsLoaded(true)}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                  setIsLoaded(true);
+                }}
+                style={{ aspectRatio: "4/5" }}
+              />
+            ) : (
+              <div
+                className="w-full bg-[var(--color-surface-raised)] flex items-center justify-center"
+                style={{ aspectRatio: "4/5" }}
+              >
+                <Play size={24} className="text-[rgba(255,255,255,0.5)]" fill="currentColor" />
+              </div>
+            )}
+
+            {!isLoaded && thumbnailUrl && (
+              <div
+                className="w-full bg-[var(--color-surface-raised)] animate-pulse absolute inset-0"
+                style={{ aspectRatio: "4/5" }}
+              />
+            )}
+
+            {hasVideo && (
+              <>
+                <span className="absolute top-2 right-2 z-[3] inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] bg-[rgba(0,0,0,0.72)] border border-white/20 text-white text-[10px] font-semibold tracking-[0.04em] uppercase backdrop-blur-[6px]">
+                  <Play size={10} fill="white" /> VIDEO
+                </span>
+                <span className="absolute inset-0 z-[2] flex items-center justify-center pointer-events-none">
+                  <span className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.55)] border border-white/15 backdrop-blur-[2px] flex items-center justify-center shadow-[0_2px_12px_rgba(0,0,0,0.35)] group-hover:scale-105 transition-transform">
+                    <Play size={14} fill="white" color="white" className="translate-x-[1px]" />
+                  </span>
+                </span>
+              </>
+            )}
+
+            <div className="absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-b from-transparent to-[rgba(0,0,0,0.85)] pointer-events-none" />
+
+            {/* Provider portfolio link preserved on tile */}
+            {providerSlug && (
+              <Link
+                href={`/profile/${providerSlug}`}
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-2 left-2 z-[3] inline-flex items-center gap-1 px-2 py-1 rounded-[6px] bg-[rgba(0,0,0,0.55)] border border-white/15 text-white text-[11px] font-medium backdrop-blur-[4px] no-underline hover:bg-[rgba(0,0,0,0.72)] transition-colors"
+              >
+                {displayName} <ExternalLink size={10} strokeWidth={2} />
+              </Link>
+            )}
+
+            <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col gap-[2px]">
+              <div className="flex items-center gap-2 self-start mb-1">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-[family-name:var(--font-body)] text-[11px] font-medium whitespace-nowrap">
+                  {categoryLabel || "Portfolio"}
+                </span>
+                {source && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)] font-[family-name:var(--font-body)] text-[9px] font-medium whitespace-nowrap border border-[var(--color-border)]">
+                    {getSourceIcon()}
+                    {getSourceLabel()}
+                  </span>
+                )}
+              </div>
+              <span className="font-[family-name:var(--font-display)] text-[13px] font-medium text-white leading-[1.2] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                {displayName}
+              </span>
+              <div className="flex items-center gap-2 text-[10px] text-white/70">
+                {getMediaTypeIcon()}
+                <span>{portfolioItem.mimeType}</span>
+              </div>
+            </div>
+
+            {portfolioItem.providerVerified && (
+              <div className="absolute bottom-2 right-2 bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-tertiary)] font-[family-name:var(--font-body)] text-[10px] px-1.5 py-0.5 rounded-[4px] leading-[1.4] z-[2]">
+                Verified
+              </div>
+            )}
+          </div>
+        </div>
+        {!onAssetClick && lightboxItem && (
+          <AssetLightbox
+            item={lightboxItem}
+            providerName={lightboxItem.providerName}
+            indexOneBased={assetIndexOneBased ?? 1}
+            onClose={() => setLightboxItem(null)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <Link href={`/profile/${providerSlug}`} className="block no-underline">
