@@ -75,9 +75,10 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
     setCarouselIndex(0);
   }, [provider?.id]);
 
-  const portfolioThumb = portfolioItem?.thumbnailUrl ?? null;
-  const providerCarouselSrc = provider ? providerCarouselImages[carouselIndex] ?? null : null;
-  const thumbnailUrl = portfolioThumb ?? providerCarouselSrc ?? provider?.avatarUrl ?? null;
+  const fixThumb = (u: string | null) => u ? u.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "") : null;
+  const portfolioThumb = fixThumb(portfolioItem?.thumbnailUrl ?? null);
+  const providerCarouselSrc = provider ? fixThumb(providerCarouselImages[carouselIndex] ?? null) : null;
+  const thumbnailUrl = portfolioThumb ?? providerCarouselSrc ?? fixThumb(provider?.avatarUrl ?? null);
 
   const hasAvatarFallback = !thumbnailUrl && !!provider?.displayName;
   const initials = hasAvatarFallback ? provider!.displayName.slice(0, 2).toUpperCase() : "";
@@ -151,6 +152,10 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
                 showVideo ? "opacity-0 absolute inset-0" : "opacity-100"
               } ${isLoaded ? "" : "opacity-0"}`}
               onLoad={() => setIsLoaded(true)}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+                setIsLoaded(true);
+              }}
               style={{ aspectRatio: "4/5" }}
             />
           ) : hasAvatarFallback ? (

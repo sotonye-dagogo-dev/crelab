@@ -22,26 +22,44 @@ export function ExploreVideoCard({
   size = "md",
 }: ExploreVideoCardProps) {
   const [loaded, setLoaded] = useState(false);
+  const [thumbError, setThumbError] = useState(false);
 
   const isVideo = item.mimeType.startsWith("video/");
   const isPdf = item.mimeType === "application/pdf";
+  const fixedThumb = item.thumbnailUrl
+    ? item.thumbnailUrl.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "")
+    : null;
+  const showThumb = !!fixedThumb && !thumbError;
 
   return (
     <div
       className={`group relative overflow-hidden rounded-[12px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] cursor-pointer ${sizeStyles[size]}`}
       onClick={() => onPlay?.(item)}
     >
-      {item.thumbnailUrl ? (
+      {showThumb ? (
         <div className="absolute inset-0">
           <img
-            src={item.thumbnailUrl}
+            src={fixedThumb!}
             alt={item.title ?? "Portfolio item"}
             className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
             onLoad={() => setLoaded(true)}
+            onError={() => setThumbError(true)}
           />
           {!loaded && (
             <div className="absolute inset-0 bg-[var(--color-surface-raised)] animate-pulse" />
           )}
+        </div>
+      ) : isVideo ? (
+        <div className="absolute inset-0 bg-[var(--color-surface-raised)]">
+          <video
+            src={item.url}
+            muted
+            playsInline
+            preload="metadata"
+            className="w-full h-full object-cover"
+            poster={fixedThumb ?? undefined}
+            onError={() => setThumbError(true)}
+          />
         </div>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-surface-raised)]">

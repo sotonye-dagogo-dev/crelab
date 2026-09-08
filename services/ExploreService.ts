@@ -176,7 +176,11 @@ export class ExploreService {
           .orderBy(asc(portfolioItems.orderIndex));
 
         for (const r of thumbRows) {
-          const candidate = r.thumbnailUrl ?? (r.url?.match(/\.(jpe?g|png|webp|gif|avif|heic)$/i) ? r.url : null);
+          let candidate: string | null = r.thumbnailUrl
+            ? r.thumbnailUrl.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "")
+            : null;
+          // If no thumbnail but url is an image, use it; for video URLs try to synthesize thumbnail via stored thumbnailUrl fallback
+          if (!candidate && r.url?.match(/\.(jpe?g|png|webp|gif|avif|heic)$/i)) candidate = r.url;
           if (!candidate) continue;
           const arr = thumbMap.get(r.providerId) ?? [];
           if (arr.length < 4 && !arr.includes(candidate)) {

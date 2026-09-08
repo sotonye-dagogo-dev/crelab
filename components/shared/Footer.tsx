@@ -45,6 +45,16 @@ export async function Footer() {
               Explore
             </Link>
             <Link
+              href="/how-it-works"
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+              How It Works
+            </Link>
+            <Link
+              href="/about"
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+              About
+            </Link>
+            <Link
               href="/blog"
               className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Blog
@@ -59,6 +69,16 @@ export async function Footer() {
             <h4 className="mb-3 font-[family-name:var(--font-display)] text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
               Company
             </h4>
+            <Link
+              href="/about"
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+              About
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+              How It Works
+            </Link>
             <Link
               href="/team"
               className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
