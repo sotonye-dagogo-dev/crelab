@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { db } from "@/lib/db";
@@ -5,6 +6,7 @@ import { howItWorksPage } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import type { IHowItWorksPage } from "@/types";
+import { SandboxesGrid } from "@/components/how-it-works/Sandboxes";
 
 // Static fallback data for build-time and when DB is unavailable
 const FALLBACK_HOW_IT_WORKS_PAGE: IHowItWorksPage = {
@@ -148,30 +150,22 @@ export default async function HowItWorksPage() {
           <div className="divider" />
 
           <section className="section">
-            <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] text-[var(--color-text-primary)] mb-6">
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] text-[var(--color-text-primary)] mb-2">
               Interactive Sandboxes
             </h2>
-            <p className="text-[var(--color-text-secondary)] mb-6 max-w-[680px]">
-              Visual experimenting and simulation for easier understanding
+            <p className="text-[var(--color-text-secondary)] mb-6 max-w-[680px] text-[14px]">
+              Visual experimenting and simulation for easier understanding — try the controls below. No data is saved.
             </p>
-            <div className="sandbox-grid">
-              {data.sandboxes.map((sandbox) => (
-                <div key={sandbox.id} className="sandbox-card">
-                  <h3 className="sandbox-title">{sandbox.title}</h3>
-                  <p className="sandbox-desc">{sandbox.description}</p>
-                  <span className="sandbox-type">{sandbox.type}</span>
-                </div>
-              ))}
-            </div>
+            <SandboxesGrid />
           </section>
 
           <div className="divider" />
 
           <section className="section">
-            <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] text-[var(--color-text-primary)] mb-6">
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] text-[var(--color-text-primary)] mb-2">
               Frequently Asked Questions
             </h2>
-            <p className="text-[var(--color-text-secondary)] mb-6 max-w-[680px]">
+            <p className="text-[var(--color-text-secondary)] mb-6 max-w-[680px] text-[14px]">
               Quick answers to common questions — improving SEO and reducing support load
             </p>
             <div className="space-y-3">
@@ -179,16 +173,23 @@ export default async function HowItWorksPage() {
                 <details key={faq.question} className="faq-item group">
                   <summary className="faq-question">
                     {faq.question}
-                    <span className="text-[var(--color-accent)] transition-transform group-open:rotate-180">▼</span>
+                    <span className="text-[var(--color-accent)] transition-transform group-open:rotate-180 text-[12px]">▼</span>
                   </summary>
-                  <div className="faq-answer mt-3">
+                  <div className="faq-category mt-2">{faq.category}</div>
+                  <div className="faq-answer mt-2">
                     {faq.answer}
                   </div>
-                  <div className="faq-category">{faq.category}</div>
                 </details>
               ))}
             </div>
           </section>
+
+          <div className="divider" />
+          <div className="flex flex-wrap gap-3 justify-center pt-2">
+            <Link href="/explore" className="inline-flex items-center justify-center h-10 px-6 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[13px] no-underline">Explore creators</Link>
+            <Link href="/about" className="inline-flex items-center justify-center h-10 px-6 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] font-semibold text-[13px] no-underline">About us</Link>
+            <Link href="/team" className="inline-flex items-center justify-center h-10 px-6 rounded-[8px] border border-[var(--color-border)] bg-transparent text-[var(--color-text-secondary)] font-semibold text-[13px] no-underline">Meet the team</Link>
+          </div>
         </div>
       </div>
     </div>

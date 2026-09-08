@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlatformConfig } from "@/lib/config-context";
@@ -291,6 +292,11 @@ function RegisterForm() {
               >
                 Sign in
               </span>
+            </p>
+            <p className="text-[12px] text-center mt-3">
+              <Link href="/how-it-works" className="text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline">How it works</Link>
+              <span className="text-[var(--color-text-tertiary)] mx-2">·</span>
+              <Link href="/about" className="text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline">About</Link>
             </p>
           </>
         )}

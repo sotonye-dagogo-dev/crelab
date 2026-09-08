@@ -88,6 +88,14 @@ export default function HomePage() {
                   Join as Creator
                 </Link>
               </div>
+              <div className="mt-4 flex gap-4 flex-wrap max-[640px]:justify-center text-[13px]">
+                <Link href="/how-it-works" className="text-[var(--color-accent)] hover:underline underline-offset-4">
+                  How it works →
+                </Link>
+                <Link href="/about" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:underline underline-offset-4">
+                  About CreLab
+                </Link>
+              </div>
             </div>
             <div className="">
               <ClLogo variant="full" logoWidth={540} logoHeight={180} priority />
@@ -110,6 +118,26 @@ export default function HomePage() {
         fetchNextPage={fetchNextPage}
         isError={isError}
       />
+
+      <section className="max-w-[1200px] mx-auto px-6 py-12 mt-8 border-t border-[var(--color-border)] text-center">
+        <h2 className="font-[family-name:var(--font-display)] font-bold text-[20px] text-[var(--color-text-primary)] mb-2">
+          New to CreLab?
+        </h2>
+        <p className="text-[14px] text-[var(--color-text-secondary)] mb-4 max-w-[560px] mx-auto">
+          Learn how booking, escrow, and discovery work — or get to know the team behind the platform.
+        </p>
+        <div className="flex gap-3 justify-center flex-wrap">
+          <Link href="/how-it-works" className="inline-flex items-center justify-center h-10 px-5 rounded-[8px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-[13px] no-underline">
+            How It Works
+          </Link>
+          <Link href="/about" className="inline-flex items-center justify-center h-10 px-5 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] font-semibold text-[13px] no-underline">
+            About Us
+          </Link>
+          <Link href="/team" className="inline-flex items-center justify-center h-10 px-5 rounded-[8px] border border-[var(--color-border)] bg-transparent text-[var(--color-text-secondary)] font-semibold text-[13px] no-underline">
+            Meet the Team
+          </Link>
+        </div>
+      </section>
 
       <button
         onClick={handleScrollToTop}

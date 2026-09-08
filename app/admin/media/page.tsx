@@ -271,26 +271,50 @@ export default function AdminMediaPage() {
     {
       key: "preview",
       header: "Preview",
-      cell: (asset) => (
-        <div className="w-14 h-14 rounded-[8px] overflow-hidden bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
-          {asset.thumbnailUrl || (asset.resourceType === "image" && asset.url) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={asset.thumbnailUrl ?? asset.url}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : asset.resourceType === "video" ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <Film size={18} strokeWidth={1.5} color="var(--color-accent)" />
+      cell: (asset) => {
+        const thumbSrc = asset.thumbnailUrl
+          ? asset.thumbnailUrl.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "")
+          : asset.resourceType === "image"
+            ? asset.url
+            : null;
+        return (
+          <div className="w-14 h-14 rounded-[8px] overflow-hidden bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
+            {thumbSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumbSrc}
+                alt=""
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const t = e.currentTarget as HTMLImageElement;
+                  t.style.display = "none";
+                  const fallback = t.nextElementSibling as HTMLElement | null;
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div
+              className="w-full h-full flex items-center justify-center"
+              style={{ display: thumbSrc ? "none" : "flex" }}
+            >
+              {asset.resourceType === "video" ? (
+                <Film size={18} strokeWidth={1.5} color="var(--color-accent)" />
+              ) : (
+                <ImageIcon size={18} strokeWidth={1.5} color="var(--color-text-tertiary)" />
+              )}
             </div>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ImageIcon size={18} strokeWidth={1.5} color="var(--color-text-tertiary)" />
-            </div>
-          )}
-        </div>
-      ),
+            {asset.resourceType === "video" && !asset.thumbnailUrl && (
+              <video
+                src={asset.url}
+                muted
+                playsInline
+                className="w-full h-full object-cover hidden"
+                poster={thumbSrc ?? undefined}
+              />
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "asset",
@@ -566,13 +590,32 @@ export default function AdminMediaPage() {
             <div className="mt-3">
               <div className="text-[12px] font-medium text-[var(--color-text-secondary)] mb-1">Preview</div>
               <div className="rounded-[8px] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-raised)] h-40 flex items-center justify-center">
-                {reconcileAsset.thumbnailUrl || reconcileAsset.resourceType === "image" ? (
+                {reconcileAsset.resourceType === "video" ? (
+                  reconcileAsset.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={reconcileAsset.thumbnailUrl.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto")}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <video src={reconcileAsset.url} controls muted playsInline className="w-full h-full object-cover" />
+                  )
+                ) : reconcileAsset.thumbnailUrl || reconcileAsset.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={reconcileAsset.thumbnailUrl ?? reconcileAsset.url} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <Film size={22} color="var(--color-accent)" />
                 )}
               </div>
+              {reconcileAsset.resourceType === "video" && reconcileAsset.url && (
+                <a href={reconcileAsset.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--color-accent)] mt-1 inline-block">
+                  Open video in new tab →
+                </a>
+              )}
             </div>
             <div className="mt-4 space-y-3">
               <div>

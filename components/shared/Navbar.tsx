@@ -10,6 +10,8 @@ import { ThemeToggler } from "./ThemeToggler";
 
 const navLinks = [
   { href: "/", label: "Explore" },
+  { href: "/how-it-works", label: "How It Works" },
+  { href: "/about", label: "About" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/blog", label: "Blog" },
   { href: "/team", label: "Team" },

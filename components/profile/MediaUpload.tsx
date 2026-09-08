@@ -331,7 +331,7 @@ export function MediaUpload({
       });
 
       // Step 2: register with our API (ACID: server deletes cloud binary if DB fails)
-      const thumb = resourceType === "video" ? `https://res.cloudinary.com/${creds.cloudName}/video/upload/w_600,q_auto,g_auto/${cloudResult.public_id}.jpg` : null;
+      const thumb = resourceType === "video" ? `https://res.cloudinary.com/${creds.cloudName}/video/upload/w_600,q_auto,so_auto/${cloudResult.public_id}.jpg` : null;
       const res = await fetch("/api/media/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
