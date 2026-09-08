@@ -176,7 +176,7 @@ export async function uploadFile(
 
     if (resourceType === "video") {
       thumbnailUrl = publicId
-        ? cloudinaryUrl(`video/upload/w_600,q_auto,g_auto/${publicId}.jpg`)
+        ? cloudinaryUrl(`video/upload/w_600,q_auto,so_auto/${publicId}.jpg`)
         : url.replace(/\.(mp4|webm|mov|avi)$/i, ".jpg");
     }
 
@@ -212,10 +212,19 @@ export function generateVideoThumbnail(videoUrl: string): string {
   const parsed = parseCloudinaryUrl(videoUrl);
   if (parsed) {
     return cloudinaryUrl(
-      `video/upload/w_600,q_auto,g_auto/${encodeURIComponent(parsed.publicId)}.jpg`,
+      `video/upload/w_600,q_auto,so_auto/${encodeURIComponent(parsed.publicId)}.jpg`,
     );
   }
   return videoUrl.replace(/\.(mp4|webm|mov|avi)$/i, ".jpg");
+}
+
+/** Rewrite legacy thumbnail URLs that used the invalid `g_auto` transform (which 400s for video) */
+export function fixLegacyVideoThumbnailUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (url.includes("/video/upload/") && url.includes("g_auto")) {
+    return url.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "");
+  }
+  return url;
 }
 
 export async function uploadImage(

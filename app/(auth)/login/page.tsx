@@ -261,6 +261,11 @@ export default function LoginPage() {
             Sign up
           </span>
         </p>
+        <p className="text-[12px] text-center mt-3">
+          <Link href="/how-it-works" className="text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline">How it works</Link>
+          <span className="text-[var(--color-text-tertiary)] mx-2">·</span>
+          <Link href="/about" className="text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] underline-offset-4 hover:underline">About</Link>
+        </p>
       </div>
     </div>
   );
