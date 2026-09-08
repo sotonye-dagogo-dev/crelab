@@ -70,7 +70,7 @@ async function getPortfolioItems(providerId: string) {
       )
       .orderBy(asc(portfolioItems.orderIndex));
 
-    return rows.map(
+    const mapped = rows.map(
       (row) =>
         ({
           ...row,
@@ -78,6 +78,12 @@ async function getPortfolioItems(providerId: string) {
           updatedAt: row.updatedAt.toISOString(),
         }) as IPortfolioItem,
     );
+    // Deduplicate redundant renders of same asset (same url/driveFileId) — keeps first, preserves order
+    const { dedupePortfolioItems } = await import("@/lib/portfolio");
+    const { fixLegacyVideoThumbnailUrl } = await import("@/lib/cloudinary");
+    const deduped = dedupePortfolioItems(mapped);
+    // Normalize legacy thumbnail URLs so video thumbs never 400
+    return deduped.map((it) => ({ ...it, thumbnailUrl: fixLegacyVideoThumbnailUrl(it.thumbnailUrl) }));
   } catch {
     return MockDataService.getMockPortfolioItems(providerId);
   }
@@ -257,7 +263,7 @@ function ProfileContent({
               <h2 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)] mb-3">
                 Portfolio
               </h2>
-              <PortfolioGrid items={directItems} />
+              <PortfolioGrid items={directItems} providerName={provider.displayName} />
             </div>
           )}
 

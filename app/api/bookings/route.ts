@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   try {
     const session = await requireAuth();
     const body = await req.json();
-    const { providerId, packageId, serviceDate, scopeNotes } = body;
+    const { providerId, packageId, serviceDate, scopeNotes, paymentMode } = body;
 
     if (!providerId || !packageId || !serviceDate) {
       return NextResponse.json(
@@ -22,6 +22,7 @@ export async function POST(req: Request) {
       packageId,
       serviceDate,
       scopeNotes,
+      paymentMode,
     });
 
     return NextResponse.json({ success: true, data: booking });

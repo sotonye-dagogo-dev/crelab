@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Play, HardDrive, Cloud, Image as ImageIcon, Film } from "lucide-react";
+import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
 import type { IExploreCard, IPortfolioItem } from "@/types";
 
 interface ExploreVideoCardProps {
@@ -75,7 +76,7 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
     setCarouselIndex(0);
   }, [provider?.id]);
 
-  const fixThumb = (u: string | null) => u ? u.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "") : null;
+  const fixThumb = (u: string | null) => fixLegacyVideoThumbnailUrl(u);
   const portfolioThumb = fixThumb(portfolioItem?.thumbnailUrl ?? null);
   const providerCarouselSrc = provider ? fixThumb(providerCarouselImages[carouselIndex] ?? null) : null;
   const thumbnailUrl = portfolioThumb ?? providerCarouselSrc ?? fixThumb(provider?.avatarUrl ?? null);
@@ -181,6 +182,19 @@ export function ExploreVideoCard({ provider, portfolioItem }: ExploreVideoCardPr
               className="w-full bg-[var(--color-surface-raised)] animate-pulse absolute inset-0"
               style={{ aspectRatio: "4/5" }}
             />
+          )}
+          {/* Persistent video distinction: tag + centered play overlay when thumbnail is for video */}
+          {hasVideo && !showVideo && (
+            <>
+              <span className="absolute top-2 right-2 z-[3] inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] bg-[rgba(0,0,0,0.72)] border border-white/20 text-white text-[10px] font-semibold tracking-[0.04em] uppercase backdrop-blur-[6px]">
+                <Play size={10} fill="white" /> VIDEO
+              </span>
+              <span className="absolute inset-0 z-[2] flex items-center justify-center pointer-events-none">
+                <span className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.55)] border border-white/15 backdrop-blur-[2px] flex items-center justify-center shadow-[0_2px_12px_rgba(0,0,0,0.35)]">
+                  <Play size={14} fill="white" color="white" className="translate-x-[1px]" />
+                </span>
+              </span>
+            </>
           )}
           {/* Carousel dots when multiple images */}
           {provider && providerCarouselImages.length > 1 && !showVideo && (

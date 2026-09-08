@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Sprint: asset display + orphan reconcile)
-> - last-verified-against-code: 2026-09-05
+> - last-updated-by: update-ai-system (Sprint: explore-video + portfolio-playback + wallet/booking/drive)
+> - last-verified-against-code: 2026-09-08
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -73,11 +73,12 @@ crelab/
 │       ├── profile/        # Profile management (setup)
 │       ├── verify-email/   # Verify-email: /send (sendVerificationEmail) + /welcome (fires welcome once verified)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
+│       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or Paystack initiate with real client email + metadata
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog, ClBackButton, ClDataTable, ClPagination)
-│   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard (avatar+thumbnails carousel, 3.5s interval, initials fallback)
-│   ├── profile/            # ProviderHero, PortfolioGrid, ServicePackages, MediaUpload, etc.
+│   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard (persistent VIDEO tag + halo, avatar+thumbnails carousel, 3.5s interval, initials fallback)
+│   ├── profile/            # ProviderHero, PortfolioGrid (with dedup + AssetLightbox video/pdf playback), ServicePackages, MediaUpload, DrivePortfolioSection, AssetLightbox, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
 │   ├── blog/               # ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks
 │   ├── admin/              # AdminSidebar, AdminShell, CategoryModal, ConfigField, TeamMemberModal, BatchOperations, EmailTemplateBlocksEditor, ContentBlocksEditor, ImageUploadField
@@ -103,7 +104,8 @@ crelab/
 │   └── WalletService.ts
 ├── types/                   # Global TypeScript interfaces
 │   ├── index.ts            # Barrel export + all entity/config/API types
-│   ├── dashboard.ts        # IDashboard* types (pipeline, stats, availability, payments, portfolioGallery)
+│   ├── dashboard.ts        # IDashboard* types
+│   └── portfolio.ts        # (re-export not needed — lib/portfolio is the source) (pipeline, stats, availability, payments, portfolioGallery)
 │   └── explore.ts          # IExploreCard, IExploreFilters, ExploreSort (+ portfolioThumbnails, coverVideoUrl)
 │   └── explore.ts          # IExploreCard, IExploreFilters, ExploreSort
 ├── config/
@@ -116,6 +118,7 @@ crelab/
 │   ├── config-context.tsx  # PlatformConfig React context provider
 │   ├── consent.ts          # NDPR consent capture server action
 │   ├── currency.ts         # Money helpers: nairaToKobo, formatNaira, formatKobo
+│   ├── portfolio.ts        # dedupePortfolioItems, formatAssetLabel (sanitized provider# + date), isVideoItem, assetSerialKey
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
 │   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS/previewVarsFor (platform name + resolved logoUrl; relative URLs resolved via lib/url)

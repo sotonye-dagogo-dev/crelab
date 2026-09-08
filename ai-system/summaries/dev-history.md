@@ -1,8 +1,39 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: asset-display + orphan reconcile sprint
-> - last-verified-against-code: 2026-09-05
+> - last-updated-by: explore-video + portfolio-playback + wallet-booking-drive tightening
+> - last-verified-against-code: 2026-09-08
+
+
+## Sprint 2026-09-08 — Explore Video Distinction + Portfolio Playback + Sanitized Labels + Wallet/Booking/Drive Hardening
+
+### What
+Closed the explore/portfolio gaps flagged on the live platform: video tiles now carry a persistent distinction (tag + play overlay), portfolio videos actually play, duplicate asset renders are gone, user-facing identifiers are sanitized, and the payment/wallet/booking/Google Drive path is tightened end-to-end with ACID guarantees.
+
+### Why
+- Explore tiles showing a video thumbnail looked identical to image tiles — no tag or play cue, so users could not tell a creator had video work.
+- Portfolio video thumbnails 400ed for video assets (`g_auto` Cloudinary transform is invalid for video) and, even when the thumb loaded, the portfolio page had no playback — videos were inert.
+- The same asset rendered multiple times in a provider portfolio (same url or same Drive file id / same Cloudinary publicId) — id/name duplicates showed as redundant tiles.
+- Raw asset ids/names were shown verbatim to users — noisy, non-normalized, and potentially non-unique. Needed a short serialized form: provider name + index + date.
+- Wallet/booking/Paystack/Drive flows had several ACID/truthfulness gaps: Escrow initiate used a hardcoded email, milestone release credited the wrong wallet, wallet escrowKobo was never cleared on release, Drive thumbnails stayed at =s220, and there was no dedicated /api/bookings/[id]/pay wallet path.
+
+### Key Changes
+- **Video distinction (explore):** `components/explore/ExploreVideoCard.tsx` — imports `fixLegacyVideoThumbnailUrl` and renders a persistent top-right `VIDEO` tag + centered play halo whenever `hasVideo` is true (not hover-only). `components/shared/ExploreVideoCard.tsx` — same persistent badge + halo for any portfolio item whose `mimeType` is video/* (HD pill replaced by `VIDEO`), sanitized label as title line.
+- **Thumbnail 400 fix (end-to-end):** `lib/cloudinary.ts` `fixLegacyVideoThumbnailUrl` now strips stray `g_auto` remnants robustly (comma collapse, path cleanup) and is used in `ExploreService`, `PortfolioService.mapItem`, `app/(public)/profile/[slug]/getPortfolioItems`, `app/api/explore/portfolio`, and both card components. Stored `thumbnailUrl` values with the legacy transform are normalized at read time, and `generateVideoThumbnail` fix kept.
+- **Portfolio video playback:** new `components/profile/AssetLightbox.tsx` — ClDialog lightbox with <video controls autoPlay> for Cloudinary video, Drive `webViewLink` → `/preview` iframe for Drive video, <iframe> for PDF, <img> for image; uses sanitized label + source/mime/date caption. Wired into `PortfolioGrid` and `DrivePortfolioSection` (both now hold `active` state and open the lightbox on click when no external `onPlay` is supplied).
+- **Redundant render dedup:** new `lib/portfolio.ts` — `dedupePortfolioItems` (driveFileId set + normalized-url set, keep first, preserve order), `formatAssetLabel` (sanitized provider name truncated to 24 chars + `#index · date`), `isVideoItem`, `assetSerialKey`. Used in `PortfolioService.getByProvider/getAllByProvider` (idempotent `addItem` also checks dup before insert), `PortfolioGrid`/`DrivePortfolioSection` (memoized), `app/(public)/profile/[slug]/getPortfolioItems`, `app/api/explore/portfolio`, and `ExploreService` thumb dedup. `PortfolioService.addItem` is now idempotent (returns existing on duplicate driveFileId/url).
+- **Sanitized asset labels:** `lib/portfolio.formatAssetLabel` replaces raw id/title as the user-facing label. `shared/ExploreVideoCard` shows `sanitizedLabel` as primary line (title as secondary when different). Lightbox caption uses it. No raw DB id is shown to clients.
+- **Portfolio data flow hardened:** `app/(public)/profile/[slug]/page.tsx` dedupes + fixes thumbs before render; passes `providerName` into `PortfolioGrid`; `PortfolioService` dedupes at service layer so every consumer is safe.
+- **Payment/Wallet/Booking tightening:** `services/BookingService.createRequest` now accepts `paymentMode` (ESCROW/MILESTONE/DIRECT), validates against `platformConfig` (milestone enabled + min amount) and future-date parsing, stores `paymentMode` column. `app/api/bookings/route.ts` forwards `paymentMode`. New `app/api/bookings/[id]/pay/route.ts` handles both wallet (atomic `WalletService.debitForBooking` + HELD transition + `payments` row with `WALLET-` ref) and Paystack (existing `EscrowService.initiate`).
+- **Wallet ACID:** `WalletService.creditFromEscrowRelease` and `creditMilestoneRelease` now atomically clear the client `escrowKobo` (`GREATEST(escrow - net - fee,0)`) inside the same transaction that credits the provider — money can no longer stay double-counted in escrow. Lookup of client wallet is best-effort and transaction-wrapped.
+- **Milestone fix:** `MilestoneService.approveMilestone` and `autoApproveMilestone` now credit the *provider* wallet (previously credited `booking.clientId`). Provider lookup via `providers.userId`.
+- **Escrow fix:** `EscrowService.initiate` now fetches the real client email and sends `metadata: { purpose: BOOKING_PAYMENT, bookingId, clientId, providerId }` so the webhook can attribute correctly (previously hardcoded `payment@crelab.app` with no metadata).
+- **Drive tightening:** `services/DriveService.ingestFolder` upgrades Drive `thumbnailLink` to ` =s600` (was ` =s220`), avoids calling `generateVideoThumbnail` for Drive webViewLink (only for Cloudinary URLs), and filters supported mimeTypes before ingest. `DrivePortfolioSection` dedupes before slicing.
+- **Explore gallery API:** `app/api/explore/portfolio/route.ts` applies `fixLegacyVideoThumbnailUrl` and dedups by driveFileId + normalized url before responding, so the gallery never shows redundant tiles.
+
+### Status
+Pass — tsc --noEmit --skipLibCheck clean, wallet/booking/drive flows idempotent and transaction-bound, portfolio duplicates eliminated at service + API + page layers, video playback verified via lightbox, Explore video distinction persistent.
+
 
 ## Sprint 2026-09-05 — Asset Display Polish + Orphan Tightening + Admin Reconcile
 

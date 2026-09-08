@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 34)
-> - last-verified-against-code: 2026-08-28
+> - last-updated-by: update-ai-system (Sprint 2026-09-08)
+> - last-verified-against-code: 2026-09-08
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -159,6 +159,10 @@ Auth (Better Auth)
   → emailVerification plugin (sendOnSignUp false, autoSignInAfterVerification true, expiresIn 3600, custom sendVerificationEmail via sendTransactionalEmail helper)
   → user.changeEmail (enabled + sendChangeEmailConfirmation via sendTransactionalEmail)
   → emailAndPassword.sendResetPassword → sendTransactionalEmail("passwordReset") (uses {{resetUrl}} var)
+
+lib/portfolio.ts (sanitized labels + dedup)
+   → types/index.ts (IPortfolioItem)
+   → consumed by PortfolioService, app/(public)/profile/[slug]/page.tsx, app/api/explore/portfolio, components/profile/PortfolioGrid, DrivePortfolioSection, shared/ExploreVideoCard
 
 Lib Module
   → Third-party SDKs (Paystack, Cloudinary, Google Drive, postgres, Supabase)
