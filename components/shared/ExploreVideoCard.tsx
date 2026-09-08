@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Play } from "lucide-react";
+import { Play, Film } from "lucide-react";
+import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
+import { formatAssetLabel } from "@/lib/portfolio";
 import type { IPortfolioItem } from "@/types";
 
 interface ExploreVideoCardProps {
@@ -26,10 +28,10 @@ export function ExploreVideoCard({
 
   const isVideo = item.mimeType.startsWith("video/");
   const isPdf = item.mimeType === "application/pdf";
-  const fixedThumb = item.thumbnailUrl
-    ? item.thumbnailUrl.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "")
-    : null;
+  const fixedThumb = fixLegacyVideoThumbnailUrl(item.thumbnailUrl);
   const showThumb = !!fixedThumb && !thumbError;
+  // sanitized label never exposes raw id; fallback to provider-agnostic short label when provider info absent
+  const sanitizedLabel = formatAssetLabel(item, item.providerName ?? undefined, 1);
 
   return (
     <div
@@ -69,31 +71,41 @@ export function ExploreVideoCard({
         </div>
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.7)] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.75)] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
-      {(isVideo || isPdf) && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.6)] backdrop-blur-[2px] flex items-center justify-center border border-[rgba(255,255,255,0.15)]">
-            <Play size={18} fill="white" color="white" />
-          </div>
-        </div>
-      )}
-
-      {item.title && (
-        <div className="absolute bottom-0 left-0 right-0 p-2.5">
-          <p className="text-[12px] font-medium text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-            {item.title}
-          </p>
-        </div>
-      )}
-
+      {/* Persistent distinction for video/pdf: tag + centered play overlay (not hover-only) */}
       {isVideo && (
-        <div className="absolute top-2 right-2">
-          <span className="px-1.5 py-0.5 rounded-[4px] bg-[rgba(0,0,0,0.6)] backdrop-blur-[2px] text-[10px] font-medium text-white">
-            HD
+        <>
+          <span className="absolute top-2 right-2 z-[2] inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] bg-[rgba(0,0,0,0.72)] border border-white/20 text-white text-[10px] font-semibold tracking-[0.04em] uppercase backdrop-blur-[6px]">
+            <Play size={10} fill="white" /> VIDEO
           </span>
+          <span className="absolute inset-0 z-[1] flex items-center justify-center pointer-events-none">
+            <span className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.55)] border border-white/15 backdrop-blur-[2px] flex items-center justify-center shadow-[0_2px_12px_rgba(0,0,0,0.35)] group-hover:scale-105 transition-transform">
+              <Play size={16} fill="white" color="white" className="translate-x-[1px]" />
+            </span>
+          </span>
+        </>
+      )}
+      {isPdf && !isVideo && (
+        <span className="absolute top-2 right-2 z-[2] inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] bg-[rgba(0,0,0,0.72)] border border-white/20 text-white text-[10px] font-semibold tracking-[0.04em] uppercase backdrop-blur-[6px]">
+          <Film size={10} /> PDF
+        </span>
+      )}
+      {/* Hover intensifies overlay but video badge is always visible */}
+      {(isVideo || isPdf) && (
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.0)]" />
         </div>
       )}
+
+      <div className="absolute bottom-0 left-0 right-0 p-2.5">
+        <p className="text-[11px] font-medium text-white truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+          {sanitizedLabel}
+        </p>
+        {item.title && item.title !== sanitizedLabel && (
+          <p className="text-[10px] text-white/70 truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{item.title}</p>
+        )}
+      </div>
 
       {isPdf && (
         <div className="absolute top-2 right-2">

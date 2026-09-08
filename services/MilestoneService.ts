@@ -189,9 +189,14 @@ export class MilestoneService implements IMilestoneService {
       throw new Error("Review window has expired — milestone will be auto-approved");
     }
 
+    // Credit goes to the provider, not the client — milestone funds were escrowed from client wallet on funding
+    const provider = await db.query.providers.findFirst({
+      where: (providers, { eq: eq2 }) => eq2(providers.id, booking.providerId),
+    });
+    if (!provider) throw new Error("Provider not found for booking");
     const walletService = new WalletService();
     await walletService.creditMilestoneRelease(
-      booking.clientId,
+      provider.userId,
       milestoneId,
       milestone.amountKobo - milestone.feeKobo,
       milestone.feeKobo,
@@ -223,9 +228,13 @@ export class MilestoneService implements IMilestoneService {
     const booking = await new BookingService().getById(milestone.bookingId);
     if (!booking) throw new Error("Booking not found");
 
+    const provider = await db.query.providers.findFirst({
+      where: (providers, { eq: eq2 }) => eq2(providers.id, booking.providerId),
+    });
+    if (!provider) throw new Error("Provider not found for booking");
     const walletService = new WalletService();
     await walletService.creditMilestoneRelease(
-      booking.clientId,
+      provider.userId,
       milestoneId,
       milestone.amountKobo - milestone.feeKobo,
       milestone.feeKobo,

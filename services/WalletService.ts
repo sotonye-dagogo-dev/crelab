@@ -256,6 +256,19 @@ export class WalletService implements IWalletService {
 
     const ref = `ESCROW-RELEASE-${crypto.randomUUID()}`;
 
+    // If this release corresponds to a wallet-funded booking, also clear the client's escrow balance atomically
+    let clientWalletId: string | null = null;
+    try {
+      const { bookings } = await import("@/drizzle/schema");
+      const [bookingRow] = await db.select({ clientId: bookings.clientId }).from(bookings).where(eq(bookings.id, bookingId));
+      if (bookingRow) {
+        const [cWallet] = await db.select({ id: wallets.id }).from(wallets).where(eq(wallets.userId, bookingRow.clientId));
+        if (cWallet) clientWalletId = cWallet.id;
+      }
+    } catch {
+      // best-effort escrow clearing
+    }
+
     const [txn] = await db.transaction(async (tx) => {
       await tx
         .update(wallets)
@@ -265,6 +278,17 @@ export class WalletService implements IWalletService {
           updatedAt: new Date(),
         })
         .where(eq(wallets.id, wallet.id));
+
+      if (clientWalletId) {
+        // Guard: never go negative — clamp at 0 via GREATEST
+        await tx
+          .update(wallets)
+          .set({
+            escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo + feeKobo}, 0)`,
+            updatedAt: new Date(),
+          })
+          .where(eq(wallets.id, clientWalletId));
+      }
 
       const balanceAfterKobo = wallet.balanceKobo + netKobo;
 
@@ -395,6 +419,23 @@ export class WalletService implements IWalletService {
     const ref = `MILESTONE-RELEASE-${crypto.randomUUID()}`;
     const balanceAfterKobo = wallet.balanceKobo + netKobo;
 
+    // Also clear client escrow for wallet-funded milestones
+    let clientWalletId: string | null = null;
+    try {
+      const { bookingMilestones } = await import("@/drizzle/schema");
+      const [ms] = await db.select({ bookingId: bookingMilestones.bookingId }).from(bookingMilestones).where(eq(bookingMilestones.id, milestoneId));
+      if (ms) {
+        const { bookings } = await import("@/drizzle/schema");
+        const [bk] = await db.select({ clientId: bookings.clientId }).from(bookings).where(eq(bookings.id, ms.bookingId));
+        if (bk) {
+          const [cw] = await db.select({ id: wallets.id }).from(wallets).where(eq(wallets.userId, bk.clientId));
+          if (cw) clientWalletId = cw.id;
+        }
+      }
+    } catch {
+      // best-effort
+    }
+
     const [txn] = await db.transaction(async (tx) => {
       await tx
         .update(wallets)
@@ -404,6 +445,16 @@ export class WalletService implements IWalletService {
           updatedAt: new Date(),
         })
         .where(eq(wallets.id, wallet.id));
+
+      if (clientWalletId) {
+        await tx
+          .update(wallets)
+          .set({
+            escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo + feeKobo}, 0)`,
+            updatedAt: new Date(),
+          })
+          .where(eq(wallets.id, clientWalletId));
+      }
 
       return tx
         .insert(walletTransactions)
