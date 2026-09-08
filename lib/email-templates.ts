@@ -44,6 +44,14 @@ export const WIRED_EMAIL_TEMPLATES: Record<
     label: "Password Reset",
     trigger: "Sent when a user requests a password reset link.",
   },
+  bugReportUnderReview: {
+    label: "Bug Report — Under Review",
+    trigger: "Sent when an admin moves a bug report to In Progress (under review).",
+  },
+  bugReportResolved: {
+    label: "Bug Report — Resolved",
+    trigger: "Sent when an admin marks a bug report as Resolved or Closed.",
+  },
 };
 
 export function isWiredEmailTemplate(key: string): boolean {

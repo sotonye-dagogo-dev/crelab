@@ -470,6 +470,9 @@ export interface IBugReport {
   userAgent: string | null;
   attachments: unknown[];
   adminNotes: string | null;
+  reporterEmail: string | null;
+  reporterName: string | null;
+  screenshotUrls: string[];
   resolvedAt: string | null;
   resolvedById: string | null;
   createdAt: string;

@@ -309,6 +309,38 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 </div>`,
         enabled: true,
       },
+      bugReportUnderReview: {
+        name: "Bug Report — Under Review",
+        subject: "We're reviewing your report — {{reportTitle}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">We're on it</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Thanks for reporting <strong style="color:#F2F2F2;">{{reportTitle}}</strong>. Our team has started reviewing it (status: <strong style="color:#F2F2F2;">Under Review</strong>).</p>
+{{adminNotesBlock}}
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">We'll follow up once we have an update. If you have more details or a screenshot to add, just reply to this email.</p>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Thanks for helping us improve.</p>
+</div>`,
+        enabled: true,
+      },
+      bugReportResolved: {
+        name: "Bug Report — Resolved",
+        subject: "Your report has been resolved — {{reportTitle}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Resolved ✓</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Good news — your report <strong style="color:#F2F2F2;">{{reportTitle}}</strong> has been marked as <strong style="color:#F2F2F2;">{{statusLabel}}</strong>.</p>
+{{adminNotesBlock}}
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">If the issue persists, please reply to this email or submit a new report. Thanks for helping us make {{name}} better.</p>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
     },
   },
   devCredit: {
