@@ -111,9 +111,9 @@ export function PortfolioGallery({
           {isLoading ? (
             Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
           ) : prefersReducedMotion ? (
-          items.map((item) => (
+          items.map((item, idx) => (
             <div key={item.id}>
-              <ExploreVideoCard portfolioItem={item} />
+              <ExploreVideoCard portfolioItem={item} assetIndexOneBased={idx + 1} />
             </div>
           ))
         ) : (
@@ -127,7 +127,7 @@ export function PortfolioGallery({
                 animate="visible"
                 layout
               >
-                <ExploreVideoCard portfolioItem={item} />
+                <ExploreVideoCard portfolioItem={item} assetIndexOneBased={i + 1} />
               </motion.div>
             ))}
           </AnimatePresence>

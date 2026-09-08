@@ -240,6 +240,14 @@ function ProfileContent({
 
   return (
     <>
+      <div className="mb-4">
+        <Link
+          href="/explore"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-text-secondary)] no-underline hover:text-[var(--color-accent)] transition-colors"
+        >
+          ← Back to Explore
+        </Link>
+      </div>
       <ProviderHero provider={provider} isOwnProfile={isOwnProfile} />
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">

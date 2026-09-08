@@ -106,7 +106,7 @@ export function WalletClient({
         <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[var(--color-success)]/30 bg-[rgba(74,222,128,0.08)] px-4 py-3">
           <CheckCircle2 size={18} strokeWidth={2} color="var(--color-success)" />
           <p className="text-[13px] text-[var(--color-text-primary)]">
-            Payment received{topupAmount ? ` — ₦${Number(topupAmount).toLocaleString()} added to your balance` : ""}.
+            Payment received{topupAmount ? ` — ₦${(Number(topupAmount) / 100).toLocaleString()} added to your balance` : ""}.
           </p>
         </div>
       )}
