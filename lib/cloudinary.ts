@@ -221,10 +221,15 @@ export function generateVideoThumbnail(videoUrl: string): string {
 /** Rewrite legacy thumbnail URLs that used the invalid `g_auto` transform (which 400s for video) */
 export function fixLegacyVideoThumbnailUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  if (url.includes("/video/upload/") && url.includes("g_auto")) {
-    return url.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "");
+  let fixed = url;
+  if (fixed.includes("/video/upload/") && fixed.includes("g_auto")) {
+    fixed = fixed.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto");
+    // strip any stray g_auto remnants
+    fixed = fixed.replace(/,g_auto/g, "").replace(/g_auto,/g, "").replace(/\/g_auto\//g, "/");
+    // collapse double commas that could remain after removal
+    fixed = fixed.replace(/,,+/g, ",").replace(",,", ",").replace(",/", "/").replace("/,", "/");
   }
-  return url;
+  return fixed;
 }
 
 export async function uploadImage(

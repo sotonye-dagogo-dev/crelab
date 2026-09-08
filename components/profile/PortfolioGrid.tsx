@@ -1,22 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Film } from "lucide-react";
 import { ExploreVideoCard } from "@/components/shared/ExploreVideoCard";
+import { AssetLightbox } from "./AssetLightbox";
+import { dedupePortfolioItems } from "@/lib/portfolio";
 import type { IPortfolioItem } from "@/types";
 
 interface PortfolioGridProps {
   items: IPortfolioItem[];
   source?: "DIRECT" | "DRIVE";
   onPlay?: (item: IPortfolioItem) => void;
+  providerName?: string;
 }
 
-export function PortfolioGrid({ items, source, onPlay }: PortfolioGridProps) {
+export function PortfolioGrid({ items, source, onPlay, providerName }: PortfolioGridProps) {
   const [cols, setCols] = useState(3);
+  const [active, setActive] = useState<IPortfolioItem | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
 
-  const filtered = source
-    ? items.filter((item) => item.source === source)
-    : items;
+  const deduped = useMemo(() => dedupePortfolioItems(items), [items]);
+  const filtered = useMemo(() => {
+    const base = source ? deduped.filter((item) => item.source === source) : deduped;
+    return base;
+  }, [deduped, source]);
 
   if (filtered.length === 0) {
     return (
@@ -55,15 +62,22 @@ export function PortfolioGrid({ items, source, onPlay }: PortfolioGridProps) {
           gridTemplateColumns: `repeat(${Math.min(cols, filtered.length)}, 1fr)`,
         }}
       >
-        {filtered.map((item) => (
+        {filtered.map((item, idx) => (
           <ExploreVideoCard
-            key={item.id}
-            item={item}
-            onPlay={onPlay}
+            key={`${item.id}-${idx}`}
+            item={{ ...item, providerName: providerName ?? item.providerName } as IPortfolioItem}
+            onPlay={(it) => {
+              if (onPlay) onPlay(it);
+              else {
+                setActive(it);
+                setActiveIndex(idx + 1);
+              }
+            }}
             size={cols <= 2 ? "lg" : "md"}
           />
         ))}
       </div>
+      <AssetLightbox item={active} providerName={providerName} indexOneBased={activeIndex} onClose={() => setActive(null)} />
     </div>
   );
 }

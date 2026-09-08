@@ -75,11 +75,16 @@ export class DriveService implements IDriveService {
       const existing = existingByDriveId.get(file.id);
 
       const mimeType = getSupportedMimeType(file.mimeType) ?? file.mimeType;
-      const thumbnailUrl =
-        file.thumbnailLink ??
-        (mimeType.startsWith("video/")
-          ? generateVideoThumbnail(file.webViewLink)
-          : null);
+      // Tightened end-to-end: prefer Drive's own thumbnailLink (already CDN-cached), but ensure
+      // it is not the low-res "=s220" variant alone — upgrade to =s600 when possible for portfolio quality.
+      // For video without thumbnailLink, fall back to Cloudinary thumb helper only if URL is Cloudinary; else keep null and let UI render video element.
+      let thumbnailUrl: string | null = file.thumbnailLink
+        ? file.thumbnailLink.replace(/=s\d+$/, "=s600")
+        : null;
+      if (!thumbnailUrl && mimeType.startsWith("video/")) {
+        const isCloudinaryUrl = file.webViewLink.includes("res.cloudinary.com");
+        thumbnailUrl = isCloudinaryUrl ? generateVideoThumbnail(file.webViewLink) : null;
+      }
 
       if (existing) {
         await PortfolioService.updateItem(existing.id, {

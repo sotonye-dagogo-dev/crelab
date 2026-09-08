@@ -70,6 +70,7 @@ export interface IBookingService {
     packageId: string;
     serviceDate: string;
     scopeNotes?: string;
+    paymentMode?: PaymentMode;
   }): Promise<IBooking>;
   acceptRequest(id: string): Promise<IBooking>;
   declineRequest(id: string): Promise<IBooking>;
@@ -85,6 +86,7 @@ export class BookingService implements IBookingService {
     packageId: string;
     serviceDate: string;
     scopeNotes?: string;
+    paymentMode?: PaymentMode;
   }): Promise<IBooking> {
     const [pkg] = await db
       .select()
@@ -101,13 +103,24 @@ export class BookingService implements IBookingService {
     if (!prov) throw new Error("Provider not found");
     if (!prov.active) throw new Error("Provider is not active");
 
-    if (new Date(data.serviceDate) <= new Date()) {
+    const serviceDateObj = new Date(data.serviceDate);
+    if (isNaN(serviceDateObj.getTime())) throw new Error("Invalid service date");
+    if (serviceDateObj <= new Date()) {
       throw new Error("Service date must be in the future");
     }
-
+    // ACID: reject if wallet milestone payments requested but not enabled or below threshold
     const platformConfig = await PlatformConfigService.get();
     const feeKobo = Math.round(pkg.price * platformConfig.feeRate);
     const totalKobo = pkg.price + feeKobo;
+
+    const requestedMode = data.paymentMode ?? PaymentMode.ESCROW;
+    // Validate paymentMode against config
+    if (requestedMode === PaymentMode.MILESTONE && !platformConfig.milestonePayments.enabled) {
+      throw new Error("Milestone payments are currently disabled");
+    }
+    if (requestedMode === PaymentMode.MILESTONE && pkg.price < platformConfig.milestonePayments.minBookingAmountKobo) {
+      throw new Error(`Milestone payments require a minimum booking of ₦${(platformConfig.milestonePayments.minBookingAmountKobo / 100).toLocaleString()}`);
+    }
 
     const [row] = await db
       .insert(bookings)
@@ -121,8 +134,9 @@ export class BookingService implements IBookingService {
         subtotal: pkg.price,
         fee: feeKobo,
         total: totalKobo,
-        serviceDate: new Date(data.serviceDate),
+        serviceDate: serviceDateObj,
         scopeNotes: data.scopeNotes ?? null,
+        paymentMode: requestedMode,
       })
       .returning();
 

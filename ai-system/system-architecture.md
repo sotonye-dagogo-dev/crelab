@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Sprint: asset display + orphan reconcile)
-> - last-verified-against-code: 2026-09-05
+> - last-updated-by: update-ai-system (Sprint: explore-video + portfolio-playback + wallet/booking/drive)
+> - last-verified-against-code: 2026-09-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -23,16 +23,16 @@ Next.js App Router (app/)
     |
     v
 Service Layer (services/)
-    |-- BookingService          -- Booking lifecycle (REQUESTED -> RELEASED/REFUNDED)
-    |-- EscrowService           -- Escrow state machine (PENDING -> HELD -> IN_PROGRESS -> RELEASED/DISPUTED)
+    |-- BookingService          -- Booking lifecycle (REQUESTED -> RELEASED/REFUNDED, now stores paymentMode + validates milestone config)
+    |-- EscrowService           -- Escrow state machine (PENDING -> HELD -> IN_PROGRESS -> RELEASED/DISPUTED, now uses real client email + BOOKING_PAYMENT metadata)
     |-- PortfolioService        -- Portfolio CRUD, reorder, hide/show
     |-- DriveService            -- Google Drive folder sync, validate, ingest
     |-- PaymentService          -- Paystack integration, subaccount split
     |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
     |-- ExploreService          -- Provider search, filter, sort, cursor pagination + portfolio thumbnails for tile carousel
     |-- DashboardService        -- Role-aware Provider/Client dashboards (pipeline, stats, availability, payments, portfolio gallery)
-    |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA
-    |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute)
+    |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA (escrowKobo cleared atomically on release)
+    |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute — approve now credits provider, not client)
     |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile
     |-- MockDataService         -- Mock data fallback when DB unavailable
     |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + password reset)

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Cloud } from "lucide-react";
 import { ExploreVideoCard } from "@/components/shared/ExploreVideoCard";
+import { AssetLightbox } from "./AssetLightbox";
+import { dedupePortfolioItems } from "@/lib/portfolio";
 import type { IPortfolioItem } from "@/types";
 
 interface DrivePortfolioSectionProps {
@@ -17,8 +19,11 @@ export function DrivePortfolioSection({
   onPlay,
 }: DrivePortfolioSectionProps) {
   const [showAll, setShowAll] = useState(false);
+  const [active, setActive] = useState<IPortfolioItem | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const driveItems = items.filter((item) => item.source === "DRIVE");
+  const deduped = useMemo(() => dedupePortfolioItems(items), [items]);
+  const driveItems = useMemo(() => deduped.filter((item) => item.source === "DRIVE"), [deduped]);
   const displayItems = showAll ? driveItems : driveItems.slice(0, 6);
 
   if (driveItems.length === 0) return null;
@@ -37,15 +42,22 @@ export function DrivePortfolioSection({
       </p>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {displayItems.map((item) => (
+        {displayItems.map((item, idx) => (
           <ExploreVideoCard
-            key={item.id}
-            item={item}
-            onPlay={onPlay}
+            key={`${item.id}-${idx}`}
+            item={{ ...item, providerName } as IPortfolioItem}
+            onPlay={(it) => {
+              if (onPlay) onPlay(it);
+              else {
+                setActive(it);
+                setActiveIndex(driveItems.indexOf(item) + 1);
+              }
+            }}
             size="sm"
           />
         ))}
       </div>
+      <AssetLightbox item={active} providerName={providerName} indexOneBased={activeIndex} onClose={() => setActive(null)} />
 
       {driveItems.length > 6 && (
         <button

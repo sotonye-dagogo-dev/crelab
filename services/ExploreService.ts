@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { providers, servicePackages, portfolioItems, reviews, bookings } from "@/drizzle/schema";
 import { eq, and, sql, desc, asc } from "drizzle-orm";
 import { buildProviderSlug } from "@/lib/slug";
+import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
 import type { IExploreCard, IExploreFilters } from "@/types";
 
 const DEFAULT_LIMIT = 20;
@@ -176,9 +177,7 @@ export class ExploreService {
           .orderBy(asc(portfolioItems.orderIndex));
 
         for (const r of thumbRows) {
-          let candidate: string | null = r.thumbnailUrl
-            ? r.thumbnailUrl.replace("w_600,q_auto,g_auto", "w_600,q_auto,so_auto").replace("g_auto,", "").replace(",g_auto", "")
-            : null;
+          let candidate: string | null = fixLegacyVideoThumbnailUrl(r.thumbnailUrl);
           // If no thumbnail but url is an image, use it; for video URLs try to synthesize thumbnail via stored thumbnailUrl fallback
           if (!candidate && r.url?.match(/\.(jpe?g|png|webp|gif|avif|heic)$/i)) candidate = r.url;
           if (!candidate) continue;

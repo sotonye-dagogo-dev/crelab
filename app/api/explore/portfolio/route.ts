@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { providers, portfolioItems, servicePackages, reviews, bookings } from "@/drizzle/schema";
 import { eq, and, sql, desc, asc, like } from "drizzle-orm";
 import { buildProviderSlug } from "@/lib/slug";
+import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
 import type { IPortfolioItem } from "@/types";
 
 const explorePortfolioQuerySchema = z.object({
@@ -163,12 +164,12 @@ export async function GET(req: NextRequest) {
     const hasMore = rows.length > limit;
     const slice = rows.slice(0, limit);
 
-    const data: PortfolioGalleryItem[] = slice.map((row) => ({
+    const raw: PortfolioGalleryItem[] = slice.map((row) => ({
       id: row.itemId,
       providerId: row.itemProviderId,
       source: row.itemSource as IPortfolioItem["source"],
       url: row.itemUrl,
-      thumbnailUrl: row.itemThumbnailUrl,
+      thumbnailUrl: fixLegacyVideoThumbnailUrl(row.itemThumbnailUrl),
       title: row.itemTitle,
       caption: row.itemCaption,
       driveFileId: row.itemDriveFileId,
@@ -186,6 +187,18 @@ export async function GET(req: NextRequest) {
       providerVerified: row.providerVerified,
       providerFeatured: row.providerFeatured,
     }));
+    // Deduplicate same asset appearing multiple times (same url or same driveFileId)
+    const seenUrls = new Set<string>();
+    const seenDrive = new Set<string>();
+    const data: PortfolioGalleryItem[] = [];
+    for (const it of raw) {
+      if (it.driveFileId && seenDrive.has(it.driveFileId)) continue;
+      if (it.driveFileId) seenDrive.add(it.driveFileId);
+      const norm = it.url.trim().toLowerCase();
+      if (seenUrls.has(norm)) continue;
+      seenUrls.add(norm);
+      data.push(it);
+    }
 
     const nextCursor = hasMore
       ? Buffer.from(

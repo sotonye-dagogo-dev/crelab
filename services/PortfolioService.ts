@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { portfolioItems, providers } from "@/drizzle/schema";
 import { eq, and, asc } from "drizzle-orm";
+import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
 import type { IPortfolioItem, PortfolioItemSource } from "@/types";
 
 export interface IPortfolioService {
@@ -27,7 +28,7 @@ function mapItem(row: typeof portfolioItems.$inferSelect): IPortfolioItem {
     providerId: row.providerId,
     source: row.source as IPortfolioItem["source"],
     url: row.url,
-    thumbnailUrl: row.thumbnailUrl,
+    thumbnailUrl: fixLegacyVideoThumbnailUrl(row.thumbnailUrl),
     title: row.title,
     caption: row.caption,
     driveFileId: row.driveFileId,
@@ -37,6 +38,21 @@ function mapItem(row: typeof portfolioItems.$inferSelect): IPortfolioItem {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+function dedupeRows(rows: IPortfolioItem[]): IPortfolioItem[] {
+  const seenDrive = new Set<string>();
+  const seenUrl = new Set<string>();
+  const out: IPortfolioItem[] = [];
+  for (const r of rows) {
+    if (r.driveFileId && seenDrive.has(r.driveFileId)) continue;
+    if (r.driveFileId) seenDrive.add(r.driveFileId);
+    const norm = r.url.trim().toLowerCase();
+    if (seenUrl.has(norm)) continue;
+    seenUrl.add(norm);
+    out.push(r);
+  }
+  return out;
 }
 
 export class PortfolioService {
@@ -51,7 +67,7 @@ export class PortfolioService {
         ),
       )
       .orderBy(asc(portfolioItems.orderIndex));
-    return rows.map(mapItem);
+    return dedupeRows(rows.map(mapItem));
   }
 
   static async getAllByProvider(providerId: string): Promise<IPortfolioItem[]> {
@@ -60,7 +76,7 @@ export class PortfolioService {
       .from(portfolioItems)
       .where(eq(portfolioItems.providerId, providerId))
       .orderBy(asc(portfolioItems.orderIndex));
-    return rows.map(mapItem);
+    return dedupeRows(rows.map(mapItem));
   }
 
   static async addItem(data: {
@@ -73,6 +89,14 @@ export class PortfolioService {
     driveFileId?: string;
     mimeType: string;
   }): Promise<IPortfolioItem> {
+    // Idempotent: if an asset with same driveFileId or normalized url already exists, return it (avoids redundant renders)
+    const existingAll = await PortfolioService.getAllByProvider(data.providerId);
+    const normUrl = data.url.trim().toLowerCase();
+    const dup = existingAll.find(
+      (it) => (data.driveFileId && it.driveFileId === data.driveFileId) || it.url.trim().toLowerCase() === normUrl,
+    );
+    if (dup) return dup;
+
     const maxOrder = await db
       .select({ max: portfolioItems.orderIndex })
       .from(portfolioItems)
