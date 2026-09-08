@@ -113,10 +113,12 @@ export default function ExplorePage() {
         onFiltersChange={setFilters}
       />
 
-      {/* View Mode Toggle — gallery + creators, restored and prominent */}
+      {/* View Mode Toggle — provider vs content, per design */}
       <div className="max-w-[1200px] mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="inline-flex rounded-[10px] border border-[var(--color-border)] p-1 bg-[var(--color-surface)] w-fit">
+        <div className="inline-flex rounded-[10px] border border-[var(--color-border)] p-1 bg-[var(--color-surface)] w-fit" role="tablist" aria-label="Explore view">
           <button
+            role="tab"
+            aria-selected={viewMode === "creators"}
             onClick={() => setViewMode("creators")}
             className={`px-4 py-1.5 text-[13px] font-semibold rounded-[6px] transition-colors inline-flex items-center gap-1.5 cursor-pointer border-none ${
               viewMode === "creators"
@@ -125,9 +127,11 @@ export default function ExplorePage() {
             }`}
           >
             <List size={14} strokeWidth={2} />
-            Creators
+            Providers
           </button>
           <button
+            role="tab"
+            aria-selected={viewMode === "gallery"}
             onClick={() => setViewMode("gallery")}
             className={`px-4 py-1.5 text-[13px] font-semibold rounded-[6px] transition-colors inline-flex items-center gap-1.5 cursor-pointer border-none ${
               viewMode === "gallery"
@@ -136,11 +140,11 @@ export default function ExplorePage() {
             }`}
           >
             <Grid size={14} strokeWidth={2} />
-            Portfolio Gallery
+            Content
           </button>
         </div>
         <div className="text-[12px] text-[var(--color-text-tertiary)]">
-          {viewMode === "creators" ? "Browse creators — tiles cycle through avatar & portfolio shots so nothing stays blank" : "Browse individual portfolio pieces from all creators"}
+          {viewMode === "creators" ? "Provider view — tiles cycle through avatar & portfolio shots so nothing stays blank" : "Content view — tap any asset to play/view, provider link stays on the tile"}
         </div>
       </div>
 
