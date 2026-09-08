@@ -245,4 +245,26 @@ export class EmailService {
   ): Promise<EmailSendResult> {
     return EmailService.send(to, "paymentReceived", vars, config);
   }
+
+  static async sendBugReportUnderReview(
+    to: string,
+    vars: { userName: string; reportTitle: string; adminNotes?: string },
+    config?: IPlatformConfig,
+  ): Promise<EmailSendResult> {
+    const adminNotesBlock = vars.adminNotes
+      ? `<div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;padding:16px;margin:16px 0;"><p style="font-size:13px;color:#9A9A9A;margin:0 0 6px;"><strong style="color:#F2F2F2;">Note from our team:</strong></p><p style="font-size:13px;color:#F2F2F2;margin:0;white-space:pre-wrap;">${vars.adminNotes}</p></div>`
+      : "";
+    return EmailService.send(to, "bugReportUnderReview", { ...vars, adminNotesBlock }, config);
+  }
+
+  static async sendBugReportResolved(
+    to: string,
+    vars: { userName: string; reportTitle: string; statusLabel: string; adminNotes?: string },
+    config?: IPlatformConfig,
+  ): Promise<EmailSendResult> {
+    const adminNotesBlock = vars.adminNotes
+      ? `<div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;padding:16px;margin:16px 0;"><p style="font-size:13px;color:#9A9A9A;margin:0 0 6px;"><strong style="color:#F2F2F2;">Resolution notes:</strong></p><p style="font-size:13px;color:#F2F2F2;margin:0;white-space:pre-wrap;">${vars.adminNotes}</p></div>`
+      : "";
+    return EmailService.send(to, "bugReportResolved", { ...vars, adminNotesBlock }, config);
+  }
 }
