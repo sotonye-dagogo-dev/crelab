@@ -12,14 +12,14 @@ export async function generateMetadata(): Promise<Metadata> {
     config = DEFAULT_CONFIG;
   }
   return buildSeoMetadata(config, {
-    title: `${config.name} — ${config.tagline}`,
+    title: `${config.name} — Home`,
     description:
       "Discover vetted creators, book securely with escrow, and bring your vision to life. Browse portfolios, book packages, and pay safely on CreLab.",
-    path: "/",
+    path: "/home",
   });
 }
 
-export default async function HomeLandingPage() {
+export default async function HomeAliasPage() {
   let config;
   try {
     config = await PlatformConfigService.getCached();
