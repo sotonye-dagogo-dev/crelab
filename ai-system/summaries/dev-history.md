@@ -1,9 +1,26 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: explore-video + portfolio-playback + wallet-booking-drive tightening
-> - last-verified-against-code: 2026-09-08
+> - last-updated-by: provider-tiles-public + display-preference-order (Session 2026-09-22)
+> - last-verified-against-code: 2026-09-22
 
+
+## Sprint 2026-09-22 — Provider Tiles Public + Ordered Display Preference (avatar → content toggling → name)
+
+### What
+Made the provider/creator tile view available regardless of authentication and tightened the provider-view tile display to an ordered preference: display photo (avatarUrl) alone if present, else interval toggling of portfolio content (portfolioThumbnails), else name/initials fallback. Non-breaking conditional in `ExploreVideoCard`; no API contract change.
+
+### Why
+- The tile component for provider vs creator/content view only appeared for authenticated users; guest browse (core business constraint: Guest Browse, Gate Booking) requires discovery to be public on both `/` and `/explore`.
+- Provider tiles previously merged avatar + thumbnails into a single carousel (best-of-both-worlds); product wants deterministic preference so a creator's chosen display photo is honoured before any auto-rotating portfolio shots, with initials as the last fallback to avoid blank tiles.
+
+### Key Changes
+- **`components/explore/ExploreVideoCard.tsx`** — `providerCarouselImages` now respects ordered preference: if `avatarUrl` is present → `[avatarUrl]` only (no carousel); else → `portfolioThumbnails` (up to 5, 3.5s interval, dots, respects `prefers-reduced-motion` + paused for video preview); else → no carousel images and `hasAvatarFallback` renders the initials avatar. `thumbnailUrl` resolution updated to `portfolioThumb ?? providerCarouselSrc` with the new preference; video preview `hasVideo` / overlay unchanged. No prop or type change; initials fallback unchanged.
+- **`app/page.tsx` (home)** — added the same provider/content view toggle that already existed on `/explore`, with dual `useInfiniteQuery` (creators via `/api/explore` and gallery via `/api/explore/portfolio`, each `enabled` by `viewMode`), plus `Grid`/`List` icons and copy noting the ordered preference. Toggle + both grids are now public (outside the `!isAuthenticated` hero block); query keys are `["explore", filters]` and `["explore-portfolio", filters]` matching `/explore` so cache is shareable. Home now mirrors `/explore` behaviour for guest and auth users without duplicating auth gating.
+- **`app/(public)/explore/page.tsx`** — no code change needed; already public and already renders the same `ExploreVideoCard` (so it inherits the new preference automatically). Verified `middleware.ts` marks `/` and `/explore` as public paths and `ExploreFilterBar` + toggle are rendered unconditionally.
+
+### Status
+Pass — `tsc --noEmit` clean, `next lint` 0 errors (warnings only, pre-existing), `next build` compiled successfully, `vitest` 255/258 pass (3 pre-existing failures unrelated: `media.test.ts` size message + `BlogPostService.test.ts` adminList mocks).
 
 ## Sprint 2026-09-08 — Explore Video Distinction + Portfolio Playback + Sanitized Labels + Wallet/Booking/Drive Hardening
 
