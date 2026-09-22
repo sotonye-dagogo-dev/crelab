@@ -58,13 +58,14 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
     return () => observer.disconnect();
   }, []);
 
-  // Provider carousel: avatar + portfolio thumbnails, rotating interval (best-of-both-worlds)
+  // Provider view display preference (non-breaking conditional):
+  // 1) display photo (avatarUrl) alone if present
+  // 2) else toggling of portfolio content (portfolioThumbnails interval)
+  // 3) else initials fallback (handled via hasAvatarFallback, no carousel images)
   const providerCarouselImages = provider
-    ? [
-        // avatar first (if image), then portfolio thumbnails from ExploreService
-        ...(provider.avatarUrl ? [provider.avatarUrl] : []),
-        ...(provider.portfolioThumbnails ?? []),
-      ].filter(Boolean).slice(0, 5)
+    ? provider.avatarUrl
+      ? [provider.avatarUrl].filter(Boolean).slice(0, 5)
+      : (provider.portfolioThumbnails ?? []).filter(Boolean).slice(0, 5)
     : [];
   const [carouselIndex, setCarouselIndex] = useState(0);
 

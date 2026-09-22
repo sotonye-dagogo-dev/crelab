@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: Session 32
-> - last-verified-against-code: 2026-08-20
+> - last-updated-by: Session 2026-09-22 — provider tiles public + ordered display
+> - last-verified-against-code: 2026-09-22
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -1109,3 +1109,36 @@ Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, ident
 
 **Next Task:**
 Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, identity verification). Consider end-to-end onboarding journey test against live Supabase + Cloudinary + Resend before wider beta. Cloudinary upload requires an unsigned upload preset named per `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`; Resend requires a verified sending domain for `fromEmail`.
+
+## Session 2026-09-22 — Provider Tiles Public + Ordered Display Preference
+
+**Directive:** follow execute-feature.md contract extensively with planning, standards, compliance and doc syncing. Tiles for provider/creator view available regardless of auth (currently only when authenticated). On provider view ordered preference: display photo → content toggling → name fallback. Then execute update-ai-system.md
+
+**Completed:**
+1. **ExploreVideoCard ordered preference (non-breaking conditional)** — `components/explore/ExploreVideoCard.tsx:62` `providerCarouselImages` now: if `provider.avatarUrl` present → `[avatarUrl]` only (static, no carousel/dots); else → `portfolioThumbnails` slice(0,5) with 3.5s interval (respects `prefers-reduced-motion`, pauses for video preview) + dot indicator; else → empty array and `hasAvatarFallback` renders initials avatar (`slice(0,2).toUpperCase()` inside accent circle). `thumbnailUrl = portfolioThumb ?? providerCarouselSrc ?? fixThumb(provider.avatarUrl)` updated to reflect preference; video preview (`hasVideo`, `previewVideoUrl`/`coverVideoUrl` overlay) unchanged. No prop/type/API contract change; initials fallback preserved.
+2. **Home page tiles public (provider/content toggle)** — `app/page.tsx` added the same `viewMode` (`creators` | `gallery`) toggle that existed on `/explore`: new imports `Grid`/`List` + `PortfolioGallery` + `IPortfolioItem` type + `PortfolioGalleryResponse`; new `fetchPortfolioItems` (mirrors `/explore` query params → `GET /api/explore/portfolio`); dual `useInfiniteQuery` with `enabled: viewMode === "creators"` / `gallery` and queryKeys `["explore", filters]` / `["explore-portfolio", filters]` (cache-shareable with `/explore`); memo `portfolioItems` from `galleryData`; toggle rendered as `role="tablist"` tab buttons outside the `!isAuthenticated` hero block so it is visible to guests and authed users alike; conditional `ExploreGrid` vs `PortfolioGallery` render with `galleryLoading`/`galleryHasNextPage`/`galleryFetching`/`galleryError` passed through. Hero (`!isAuthenticated` tagline + Register CTAs + About/HowItWorks links) remains guest-only; filter bar + toggle + grids are public. No auth gating on the toggle.
+3. **Explore page verification** — `app/(public)/explore/page.tsx` already public (no `useAuth` gating, `middleware.ts` lists `/` and `/explore` in `publicPaths`) and already consumed the same `ExploreVideoCard`, so it inherits the new preference with no code change. Collocated change covers both entry points (`/` and `/explore`).
+4. **Docs + compliance** — updated `ai-system/system-architecture.md` Media Asset Lifecycle §6 to describe ordered preference + public availability on both `/` and `/explore`; `ai-system/index/repo-map.md` (`app/page.tsx`, `components/explore/` descriptions, metadata); `ai-system/index/dependency-graph.md` Explore Page node now covers `app/page.tsx` + ordered display note; `ai-system/summaries/dev-history.md` new Sprint 2026-09-22 entry with tsc/lint/build/test gates; `ai-context.md` metadata + Recently completed + Next; `checkpoints/in-progress.md` plan → close; `checkpoints/session-log.md` this entry.
+
+**Compliance:**
+- Planning pass: read `task-queue.md`, `system-architecture.md`, `design-system.md`, `repair-system.md`, `project-context.md`, `memory/project-decisions.md`; decomposed into 3 tasks + test case; no architecture impact → no `plan-feature` needed; wrote `checkpoints/in-progress.md`.
+- Self-check: verified guest browse scope (`Business Constraints: Guest browse allowed; booking requires registration` + decision `Guest Browse, Gate Booking`); no conflict with `memory/project-decisions.md`; feature fits `project-context.md`.
+- Implementation: per `agents/implementer.md`, `design-system.md` tokens/Cl* (no raw hex, uses `var(--color-*)` + existing Tailwind), avoided `repair-system.md` pitfalls (no new `Headers()` for Better Auth, no `eq` on truncated slug, no float money math).
+- QA gate: ran `verify-work` — `tsc --noEmit` clean (after `npm install` completed), `next lint` 0 errors (warnings only, pre-existing), `next build` ✓ compiled successfully in 9.6s, `vitest` 255/258 pass (3 pre-existing failures: `media.test.ts` expects `"too large"` vs "`101.0 MB — exceeds the 100 MB per-file limit...`" and `BlogPostService.test.ts` adminList mock returns 7 vs 1 — unrelated to this change; `ExploreService`/`DashboardService` 23 tests pass).
+- Doc sync: `sync-context.md` mid-work via `in-progress.md` checkpoint; `update-ai-system.md` deep sync at close — reconciled `system-architecture` + `repo-map` + `dependency-graph` + `dev-history` + `ai-context` + freshness metadata.
+
+**Files Modified:**
+- `components/explore/ExploreVideoCard.tsx` — ordered preference conditional (avatar → carousel → initials), comment + logic
+- `app/page.tsx` — provider/content viewMode toggle + gallery query, public regardless of auth
+- `ai-system/system-architecture.md` — §6 tile description + public availability note, metadata
+- `ai-system/index/repo-map.md` — `app/page.tsx` + `components/explore/` descriptions, metadata
+- `ai-system/index/dependency-graph.md` — Explore Page node extended to `app/page.tsx`, ordered display note, metadata
+- `ai-system/summaries/dev-history.md` — Sprint 2026-09-22 entry, metadata
+- `ai-context.md` — metadata + Recently completed entry
+- `checkpoints/in-progress.md` — plan → close
+- `checkpoints/session-log.md` — this entry (Session 2026-09-22)
+
+**Build Status:** ✅ `tsc --noEmit` clean, `next lint` 0 errors, `next build` ✓ compiled successfully, 255/258 tests pass (3 pre-existing unrelated failures).
+
+**Next Task:**
+Residual test failures to address separately: `__tests__/media.test.ts:72` (size-limit message mismatch) + `__tests__/services/BlogPostService.test.ts:89,98` (adminList mock length 7 vs 1). Phase 2 backlog unchanged (messaging, reviews, pricing guidance, verification).

@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Sprint 2026-09-08)
-> - last-verified-against-code: 2026-09-08
+> - last-updated-by: update-ai-system (Session 2026-09-22 — provider tiles public + ordered display)
+> - last-verified-against-code: 2026-09-22
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -69,14 +69,14 @@ Portfolio Gallery (components/explore/PortfolioGallery.tsx)
   → types/index.ts (IPortfolioItem)
   → TanStack Query (useInfiniteQuery for pagination)
 
-Explore Page — Gallery View (app/(public)/explore/page.tsx)
+Explore Page — Gallery View (app/(public)/explore/page.tsx + app/page.tsx home)
   → components/explore/PortfolioGallery.tsx
-  → components/explore/ExploreGrid.tsx (creators view)
+  → components/explore/ExploreGrid.tsx (creators view — ordered display: avatar → carousel → initials, public on both / and /explore)
   → components/explore/ExploreFilterBar.tsx
   → lib/config-context.tsx (PlatformConfig context)
-  → services/ExploreService (provider cards)
-  → app/api/explore/portfolio/route.ts (portfolio items API)
-  → TanStack Query (useInfiniteQuery for both views)
+  → services/ExploreService (provider cards with portfolioThumbnails + avatarUrl + coverVideoUrl)
+  → app/api/explore/portfolio/route.ts (portfolio items API) + app/api/explore/route.ts
+  → TanStack Query (useInfiniteQuery for both views; enabled toggled by viewMode)
 
 Portfolio Items API (app/api/portfolio/items/route.ts)
   → services/PortfolioService (getAllByProvider)

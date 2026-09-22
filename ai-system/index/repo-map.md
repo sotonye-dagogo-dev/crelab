@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Sprint: explore-video + portfolio-playback + wallet/booking/drive)
-> - last-verified-against-code: 2026-09-08
+> - last-updated-by: update-ai-system (Session 2026-09-22 — provider tiles public + ordered display)
+> - last-verified-against-code: 2026-09-22
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -21,7 +21,7 @@ crelab/
 ├── app/                     # Next.js 15 App Router
 │   ├── globals.css          # Global styles + CSS custom properties
 │   ├── layout.tsx           # Root layout with PlatformConfigProvider + TanStack Query
-│   ├── page.tsx             # Landing / Explore (hero + infinite scroll grid)
+│   ├── page.tsx             # Landing / Explore (guest hero + filter bar + provider/content view toggle + infinite scroll grids; toggle + grids public, hero guest-only)
 │   ├── robots.ts            # robots.txt generation
 │   ├── sitemap.ts           # sitemap.xml generation
 │   ├── (public)/            # Guest-accessible routes
@@ -77,7 +77,7 @@ crelab/
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog, ClBackButton, ClDataTable, ClPagination)
-│   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard (persistent VIDEO tag + halo, avatar+thumbnails carousel, 3.5s interval, initials fallback)
+│   ├── explore/            # ExploreFilterBar, ExploreGrid, ExploreVideoCard (persistent VIDEO tag + halo, ordered display: avatar → portfolioThumbnails carousel on 3.5s interval → initials fallback), PortfolioGallery
 │   ├── profile/            # ProviderHero, PortfolioGrid (with dedup + AssetLightbox video/pdf playback), ServicePackages, MediaUpload, DrivePortfolioSection, AssetLightbox, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
 │   ├── blog/               # ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks
@@ -160,7 +160,7 @@ crelab/
 | `testing/` | Test results tracking | `test-results.md` |
 | `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager, email templates, blog templates, blog posts, user management | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx`, `blog-posts/page.tsx` |
 | `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx`, `ClConfirmDialog.tsx`, `ClBackButton.tsx`, `ClDataTable.tsx`, `ClPagination.tsx` |
-| `components/explore/` | Explore feed: filter bar, masonry grid, video cards (interval carousel), portfolio gallery | ExploreFilterBar, ExploreGrid, ExploreVideoCard, PortfolioGallery |
+| `components/explore/` | Explore feed: filter bar, masonry grid, video cards (ordered display: avatar → carousel → initials), portfolio gallery | ExploreFilterBar, ExploreGrid, ExploreVideoCard, PortfolioGallery |
 | `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings, media upload | ProviderHero, PortfolioGrid, ServicePackages, MediaUpload |
 | `components/booking/` | Booking flow: drawer, escrow timeline, dispute modal | BookingDrawer, EscrowTimeline |
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
