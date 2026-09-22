@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Landing Page — CreLab</title>
+<style>
+  :root {
+    --color-bg: #0A0A0A;
+    --color-surface: #141414;
+    --color-surface-raised: #1C1C1C;
+    --color-border: #2A2A2A;
+    --color-border-mid: #3D3D3D;
+    --color-accent: #E8FF47;
+    --color-accent-dim: #C8DF3C;
+    --color-accent-muted: #1E2200;
+    --color-text-primary: #F2F2F2;
+    --color-text-secondary: #9A9A9A;
+    --color-text-tertiary: #5C5C5C;
+    --color-text-inverse: #0A0A0A;
+    --font-display: 'Syne', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+  }
+  .light {
+    --color-bg: #FAFAF9;
+    --color-surface: #FFFFFF;
+    --color-surface-raised: #F2F2F0;
+    --color-border: #E4E4E0;
+    --color-border-mid: #D4D4D0;
+    --color-accent: #A3B800;
+    --color-accent-dim: #8FA000;
+    --color-accent-muted: #F0F4D0;
+    --color-text-primary: #161615;
+    --color-text-secondary: #6B6B68;
+    --color-text-tertiary: #9C9C98;
+    --color-text-inverse: #FAFAF9;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--color-bg); color: var(--color-text-primary); font-family: var(--font-body); transition: background .3s, color .3s; }
+  .theme-toggle { position: fixed; top:1rem; right:1rem; display:flex; gap:.25rem; background: var(--color-surface); border:1px solid var(--color-border); border-radius:8px; padding:.25rem; z-index:100; }
+  .theme-toggle button { padding:.375rem .75rem; border-radius:6px; border:none; cursor:pointer; font-size:.75rem; font-weight:600; background:transparent; color:var(--color-text-secondary); }
+  .theme-toggle button.active { background:var(--color-accent); color:var(--color-text-inverse); }
+  .hero { width:100%; background: linear-gradient(to bottom, var(--color-surface), var(--color-bg)); border-bottom:1px solid var(--color-border); padding: 3rem 1.5rem; }
+  .hero-inner { max-width:1200px; margin:0 auto; display:flex; gap:2rem; align-items:center; justify-content:space-between; }
+  .badge { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .75rem; border-radius:999px; background:var(--color-accent-muted); color:var(--color-accent); font-size:.65rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; border:1px solid rgba(232,255,71,.2); margin-bottom:1rem; }
+  h1 { font-family:var(--font-display); font-weight:800; font-size:2.75rem; line-height:1.1; letter-spacing:-.02em; margin-bottom:1rem; }
+  .sub { color:var(--color-text-secondary); line-height:1.7; margin-bottom:1.5rem; }
+  .cta-row { display:flex; gap:.75rem; flex-wrap:wrap; }
+  .btn-primary { background:var(--color-accent); color:var(--color-text-inverse); border:none; padding:.75rem 1.5rem; border-radius:8px; font-weight:600; cursor:pointer; }
+  .btn-outlined { background:transparent; color:var(--color-text-primary); border:1px solid var(--color-border-mid); padding:.75rem 1.5rem; border-radius:8px; font-weight:600; cursor:pointer; }
+  .section { max-width:1200px; margin:0 auto; padding:2.5rem 1.5rem; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:12px; padding:1.25rem; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+  @media (max-width:900px){ .hero-inner{flex-direction:column-reverse; text-align:center;} .cta-row{justify-content:center;} .grid2,.grid3{grid-template-columns:1fr;} h1{font-size:1.875rem;} }
+</style>
+</head>
+<body>
+<div class="theme-toggle" id="themeToggle">
+  <button data-theme="system" class="active">System</button>
+  <button data-theme="light">Light</button>
+  <button data-theme="dark">Dark</button>
+</div>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div style="flex:1; max-width:580px;">
+      <span class="badge">✦ Config-driven · Escrow-secured · Built for Africa</span>
+      <h1>Get hired for your creativity, not your follower count.</h1>
+      <p class="sub">Discover vetted creators, book securely with escrow, and bring your vision to life — without chasing follower counts.</p>
+      <div class="cta-row">
+        <button class="btn-primary">Explore Creators</button>
+        <button class="btn-outlined">Join as Creator</button>
+      </div>
+      <p style="margin-top:1rem; font-size:.8125rem; color:var(--color-text-tertiary);">Escrow protected · Paystack & wallet · Verified creators</p>
+    </div>
+    <div style="flex-shrink:0; text-align:center;">
+      <div style="width:360px; max-width:90vw; height:160px; background:var(--color-surface-raised); border:1px solid var(--color-border); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--color-text-tertiary);">CreLab Logo</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:.5rem; margin-top:1rem;">
+        <div class="card" style="padding:.75rem; text-align:center;"><strong>1.2k+</strong><br><span style="font-size:.65rem; color:var(--color-text-tertiary);">Creators</span></div>
+        <div class="card" style="padding:.75rem; text-align:center;"><strong>5k+</strong><br><span style="font-size:.65rem; color:var(--color-text-tertiary);">Bookings</span></div>
+        <div class="card" style="padding:.75rem; text-align:center;"><strong style="color:var(--color-accent);">4.9</strong><br><span style="font-size:.65rem; color:var(--color-text-tertiary);">Rating</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 style="font-family:var(--font-display); font-weight:700; font-size:1.35rem; margin-bottom:.5rem;">Browse by category</h2>
+  <div class="grid2">
+    <div class="card"><strong>Content Creator</strong><p style="color:var(--color-text-secondary); font-size:.875rem; margin-top:.25rem;">UGC, lifestyle, brand content, social media</p></div>
+    <div class="card"><strong>Cinematographer / Videographer</strong><p style="color:var(--color-text-secondary); font-size:.875rem; margin-top:.25rem;">Events, commercials, narrative, documentary</p></div>
+  </div>
+</section>
+
+<section style="background:var(--color-surface); border-top:1px solid var(--color-border); border-bottom:1px solid var(--color-border);">
+  <div class="section" style="padding-top:2.5rem; padding-bottom:2.5rem;">
+    <h2 style="font-family:var(--font-display); font-weight:700; font-size:1.35rem; text-align:center; margin-bottom:.5rem;">How CreLab works</h2>
+    <p style="color:var(--color-text-secondary); text-align:center; max-width:640px; margin:0 auto 1.5rem;">Simple, transparent, and escrow-protected.</p>
+    <div class="grid3">
+      <div class="card" style="background:var(--color-bg);"><div style="width:28px; height:28px; border-radius:50%; background:var(--color-accent); color:var(--color-text-inverse); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.75rem; margin-bottom:.5rem;">1</div><strong>Discover</strong><p style="color:var(--color-text-secondary); font-size:.8125rem; margin-top:.25rem;">Browse creators by category, location, and budget.</p></div>
+      <div class="card" style="background:var(--color-bg);"><div style="width:28px; height:28px; border-radius:50%; background:var(--color-accent); color:var(--color-text-inverse); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.75rem; margin-bottom:.5rem;">2</div><strong>Book & pay</strong><p style="color:var(--color-text-secondary); font-size:.8125rem; margin-top:.25rem;">Pick a package, set a date, pay securely via escrow.</p></div>
+      <div class="card" style="background:var(--color-bg);"><div style="width:28px; height:28px; border-radius:50%; background:var(--color-accent); color:var(--color-text-inverse); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.75rem; margin-bottom:.5rem;">3</div><strong>Deliver & get paid</strong><p style="color:var(--color-text-secondary); font-size:.8125rem; margin-top:.25rem;">Collaborate, deliver, approve — funds auto-release.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="text-align:center;">
+  <div class="card" style="padding:2rem;">
+    <h2 style="font-family:var(--font-display); font-weight:700; font-size:1.35rem;">Ready to get started?</h2>
+    <p style="color:var(--color-text-secondary); max-width:520px; margin:.5rem auto 1rem;">Explore talent now — or create your own creator profile.</p>
+    <div class="cta-row" style="justify-content:center;">
+      <button class="btn-primary">Explore creators →</button>
+      <button class="btn-outlined">Meet the team</button>
+    </div>
+  </div>
+  <p style="margin-top:2rem; font-size:.75rem; color:var(--color-text-tertiary);">Routes: <code>/</code> (primary) and <code>/home</code> (alias) both serve this landing. Explore lives at <code>/explore</code>. Footer links to Home.</p>
+</section>
+
+<script>
+  const btns=document.querySelectorAll('#themeToggle [data-theme]');
+  btns.forEach(b=>b.addEventListener('click',()=>{
+    btns.forEach(x=>x.classList.remove('active')); b.classList.add('active');
+    const t=b.dataset.theme;
+    if(t==='dark') document.documentElement.classList.remove('light'),document.body.classList.remove('light');
+    else if(t==='light') document.body.classList.add('light'),document.documentElement.classList.add('light');
+    else { const p=window.matchMedia('(prefers-color-scheme: light)').matches; document.body.classList.toggle('light',p); document.documentElement.classList.toggle('light',p); }
+  }));
+</script>
+</body>
+</html>
