@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: Session 2026-09-22 — provider tiles public + ordered display
-> - last-verified-against-code: 2026-09-22
+> - last-updated-by: Session 2026-09-23 — seed rollback + package panel wrap + nav home removal + explore source tag removal
+> - last-verified-against-code: 2026-09-23
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -1142,3 +1142,38 @@ Phase 2 (messaging, in-app notification centre, reviews, pricing guidance, ident
 
 **Next Task:**
 Residual test failures to address separately: `__tests__/media.test.ts:72` (size-limit message mismatch) + `__tests__/services/BlogPostService.test.ts:89,98` (adminList mock length 7 vs 1). Phase 2 backlog unchanged (messaging, reviews, pricing guidance, verification).
+
+## Session 2026-09-23 — Seed Rollback + Book Panel Wrap + Nav Home Removal + Explore Source Tag Removal
+
+**Directive:** "two things quickly, rollback seed data, and then … the panel on the provider portfolio that has 'Book / Select a package to get started', right below that, the options for the packages isn't properly responsive, it overflows the container and overlaps other things on the page, whereas there should be wordwrap to contain it and all. Also, the home link on the nav menu isn't necessary, it's okay having it linked from the logo and on the footer, and additionally on the content view on the explore page, the direct upload or synced tag doesn't need to be displayed (remember that's only meant for providers viewing their content on their portfolio or an admin viewing the provider's portfolio. No breaking changes please."
+
+**Completed:**
+1. **Seed rollback** — `npm run db:seed:rollback` ran clean against marker `2026-07-21-v1`; all seeded rows deleted in reverse FK dependency order (wallet_transactions → … → users → seed marker). DB is unseeded; `npm run db:seed` re-seeds on demand.
+2. **Book panel package options now wrap and contain** — root cause: `BookingSidebarDisplay` rendered package option rows through `ClButton`, which hardcodes `whitespace-nowrap` and a fixed `h-10`, and wraps all children in a single `<span>` so the intended `flex justify-between` inner layout never applied (block text div + inline price inside the wrapper span pushed the price to a second line and the nowrap text overflowed the 340px sidebar column, overlapping the page). Fix: package rows are now native `<button>` elements (same precedent as `BookingSidebar`'s native `<label>` rows and other raw buttons in Navbar/PortfolioGrid) with `w-full flex justify-between gap-3`, `flex-1 min-w-0 break-words` on the label side, and `shrink-0 whitespace-nowrap` on the price — long labels word-wrap inside the container, price stays intact, height grows naturally. `BookingSidebar` hardened the same way (`break-words` + price `shrink-0 whitespace-nowrap`). Unused `ClButton` import dropped from `BookingSidebarDisplay`.
+3. **Home link removed from nav menu** — dropped `{ href: "/", label: "Home" }` from `navLinks` in `components/shared/Navbar.tsx` (desktop + mobile overlay both derive from `visibleLinks`). Logo → `/` and the Footer Home links remain, per directive.
+4. **Source tag hidden on explore content view** — `components/explore/ExploreVideoCard.tsx` gallery (content) mode no longer renders the "Direct Upload" / "Google Drive" source badge; the `source` const, `getSourceIcon`/`getSourceLabel` helpers, `HardDrive`/`Cloud` imports, and the dead `isGalleryMode`-guarded source snippets in the provider branch were removed. `AssetLightbox` gained `showSource?: boolean` (default `true` — portfolio contexts unchanged) gating the "· Direct upload ·" meta segment and the "Open in Google Drive" link; explore's internal lightbox passes `showSource={false}`. Provider-facing surfaces (`/profile/media` badges, dashboard `PortfolioGalleryGrid` `item.source`, Drive portfolio section header) untouched.
+
+**Compliance:**
+- Planning pass: read `task-queue.md`, `system-architecture.md`, `design-system.md`, `repair-system.md`, `project-context.md`, `memory/project-decisions.md`; decomposed into 4 tasks; no architecture impact (UI-only + script run) → no `plan-feature`; wrote `checkpoints/in-progress.md`.
+- Self-check: seed rollback is a documented reversible path (system-architecture Database Seeding Flow); nav/footer logo linking unchanged; source-tag visibility rule is a product-scoped display change with no API/type change; no conflicts with `project-decisions.md`.
+- Implementation: per `agents/implementer.md`; design tokens via `var(--color-*)` (no raw hex); Cl* rule respected for shadcn primitives (native `<button>` used only where `ClButton`'s hardcoded nowrap/fixed-height cannot express a wrapping row — precedent: `BookingSidebar` labels, Navbar buttons).
+- QA gate (`verify-work`): `tsc --noEmit` clean; `next lint` 0 errors (pre-existing API-route warnings only, none in touched files); `next build` ✓ compiled, 95 static pages; `vitest` 255/258 (same 3 pre-existing unrelated failures: `media.test.ts:72` message + `BlogPostService` adminList mocks ×2).
+- Doc sync: `sync-context.md` at close — session-log, dev-history, task-queue, test-results, repair-system (new ClButton overflow pattern), project-decisions (source-tag context rule), in-progress cleared.
+
+**Assumptions (minor):**
+- Hiding the source in the explore lightbox (meta segment + "Open in Google Drive" link) was included under "the direct upload or synced tag doesn't need to be displayed" since it is the same provenance UI on the explore content view; portfolio-context default is unchanged.
+- Package rows converted from `ClButton` to native `<button>` to achieve wrapping without changing shared `ClButton` behaviour for every other consumer (no breaking change); visuals mirror the outlined variant + existing design tokens.
+
+**Files Modified:**
+- `scripts/seed-rollback.ts` — executed (no code change)
+- `components/profile/BookingSidebarDisplay.tsx` — native wrapping package-row buttons
+- `components/profile/BookingSidebar.tsx` — `break-words` + price `shrink-0 whitespace-nowrap`
+- `components/shared/Navbar.tsx` — Home link removed from `navLinks`
+- `components/explore/ExploreVideoCard.tsx` — source badge + helpers/imports/dead code removed; lightbox `showSource={false}`
+- `components/profile/AssetLightbox.tsx` — `showSource` prop (default true)
+- `ai-system/` — session-log (this entry), dev-history, task-queue, test-results, repair-system, project-decisions, in-progress cleared
+
+**Build Status:** ✅ `tsc --noEmit` clean, `next lint` 0 errors, `next build` ✓ (95 pages), 255/258 tests pass (3 pre-existing unrelated failures).
+
+**Next Task:**
+Same residuals as Session 2026-09-22: `media.test.ts:72` + `BlogPostService.test.ts:89,98`. Re-seed with `npm run db:seed` when test data is needed. Phase 2 backlog unchanged.
