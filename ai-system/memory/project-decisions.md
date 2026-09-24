@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: Session 33
-> - last-verified-against-code: 2026-08-20
+> - last-updated-by: Session 2026-09-23
+> - last-verified-against-code: 2026-09-23
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -33,6 +33,26 @@
 ---
 
 ## Decisions
+
+## Portfolio Source Provenance (DIRECT/DRIVE) Is Portfolio-Context UI Only
+
+**Decision:** The "Direct Upload" / "Google Drive" (synced) source tag is displayed only where the viewer is a provider managing/viewing their own portfolio content or an admin reviewing a provider's portfolio (e.g. `/profile/media` badges, dashboard `PortfolioGalleryGrid`, Drive portfolio section). It is NOT displayed on the public explore content view (gallery tiles or their lightbox).
+**Date:** 2026-09-23
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Source provenance is an internal/operational detail for portfolio management and admin review; on the public discovery feed it is noise and leaks upload plumbing to clients who only care about the work itself.
+
+**Alternatives Considered:**
+- Removing the tag everywhere — rejected: providers and admins still need it for portfolio management context.
+- Gating on auth role alone in explore — rejected: even logged-in clients browsing explore have no need for it; the view (content feed) is the right gate, not the role.
+
+**Implications:**
+`AssetLightbox` takes `showSource?: boolean` (default `true` — portfolio callers unchanged); explore's internal lightbox passes `false`. Any new public-facing surface that renders portfolio items should pass `showSource={false}` (or omit source badges entirely); portfolio/admin surfaces keep the default.
+
+---
 
 ## Payment Truthfulness: Verify, Don't Assume, on Paystack Returns
 

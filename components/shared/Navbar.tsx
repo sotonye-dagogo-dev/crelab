@@ -9,7 +9,6 @@ import { ClLogo } from "@/components/ui";
 import { ThemeToggler } from "./ThemeToggler";
 
 const navLinks = [
-  { href: "/", label: "Home" },
   { href: "/explore", label: "Explore" },
   { href: "/how-it-works", label: "How It Works" },
   { href: "/about", label: "About" },

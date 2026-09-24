@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Play, HardDrive, Cloud, Image as ImageIcon, Film, ExternalLink } from "lucide-react";
+import { Play, Image as ImageIcon, Film, ExternalLink } from "lucide-react";
 import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
 import { AssetLightbox } from "@/components/profile/AssetLightbox";
 import type { IExploreCard, IPortfolioItem } from "@/types";
@@ -31,7 +31,6 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
   const providerVerified = provider?.verified ?? portfolioItem?.providerVerified ?? false;
   const rating = provider?.rating ?? portfolioItem?.avgRating ?? null;
   const packagePriceFromKobo = provider?.packagePriceFromKobo ?? null;
-  const source = portfolioItem?.source;
   const [lightboxItem, setLightboxItem] = useState<IPortfolioItem | null>(null);
 
   useEffect(() => {
@@ -130,15 +129,6 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
     return `₦${(kobo / 100).toLocaleString("en-NG")}`;
   };
 
-  const getSourceIcon = () => {
-    if (source === "DRIVE") return <HardDrive size={10} strokeWidth={1.8} className="inline mr-1" />;
-    return <Cloud size={10} strokeWidth={1.8} className="inline mr-1" />;
-  };
-
-  const getSourceLabel = () => {
-    return source === "DRIVE" ? "Google Drive" : "Direct Upload";
-  };
-
   const getMediaTypeIcon = () => {
     if (portfolioItem?.mimeType.startsWith("video/")) return <Film size={10} strokeWidth={1.8} className="inline mr-1" />;
     return <ImageIcon size={10} strokeWidth={1.8} className="inline mr-1" />;
@@ -220,12 +210,6 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
                 <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-[family-name:var(--font-body)] text-[11px] font-medium whitespace-nowrap">
                   {categoryLabel || "Portfolio"}
                 </span>
-                {source && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)] font-[family-name:var(--font-body)] text-[9px] font-medium whitespace-nowrap border border-[var(--color-border)]">
-                    {getSourceIcon()}
-                    {getSourceLabel()}
-                  </span>
-                )}
               </div>
               <span className="font-[family-name:var(--font-display)] text-[13px] font-medium text-white leading-[1.2] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                 {displayName}
@@ -248,6 +232,7 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
             item={lightboxItem}
             providerName={lightboxItem.providerName}
             indexOneBased={assetIndexOneBased ?? 1}
+            showSource={false}
             onClose={() => setLightboxItem(null)}
           />
         )}
@@ -352,12 +337,6 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
               <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-[family-name:var(--font-body)] text-[11px] font-medium whitespace-nowrap">
                 {categoryLabel}
               </span>
-              {isGalleryMode && source && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)] font-[family-name:var(--font-body)] text-[9px] font-medium whitespace-nowrap border border-[var(--color-border)]">
-                  {getSourceIcon()}
-                  {getSourceLabel()}
-                </span>
-              )}
             </div>
             <span className="font-[family-name:var(--font-display)] text-[14px] font-medium text-[var(--color-text-primary)] leading-[1.2]">
               {displayName}
@@ -377,19 +356,6 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
                 </span>
               )}
             </div>
-            {isGalleryMode && portfolioItem && (
-              <div className="flex items-center gap-2 text-[10px] text-[var(--color-text-tertiary)] mt-1">
-                {getMediaTypeIcon()}
-                <span>{portfolioItem.mimeType}</span>
-                {source && (
-                  <>
-                    <span>·</span>
-                    {getSourceIcon()}
-                    <span>{getSourceLabel()}</span>
-                  </>
-                )}
-              </div>
-            )}
           </div>
 
           {providerVerified && (

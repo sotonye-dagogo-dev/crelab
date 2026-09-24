@@ -61,7 +61,7 @@ export function BookingSidebar({
                 <span className="w-2 h-2 rounded-full bg-[var(--color-accent)]" />
               )}
             </span>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 break-words">
               <span className="text-[13px] font-medium text-[var(--color-text-primary)]">
                 {tierLabels[pkg.tier] ?? pkg.tier}
               </span>
@@ -69,7 +69,7 @@ export function BookingSidebar({
                 {pkg.label}
               </span>
             </div>
-            <span className="font-semibold text-[14px] text-[var(--color-text-primary)]">
+            <span className="font-semibold text-[14px] text-[var(--color-text-primary)] shrink-0 whitespace-nowrap">
               ₦{(pkg.price / 100).toLocaleString()}
             </span>
           </label>

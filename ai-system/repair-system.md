@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 28)
-> - last-verified-against-code: 2026-08-18
+> - last-updated-by: Session 2026-09-23
+> - last-verified-against-code: 2026-09-23
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -46,6 +46,30 @@
 ---
 
 ## Known Error Patterns
+
+### ClButton Cannot Express Wrapping / Two-Sided Rows (whitespace-nowrap + fixed h-10 + children span)
+
+**Symptom:**
+A `ClButton` used as a list/option row (e.g. the profile "Book …" package options) overflows its container and overlaps adjacent page content. Long labels never wrap; any inner `flex justify-between` layout (text left, price right) doesn't take effect — content may stack or spill past the button's fixed height.
+
+**Root Cause:**
+`components/ui/ClButton.tsx` hardcodes `whitespace-nowrap` and a fixed height (`h-10`/`h-12` from `sizeStyles`), and wraps ALL children in a single `<span>` (for the loading state). Consequences: (1) text can never wrap → min-content width = full line → overflows narrow columns; (2) the wrapper span is the button's only flex item, so `justify-between`/`flex-1` on children inside it do nothing — a block child followed by an inline price forces the price onto a second line, which then spills past `h-10` (overlap).
+
+**Fix Applied:**
+Replaced `ClButton` with a native `<button>` for the package option rows: `w-full flex items-center justify-between gap-3`, label side `flex-1 min-w-0 break-words`, price `shrink-0 whitespace-nowrap`, height auto (grows with wrapped content). `BookingSidebar`'s native `<label>` rows got the same `break-words` + price `whitespace-nowrap` hardening. `ClButton` itself was deliberately left unchanged (every other consumer relies on nowrap/fixed-height CTAs).
+
+**Prevention:**
+Do not use `ClButton` for multi-line, content-sized, or two-sided rows — it is a fixed-height CTA primitive. For wrapping rows use a native `<button>`/`<label>` with `min-w-0 break-words` on the flexible text side and `shrink-0 whitespace-nowrap` on numeric/price side (precedent: `BookingSidebar`, `PortfolioGrid` col toggles, `Navbar` hamburger). If `ClButton` must wrap text, its shared implementation would need an opt-in (children unwrapped + `h-auto` + `whitespace-normal`) — do not fork the class merge, Tailwind conflict order is not guaranteed.
+
+**Files Affected:**
+- `components/profile/BookingSidebarDisplay.tsx`
+- `components/profile/BookingSidebar.tsx`
+- `components/ui/ClButton.tsx` (unchanged — constraint documented)
+
+**Date:** 2026-09-23
+**Status:** Active
+
+---
 
 ### Vercel Cron — Custom `x-cron-secret` Header Always Returns 401
 

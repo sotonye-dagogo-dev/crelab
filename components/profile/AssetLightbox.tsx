@@ -10,10 +10,12 @@ interface AssetLightboxProps {
   item: IPortfolioItem | null;
   providerName?: string;
   indexOneBased?: number;
+  /** Show the DIRECT/DRIVE source in the meta line (portfolio contexts only; hidden on explore) */
+  showSource?: boolean;
   onClose: () => void;
 }
 
-export function AssetLightbox({ item, providerName, indexOneBased, onClose }: AssetLightboxProps) {
+export function AssetLightbox({ item, providerName, indexOneBased, showSource = true, onClose }: AssetLightboxProps) {
   if (!item) return null;
   const isVideo = item.mimeType.startsWith("video/");
   const isPdf = item.mimeType === "application/pdf";
@@ -72,9 +74,10 @@ export function AssetLightbox({ item, providerName, indexOneBased, onClose }: As
             <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">{item.caption}</p>
           )}
           <p className="text-[11px] text-[var(--color-text-tertiary)]">
-            {item.mimeType} · {item.source === "DRIVE" ? "Google Drive" : "Direct upload"} · {new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+            {item.mimeType}
+            {showSource && <> · {item.source === "DRIVE" ? "Google Drive" : "Direct upload"}</>} · {new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
           </p>
-          {isDrive && !isVideo && (
+          {showSource && isDrive && !isVideo && (
             <a
               href={item.url}
               target="_blank"

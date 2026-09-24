@@ -1,9 +1,31 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: provider-tiles-public + display-preference-order (Session 2026-09-22)
-> - last-verified-against-code: 2026-09-22
+> - last-updated-by: seed-rollback + panel-wrap + nav-home + explore-source-tag (Session 2026-09-23)
+> - last-verified-against-code: 2026-09-23
 
+
+## Sprint 2026-09-23 — Seed Rollback + Book Panel Wrap + Nav Home Removal + Explore Source Tag
+
+### What
+Four quick items: rolled back all seed data; fixed the provider-profile "Book / Select a package to get started" panel where package options overflowed the sidebar and overlapped page content (now word-wrapped and contained); removed the redundant Home link from the nav menu (logo → `/` and footer Home remain); removed the "Direct Upload" / "Google Drive" source tag from the explore content view (source provenance stays a provider-portfolio/admin concern).
+
+### Why
+- Seed data had served its purpose; clean DB requested.
+- Package labels rendered inside `ClButton` (hardcoded `whitespace-nowrap` + fixed `h-10` + children wrapped in a single `<span>`, so the row's flex layout never applied) — long labels pushed past the 340px sidebar column and overlapped the page.
+- Home was reachable via logo and footer — a third nav entry was noise.
+- The direct-upload/synced tag is internal provenance (provider viewing own portfolio / admin reviewing it); it doesn't belong on the public explore content feed.
+
+### Key Changes
+- **`scripts/seed-rollback.ts`** — executed against marker `2026-07-21-v1`; all seeded rows removed in reverse FK order (no code change).
+- **`components/profile/BookingSidebarDisplay.tsx`** — package rows are native `<button>`s: `w-full flex justify-between gap-3`, label side `flex-1 min-w-0 break-words`, price `shrink-0 whitespace-nowrap`; grows with wrapped content, contained within the sidebar.
+- **`components/profile/BookingSidebar.tsx`** — same containment hardening (`break-words`, price `shrink-0 whitespace-nowrap`).
+- **`components/shared/Navbar.tsx`** — `navLinks` Home entry removed (desktop + mobile derive from the same array).
+- **`components/explore/ExploreVideoCard.tsx`** — source badge removed from gallery/content mode; `source`/`getSourceIcon`/`getSourceLabel`/`HardDrive`/`Cloud` and dead `isGalleryMode` source snippets removed; explore lightbox opens with `showSource={false}`.
+- **`components/profile/AssetLightbox.tsx`** — new `showSource?: boolean` (default `true`); gates the "· Direct upload ·" meta segment and "Open in Google Drive" link. Portfolio callers unchanged (non-breaking additive prop).
+
+### Status
+Pass — `tsc --noEmit` clean, `next lint` 0 errors (pre-existing warnings only), `next build` compiled (95 static pages), `vitest` 255/258 pass (3 pre-existing failures unrelated: `media.test.ts` size message + `BlogPostService.test.ts` adminList mocks).
 
 ## Sprint 2026-09-22 — Provider Tiles Public + Ordered Display Preference (avatar → content toggling → name)
 
