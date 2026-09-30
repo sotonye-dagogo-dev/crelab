@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: Session 2026-09-23 — seed rollback + package panel wrap + nav home removal + explore source tag removal
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: execute-feature (Session 2026-09-30 — planning pass)
+> - last-verified-against-code: 2026-09-30
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -1177,3 +1177,26 @@ Residual test failures to address separately: `__tests__/media.test.ts:72` (size
 
 **Next Task:**
 Same residuals as Session 2026-09-22: `media.test.ts:72` + `BlogPostService.test.ts:89,98`. Re-seed with `npm run db:seed` when test data is needed. Phase 2 backlog unchanged.
+
+## Session 2026-09-30 — Execute Feature: Founding-100 Badge + Referrals/Leaderboard + Countdown Widget + Error-Boundary Bug Reporting
+
+**Directive:** execute-feature.md. Four additions, all non-breaking, config-driven and admin-manageable: (1) track the first 100 users with a UI badge without touching the user schema — derive from the existing registration timestamp so existing users are counted, not skipped; (2) a referral system with unique invite links, points for direct referrals and for referrals-of-referrals, plus a public leaderboard page powered by referrals but extensible to other factors; (3) a reusable countdown widget (admin-editable content, timeline, icon) usable as a widget on the landing and explore pages with decent animations; (4) advance the bug-report system so an error boundary intercepts errors, pops up an encouragement to report, carries the sanitised error (console logs + stack) into the bug-report form and the admin bug-reports page, while the user can keep using the platform.
+
+**Planning pass (this entry — trace for the task-queue mutation):**
+1. Read `planning/task-queue.md`, `system-architecture.md`, `design-system.md`, `repair-system.md`, `project-context.md`, `memory/project-decisions.md`, `standards/engineering-principles.md`.
+2. Architecture impact: **YES** — two new tables, three new services, four new API routes, two new public/auth pages, one new admin page, two new error boundaries. `plan-feature.md` logic therefore ran, and explicit go/no-go sign-off was requested before any implementation.
+3. Appended a **Current Sprint — Growth & Reliability (2026-09-30)** table to `planning/task-queue.md` with 6 tasks ([M]/[L]).
+4. Wrote `checkpoints/in-progress.md` with the full decomposition, data flow, risks and self-check.
+
+**Self-check (Step 2):**
+- Scope: consistent with `project-context.md` — guest browse preserved (leaderboard public, `/referrals` gated), NDPR-safe (leaderboard renders only already-public profile fields: display name + avatar — no emails, no ids in URLs), no new external integrations, no money handling.
+- Conflicts: none. Respects `Guest Browse, Gate Booking`, `PlatformConfigService: Config Context + DB Override + Cache`, `Centralised AuditService` (config writes already audit), and `In-App Notification Centre = Phase 2` (untouched).
+- Principles: §1/§3 config + hardcoded fallbacks; §2 metadata-driven leaderboard factors; §4 extend `Cl*` catalog rather than fork primitives; §11 one route per screen; §12 ACID on the two-table referral write; §13 catalog; §15 lucide icons only (countdown icon is an allowlist); §16 iterate config arrays; §21 paginated leaderboard; §23 audit via the existing config PATCH.
+
+**Files Added (planning):**
+- `ai-system/checkpoints/in-progress.md` — plan
+- `ai-system/planning/task-queue.md` — new sprint table
+- `ai-system/checkpoints/session-log.md` — this entry
+
+**Build Status:** planning only — no code changed yet.
+

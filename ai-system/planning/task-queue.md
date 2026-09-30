@@ -60,6 +60,19 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 ---
 
+## Current Sprint — Growth & Reliability (2026-09-30)
+
+| Size | Task | Status |
+|------|------|--------|
+| [M] | Founding-100 badge: `EarlyMemberService` rank-over-`user.createdAt` (no schema change), `firstHundred` config, `/api/early-access`, `EarlyMemberBadge` in navbar + profile | [ ] |
+| [L] | Referral system: `referral_codes` + `referral_events` migration, `ReferralService` (cookie claim, degree-1 + degree-2 ACID write), `?ref=` capture, `/register` claim hook, `/api/referrals/*`, `/referrals` page | [ ] |
+| [M] | Leaderboard: `LeaderboardService` pluggable factor registry (referrals first), `leaderboard` config, `/api/leaderboard`, public `/leaderboard` page, nav/footer links | [ ] |
+| [M] | Countdown widget: `countdown` config + icon allowlist, `CountdownWidget`/`CountdownSlot` with framer-motion, landing + explore slots, `/admin/countdown` editor | [ ] |
+| [L] | Error-boundary bug reporting: `app/error.tsx` + `global-error.tsx`, global catcher, sanitised console/stack capture, popup → `/bug-report` with `errorContext`, `bug_reports.error_context` column, admin triage block, `bugReport` config | [ ] |
+| [S] | Platform docs + tests: How It Works referral section/FAQs, explainer copy, new test suite for the four features | [ ] |
+
+---
+
 ## Backlog
 
 | Size | Task |
