@@ -80,12 +80,12 @@ export class EscrowService implements IEscrowService {
     if (booking.status !== "ACCEPTED")
       throw new Error("Booking must be ACCEPTED before payment");
 
-    const ref = `CRELAB-${booking.id}-${Date.now()}`;
+    const ref = `CRELLAB-${booking.id}-${Date.now()}`;
 
     // Use real client email for Paystack receipt + webhook attribution; fallback only for missing email
     const { user } = await import("@/drizzle/schema");
     const [client] = await db.select({ email: user.email }).from(user).where(eq(user.id, booking.clientId));
-    const clientEmail = client?.email ?? "payment@crelab.app";
+    const clientEmail = client?.email ?? "payment@crellab.app";
 
     const result = await initTransaction(
       booking.total,

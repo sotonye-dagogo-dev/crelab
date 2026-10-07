@@ -15,31 +15,31 @@ interface SeedUser {
 }
 
 const seedUsers: SeedUser[] = [
-  { name: "Amara Okafor", email: "admin@crelab.test", role: "ADMIN", phoneNumber: "+2348010000001" },
-  { name: "Chioma Eze", email: "chioma@crelab.test", role: "PROVIDER", phoneNumber: "+2348020000001" },
-  { name: "Femi Adeyemi", email: "femi@crelab.test", role: "PROVIDER", phoneNumber: "+2348020000002" },
-  { name: "Zainab Bello", email: "zainab@crelab.test", role: "PROVIDER", phoneNumber: "+2348020000003" },
-  { name: "Tunde Bakare", email: "tunde@crelab.test", role: "PROVIDER", phoneNumber: "+2348020000004" },
-  { name: "Kemi Balogun", email: "kemi@crelab.test", role: "PROVIDER", phoneNumber: "+2348020000005" },
-  { name: "Sola Adegoke", email: "sola@crelab.test", role: "CLIENT", phoneNumber: "+2348030000001" },
-  { name: "Ngozi Okonkwo", email: "ngozi@crelab.test", role: "CLIENT", phoneNumber: "+2348030000002" },
-  { name: "Efe Thompson", email: "efe@crelab.test", role: "CLIENT", phoneNumber: "+2348030000003" },
-  { name: "Yetunde Gbadebo", email: "yetunde@crelab.test", role: "CLIENT", phoneNumber: "+2348030000004" },
+  { name: "Amara Okafor", email: "admin@crellab.test", role: "ADMIN", phoneNumber: "+2348010000001" },
+  { name: "Chioma Eze", email: "chioma@crellab.test", role: "PROVIDER", phoneNumber: "+2348020000001" },
+  { name: "Femi Adeyemi", email: "femi@crellab.test", role: "PROVIDER", phoneNumber: "+2348020000002" },
+  { name: "Zainab Bello", email: "zainab@crellab.test", role: "PROVIDER", phoneNumber: "+2348020000003" },
+  { name: "Tunde Bakare", email: "tunde@crellab.test", role: "PROVIDER", phoneNumber: "+2348020000004" },
+  { name: "Kemi Balogun", email: "kemi@crellab.test", role: "PROVIDER", phoneNumber: "+2348020000005" },
+  { name: "Sola Adegoke", email: "sola@crellab.test", role: "CLIENT", phoneNumber: "+2348030000001" },
+  { name: "Ngozi Okonkwo", email: "ngozi@crellab.test", role: "CLIENT", phoneNumber: "+2348030000002" },
+  { name: "Efe Thompson", email: "efe@crellab.test", role: "CLIENT", phoneNumber: "+2348030000003" },
+  { name: "Yetunde Gbadebo", email: "yetunde@crellab.test", role: "CLIENT", phoneNumber: "+2348030000004" },
 ];
 
 const providerEmails = [
-  "chioma@crelab.test",
-  "femi@crelab.test",
-  "zainab@crelab.test",
-  "tunde@crelab.test",
-  "kemi@crelab.test",
+  "chioma@crellab.test",
+  "femi@crellab.test",
+  "zainab@crellab.test",
+  "tunde@crellab.test",
+  "kemi@crellab.test",
 ] as const;
 
 const clientEmails = [
-  "sola@crelab.test",
-  "ngozi@crelab.test",
-  "efe@crelab.test",
-  "yetunde@crelab.test",
+  "sola@crellab.test",
+  "ngozi@crellab.test",
+  "efe@crellab.test",
+  "yetunde@crellab.test",
 ] as const;
 
 async function createUser(u: SeedUser, attempt = 1): Promise<string> {
@@ -73,7 +73,7 @@ async function createUser(u: SeedUser, attempt = 1): Promise<string> {
 }
 
 async function main() {
-  console.log("Seed: Crelab DB\n");
+  console.log("Seed: Crellab DB\n");
 
   const existing = await db.select().from(s.platformConfig).where(sql`${s.platformConfig.key} = ${SEED_MARKER_KEY}`);
   if (existing.length > 0) {
@@ -103,11 +103,11 @@ async function main() {
 
   console.log("\nCreating provider profiles...");
   const providers = [
-    { id: "prov-1", userId: P("chioma@crelab.test")!, categorySlug: "content-creator", displayName: "Chioma Eze Creative", bio: "Lagos-based content creator specialising in UGC, lifestyle, and brand storytelling. 5+ years crafting authentic narratives for Africa's biggest brands.", location: "Lagos, Nigeria", yearsActive: 5, experienceLevel: "ESTABLISHED" as const, featured: true, verified: true, profileViews: 1240 },
-    { id: "prov-2", userId: P("femi@crelab.test")!, categorySlug: "cinematographer", displayName: "Femi Adeyemi Films", bio: "Award-winning cinematographer with a passion for visual storytelling. From corporate commercials to narrative documentaries, I bring your vision to life.", location: "Abuja, Nigeria", yearsActive: 8, experienceLevel: "VETERAN" as const, featured: true, verified: true, profileViews: 890 },
-    { id: "prov-3", userId: P("zainab@crelab.test")!, categorySlug: "content-creator", displayName: "Zainab Bello Media", bio: "Kano-born content creator bridging the gap between northern Nigerian culture and modern brand storytelling. Specialise in Hausa/English bilingual content.", location: "Kano, Nigeria", yearsActive: 3, experienceLevel: "ESTABLISHED" as const, featured: false, verified: true, profileViews: 560 },
-    { id: "prov-4", userId: P("tunde@crelab.test")!, categorySlug: "cinematographer", displayName: "Tunde Bakare Visuals", bio: "Port Harcourt-based cinematographer and editor. Music videos, events, and commercial work. Sony FX6 and DJI RS4 Pro equipped.", location: "Port Harcourt, Nigeria", yearsActive: 6, experienceLevel: "ESTABLISHED" as const, featured: false, verified: false, profileViews: 720 },
-    { id: "prov-5", userId: P("kemi@crelab.test")!, categorySlug: "content-creator", displayName: "Kemi Balogun Studio", bio: "Ibadan-based creative director helping brands connect with Gen Z and Millennial audiences through authentic, scroll-stopping video content.", location: "Ibadan, Nigeria", yearsActive: 4, experienceLevel: "ESTABLISHED" as const, featured: true, verified: true, profileViews: 980 },
+    { id: "prov-1", userId: P("chioma@crellab.test")!, categorySlug: "content-creator", displayName: "Chioma Eze Creative", bio: "Lagos-based content creator specialising in UGC, lifestyle, and brand storytelling. 5+ years crafting authentic narratives for Africa's biggest brands.", location: "Lagos, Nigeria", yearsActive: 5, experienceLevel: "ESTABLISHED" as const, featured: true, verified: true, profileViews: 1240 },
+    { id: "prov-2", userId: P("femi@crellab.test")!, categorySlug: "cinematographer", displayName: "Femi Adeyemi Films", bio: "Award-winning cinematographer with a passion for visual storytelling. From corporate commercials to narrative documentaries, I bring your vision to life.", location: "Abuja, Nigeria", yearsActive: 8, experienceLevel: "VETERAN" as const, featured: true, verified: true, profileViews: 890 },
+    { id: "prov-3", userId: P("zainab@crellab.test")!, categorySlug: "content-creator", displayName: "Zainab Bello Media", bio: "Kano-born content creator bridging the gap between northern Nigerian culture and modern brand storytelling. Specialise in Hausa/English bilingual content.", location: "Kano, Nigeria", yearsActive: 3, experienceLevel: "ESTABLISHED" as const, featured: false, verified: true, profileViews: 560 },
+    { id: "prov-4", userId: P("tunde@crellab.test")!, categorySlug: "cinematographer", displayName: "Tunde Bakare Visuals", bio: "Port Harcourt-based cinematographer and editor. Music videos, events, and commercial work. Sony FX6 and DJI RS4 Pro equipped.", location: "Port Harcourt, Nigeria", yearsActive: 6, experienceLevel: "ESTABLISHED" as const, featured: false, verified: false, profileViews: 720 },
+    { id: "prov-5", userId: P("kemi@crellab.test")!, categorySlug: "content-creator", displayName: "Kemi Balogun Studio", bio: "Ibadan-based creative director helping brands connect with Gen Z and Millennial audiences through authentic, scroll-stopping video content.", location: "Ibadan, Nigeria", yearsActive: 4, experienceLevel: "ESTABLISHED" as const, featured: true, verified: true, profileViews: 980 },
   ];
   for (const p of providers) {
     await db.insert(s.providers).values({ ...p, active: true, createdAt: now30, updatedAt: now30 });
@@ -165,14 +165,14 @@ async function main() {
 
   console.log("\nCreating bookings in various states...");
   const bookings = [
-    { id: "bkg-1", providerId: pid(1), clientId: P("sola@crelab.test")!, packageId: "pkg-2", status: "REQUESTED" as const, escrowState: "PENDING" as const, paymentMode: "ESCROW" as const, subtotal: 150000, fee: 7500, total: 157500, scopeNotes: "Campaign for our new organic skincare line. Need 2 videos (vertical + horizontal) showcasing product benefits.", createdAt: daysAgo(5) },
-    { id: "bkg-2", providerId: pid(1), clientId: P("ngozi@crelab.test")!, packageId: "pkg-1", status: "ACCEPTED" as const, escrowState: "PENDING" as const, paymentMode: "ESCROW" as const, subtotal: 75000, fee: 3750, total: 78750, serviceDate: daysAgo(-3), scopeNotes: "Quick UGC video for our restaurant's new menu item. Want authentic, casual feel.", createdAt: daysAgo(10) },
-    { id: "bkg-3", providerId: pid(2), clientId: P("sola@crelab.test")!, packageId: "pkg-5", status: "HELD" as const, escrowState: "HELD" as const, paymentMode: "ESCROW" as const, subtotal: 300000, fee: 15000, total: 315000, serviceDate: daysAgo(7), paystackRef: "pay_abc123", scopeNotes: "60-second commercial for our fintech app launch. Script provided, need creative input on visuals.", createdAt: daysAgo(14) },
-    { id: "bkg-4", providerId: pid(2), clientId: P("efe@crelab.test")!, packageId: "pkg-4", status: "IN_PROGRESS" as const, escrowState: "IN_PROGRESS" as const, paymentMode: "ESCROW" as const, subtotal: 120000, fee: 6000, total: 126000, serviceDate: daysAgo(2), scopeNotes: "Highlight reel for our annual tech conference. Need 3-5 minute cut.", createdAt: daysAgo(20) },
-    { id: "bkg-5", providerId: pid(5), clientId: P("yetunde@crelab.test")!, packageId: "pkg-12", status: "RELEASED" as const, escrowState: "RELEASED" as const, paymentMode: "ESCROW" as const, subtotal: 250000, fee: 12500, total: 262500, serviceDate: daysAgo(20), paystackRef: "pay_def456", scopeNotes: "Full campaign content suite for our fashion brand's summer collection launch.", createdAt: daysAgo(30) },
-    { id: "bkg-6", providerId: pid(3), clientId: P("ngozi@crelab.test")!, packageId: "pkg-8", status: "DISPUTED" as const, escrowState: "DISPUTED" as const, paymentMode: "ESCROW" as const, subtotal: 120000, fee: 6000, total: 126000, serviceDate: daysAgo(10), paystackRef: "pay_ghi789", scopeNotes: "Brand partnership video for our snack brand. Need bilingual Hausa/English content.", createdAt: daysAgo(25) },
-    { id: "bkg-7", providerId: pid(4), clientId: P("efe@crelab.test")!, packageId: "pkg-10", status: "CANCELLED" as const, escrowState: "REFUNDED" as const, paymentMode: "ESCROW" as const, subtotal: 350000, fee: 17500, total: 367500, scopeNotes: "Event coverage for our company's 10th anniversary. Event was postponed.", createdAt: daysAgo(15) },
-    { id: "bkg-8", providerId: pid(5), clientId: P("sola@crelab.test")!, packageId: "pkg-11", status: "REQUESTED" as const, escrowState: "PENDING" as const, paymentMode: "ESCROW" as const, subtotal: 60000, fee: 3000, total: 63000, scopeNotes: "Need 3 TikTok-style reels for our new product teaser campaign.", createdAt: daysAgo(1) },
+    { id: "bkg-1", providerId: pid(1), clientId: P("sola@crellab.test")!, packageId: "pkg-2", status: "REQUESTED" as const, escrowState: "PENDING" as const, paymentMode: "ESCROW" as const, subtotal: 150000, fee: 7500, total: 157500, scopeNotes: "Campaign for our new organic skincare line. Need 2 videos (vertical + horizontal) showcasing product benefits.", createdAt: daysAgo(5) },
+    { id: "bkg-2", providerId: pid(1), clientId: P("ngozi@crellab.test")!, packageId: "pkg-1", status: "ACCEPTED" as const, escrowState: "PENDING" as const, paymentMode: "ESCROW" as const, subtotal: 75000, fee: 3750, total: 78750, serviceDate: daysAgo(-3), scopeNotes: "Quick UGC video for our restaurant's new menu item. Want authentic, casual feel.", createdAt: daysAgo(10) },
+    { id: "bkg-3", providerId: pid(2), clientId: P("sola@crellab.test")!, packageId: "pkg-5", status: "HELD" as const, escrowState: "HELD" as const, paymentMode: "ESCROW" as const, subtotal: 300000, fee: 15000, total: 315000, serviceDate: daysAgo(7), paystackRef: "pay_abc123", scopeNotes: "60-second commercial for our fintech app launch. Script provided, need creative input on visuals.", createdAt: daysAgo(14) },
+    { id: "bkg-4", providerId: pid(2), clientId: P("efe@crellab.test")!, packageId: "pkg-4", status: "IN_PROGRESS" as const, escrowState: "IN_PROGRESS" as const, paymentMode: "ESCROW" as const, subtotal: 120000, fee: 6000, total: 126000, serviceDate: daysAgo(2), scopeNotes: "Highlight reel for our annual tech conference. Need 3-5 minute cut.", createdAt: daysAgo(20) },
+    { id: "bkg-5", providerId: pid(5), clientId: P("yetunde@crellab.test")!, packageId: "pkg-12", status: "RELEASED" as const, escrowState: "RELEASED" as const, paymentMode: "ESCROW" as const, subtotal: 250000, fee: 12500, total: 262500, serviceDate: daysAgo(20), paystackRef: "pay_def456", scopeNotes: "Full campaign content suite for our fashion brand's summer collection launch.", createdAt: daysAgo(30) },
+    { id: "bkg-6", providerId: pid(3), clientId: P("ngozi@crellab.test")!, packageId: "pkg-8", status: "DISPUTED" as const, escrowState: "DISPUTED" as const, paymentMode: "ESCROW" as const, subtotal: 120000, fee: 6000, total: 126000, serviceDate: daysAgo(10), paystackRef: "pay_ghi789", scopeNotes: "Brand partnership video for our snack brand. Need bilingual Hausa/English content.", createdAt: daysAgo(25) },
+    { id: "bkg-7", providerId: pid(4), clientId: P("efe@crellab.test")!, packageId: "pkg-10", status: "CANCELLED" as const, escrowState: "REFUNDED" as const, paymentMode: "ESCROW" as const, subtotal: 350000, fee: 17500, total: 367500, scopeNotes: "Event coverage for our company's 10th anniversary. Event was postponed.", createdAt: daysAgo(15) },
+    { id: "bkg-8", providerId: pid(5), clientId: P("sola@crellab.test")!, packageId: "pkg-11", status: "REQUESTED" as const, escrowState: "PENDING" as const, paymentMode: "ESCROW" as const, subtotal: 60000, fee: 3000, total: 63000, scopeNotes: "Need 3 TikTok-style reels for our new product teaser campaign.", createdAt: daysAgo(1) },
   ];
   for (const b of bookings) {
     await db.insert(s.bookings).values({ ...b, updatedAt: b.createdAt });
@@ -194,8 +194,8 @@ async function main() {
 
   console.log("\nCreating reviews...");
   const reviews = [
-    { id: "rev-1", bookingId: "bkg-5", reviewerId: P("yetunde@crelab.test")!, providerId: pid(5), rating: 5, body: "Kemi exceeded our expectations! The campaign content was creative, on-brand, and delivered ahead of schedule. Our summer collection launch saw a 40% engagement increase. Will definitely work with Kemi again.", createdAt: daysAgo(15) },
-    { id: "rev-2", bookingId: "bkg-3", reviewerId: P("sola@crelab.test")!, providerId: pid(2), rating: 4, body: "Femi is incredibly talented. The commercial spot captured our brand vision perfectly. Communication was smooth. Only gave 4 stars because delivery was 2 days late, but the quality made up for it.", createdAt: daysAgo(5) },
+    { id: "rev-1", bookingId: "bkg-5", reviewerId: P("yetunde@crellab.test")!, providerId: pid(5), rating: 5, body: "Kemi exceeded our expectations! The campaign content was creative, on-brand, and delivered ahead of schedule. Our summer collection launch saw a 40% engagement increase. Will definitely work with Kemi again.", createdAt: daysAgo(15) },
+    { id: "rev-2", bookingId: "bkg-3", reviewerId: P("sola@crellab.test")!, providerId: pid(2), rating: 4, body: "Femi is incredibly talented. The commercial spot captured our brand vision perfectly. Communication was smooth. Only gave 4 stars because delivery was 2 days late, but the quality made up for it.", createdAt: daysAgo(5) },
   ];
   for (const r of reviews) {
     await db.insert(s.reviews).values(r);
@@ -204,7 +204,7 @@ async function main() {
 
   console.log("\nCreating disputes...");
   await db.insert(s.disputes).values({
-    id: "disp-1", bookingId: "bkg-6", raisedById: P("ngozi@crelab.test")!,
+    id: "disp-1", bookingId: "bkg-6", raisedById: P("ngozi@crellab.test")!,
     reason: "The delivered video did not include the agreed bilingual captions. Communication broke down after multiple revision requests. Requesting a partial refund.",
     createdAt: daysAgo(7),
   });
@@ -213,15 +213,15 @@ async function main() {
   console.log("\nCreating wallet records...");
   const walletUuids = ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002", "550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440004", "550e8400-e29b-41d4-a716-446655440005", "550e8400-e29b-41d4-a716-446655440006", "550e8400-e29b-41d4-a716-446655440007", "550e8400-e29b-41d4-a716-446655440008", "550e8400-e29b-41d4-a716-446655440009"];
   const wallets = [
-    { id: walletUuids[0], userId: P("chioma@crelab.test")!, balanceKobo: 250000, escrowKobo: 78750, totalEarnedKobo: 450000 },
-    { id: walletUuids[1], userId: P("femi@crelab.test")!, balanceKobo: 500000, escrowKobo: 315000, totalEarnedKobo: 1200000 },
-    { id: walletUuids[2], userId: P("zainab@crelab.test")!, balanceKobo: 80000, escrowKobo: 120000, totalEarnedKobo: 300000 },
-    { id: walletUuids[3], userId: P("tunde@crelab.test")!, balanceKobo: 150000, escrowKobo: 0, totalEarnedKobo: 600000 },
-    { id: walletUuids[4], userId: P("kemi@crelab.test")!, balanceKobo: 380000, escrowKobo: 63000, totalEarnedKobo: 850000 },
-    { id: walletUuids[5], userId: P("sola@crelab.test")!, balanceKobo: 1000000, escrowKobo: 63000, totalEarnedKobo: 0 },
-    { id: walletUuids[6], userId: P("ngozi@crelab.test")!, balanceKobo: 500000, escrowKobo: 126000, totalEarnedKobo: 0 },
-    { id: walletUuids[7], userId: P("efe@crelab.test")!, balanceKobo: 750000, escrowKobo: 126000, totalEarnedKobo: 0 },
-    { id: walletUuids[8], userId: P("yetunde@crelab.test")!, balanceKobo: 300000, escrowKobo: 0, totalEarnedKobo: 0 },
+    { id: walletUuids[0], userId: P("chioma@crellab.test")!, balanceKobo: 250000, escrowKobo: 78750, totalEarnedKobo: 450000 },
+    { id: walletUuids[1], userId: P("femi@crellab.test")!, balanceKobo: 500000, escrowKobo: 315000, totalEarnedKobo: 1200000 },
+    { id: walletUuids[2], userId: P("zainab@crellab.test")!, balanceKobo: 80000, escrowKobo: 120000, totalEarnedKobo: 300000 },
+    { id: walletUuids[3], userId: P("tunde@crellab.test")!, balanceKobo: 150000, escrowKobo: 0, totalEarnedKobo: 600000 },
+    { id: walletUuids[4], userId: P("kemi@crellab.test")!, balanceKobo: 380000, escrowKobo: 63000, totalEarnedKobo: 850000 },
+    { id: walletUuids[5], userId: P("sola@crellab.test")!, balanceKobo: 1000000, escrowKobo: 63000, totalEarnedKobo: 0 },
+    { id: walletUuids[6], userId: P("ngozi@crellab.test")!, balanceKobo: 500000, escrowKobo: 126000, totalEarnedKobo: 0 },
+    { id: walletUuids[7], userId: P("efe@crellab.test")!, balanceKobo: 750000, escrowKobo: 126000, totalEarnedKobo: 0 },
+    { id: walletUuids[8], userId: P("yetunde@crellab.test")!, balanceKobo: 300000, escrowKobo: 0, totalEarnedKobo: 0 },
   ];
   for (const w of wallets) {
     await db.insert(s.wallets).values({ ...w, createdAt: now30, updatedAt: now30 });
@@ -287,18 +287,18 @@ async function main() {
         { _type: "block", _key: "h2-1", style: "h2", children: [{ _type: "span", _key: "h2-1-text", text: "1. Define Your Goals" }] },
         { _type: "block", _key: "p1", style: "normal", children: [{ _type: "span", _key: "p1-text", text: "Before you start browsing portfolios, get crystal clear on what you want to achieve. Are you looking for brand awareness? Product sales? Event coverage? Different creators excel at different types of content." }] },
         { _type: "block", _key: "h2-2", style: "h2", children: [{ _type: "span", _key: "h2-2-text", text: "2. Review Their Portfolio" }] },
-        { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "A creator's portfolio is their resume. Look for consistency in quality, storytelling ability, and whether their style aligns with your brand's aesthetic. On Crelab, you can watch video portfolios directly in the feed." }] },
+        { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "A creator's portfolio is their resume. Look for consistency in quality, storytelling ability, and whether their style aligns with your brand's aesthetic. On Crellab, you can watch video portfolios directly in the feed." }] },
         { _type: "block", _key: "h2-3", style: "h2", children: [{ _type: "span", _key: "h2-3-text", text: "3. Check Reviews and Ratings" }] },
         { _type: "block", _key: "p3", style: "normal", children: [{ _type: "span", _key: "p3-text", text: "Previous client experiences tell you a lot. Look for creators with consistent high ratings and detailed reviews that mention professionalism, communication, and delivery quality." }] },
         { _type: "block", _key: "h2-4", style: "h2", children: [{ _type: "span", _key: "h2-4-text", text: "4. Start with a Small Project" }] },
-        { _type: "block", _key: "p4", style: "normal", children: [{ _type: "span", _key: "p4-text", text: "If you're unsure, many creators offer basic packages that are perfect for a trial run. Crelab's escrow system protects both parties, so you can start with confidence." }] },
-        { _type: "block", _key: "outro", style: "normal", children: [{ _type: "span", _key: "outro-text", text: "Ready to find your perfect creator? Browse Crelab's curated marketplace and discover Nigeria's best creative talent today." }] },
+        { _type: "block", _key: "p4", style: "normal", children: [{ _type: "span", _key: "p4-text", text: "If you're unsure, many creators offer basic packages that are perfect for a trial run. Crellab's escrow system protects both parties, so you can start with confidence." }] },
+        { _type: "block", _key: "outro", style: "normal", children: [{ _type: "span", _key: "outro-text", text: "Ready to find your perfect creator? Browse Crellab's curated marketplace and discover Nigeria's best creative talent today." }] },
       ],
       metaDescription: "A practical guide for brands looking to hire content creators in Nigeria. Learn how to evaluate portfolios, check reviews, and find the perfect creative partner.",
       heroImageUrl: null,
       category: "hiring-guides",
       tags: ["hiring", "content creation", "brand marketing"],
-      author: "Crelab Editorial",
+      author: "Crellab Editorial",
       published: true,
       publishedAt: new Date("2026-07-15").toISOString(),
     },
@@ -311,7 +311,7 @@ async function main() {
         { _type: "block", _key: "h2-1", style: "h2", children: [{ _type: "span", _key: "h2-1-text", text: "Know Your Costs" }] },
         { _type: "block", _key: "p1", style: "normal", children: [{ _type: "span", _key: "p1-text", text: "Start by calculating your monthly operating costs: equipment maintenance, software subscriptions, transportation, data, and your own time. A simple formula: (Monthly Costs + Desired Salary) / Available Working Days = Minimum Daily Rate." }] },
         { _type: "block", _key: "h2-2", style: "h2", children: [{ _type: "span", _key: "h2-2-text", text: "Research Market Rates" }] },
-        { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "On Crelab, you can browse what other creators with similar experience levels charge. Emerging creators typically price between ₦25,000–₦75,000 per project, while established and veteran creators command ₦100,000–₦750,000+." }] },
+        { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "On Crellab, you can browse what other creators with similar experience levels charge. Emerging creators typically price between ₦25,000–₦75,000 per project, while established and veteran creators command ₦100,000–₦750,000+." }] },
         { _type: "block", _key: "h2-3", style: "h2", children: [{ _type: "span", _key: "h2-3-text", text: "Package Your Services" }] },
         { _type: "block", _key: "p3", style: "normal", children: [{ _type: "span", _key: "p3-text", text: "Tiered packages (Basic, Standard, Premium) make it easy for clients to choose. Each tier should offer progressively more value — more videos, faster turnaround, additional revisions, or extra deliverables." }] },
       ],
@@ -319,7 +319,7 @@ async function main() {
       heroImageUrl: null,
       category: "pricing",
       tags: ["pricing", "freelance tips", "creative business"],
-      author: "Crelab Editorial",
+      author: "Crellab Editorial",
       published: true,
       publishedAt: new Date("2026-07-10").toISOString(),
     },
@@ -340,7 +340,7 @@ async function main() {
       heroImageUrl: null,
       category: "industry-news",
       tags: ["video marketing", "content strategy", "branding"],
-      author: "Crelab Editorial",
+      author: "Crellab Editorial",
       published: true,
       publishedAt: new Date("2026-07-05").toISOString(),
     },
@@ -353,13 +353,13 @@ async function main() {
         { _type: "block", _key: "h2-1", style: "h2", children: [{ _type: "span", _key: "h2-1-text", text: "The Turning Point" }] },
         { _type: "block", _key: "p1", style: "normal", children: [{ _type: "span", _key: "p1-text", text: "\"The moment I stopped trying to be everything to everyone was when my career took off,\" Chioma recalls. \"I niched down to lifestyle and beauty UGC, and suddenly brands started reaching out to me.\"" }] },
         { _type: "block", _key: "h2-2", style: "h2", children: [{ _type: "span", _key: "h2-2-text", text: "Building a Portfolio" }] },
-        { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "Chioma credits her Crelab portfolio for landing her biggest clients. \"Having a professional space where clients can see my work, read reviews, and book me directly has been transformative. It's like having a 24/7 salesperson.\"" }] },
+        { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "Chioma credits her Crellab portfolio for landing her biggest clients. \"Having a professional space where clients can see my work, read reviews, and book me directly has been transformative. It's like having a 24/7 salesperson.\"" }] },
       ],
       metaDescription: "Meet Chioma Eze, the Lagos-based content creator who built a thriving UGC career. Learn her strategies for niching down, building a portfolio, and landing brand deals.",
       heroImageUrl: null,
       category: "creator-spotlights",
       tags: ["creator spotlight", "UGC", "career growth"],
-      author: "Crelab Editorial",
+      author: "Crellab Editorial",
       published: true,
       publishedAt: new Date("2026-06-28").toISOString(),
     },
@@ -372,13 +372,13 @@ async function main() {
         { _type: "block", _key: "h2-1", style: "h2", children: [{ _type: "span", _key: "h2-1-text", text: "What You Need to Know" }] },
         { _type: "block", _key: "p1", style: "normal", children: [{ _type: "span", _key: "p1-text", text: "NDPR requires consent for data collection, purpose limitation, data minimisation, and the right to erasure. For creators, this means being transparent about how you use client data and footage." }] },
         { _type: "block", _key: "h2-2", style: "h2", children: [{ _type: "span", _key: "h2-2-text", text: "Practical Steps" }] },
-        { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "Create a simple privacy policy, obtain written consent before publishing content featuring individuals, store client data securely, and have a process for deletion requests. Crelab's built-in consent management makes this easier." }] },
+        { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "Create a simple privacy policy, obtain written consent before publishing content featuring individuals, store client data securely, and have a process for deletion requests. Crellab's built-in consent management makes this easier." }] },
       ],
       metaDescription: "A practical guide to NDPR compliance for Nigerian creative professionals. Learn how to protect client data and stay compliant with data protection regulations.",
       heroImageUrl: null,
       category: "content-creation",
       tags: ["NDPR", "compliance", "data protection", "legal"],
-      author: "Crelab Editorial",
+      author: "Crellab Editorial",
       published: true,
       publishedAt: new Date("2026-06-20").toISOString(),
     },
@@ -399,7 +399,7 @@ async function main() {
       heroImageUrl: null,
       category: "content-creation",
       tags: ["video production", "budget tips", "filmmaking"],
-      author: "Crelab Editorial",
+      author: "Crellab Editorial",
       published: true,
       publishedAt: new Date("2026-06-15").toISOString(),
     },
@@ -427,9 +427,9 @@ async function main() {
 
   console.log("\nSeed complete!");
   console.log("   Login credentials:");
-  console.log("   Admin:    admin@crelab.test / password123");
-  console.log("   Providers: chioma@crelab.test, femi@crelab.test, zainab@crelab.test, tunde@crelab.test, kemi@crelab.test / password123");
-  console.log("   Clients:   sola@crelab.test, ngozi@crelab.test, efe@crelab.test, yetunde@crelab.test / password123\n");
+  console.log("   Admin:    admin@crellab.test / password123");
+  console.log("   Providers: chioma@crellab.test, femi@crellab.test, zainab@crellab.test, tunde@crellab.test, kemi@crellab.test / password123");
+  console.log("   Clients:   sola@crellab.test, ngozi@crellab.test, efe@crellab.test, yetunde@crellab.test / password123\n");
   process.exit(0);
 }
 

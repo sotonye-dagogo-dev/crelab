@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { ClButton, ClInput, ClTextarea, ClSelect, ClBackButton } from "@/components/ui";
+import {
+  ClButton,
+  ClInput,
+  ClTextarea,
+  ClSelect,
+  ClBackButton,
+} from "@/components/ui";
 import { ExploreVideoCard } from "@/components/shared/ExploreVideoCard";
 import { DriveConnectSettings } from "@/components/profile/DriveConnectSettings";
 import { MediaUpload } from "@/components/profile/MediaUpload";
@@ -13,7 +19,7 @@ import { nairaToKobo, formatPriceSmart } from "@/lib/currency";
 import { Check, X } from "lucide-react";
 import type { IFieldSchemaField, IPortfolioItem } from "@/types";
 
-const STORAGE_KEY = "crelab-onboarding-state";
+const STORAGE_KEY = "crellab-onboarding-state";
 
 interface PackageForm {
   label: string;
@@ -236,7 +242,11 @@ export default function ProfileSetupPage() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-[680px] mx-auto px-4 py-12">
-        <ClBackButton href="/profile" label="Back to profile" className="mb-6" />
+        <ClBackButton
+          href="/profile"
+          label="Back to profile"
+          className="mb-6"
+        />
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="w-3 h-3 bg-[var(--color-accent)] rotate-45 rounded-sm" />
           <span className="font-[family-name:var(--font-display)] font-extrabold text-[var(--color-text-primary)]">
@@ -255,13 +265,8 @@ export default function ProfileSetupPage() {
                       ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)]"
                       : "bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)]"
                 }`}
-                onClick={() => s < state.step && goToStep(s)}
-              >
-                {s < state.step ? (
-                  <Check size={14} fill="currentColor" />
-                ) : (
-                  s
-                )}
+                onClick={() => s < state.step && goToStep(s)}>
+                {s < state.step ? <Check size={14} fill="currentColor" /> : s}
               </div>
               {s < 5 && (
                 <div
@@ -304,8 +309,7 @@ export default function ProfileSetupPage() {
                   state.categorySlug === cat.slug
                     ? "border-2 border-[var(--color-accent)] bg-[var(--color-accent-muted)]"
                     : "border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-mid)]"
-                }`}
-              >
+                }`}>
                 <h3 className="font-[family-name:var(--font-display)] font-bold text-[16px] text-[var(--color-text-primary)]">
                   {cat.label}
                 </h3>
@@ -342,8 +346,7 @@ export default function ProfileSetupPage() {
                   }
                   setError("");
                   goToStep(3);
-                }}
-              >
+                }}>
                 Continue →
               </ClButton>
             </div>
@@ -356,8 +359,7 @@ export default function ProfileSetupPage() {
             {state.packages.map((pkg, i) => (
               <div
                 key={i}
-                className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
-              >
+                className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
                 <h3 className="font-[family-name:var(--font-display)] font-bold text-[15px] text-[var(--color-text-primary)] mb-3">
                   {tierLabels[i]} Package
                 </h3>
@@ -421,8 +423,7 @@ export default function ProfileSetupPage() {
                   }
                   setError("");
                   goToStep(4);
-                }}
-              >
+                }}>
                 Continue →
               </ClButton>
             </div>
@@ -508,8 +509,7 @@ export default function ProfileSetupPage() {
                   {state.packages.map((pkg, i) => (
                     <div
                       key={i}
-                      className="p-3 rounded-[8px] bg-[var(--color-surface-raised)] text-center"
-                    >
+                      className="p-3 rounded-[8px] bg-[var(--color-surface-raised)] text-center">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
                         {tierLabels[i]}
                       </p>
@@ -525,11 +525,7 @@ export default function ProfileSetupPage() {
                 {state.portfolioItems.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">
                     {state.portfolioItems.slice(0, 3).map((item) => (
-                      <ExploreVideoCard
-                        key={item.id}
-                        item={item}
-                        size="sm"
-                      />
+                      <ExploreVideoCard key={item.id} item={item} size="sm" />
                     ))}
                   </div>
                 )}
@@ -543,8 +539,7 @@ export default function ProfileSetupPage() {
               <ClButton
                 variant="primary"
                 loading={submitting}
-                onClick={handleSubmit}
-              >
+                onClick={handleSubmit}>
                 Publish Profile
               </ClButton>
             </div>
@@ -614,8 +609,7 @@ function FieldRenderer({
           </label>
           <ClSelect
             value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-          >
+            onChange={(e) => onChange(e.target.value)}>
             <option value="">Select {field.label}</option>
             {field.options?.map((opt) => (
               <option key={opt} value={opt}>
@@ -640,16 +634,12 @@ function FieldRenderer({
             {tags.map((tag, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[var(--color-accent-muted)] text-[var(--color-accent)] text-[12px]"
-              >
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-[var(--color-accent-muted)] text-[var(--color-accent)] text-[12px]">
                 {tag}
                 <button
                   type="button"
                   className="cursor-pointer hover:opacity-70"
-                  onClick={() =>
-                    onChange(tags.filter((_, j) => j !== i))
-                  }
-                >
+                  onClick={() => onChange(tags.filter((_, j) => j !== i))}>
                   <X size={12} strokeWidth={2} />
                 </button>
               </span>
@@ -677,8 +667,7 @@ function FieldRenderer({
                   onChange([...tags, tagInput.trim()]);
                   setTagInput("");
                 }
-              }}
-            >
+              }}>
               Add
             </ClButton>
           </div>

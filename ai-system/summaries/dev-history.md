@@ -604,3 +604,22 @@ posts, bug reports, dispute resolution) was invisible to history.
 
 ### Status
 Pass â€” typecheck clean, 233 tests pass, lint has no new warnings, production build passes.
+
+---
+
+## 2026-10-07 — DB Migration & Script Close-Out
+
+Directive: generate + apply pending migrations; easy DB npm scripts incl. mandatory
+pre-destructive backup (prior deseed wiped live data).
+
+- `drizzle/migrations/0003_close-out-schema-drift.sql` (idempotent): about/how-it-works
+  pages, media_assets, blog_posts, referrals, webinars, bug-report columns + enums.
+  Journal rename fix (`0001_initial.sql` ? `0000_initial.sql`).
+- New runners: `scripts/db/migrate.ts`, `scripts/db/baseline.ts`, `scripts/db/backup.ts`
+  (pg_dump ? gitignored `backups/`).
+- `scripts/seed-rollback.ts`: seed-scoped deletes by default; `--all` full wipe takes a
+  backup first (fixes the live-data-loss bug).
+- package.json: `db:generate/migrate/baseline/push/studio/backup/reset`,
+  `predb:seed:rollback` auto-backup.
+- Applied live: baselined 0000–0002, migrated 0003 (6 tables verified, 4 tracked).
+  QA: tsc clean, 389/392 tests (3 pre-existing failures unchanged).

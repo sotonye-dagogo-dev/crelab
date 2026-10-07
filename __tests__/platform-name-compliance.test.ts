@@ -8,7 +8,7 @@ import { PLATFORM_NAME_TOKEN, fillPlatformName } from "@/lib/platform-copy";
  * F9 platform-name compliance run.
  *
  * Walks the display-copy directories and fails on any hardcoded instance of
- * `Crelab` / `CreLab` / `Crellab` (matched case-insensitively, so lowercase and
+ * `Crellab` / `Crellab` / `Crellab` (matched case-insensitively, so lowercase and
  * uppercase infrastructure identifiers are caught too) that is not explicitly
  * allowlisted below. `config.name` (config/platform.config.ts) is the single
  * source of truth; module-scope copy carries `{{name}}` and is resolved with
@@ -41,8 +41,8 @@ const TEXT_EXTENSIONS = new Set([
   ".txt",
 ]);
 
-/** Case-insensitive `Crelab|CreLab|Crellab`. */
-const PLATFORM_NAME_PATTERN = /crellab|crelab/i;
+/** Case-insensitive `Crellab|Crellab|Crellab`. */
+const PLATFORM_NAME_PATTERN = /crellab|crellab/i;
 
 interface AllowlistEntry {
   /** Repo-relative path with forward slashes. */
@@ -60,62 +60,62 @@ const ALLOWLIST: AllowlistEntry[] = [
   },
   {
     file: "app/robots.ts",
-    allowed: ["https://crelab.ng"],
+    allowed: ["https://crellab.ng"],
     reason: "Origin fallback when NEXT_PUBLIC_APP_URL is unset",
   },
   {
     file: "app/sitemap.ts",
-    allowed: ["https://crelab.ng"],
+    allowed: ["https://crellab.ng"],
     reason: "Origin fallback when NEXT_PUBLIC_APP_URL is unset",
   },
   {
     file: "lib/email-blocks.ts",
-    allowed: ["https://crelab.example"],
+    allowed: ["https://crellab.example"],
     reason: "Origin fallback when VERCEL_URL is unset",
   },
   {
     file: "app/(auth)/profile/setup/page.tsx",
-    allowed: ["crelab-onboarding-state"],
+    allowed: ["crellab-onboarding-state"],
     reason: "Onboarding STORAGE_KEY persisted in localStorage",
   },
   {
     file: "app/api/account/delete/route.ts",
-    allowed: ["@anonymous.crelab"],
+    allowed: ["@anonymous.crellab"],
     reason: "Anonymous-mail domain assigned to deleted accounts",
   },
   {
     file: "lib/auth.ts",
-    allowed: ['cookiePrefix: "crelab"'],
+    allowed: ['cookiePrefix: "crellab"'],
     reason: "better-auth cookiePrefix",
   },
   {
     file: "lib/referral-cookie.ts",
-    allowed: ["crelab_ref"],
+    allowed: ["crellab_ref"],
     reason: "Referral cookie name (REFERRAL_COOKIE)",
   },
   {
     file: "components/shared/ReferralCapture.tsx",
-    allowed: ["crelab_ref"],
+    allowed: ["crellab_ref"],
     reason: "Doc comment referencing the referral cookie name",
   },
   {
     file: "app/api/referrals/claim/route.ts",
-    allowed: ["crelab_ref"],
+    allowed: ["crellab_ref"],
     reason: "Doc comment referencing the referral cookie name",
   },
   {
     file: "lib/sanitize-error.ts",
-    allowed: ["crelab-error-context"],
+    allowed: ["crellab-error-context"],
     reason: "localStorage key for the error-context payload",
   },
   {
     file: "components/error/GlobalErrorCatcher.tsx",
-    allowed: ["crelab-error-context"],
+    allowed: ["crellab-error-context"],
     reason: "Doc comment referencing the error-context storage key",
   },
   {
     file: "lib/error-log-buffer.ts",
-    allowed: ["__crelabErrorLogBuffer"],
+    allowed: ["__crellabErrorLogBuffer"],
     reason: "In-memory error log buffer store key",
   },
   {
@@ -125,22 +125,22 @@ const ALLOWLIST: AllowlistEntry[] = [
   },
   {
     file: "services/EscrowService.ts",
-    allowed: ["CRELAB-${booking.id}", "payment@crelab.app"],
+    allowed: ["CRELLAB-${booking.id}", "payment@crellab.app"],
     reason: "Paystack payment reference prefix and fallback client e-mail",
   },
   {
     file: "services/PaymentService.ts",
-    allowed: ["CRELAB-PAY-"],
+    allowed: ["CRELLAB-PAY-"],
     reason: "Paystack payment reference prefix",
   },
   {
     file: "services/MockDataService.ts",
-    allowed: ["demo@crelab.test"],
+    allowed: ["demo@crellab.test"],
     reason: "Demo account e-mail for mock data",
   },
   {
     file: "hooks/useAuth.ts",
-    allowed: ["demo@crelab.test"],
+    allowed: ["demo@crellab.test"],
     reason: "Demo account e-mail for mock auth",
   },
 ];

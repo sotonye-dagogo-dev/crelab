@@ -103,7 +103,7 @@ export function previewVarsFor(
 function appOriginForPreview(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://crelab.example")
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://crellab.example")
   );
 }
 

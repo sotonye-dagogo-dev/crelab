@@ -1252,3 +1252,69 @@ Same residuals as Session 2026-09-22: `media.test.ts:72` + `BlogPostService.test
 - Working tree holds every F1â€“F9 change uncommitted (code + tests + migration + docs).
 
 
+
+---
+
+## Session 2026-10-07 — DB Migration & Script Close-Out (execute-feature)
+
+**Directive:** Close out the previous session''s open tasks: generate and apply the
+migrations; add package.json scripts for easy DB processes including a DB backup script
+to be used before destructive actions (a deseed previously wiped critical non-seed data,
+so backup-before-destructive is now mandatory practice).
+
+**Completed:**
+
+1. **Generated the missing migration** — `npx drizzle-kit generate` produced
+   `drizzle/migrations/0003_close-out-schema-drift.sql` (journal entry added automatically),
+   covering all drift since snapshot 0002: `about_page`, `how_it_works_page`, `media_assets`,
+   `blog_posts`, `referral_codes`, `referral_events`, `webinars`, `webinar_registrations`,
+   `bug_reports` columns (`reporter_*`, `screenshot_urls`, `error_context`) + 3 new enums.
+   Hardened to fully idempotent (`IF NOT EXISTS` / `DO … EXCEPTION WHEN duplicate_object`),
+   so it applies cleanly on both fresh DBs and the live DB where 0004/0005/0006 objects were
+   hand-applied in Session 2026-08-19.
+2. **Fixed the journal/file mismatch** — renamed `0001_initial.sql` ? `0000_initial.sql`
+   to match the `0000_initial` journal tag (the migrator resolves files by tag and refused
+   to run without it).
+3. **New `scripts/db/migrate.ts`** (`npm run db:migrate`) — journal-driven drizzle migrator.
+4. **New `scripts/db/baseline.ts`** (`npm run db:baseline -- <tag>`) — one-time marker for
+   DBs built pre-journal (records hashes in `drizzle.__drizzle_migrations` without running
+   SQL, using drizzle''s own sha256 scheme). Live DB baselined through `0002_breezy_tinkerer`.
+5. **New `scripts/db/backup.ts`** (`npm run db:backup`) — `pg_dump` custom-format snapshot
+   into `backups/` (gitignored) with restore command printed; clear error when `pg_dump` is
+   absent. `backups/` added to `.gitignore`.
+6. **Seed rollback made safe (the data-loss root cause)** — `scripts/seed-rollback.ts` now
+   deletes ONLY seed-scoped rows (seed `@crelab.test` users, `prov-*`/`bkg-*`/seed slugs/ids)
+   by default. Full-table wipe survives only behind `--all` (deprecated `--force` alias),
+   which takes a `pg_dump` backup first unless `--no-backup`.
+7. **package.json DB scripts** — `db:generate`, `db:migrate`, `db:baseline`, `db:push`,
+   `db:studio`, `db:backup`, `predb:seed:rollback` (auto-backup guard), `db:reset`
+   (backup ? rollback ? migrate ? seed).
+8. **Applied to the live DB** — `db:baseline` (0000–0002 marked) + `db:migrate` (0003 applied,
+   `? Migrations applied`). Verified: all 6 new tables present, 4 migrations tracked.
+   This closes the 2026-10-01 open item (unapplied 0007 content is subsumed by 0003).
+
+**QA gate:** `npx tsc --noEmit` clean; `npx vitest run` 389/392 — the same 3 pre-existing
+failures at HEAD (media file-size + 2 BlogPostService adminList), no regressions.
+
+**Files Modified/Created:**
+- Created: `drizzle/migrations/0003_close-out-schema-drift.sql`,
+  `drizzle/migrations/meta/0003_snapshot.json`, `scripts/db/migrate.ts`,
+  `scripts/db/baseline.ts`, `scripts/db/backup.ts`
+- Renamed: `drizzle/migrations/0001_initial.sql` ? `0000_initial.sql`
+- Edited: `drizzle/migrations/meta/_journal.json` (via generate), `package.json`,
+  `scripts/seed-rollback.ts`, `.gitignore`, ai-system docs (this log, dev-history,
+  task-queue, project-decisions, in-progress cleared)
+
+**Build Status:** ? Typecheck clean, 389/392 tests (3 pre-existing failures, unchanged).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- No architecture impact (tooling + migrations only) — no `update-ai-system.md` deep sync
+  required per the Step 5 condition; `sync-context` freshness updated inline.
+- `pg_dump` is not installed on this Windows machine — `db:backup` prints install guidance;
+  verify a backup run on a machine with PostgreSQL tools before the next destructive op.
+- Legacy standalone files (`0002_rls.sql`, `0003_explore.sql`, `0003_wallet_rls.sql`,
+  `0004–0007`) remain in the folder as history; journal-driven flow supersedes them.
+  RLS policies still unapplied (known residual risk, `uuid = text` mismatch — service-role
+  connection bypasses RLS, unchanged).

@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     await db
       .update(user)
       .set({
-        email: `deleted-${userId.slice(0, 8)}@anonymous.crelab`,
+        email: `deleted-${userId.slice(0, 8)}@anonymous.crellab`,
         phone: null,
         name: "Deleted User",
         image: null,

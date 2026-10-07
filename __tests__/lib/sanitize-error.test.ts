@@ -10,9 +10,9 @@ const JWT =
 
 describe("sanitizeText — redaction", () => {
   it("redacts email addresses", () => {
-    const out = sanitizeText("Contact ada.okafor@example.com or support@crelab.dev now");
+    const out = sanitizeText("Contact ada.okafor@example.com or support@crellab.dev now");
     expect(out).not.toContain("ada.okafor@example.com");
-    expect(out).not.toContain("support@crelab.dev");
+    expect(out).not.toContain("support@crellab.dev");
     expect(out).toContain("[redacted-email]");
     expect(out).toContain("Contact");
     expect(out).toContain("now");

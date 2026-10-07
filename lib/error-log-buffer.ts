@@ -25,7 +25,7 @@ const MAX_ENTRY_MESSAGE_CHARS = 1000;
 
 const CAPTURED_LEVELS: ErrorLogLevel[] = ["log", "info", "warn", "error", "debug"];
 
-const STORE_KEY = "__crelabErrorLogBuffer";
+const STORE_KEY = "__crellabErrorLogBuffer";
 
 type ConsoleLike = Pick<Console, "log" | "info" | "warn" | "error" | "debug">;
 

@@ -5,7 +5,7 @@
  */
 
 /** Browser cookie that carries `?ref=CODE` from any entry point to sign-up. */
-export const REFERRAL_COOKIE = "crelab_ref";
+export const REFERRAL_COOKIE = "crellab_ref";
 /** Cookie lifetime (30 days) — long enough for a deferred sign-up. */
 export const REFERRAL_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 

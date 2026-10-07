@@ -1,91 +1,97 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="crelab-design" content="design-system">
-  <meta name="crelab-component" content="RoleSelectCard,ClInput,ClTextarea,ClButton,ServicePackageCard,ExploreVideoCard,ClBadge">
-  <title>Crelab — Provider Onboarding</title>
+  <meta name="crellab-design" content="design-system">
+  <meta name="crellab-component"
+    content="RoleSelectCard,ClInput,ClTextarea,ClButton,ServicePackageCard,ExploreVideoCard,ClBadge">
+  <title>Crellab — Provider Onboarding</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
 
     :root {
-      --color-bg:              #0A0A0A;
-      --color-surface:         #141414;
-      --color-surface-raised:  #1C1C1C;
-      --color-border:          #2A2A2A;
-      --color-border-mid:      #3D3D3D;
-      --color-accent:          #E8FF47;
-      --color-accent-dim:      #C8DF3C;
-      --color-accent-muted:    #1E2200;
-      --color-text-primary:    #F2F2F2;
-      --color-text-secondary:  #9A9A9A;
-      --color-text-tertiary:   #5C5C5C;
-      --color-text-inverse:    #0A0A0A;
-      --color-success:         #4ADE80;
-      --color-warning:         #FACC15;
-      --color-error:           #F87171;
-      --color-info:            #60A5FA;
-      --color-escrow-held:     #FACC15;
+      --color-bg: #0A0A0A;
+      --color-surface: #141414;
+      --color-surface-raised: #1C1C1C;
+      --color-border: #2A2A2A;
+      --color-border-mid: #3D3D3D;
+      --color-accent: #E8FF47;
+      --color-accent-dim: #C8DF3C;
+      --color-accent-muted: #1E2200;
+      --color-text-primary: #F2F2F2;
+      --color-text-secondary: #9A9A9A;
+      --color-text-tertiary: #5C5C5C;
+      --color-text-inverse: #0A0A0A;
+      --color-success: #4ADE80;
+      --color-warning: #FACC15;
+      --color-error: #F87171;
+      --color-info: #60A5FA;
+      --color-escrow-held: #FACC15;
       --color-escrow-progress: #A78BFA;
       --color-escrow-released: #4ADE80;
       --color-escrow-disputed: #F87171;
 
       --font-display: 'Syne', system-ui, sans-serif;
-      --font-body:    'Inter', system-ui, sans-serif;
-      --font-mono:    'JetBrains Mono', monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
 
-      --text-xs:   0.75rem;
-      --text-sm:   0.875rem;
+      --text-xs: 0.75rem;
+      --text-sm: 0.875rem;
       --text-base: 1rem;
-      --text-lg:   1.125rem;
-      --text-xl:   1.25rem;
-      --text-2xl:  1.5rem;
-      --text-3xl:  1.875rem;
-      --text-4xl:  2.25rem;
-      --text-5xl:  3rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+      --text-3xl: 1.875rem;
+      --text-4xl: 2.25rem;
+      --text-5xl: 3rem;
 
-      --weight-regular:   400;
-      --weight-medium:    500;
-      --weight-semibold:  600;
-      --weight-bold:      700;
+      --weight-regular: 400;
+      --weight-medium: 500;
+      --weight-semibold: 600;
+      --weight-bold: 700;
       --weight-extrabold: 800;
 
-      --leading-tight:   1.2;
-      --leading-normal:  1.5;
+      --leading-tight: 1.2;
+      --leading-normal: 1.5;
       --leading-relaxed: 1.7;
 
-      --space-1:  0.25rem;
-      --space-2:  0.5rem;
-      --space-3:  0.75rem;
-      --space-4:  1rem;
-      --space-5:  1.25rem;
-      --space-6:  1.5rem;
-      --space-8:  2rem;
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
       --space-10: 2.5rem;
       --space-12: 3rem;
       --space-16: 4rem;
       --space-20: 5rem;
 
-      --radius-sm:   4px;
-      --radius-md:   8px;
-      --radius-lg:   12px;
-      --radius-xl:   16px;
-      --radius-2xl:  24px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-2xl: 24px;
       --radius-full: 9999px;
 
       --max-width-content: 1200px;
 
-      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --duration-fast:   150ms;
-      --duration-base:   250ms;
-      --duration-slow:   400ms;
+      --duration-fast: 150ms;
+      --duration-base: 250ms;
+      --duration-slow: 400ms;
       --duration-slower: 600ms;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background: #0A0A0A;
@@ -104,7 +110,7 @@
     .backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(10,10,10,0.85);
+      background: rgba(10, 10, 10, 0.85);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
       z-index: 0;
@@ -131,6 +137,7 @@
       gap: var(--space-2);
       margin-bottom: var(--space-8);
     }
+
     .step-progress-label {
       font-family: var(--font-body);
       font-size: 12px;
@@ -139,11 +146,13 @@
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
+
     .step-dots {
       display: flex;
       align-items: center;
       gap: 0;
     }
+
     .step-dot {
       width: 28px;
       height: 28px;
@@ -155,30 +164,35 @@
       font-weight: var(--weight-bold);
       font-size: 12px;
       transition: background var(--duration-fast) var(--ease-out),
-                  border-color var(--duration-fast) var(--ease-out),
-                  color var(--duration-fast) var(--ease-out);
+        border-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
       position: relative;
     }
+
     .step-dot.active {
       background: var(--color-accent);
       color: var(--color-text-inverse);
     }
+
     .step-dot.complete {
       background: var(--color-surface-raised);
       color: var(--color-success);
-      border: 1px solid rgba(74,222,128,0.3);
+      border: 1px solid rgba(74, 222, 128, 0.3);
     }
+
     .step-dot.future {
       background: transparent;
       color: var(--color-text-tertiary);
       border: 1px solid var(--color-border);
     }
+
     .step-connector {
       width: 24px;
       height: 1px;
       background: var(--color-border);
       margin: 0 2px;
     }
+
     .step-connector.done {
       background: var(--color-success);
     }
@@ -193,10 +207,12 @@
       opacity: 0;
       transition: opacity 200ms var(--ease-out);
     }
+
     .step-content.active {
       display: flex;
       opacity: 1;
     }
+
     .step-heading {
       font-family: var(--font-display);
       font-weight: var(--weight-bold);
@@ -205,6 +221,7 @@
       letter-spacing: -0.01em;
       line-height: var(--leading-tight);
     }
+
     .step-sub {
       font-family: var(--font-body);
       font-size: 14px;
@@ -212,12 +229,14 @@
       line-height: var(--leading-normal);
       margin-top: -8px;
     }
+
     .step-actions {
       display: flex;
       flex-direction: column;
       gap: var(--space-2);
       margin-top: var(--space-4);
     }
+
     .step-actions-row {
       display: flex;
       flex-direction: row;
@@ -239,37 +258,72 @@
       text-decoration: none;
       white-space: nowrap;
       transition: background var(--duration-fast) var(--ease-out),
-                  border-color var(--duration-fast) var(--ease-out),
-                  color var(--duration-fast) var(--ease-out);
+        border-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
     }
-    .cl-btn:active { transform: scale(0.98); }
-    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
-    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
-    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
-    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+    .cl-btn:active {
+      transform: scale(0.98);
+    }
+
+    .cl-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .cl-btn-default {
+      height: 40px;
+      padding: 0 var(--space-4);
+      font-size: 14px;
+    }
+
+    .cl-btn-sm {
+      height: 32px;
+      padding: 0 var(--space-3);
+      font-size: 13px;
+    }
+
+    .cl-btn-lg {
+      height: 48px;
+      padding: 0 var(--space-6);
+      font-size: 15px;
+    }
 
     .cl-btn-primary {
       background: var(--color-accent);
       color: var(--color-text-inverse);
       border-color: transparent;
     }
-    .cl-btn-primary:hover { background: var(--color-accent-dim); }
-    .cl-btn-primary:active { background: var(--color-accent-dim); }
+
+    .cl-btn-primary:hover {
+      background: var(--color-accent-dim);
+    }
+
+    .cl-btn-primary:active {
+      background: var(--color-accent-dim);
+    }
 
     .cl-btn-outlined {
       background: transparent;
       color: var(--color-text-primary);
       border-color: var(--color-border-mid);
     }
-    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    .cl-btn-outlined:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
 
     .cl-btn-ghost {
       background: transparent;
       color: var(--color-text-secondary);
       border-color: transparent;
     }
-    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+
+    .cl-btn-ghost:hover {
+      color: var(--color-text-primary);
+    }
 
     /* ClInput / ClField */
     .cl-field {
@@ -277,6 +331,7 @@
       flex-direction: column;
       gap: var(--space-1);
     }
+
     .cl-field-label {
       font-family: var(--font-body);
       font-weight: var(--weight-semibold);
@@ -288,6 +343,7 @@
       align-items: center;
       gap: var(--space-1);
     }
+
     .cl-field-label .optional {
       font-weight: var(--weight-regular);
       text-transform: none;
@@ -295,6 +351,7 @@
       color: var(--color-text-tertiary);
       font-size: 12px;
     }
+
     .cl-input,
     .cl-textarea {
       background: var(--color-surface-raised);
@@ -309,32 +366,39 @@
       transition: border-color var(--duration-fast) var(--ease-out);
       width: 100%;
     }
+
     .cl-input::placeholder,
     .cl-textarea::placeholder {
       color: var(--color-text-tertiary);
     }
+
     .cl-input:focus,
     .cl-textarea:focus {
       border-color: var(--color-accent);
     }
+
     .cl-input.error,
     .cl-textarea.error {
       border-color: var(--color-error);
     }
+
     .cl-input:disabled,
     .cl-textarea:disabled {
       opacity: 0.4;
       cursor: not-allowed;
     }
+
     .cl-textarea {
       height: auto;
       min-height: 100px;
       padding: var(--space-3);
       resize: vertical;
     }
+
     .cl-textarea-wrap {
       position: relative;
     }
+
     .cl-char-counter {
       position: absolute;
       bottom: var(--space-2);
@@ -344,8 +408,14 @@
       color: var(--color-text-tertiary);
       pointer-events: none;
     }
-    .cl-char-counter.near-limit { color: var(--color-warning); }
-    .cl-char-counter.at-limit { color: var(--color-error); }
+
+    .cl-char-counter.near-limit {
+      color: var(--color-warning);
+    }
+
+    .cl-char-counter.at-limit {
+      color: var(--color-error);
+    }
 
     /* ============================================================
        Step 1 — Category selection
@@ -361,11 +431,16 @@
       gap: var(--space-2);
       transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
     }
-    .category-card:hover { border-color: var(--color-border-mid); }
+
+    .category-card:hover {
+      border-color: var(--color-border-mid);
+    }
+
     .category-card.selected {
       border: 2px solid var(--color-accent);
       background: var(--color-accent-muted);
     }
+
     .category-card-icon {
       width: 40px;
       height: 40px;
@@ -374,13 +449,19 @@
       justify-content: center;
       color: var(--color-accent);
     }
-    .category-card-icon svg { width: 24px; height: 24px; }
+
+    .category-card-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
     .category-card-name {
       font-family: var(--font-display);
       font-weight: var(--weight-bold);
       font-size: var(--text-base);
       color: var(--color-text-primary);
     }
+
     .category-card-desc {
       font-family: var(--font-body);
       font-size: 14px;
@@ -396,6 +477,7 @@
       gap: var(--space-2);
       flex-wrap: wrap;
     }
+
     .exp-pill {
       padding: 8px 16px;
       border-radius: var(--radius-full);
@@ -404,19 +486,23 @@
       font-size: 13px;
       cursor: pointer;
       transition: background var(--duration-fast) var(--ease-out),
-                  border-color var(--duration-fast) var(--ease-out),
-                  color var(--duration-fast) var(--ease-out);
+        border-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
       background: var(--color-surface-raised);
       border: 1px solid var(--color-border);
       color: var(--color-text-secondary);
       user-select: none;
     }
+
     .exp-pill.selected {
       background: var(--color-accent-muted);
       border-color: var(--color-accent);
       color: var(--color-accent);
     }
-    .exp-pill:hover { border-color: var(--color-border-mid); }
+
+    .exp-pill:hover {
+      border-color: var(--color-border-mid);
+    }
 
     /* Tags input */
     .tags-input-wrap {
@@ -432,7 +518,11 @@
       min-height: 40px;
       transition: border-color var(--duration-fast) var(--ease-out);
     }
-    .tags-input-wrap:focus-within { border-color: var(--color-accent); }
+
+    .tags-input-wrap:focus-within {
+      border-color: var(--color-accent);
+    }
+
     .tag-chip {
       display: inline-flex;
       align-items: center;
@@ -445,6 +535,7 @@
       font-weight: var(--weight-medium);
       font-family: var(--font-body);
     }
+
     .tag-chip .tag-remove {
       cursor: pointer;
       font-size: 14px;
@@ -455,7 +546,11 @@
       border: none;
       padding: 0;
     }
-    .tag-chip .tag-remove:hover { opacity: 1; }
+
+    .tag-chip .tag-remove:hover {
+      opacity: 1;
+    }
+
     .tags-input {
       border: none;
       background: transparent;
@@ -467,7 +562,10 @@
       min-width: 80px;
       padding: 2px 0;
     }
-    .tags-input::placeholder { color: var(--color-text-tertiary); }
+
+    .tags-input::placeholder {
+      color: var(--color-text-tertiary);
+    }
 
     /* ============================================================
        Step 3 — Package editor cards
@@ -477,6 +575,7 @@
       flex-direction: column;
       gap: var(--space-4);
     }
+
     .pkg-editor-card {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -487,9 +586,11 @@
       gap: var(--space-3);
       position: relative;
     }
+
     .pkg-editor-card.standard {
       border-top: 3px solid var(--color-accent);
     }
+
     .pkg-editor-card .pkg-popular-badge {
       position: absolute;
       top: 0;
@@ -505,6 +606,7 @@
       padding: 1px 8px;
       border-radius: var(--radius-sm);
     }
+
     .pkg-editor-tier {
       font-family: var(--font-body);
       font-size: 11px;
@@ -513,18 +615,22 @@
       letter-spacing: 0.06em;
       color: var(--color-text-tertiary);
     }
+
     .pkg-editor-row {
       display: flex;
       gap: var(--space-3);
       flex-wrap: wrap;
     }
+
     .pkg-editor-row .cl-field {
       flex: 1;
       min-width: 120px;
     }
+
     .pkg-price-wrap {
       position: relative;
     }
+
     .pkg-price-prefix {
       position: absolute;
       left: var(--space-3);
@@ -535,7 +641,11 @@
       color: var(--color-text-primary);
       pointer-events: none;
     }
-    .pkg-price-wrap .cl-input { padding-left: 28px; }
+
+    .pkg-price-wrap .cl-input {
+      padding-left: 28px;
+    }
+
     .pkg-editor-divider {
       height: 1px;
       background: var(--color-border);
@@ -548,6 +658,7 @@
       display: flex;
       gap: var(--space-4);
     }
+
     .upload-panel {
       flex: 1;
       border: 2px dashed var(--color-border);
@@ -563,20 +674,24 @@
       text-align: center;
       transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
     }
+
     .upload-panel.drag-over {
       border-color: var(--color-accent);
-      background: rgba(232,255,71,0.04);
+      background: rgba(232, 255, 71, 0.04);
     }
+
     .upload-panel svg {
       width: 32px;
       height: 32px;
       color: var(--color-text-tertiary);
     }
+
     .upload-panel-text {
       font-family: var(--font-body);
       font-size: 14px;
       color: var(--color-text-secondary);
     }
+
     .upload-panel-link {
       font-family: var(--font-body);
       font-size: 13px;
@@ -584,12 +699,14 @@
       cursor: pointer;
       text-decoration: underline;
     }
+
     .upload-thumb-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--space-2);
       margin-top: var(--space-3);
     }
+
     .upload-thumb {
       width: 100%;
       aspect-ratio: 16/9;
@@ -601,11 +718,13 @@
       position: relative;
       overflow: hidden;
     }
+
     .upload-thumb svg {
       width: 18px;
       height: 18px;
-      color: rgba(255,255,255,0.3);
+      color: rgba(255, 255, 255, 0.3);
     }
+
     .upload-thumb-caption {
       position: absolute;
       bottom: 4px;
@@ -619,16 +738,19 @@
     .reorder-row {
       margin-top: var(--space-3);
     }
+
     .reorder-hint {
       font-family: var(--font-body);
       font-size: 12px;
       color: var(--color-text-tertiary);
       margin-bottom: var(--space-2);
     }
+
     .reorder-cards {
       display: flex;
       gap: var(--space-2);
     }
+
     .reorder-card {
       display: flex;
       align-items: center;
@@ -640,12 +762,14 @@
       font-size: 11px;
       color: var(--color-accent);
     }
+
     .reorder-card .drag-handle {
       cursor: grab;
       color: var(--color-accent);
       font-size: 14px;
       line-height: 1;
     }
+
     .reorder-card .remove-btn {
       background: none;
       border: none;
@@ -676,6 +800,7 @@
       width: 280px;
       transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
     }
+
     .explore-card-video {
       position: relative;
       background: var(--color-surface-raised);
@@ -684,20 +809,23 @@
       justify-content: center;
       aspect-ratio: 4/5;
     }
+
     .explore-card-video .play-icon {
       width: 24px;
       height: 24px;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255, 255, 255, 0.5);
     }
+
     .explore-card-gradient {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
       height: 60%;
-      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
       pointer-events: none;
     }
+
     .explore-card-info {
       position: absolute;
       bottom: 0;
@@ -708,10 +836,12 @@
       flex-direction: column;
       gap: 2px;
     }
+
     .explore-card-category {
       align-self: flex-start;
       margin-bottom: var(--space-2);
     }
+
     .cl-badge-category {
       display: inline-flex;
       align-items: center;
@@ -724,6 +854,7 @@
       background: var(--color-accent);
       color: var(--color-text-inverse);
     }
+
     .explore-card-name {
       font-family: var(--font-display);
       font-size: 14px;
@@ -731,11 +862,13 @@
       color: var(--color-text-primary);
       line-height: var(--leading-tight);
     }
+
     .explore-card-meta {
       display: flex;
       align-items: center;
       gap: var(--space-2);
     }
+
     .explore-card-stars {
       font-family: var(--font-mono);
       font-size: 12px;
@@ -743,11 +876,13 @@
       color: var(--color-warning);
       font-variant-numeric: tabular-nums;
     }
+
     .explore-card-price {
       font-family: var(--font-body);
       font-size: 12px;
       color: var(--color-text-secondary);
     }
+
     .explore-card-price .price-amount {
       font-family: var(--font-mono);
       color: var(--color-accent);
@@ -755,8 +890,8 @@
     }
 
     .info-banner {
-      background: rgba(96,165,250,0.08);
-      border: 1px solid rgba(96,165,250,0.2);
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid rgba(96, 165, 250, 0.2);
       border-radius: var(--radius-md);
       padding: var(--space-3) var(--space-4);
       display: flex;
@@ -768,6 +903,7 @@
       color: var(--color-info);
       line-height: var(--leading-normal);
     }
+
     .info-banner .info-icon {
       flex-shrink: 0;
       font-size: 16px;
@@ -778,18 +914,36 @@
        Responsive
     ============================================================ */
     @media (max-width: 640px) {
-      .onboard-panel { padding: var(--space-6) var(--space-4); border-radius: var(--radius-lg); }
-      .upload-panels { flex-direction: column; }
-      .pkg-editor-row { flex-direction: column; }
-      .pkg-editor-row .cl-field { min-width: 100%; }
-      body { padding: var(--space-3); }
+      .onboard-panel {
+        padding: var(--space-6) var(--space-4);
+        border-radius: var(--radius-lg);
+      }
+
+      .upload-panels {
+        flex-direction: column;
+      }
+
+      .pkg-editor-row {
+        flex-direction: column;
+      }
+
+      .pkg-editor-row .cl-field {
+        min-width: 100%;
+      }
+
+      body {
+        padding: var(--space-3);
+      }
     }
 
     @media (min-width: 641px) and (max-width: 1024px) {
-      .pkg-editor-row .cl-field { min-width: 100px; }
+      .pkg-editor-row .cl-field {
+        min-width: 100px;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <div class="backdrop"></div>
@@ -821,14 +975,19 @@
       <div style="display:flex;flex-direction:column;gap:var(--space-3)">
         <div class="category-card selected" data-category="content-creator" onclick="selectCategory(this)">
           <div class="category-card-icon">
-            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M17 9.2l5.213-3.55a.5.5 0 0 1 .787.41v12.88a.5.5 0 0 1-.787.41L17 14.8V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v4.2z"/></svg>
+            <svg fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M17 9.2l5.213-3.55a.5.5 0 0 1 .787.41v12.88a.5.5 0 0 1-.787.41L17 14.8V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v4.2z" />
+            </svg>
           </div>
           <div class="category-card-name">Content Creator</div>
           <div class="category-card-desc">UGC, lifestyle, brand content, social media</div>
         </div>
         <div class="category-card" data-category="cinematographer" onclick="selectCategory(this)">
           <div class="category-card-icon">
-            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2l-4 4 4 4v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"/></svg>
+            <svg fill="currentColor" viewBox="0 0 24 24">
+              <path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2l-4 4 4 4v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z" />
+            </svg>
           </div>
           <div class="category-card-name">Cinematographer / Videographer</div>
           <div class="category-card-desc">Events, commercials, narrative, documentary</div>
@@ -849,7 +1008,8 @@
       <div class="cl-field">
         <label class="cl-field-label">Bio</label>
         <div class="cl-textarea-wrap">
-          <textarea class="cl-textarea" id="bioInput" maxlength="300" placeholder="Tell brands what makes you unique..." rows="3"></textarea>
+          <textarea class="cl-textarea" id="bioInput" maxlength="300" placeholder="Tell brands what makes you unique..."
+            rows="3"></textarea>
           <span class="cl-char-counter" id="bioCounter">0 / 300</span>
         </div>
       </div>
@@ -918,7 +1078,8 @@
               <label class="cl-field-label">Price</label>
               <div class="pkg-price-wrap">
                 <span class="pkg-price-prefix">₦</span>
-                <input class="cl-input" type="text" value="45,000" style="padding-left:28px;font-family:var(--font-mono)" />
+                <input class="cl-input" type="text" value="45,000"
+                  style="padding-left:28px;font-family:var(--font-mono)" />
               </div>
             </div>
             <div class="cl-field">
@@ -948,7 +1109,8 @@
               <label class="cl-field-label">Price</label>
               <div class="pkg-price-wrap">
                 <span class="pkg-price-prefix">₦</span>
-                <input class="cl-input" type="text" value="85,000" style="padding-left:28px;font-family:var(--font-mono)" />
+                <input class="cl-input" type="text" value="85,000"
+                  style="padding-left:28px;font-family:var(--font-mono)" />
               </div>
             </div>
             <div class="cl-field">
@@ -977,7 +1139,8 @@
               <label class="cl-field-label">Price</label>
               <div class="pkg-price-wrap">
                 <span class="pkg-price-prefix">₦</span>
-                <input class="cl-input" type="text" value="150,000" style="padding-left:28px;font-family:var(--font-mono)" />
+                <input class="cl-input" type="text" value="150,000"
+                  style="padding-left:28px;font-family:var(--font-mono)" />
               </div>
             </div>
             <div class="cl-field">
@@ -990,7 +1153,8 @@
           </div>
           <div class="cl-field">
             <label class="cl-field-label">Deliverables</label>
-            <textarea class="cl-textarea" rows="2" style="min-height:60px">5 videos, Full edit, 2 revisions, Captions</textarea>
+            <textarea class="cl-textarea" rows="2"
+              style="min-height:60px">5 videos, Full edit, 2 revisions, Captions</textarea>
           </div>
         </div>
       </div>
@@ -1011,36 +1175,55 @@
       <div class="upload-panels">
         <!-- Native Upload -->
         <div class="upload-panel" id="nativeUploadPanel">
-          <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+          <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M12 16V4M8 8l4-4 4 4" />
+            <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+          </svg>
           <span class="upload-panel-text">Drag files here</span>
           <span class="upload-panel-link">or Browse Files</span>
         </div>
         <!-- Google Drive -->
         <div class="upload-panel">
           <!-- DriveService.ingestFolder() is called on sync. No OAuth required for public folders. -->
-          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 20h20L12 2zm0 4l5 10H7l5-10z"/></svg>
+          <svg fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2L2 20h20L12 2zm0 4l5 10H7l5-10z" />
+          </svg>
           <span class="upload-panel-text">Paste your Drive folder link</span>
-          <input class="cl-input" type="url" placeholder="https://drive.google.com/drive/..." style="margin-top:var(--space-2)" />
-          <button class="cl-btn cl-btn-default cl-btn-primary" style="width:100%;margin-top:var(--space-2)">Sync Folder</button>
+          <input class="cl-input" type="url" placeholder="https://drive.google.com/drive/..."
+            style="margin-top:var(--space-2)" />
+          <button class="cl-btn cl-btn-default cl-btn-primary" style="width:100%;margin-top:var(--space-2)">Sync
+            Folder</button>
         </div>
       </div>
 
       <!-- Portfolio thumbnails -->
       <div class="upload-thumb-grid">
-        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="upload-thumb-caption">intro.mp4</span></div>
-        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="upload-thumb-caption">brand.mp4</span></div>
-        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="upload-thumb-caption">reel.mp4</span></div>
-        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span class="upload-thumb-caption">portrait.mp4</span></div>
+        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg><span class="upload-thumb-caption">intro.mp4</span></div>
+        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg><span class="upload-thumb-caption">brand.mp4</span></div>
+        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg><span class="upload-thumb-caption">reel.mp4</span></div>
+        <div class="upload-thumb"><svg fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg><span class="upload-thumb-caption">portrait.mp4</span></div>
       </div>
 
       <!-- Reorder -->
       <div class="reorder-row">
         <div class="reorder-hint">Drag to reorder</div>
         <div class="reorder-cards">
-          <div class="reorder-card"><span class="drag-handle">⠿</span> intro.mp4 <button class="remove-btn">×</button></div>
-          <div class="reorder-card"><span class="drag-handle">⠿</span> brand.mp4 <button class="remove-btn">×</button></div>
-          <div class="reorder-card"><span class="drag-handle">⠿</span> reel.mp4 <button class="remove-btn">×</button></div>
-          <div class="reorder-card"><span class="drag-handle">⠿</span> portrait.mp4 <button class="remove-btn">×</button></div>
+          <div class="reorder-card"><span class="drag-handle">⠿</span> intro.mp4 <button class="remove-btn">×</button>
+          </div>
+          <div class="reorder-card"><span class="drag-handle">⠿</span> brand.mp4 <button class="remove-btn">×</button>
+          </div>
+          <div class="reorder-card"><span class="drag-handle">⠿</span> reel.mp4 <button class="remove-btn">×</button>
+          </div>
+          <div class="reorder-card"><span class="drag-handle">⠿</span> portrait.mp4 <button
+              class="remove-btn">×</button></div>
         </div>
       </div>
 
@@ -1061,7 +1244,9 @@
         <!-- Preview ExploreVideoCard -->
         <div class="explore-card">
           <div class="explore-card-video">
-            <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
           </div>
           <div class="explore-card-gradient"></div>
           <div class="explore-card-info">
@@ -1090,22 +1275,22 @@
   </div>
 
   <script>
-    (function() {
+    (function () {
       var currentStep = 1;
 
       // Expose to global
-      window.selectCategory = function(el) {
-        document.querySelectorAll('.category-card').forEach(function(c) { c.classList.remove('selected'); });
+      window.selectCategory = function (el) {
+        document.querySelectorAll('.category-card').forEach(function (c) { c.classList.remove('selected'); });
         el.classList.add('selected');
       };
 
-      window.selectExp = function(el) {
+      window.selectExp = function (el) {
         var parent = el.parentElement;
-        parent.querySelectorAll('.exp-pill').forEach(function(p) { p.classList.remove('selected'); });
+        parent.querySelectorAll('.exp-pill').forEach(function (p) { p.classList.remove('selected'); });
         el.classList.add('selected');
       };
 
-      window.removeTag = function(el) {
+      window.removeTag = function (el) {
         el.parentElement.remove();
       };
 
@@ -1114,7 +1299,7 @@
         var input = document.getElementById(inputId);
         var wrap = document.getElementById(wrapId);
         if (!input || !wrap) return;
-        input.addEventListener('keydown', function(e) {
+        input.addEventListener('keydown', function (e) {
           if (e.key === 'Enter') {
             e.preventDefault();
             var val = input.value.trim();
@@ -1126,7 +1311,7 @@
             input.value = '';
           }
         });
-        wrap.addEventListener('click', function(e) {
+        wrap.addEventListener('click', function (e) {
           if (e.target === wrap || e.target === input) input.focus();
         });
       }
@@ -1138,7 +1323,7 @@
       var bioInput = document.getElementById('bioInput');
       var bioCounter = document.getElementById('bioCounter');
       if (bioInput && bioCounter) {
-        bioInput.addEventListener('input', function() {
+        bioInput.addEventListener('input', function () {
           var len = this.value.length;
           bioCounter.textContent = len + ' / 300';
           bioCounter.classList.remove('near-limit', 'at-limit');
@@ -1160,7 +1345,7 @@
       var connectors = document.querySelectorAll('.step-connector');
       var stepLabel = document.getElementById('stepLabel');
 
-      window.goToStep = function(n) {
+      window.goToStep = function (n) {
         if (n < 1 || n > 5) return;
 
         // Fade out current
@@ -1170,7 +1355,7 @@
           currentEl.style.opacity = '0';
         }
 
-        setTimeout(function() {
+        setTimeout(function () {
           if (currentEl) currentEl.classList.remove('active');
 
           currentStep = n;
@@ -1179,14 +1364,14 @@
           if (nextEl) {
             nextEl.classList.add('active');
             nextEl.style.opacity = '0';
-            setTimeout(function() {
+            setTimeout(function () {
               nextEl.style.transition = 'opacity 200ms ease-out';
               nextEl.style.opacity = '1';
             }, 10);
           }
 
           // Update dots
-          dots.forEach(function(dot) {
+          dots.forEach(function (dot) {
             var stepNum = parseInt(dot.getAttribute('data-step'));
             dot.classList.remove('active', 'complete', 'future');
             if (stepNum === currentStep) dot.classList.add('active');
@@ -1201,7 +1386,7 @@
           });
 
           // Update connectors
-          connectors.forEach(function(conn) {
+          connectors.forEach(function (conn) {
             var idx = parseInt(conn.getAttribute('data-connector'));
             if (idx < currentStep) conn.classList.add('done');
             else conn.classList.remove('done');
@@ -1214,21 +1399,21 @@
         }, 150);
       };
 
-      window.goLive = function() {
+      window.goLive = function () {
         alert('Your profile has been submitted for review. Our team will review it within 48 hours.');
       };
 
       // Upload panel drag-over effect
       var nativePanel = document.getElementById('nativeUploadPanel');
       if (nativePanel) {
-        nativePanel.addEventListener('dragover', function(e) {
+        nativePanel.addEventListener('dragover', function (e) {
           e.preventDefault();
           this.classList.add('drag-over');
         });
-        nativePanel.addEventListener('dragleave', function(e) {
+        nativePanel.addEventListener('dragleave', function (e) {
           this.classList.remove('drag-over');
         });
-        nativePanel.addEventListener('drop', function(e) {
+        nativePanel.addEventListener('drop', function (e) {
           e.preventDefault();
           this.classList.remove('drag-over');
         });
@@ -1239,4 +1424,5 @@
     })();
   </script>
 </body>
+
 </html>

@@ -13,7 +13,7 @@ export class PaymentService {
     accessCode: string;
     reference: string;
   }> {
-    const ref = `CRELAB-PAY-${bookingId}-${Date.now()}`;
+    const ref = `CRELLAB-PAY-${bookingId}-${Date.now()}`;
     return initTransaction(amountKobo, email, ref);
   }
 

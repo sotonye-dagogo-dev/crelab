@@ -549,3 +549,32 @@ new inbox, so the code was out of sync with the intended behaviour.
   complete the change (which they typed, so this is expected).
 - `emailChanged` remains registered as a wired template but is not yet fired on a
   successful change â€” no dedicated Better Auth hook; candidate for a follow-up.
+
+---
+
+**Decision:** All Drizzle migrations are journal-driven and idempotent; destructive DB
+scripts always back up first; seed rollback is seed-scoped by default.
+**Date:** 2026-10-07
+**Made by:** Implementer (per execute-feature directive: migration + script close-out)
+**Supersedes:** The hand-applied standalone-SQL migration practice and the unscoped
+`seed-rollback.ts` full-table deletes.
+**Superseded by:** None
+
+**Reason:**
+The journal was stale at 0002 while schema.ts had 6+ tables of drift; standalone SQL files
+were invisible to any migrate runner (0007 sat unapplied for a week). Worse, the rollback
+script''s unscoped DELETEs wiped critical non-seed data on a deseed. Backup-before-
+destructive is now enforced structurally, not by convention.
+
+**Alternatives Considered:**
+- Keep hand-applying SQL on Supabase — rejected: untracked, unrepeatable, caused this drift.
+- `drizzle-kit push` as the workflow — rejected: no history/audit trail; kept as a
+  prototyping escape hatch (`db:push`) only.
+- Scoped rollback keyed on the `_seed_version` marker timestamp — rejected: marker only
+  proves seeding happened, not which rows are seed; explicit seed-id allowlists are exact.
+
+**Implications:**
+- `npm run db:migrate` is the single apply path; `db:generate` after every schema.ts change.
+- `db:baseline` is one-time-only for pre-journal DBs; never run it on a fresh DB.
+- `backups/` is gitignored; operators must confirm `db:backup` works on their machine
+  (needs `pg_dump` on PATH) before any destructive op.

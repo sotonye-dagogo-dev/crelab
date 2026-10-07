@@ -1,89 +1,94 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="crelab-design" content="design-system">
-  <meta name="crelab-component" content="ClButton,ClCard,ClInput,ClTextarea,ClBadge">
-  <title>Crelab — Booking Drawer</title>
+  <meta name="crellab-design" content="design-system">
+  <meta name="crellab-component" content="ClButton,ClCard,ClInput,ClTextarea,ClBadge">
+  <title>Crellab — Booking Drawer</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
 
     :root {
-      --color-bg:              #0A0A0A;
-      --color-surface:         #141414;
-      --color-surface-raised:  #1C1C1C;
-      --color-border:          #2A2A2A;
-      --color-border-mid:      #3D3D3D;
-      --color-accent:          #E8FF47;
-      --color-accent-dim:      #C8DF3C;
-      --color-accent-muted:    #1E2200;
-      --color-text-primary:    #F2F2F2;
-      --color-text-secondary:  #9A9A9A;
-      --color-text-tertiary:   #5C5C5C;
-      --color-text-inverse:    #0A0A0A;
-      --color-success:         #4ADE80;
-      --color-warning:         #FACC15;
-      --color-error:           #F87171;
-      --color-info:            #60A5FA;
-      --color-escrow-held:     #FACC15;
+      --color-bg: #0A0A0A;
+      --color-surface: #141414;
+      --color-surface-raised: #1C1C1C;
+      --color-border: #2A2A2A;
+      --color-border-mid: #3D3D3D;
+      --color-accent: #E8FF47;
+      --color-accent-dim: #C8DF3C;
+      --color-accent-muted: #1E2200;
+      --color-text-primary: #F2F2F2;
+      --color-text-secondary: #9A9A9A;
+      --color-text-tertiary: #5C5C5C;
+      --color-text-inverse: #0A0A0A;
+      --color-success: #4ADE80;
+      --color-warning: #FACC15;
+      --color-error: #F87171;
+      --color-info: #60A5FA;
+      --color-escrow-held: #FACC15;
       --color-escrow-progress: #A78BFA;
       --color-escrow-released: #4ADE80;
       --color-escrow-disputed: #F87171;
 
       --font-display: 'Syne', system-ui, sans-serif;
-      --font-body:    'Inter', system-ui, sans-serif;
-      --font-mono:    'JetBrains Mono', monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
 
-      --text-xs:   0.75rem;
-      --text-sm:   0.875rem;
+      --text-xs: 0.75rem;
+      --text-sm: 0.875rem;
       --text-base: 1rem;
-      --text-lg:   1.125rem;
-      --text-xl:   1.25rem;
-      --text-2xl:  1.5rem;
-      --text-3xl:  1.875rem;
-      --text-4xl:  2.25rem;
-      --text-5xl:  3rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+      --text-3xl: 1.875rem;
+      --text-4xl: 2.25rem;
+      --text-5xl: 3rem;
 
-      --weight-regular:   400;
-      --weight-medium:    500;
-      --weight-semibold:  600;
-      --weight-bold:      700;
+      --weight-regular: 400;
+      --weight-medium: 500;
+      --weight-semibold: 600;
+      --weight-bold: 700;
       --weight-extrabold: 800;
 
-      --leading-tight:   1.2;
-      --leading-normal:  1.5;
+      --leading-tight: 1.2;
+      --leading-normal: 1.5;
       --leading-relaxed: 1.7;
 
-      --space-1:  0.25rem;
-      --space-2:  0.5rem;
-      --space-3:  0.75rem;
-      --space-4:  1rem;
-      --space-5:  1.25rem;
-      --space-6:  1.5rem;
-      --space-8:  2rem;
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
       --space-10: 2.5rem;
       --space-12: 3rem;
       --space-16: 4rem;
       --space-20: 5rem;
 
-      --radius-sm:   4px;
-      --radius-md:   8px;
-      --radius-lg:   12px;
-      --radius-xl:   16px;
-      --radius-2xl:  24px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-2xl: 24px;
       --radius-full: 9999px;
 
-      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --duration-fast:   150ms;
-      --duration-base:   250ms;
-      --duration-slow:   400ms;
+      --duration-fast: 150ms;
+      --duration-base: 250ms;
+      --duration-slow: 400ms;
       --duration-slower: 600ms;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background: #0A0A0A;
@@ -100,7 +105,7 @@
     .backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(10,10,10,0.85);
+      background: rgba(10, 10, 10, 0.85);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
       z-index: 100;
@@ -120,7 +125,7 @@
       z-index: 101;
       display: flex;
       flex-direction: column;
-      box-shadow: -8px 0 40px rgba(0,0,0,0.4);
+      box-shadow: -8px 0 40px rgba(0, 0, 0, 0.4);
     }
 
     @media (max-width: 640px) {
@@ -165,7 +170,10 @@
       border-radius: var(--radius-sm);
       transition: color var(--duration-fast) var(--ease-out);
     }
-    .drawer-close:hover { color: var(--color-text-primary); }
+
+    .drawer-close:hover {
+      color: var(--color-text-primary);
+    }
 
     .drawer-body {
       flex: 1;
@@ -181,6 +189,7 @@
       opacity: 0;
       transition: opacity var(--duration-fast) var(--ease-out);
     }
+
     .step.active {
       display: flex;
       opacity: 1;
@@ -200,36 +209,68 @@
       text-decoration: none;
       white-space: nowrap;
       transition: background var(--duration-fast) var(--ease-out),
-                  border-color var(--duration-fast) var(--ease-out),
-                  color var(--duration-fast) var(--ease-out);
+        border-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
     }
-    .cl-btn:active { transform: scale(0.98); }
-    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
-    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
-    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
-    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+    .cl-btn:active {
+      transform: scale(0.98);
+    }
+
+    .cl-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .cl-btn-default {
+      height: 40px;
+      padding: 0 var(--space-4);
+      font-size: 14px;
+    }
+
+    .cl-btn-sm {
+      height: 32px;
+      padding: 0 var(--space-3);
+      font-size: 13px;
+    }
+
+    .cl-btn-lg {
+      height: 48px;
+      padding: 0 var(--space-6);
+      font-size: 15px;
+    }
 
     .cl-btn-primary {
       background: var(--color-accent);
       color: var(--color-text-inverse);
       border-color: transparent;
     }
-    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+
+    .cl-btn-primary:hover {
+      background: var(--color-accent-dim);
+    }
 
     .cl-btn-outlined {
       background: transparent;
       color: var(--color-text-primary);
       border-color: var(--color-border-mid);
     }
-    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    .cl-btn-outlined:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
 
     .cl-btn-ghost {
       background: transparent;
       color: var(--color-text-secondary);
       border-color: transparent;
     }
-    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+
+    .cl-btn-ghost:hover {
+      color: var(--color-text-primary);
+    }
 
     /* --- ClCard --- */
     .cl-card {
@@ -239,7 +280,10 @@
       padding: var(--space-5);
       transition: border-color 200ms var(--ease-out);
     }
-    .cl-card:hover { border-color: var(--color-border-mid); }
+
+    .cl-card:hover {
+      border-color: var(--color-border-mid);
+    }
 
     /* --- ClField / Input --- */
     .cl-field {
@@ -247,6 +291,7 @@
       flex-direction: column;
       gap: var(--space-1);
     }
+
     .cl-field-label {
       font-family: var(--font-body);
       font-weight: var(--weight-semibold);
@@ -255,6 +300,7 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
     }
+
     .cl-input {
       background: var(--color-surface-raised);
       border: 1px solid var(--color-border);
@@ -267,10 +313,23 @@
       outline: none;
       transition: border-color var(--duration-fast) var(--ease-out);
     }
-    .cl-input::placeholder { color: var(--color-text-tertiary); }
-    .cl-input:focus { border-color: var(--color-accent); }
-    .cl-input.error { border-color: var(--color-error); }
-    .cl-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .cl-input::placeholder {
+      color: var(--color-text-tertiary);
+    }
+
+    .cl-input:focus {
+      border-color: var(--color-accent);
+    }
+
+    .cl-input.error {
+      border-color: var(--color-error);
+    }
+
+    .cl-input:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
 
     .cl-textarea {
       background: var(--color-surface-raised);
@@ -286,11 +345,19 @@
       transition: border-color var(--duration-fast) var(--ease-out);
       resize: vertical;
     }
-    .cl-textarea::placeholder { color: var(--color-text-tertiary); }
-    .cl-textarea:focus { border-color: var(--color-accent); }
+
+    .cl-textarea::placeholder {
+      color: var(--color-text-tertiary);
+    }
+
+    .cl-textarea:focus {
+      border-color: var(--color-accent);
+    }
 
     /* Buttons styled as they appear in the design system */
-    .btn-full { width: 100%; }
+    .btn-full {
+      width: 100%;
+    }
 
     /* Divider */
     .cl-divider {
@@ -306,25 +373,30 @@
       align-items: center;
       padding: var(--space-1) 0;
     }
+
     .price-row-label {
       font-family: var(--font-body);
       font-size: 13px;
       color: var(--color-text-secondary);
     }
+
     .price-row-label.faint {
       color: var(--color-text-tertiary);
     }
+
     .price-row-amount {
       font-family: var(--font-mono);
       font-size: 13px;
       color: var(--color-text-primary);
       font-variant-numeric: tabular-nums;
     }
+
     .price-row-amount.total {
       font-size: 18px;
       font-weight: var(--weight-bold);
       color: var(--color-accent);
     }
+
     .price-row-label.total-label {
       font-family: var(--font-body);
       font-weight: var(--weight-semibold);
@@ -344,24 +416,34 @@
       cursor: pointer;
       transition: border-color var(--duration-fast) var(--ease-out);
     }
-    .escrow-toggle:hover { border-color: var(--color-border-mid); }
+
+    .escrow-toggle:hover {
+      border-color: var(--color-border-mid);
+    }
+
     .escrow-toggle-label {
       font-family: var(--font-body);
       font-size: 13px;
       color: var(--color-text-secondary);
     }
+
     .escrow-chevron {
       width: 14px;
       height: 14px;
       color: var(--color-text-tertiary);
       transition: transform var(--duration-base) var(--ease-out);
     }
-    .escrow-chevron.open { transform: rotate(180deg); }
+
+    .escrow-chevron.open {
+      transform: rotate(180deg);
+    }
+
     .escrow-body {
       max-height: 0;
       overflow: hidden;
       transition: max-height var(--duration-base) var(--ease-out);
     }
+
     .escrow-body-inner {
       background: var(--color-surface-raised);
       border: 1px solid var(--color-border);
@@ -369,6 +451,7 @@
       border-radius: 0 0 var(--radius-md) var(--radius-md);
       padding: var(--space-3) var(--space-4);
     }
+
     .escrow-text {
       font-family: var(--font-body);
       font-size: 13px;
@@ -380,7 +463,7 @@
     .confirm-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(10,10,10,0.9);
+      background: rgba(10, 10, 10, 0.9);
       z-index: 10;
       display: flex;
       align-items: center;
@@ -389,10 +472,12 @@
       pointer-events: none;
       transition: opacity var(--duration-base) var(--ease-out);
     }
+
     .confirm-overlay.open {
       opacity: 1;
       pointer-events: auto;
     }
+
     .confirm-dialog {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -402,6 +487,7 @@
       width: 90%;
       text-align: center;
     }
+
     .confirm-dialog p {
       font-family: var(--font-body);
       font-size: 14px;
@@ -409,11 +495,15 @@
       margin-bottom: var(--space-5);
       line-height: 1.5;
     }
+
     .confirm-dialog .btn-row {
       display: flex;
       gap: var(--space-3);
     }
-    .confirm-dialog .btn-row .cl-btn { flex: 1; }
+
+    .confirm-dialog .btn-row .cl-btn {
+      flex: 1;
+    }
 
     /* Step 3 — Confirmation styles */
     .conf-checkmark {
@@ -428,16 +518,26 @@
       margin: 0 auto;
       animation: popIn 400ms var(--ease-spring);
     }
+
     .conf-checkmark span {
       font-family: var(--font-display);
       font-weight: var(--weight-bold);
       font-size: 28px;
       color: var(--color-accent);
     }
+
     @keyframes popIn {
-      0% { transform: scale(0); }
-      60% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+      0% {
+        transform: scale(0);
+      }
+
+      60% {
+        transform: scale(1.1);
+      }
+
+      100% {
+        transform: scale(1);
+      }
     }
 
     .conf-title {
@@ -448,6 +548,7 @@
       text-align: center;
       margin-top: var(--space-5);
     }
+
     .conf-booking-id {
       font-family: var(--font-mono);
       font-size: 12px;
@@ -465,6 +566,7 @@
       margin-top: var(--space-7);
       padding-left: 32px;
     }
+
     .conf-timeline::before {
       content: '';
       position: absolute;
@@ -474,6 +576,7 @@
       height: calc(100% - 22px);
       background: var(--color-border);
     }
+
     .conf-tl-item {
       display: flex;
       align-items: flex-start;
@@ -481,7 +584,11 @@
       padding-bottom: var(--space-5);
       position: relative;
     }
-    .conf-tl-item:last-child { padding-bottom: 0; }
+
+    .conf-tl-item:last-child {
+      padding-bottom: 0;
+    }
+
     .conf-tl-node {
       width: 22px;
       height: 22px;
@@ -495,21 +602,25 @@
       position: relative;
       z-index: 1;
     }
+
     .conf-tl-node.done {
       background: var(--color-accent);
       color: var(--color-text-inverse);
     }
+
     .conf-tl-node.future {
       background: var(--color-surface-raised);
       border: 1px solid var(--color-border);
       color: var(--color-text-tertiary);
     }
+
     .conf-tl-label {
       font-family: var(--font-body);
       font-weight: var(--weight-semibold);
       font-size: 14px;
       color: var(--color-text-primary);
     }
+
     .conf-tl-sub {
       font-family: var(--font-body);
       font-size: 12px;
@@ -519,14 +630,15 @@
 
     /* Step 2 — Trust banner */
     .trust-banner {
-      background: rgba(74,222,128,0.08);
-      border: 1px solid rgba(74,222,128,0.2);
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px solid rgba(74, 222, 128, 0.2);
       border-radius: var(--radius-md);
       padding: 12px 16px;
       display: flex;
       gap: var(--space-2);
       align-items: flex-start;
     }
+
     .trust-banner svg {
       width: 16px;
       height: 16px;
@@ -534,6 +646,7 @@
       flex-shrink: 0;
       margin-top: 1px;
     }
+
     .trust-banner p {
       font-family: var(--font-body);
       font-size: 13px;
@@ -547,23 +660,27 @@
       border-radius: var(--radius-lg);
       padding: var(--space-6);
     }
+
     .paystack-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: var(--space-5);
     }
+
     .paystack-wordmark {
       font-family: var(--font-body);
       font-weight: var(--weight-bold);
       font-size: 14px;
       color: #00C3F7;
     }
+
     .paystack-header svg {
       width: 12px;
       height: 12px;
       color: var(--color-text-tertiary);
     }
+
     .paystack-amount {
       font-family: var(--font-mono);
       font-size: 28px;
@@ -572,6 +689,7 @@
       font-weight: var(--weight-bold);
       font-variant-numeric: tabular-nums;
     }
+
     .paystack-sub {
       font-family: var(--font-body);
       font-size: 12px;
@@ -579,8 +697,9 @@
       text-align: center;
       margin-top: 4px;
     }
+
     .paystack-input {
-      background: rgba(255,255,255,0.06);
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid var(--color-border-mid);
       border-radius: var(--radius-md);
       color: var(--color-text-primary);
@@ -592,13 +711,23 @@
       outline: none;
       transition: border-color var(--duration-fast) var(--ease-out);
     }
-    .paystack-input::placeholder { color: var(--color-text-tertiary); }
-    .paystack-input:focus { border-color: var(--color-accent); }
+
+    .paystack-input::placeholder {
+      color: var(--color-text-tertiary);
+    }
+
+    .paystack-input:focus {
+      border-color: var(--color-accent);
+    }
+
     .paystack-input-row {
       display: flex;
       gap: var(--space-3);
     }
-    .paystack-input-row .cl-field { flex: 1; }
+
+    .paystack-input-row .cl-field {
+      flex: 1;
+    }
 
     .paystack-pay-btn {
       background: #00C3F7;
@@ -614,7 +743,10 @@
       margin-top: var(--space-4);
       transition: opacity var(--duration-fast) var(--ease-out);
     }
-    .paystack-pay-btn:hover { opacity: 0.9; }
+
+    .paystack-pay-btn:hover {
+      opacity: 0.9;
+    }
 
     .paystack-security {
       display: inline-flex;
@@ -625,20 +757,47 @@
       color: var(--color-text-tertiary);
       margin-top: var(--space-2);
     }
+
     .paystack-security svg {
       width: 11px;
       height: 11px;
     }
 
-    .txt-centre { text-align: center; }
-    .mt-2 { margin-top: var(--space-2); }
-    .mt-3 { margin-top: var(--space-3); }
-    .mt-4 { margin-top: var(--space-4); }
-    .mt-5 { margin-top: var(--space-5); }
-    .mt-6 { margin-top: var(--space-6); }
-    .mb-2 { margin-bottom: var(--space-2); }
-    .mb-3 { margin-bottom: var(--space-3); }
-    .mb-4 { margin-bottom: var(--space-4); }
+    .txt-centre {
+      text-align: center;
+    }
+
+    .mt-2 {
+      margin-top: var(--space-2);
+    }
+
+    .mt-3 {
+      margin-top: var(--space-3);
+    }
+
+    .mt-4 {
+      margin-top: var(--space-4);
+    }
+
+    .mt-5 {
+      margin-top: var(--space-5);
+    }
+
+    .mt-6 {
+      margin-top: var(--space-6);
+    }
+
+    .mb-2 {
+      margin-bottom: var(--space-2);
+    }
+
+    .mb-3 {
+      margin-bottom: var(--space-3);
+    }
+
+    .mb-4 {
+      margin-bottom: var(--space-4);
+    }
 
     .step-header {
       font-family: var(--font-display);
@@ -646,6 +805,7 @@
       font-size: var(--text-lg);
       color: var(--color-text-primary);
     }
+
     .step-sub {
       font-family: var(--font-body);
       font-size: 14px;
@@ -654,11 +814,21 @@
     }
 
     /* Scrollbar styling */
-    .drawer-body::-webkit-scrollbar { width: 4px; }
-    .drawer-body::-webkit-scrollbar-track { background: transparent; }
-    .drawer-body::-webkit-scrollbar-thumb { background: var(--color-border-mid); border-radius: 2px; }
+    .drawer-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .drawer-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .drawer-body::-webkit-scrollbar-thumb {
+      background: var(--color-border-mid);
+      border-radius: 2px;
+    }
   </style>
 </head>
+
 <body>
 
   <!-- Backdrop — blurred profile page -->
@@ -676,7 +846,8 @@
       <div class="confirm-dialog">
         <p>Leave booking? Your progress will be lost.</p>
         <div class="btn-row">
-          <button class="cl-btn cl-btn-primary cl-btn-default btnStay" onclick="document.getElementById('confirmOverlay').classList.remove('open')">Stay</button>
+          <button class="cl-btn cl-btn-primary cl-btn-default btnStay"
+            onclick="document.getElementById('confirmOverlay').classList.remove('open')">Stay</button>
           <button class="cl-btn cl-btn-ghost cl-btn-default btnLeave" onclick="window.close()">Leave</button>
         </div>
       </div>
@@ -695,16 +866,35 @@
         <div class="cl-divider"></div>
 
         <!-- Package summary -->
-        <div class="cl-card" style="background:var(--color-surface-raised);border-radius:var(--radius-lg);padding:var(--space-4)">
-          <div style="font-family:var(--font-body);font-weight:var(--weight-semibold);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-tertiary)">Tier</div>
-          <div style="font-family:var(--font-display);font-weight:var(--weight-bold);font-size:15px;color:var(--color-text-primary);margin-top:2px">Standard</div>
-          <ul style="list-style:none;padding:0;margin:var(--space-2) 0 0 0;display:flex;flex-direction:column;gap:var(--space-1)">
-            <li style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:var(--space-2)"><span style="color:var(--color-success);font-weight:var(--weight-bold)">✓</span> 3 short-form videos (30–60s)</li>
-            <li style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:var(--space-2)"><span style="color:var(--color-success);font-weight:var(--weight-bold)">✓</span> Full colour grading + audio</li>
-            <li style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:var(--space-2)"><span style="color:var(--color-success);font-weight:var(--weight-bold)">✓</span> Captions + CTAs overlay</li>
-            <li style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:var(--space-2)"><span style="color:var(--color-success);font-weight:var(--weight-bold)">✓</span> 2 revision rounds</li>
+        <div class="cl-card"
+          style="background:var(--color-surface-raised);border-radius:var(--radius-lg);padding:var(--space-4)">
+          <div
+            style="font-family:var(--font-body);font-weight:var(--weight-semibold);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-tertiary)">
+            Tier</div>
+          <div
+            style="font-family:var(--font-display);font-weight:var(--weight-bold);font-size:15px;color:var(--color-text-primary);margin-top:2px">
+            Standard</div>
+          <ul
+            style="list-style:none;padding:0;margin:var(--space-2) 0 0 0;display:flex;flex-direction:column;gap:var(--space-1)">
+            <li
+              style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:var(--space-2)">
+              <span style="color:var(--color-success);font-weight:var(--weight-bold)">✓</span> 3 short-form videos
+              (30–60s)</li>
+            <li
+              style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:var(--space-2)">
+              <span style="color:var(--color-success);font-weight:var(--weight-bold)">✓</span> Full colour grading +
+              audio</li>
+            <li
+              style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:var(--space-2)">
+              <span style="color:var(--color-success);font-weight:var(--weight-bold)">✓</span> Captions + CTAs overlay
+            </li>
+            <li
+              style="font-family:var(--font-body);font-size:13px;color:var(--color-text-secondary);display:flex;align-items:center;gap:var(--space-2)">
+              <span style="color:var(--color-success);font-weight:var(--weight-bold)">✓</span> 2 revision rounds</li>
           </ul>
-          <div style="font-family:var(--font-body);font-size:12px;color:var(--color-text-secondary);margin-top:var(--space-2)">5-day turnaround</div>
+          <div
+            style="font-family:var(--font-body);font-size:12px;color:var(--color-text-secondary);margin-top:var(--space-2)">
+            5-day turnaround</div>
         </div>
 
         <!-- Service Date -->
@@ -716,11 +906,13 @@
         <!-- Scope Notes -->
         <div class="cl-field mt-4">
           <label class="cl-field-label">Scope Notes</label>
-          <textarea class="cl-textarea" style="min-height:80px" placeholder="Describe exactly what you need..."></textarea>
+          <textarea class="cl-textarea" style="min-height:80px"
+            placeholder="Describe exactly what you need..."></textarea>
         </div>
 
         <!-- Price Breakdown -->
-        <div style="background:var(--color-surface-raised);border-radius:var(--radius-lg);padding:var(--space-4);margin-top:var(--space-5)">
+        <div
+          style="background:var(--color-surface-raised);border-radius:var(--radius-lg);padding:var(--space-4);margin-top:var(--space-5)">
           <div class="price-row">
             <span class="price-row-label">Subtotal</span>
             <span class="price-row-amount">₦85,000</span>
@@ -741,17 +933,22 @@
         <div style="margin-top:var(--space-4)">
           <div class="escrow-toggle" id="escrowToggle">
             <span class="escrow-toggle-label">How does escrow work?</span>
-            <svg class="escrow-chevron" id="escrowChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+            <svg class="escrow-chevron" id="escrowChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6l4 4 4-4" />
+            </svg>
           </div>
           <div class="escrow-body" id="escrowBody">
             <div class="escrow-body-inner">
-              <p class="escrow-text">Your payment is held by Crelab and only released to the creator after you confirm delivery — or automatically after 5 days if you raise no dispute.</p>
+              <p class="escrow-text">Your payment is held by Crellab and only released to the creator after you confirm
+                delivery — or automatically after 5 days if you raise no dispute.</p>
               <!-- escrowReleaseDays from platformConfig. -->
             </div>
           </div>
         </div>
 
-        <button class="cl-btn cl-btn-primary cl-btn-lg btn-full mt-5" id="toStep2" style="border-radius:var(--radius-sm)">Proceed to Payment →</button>
+        <button class="cl-btn cl-btn-primary cl-btn-lg btn-full mt-5" id="toStep2"
+          style="border-radius:var(--radius-sm)">Proceed to Payment →</button>
       </div>
 
       <!-- ================================================================ -->
@@ -759,22 +956,29 @@
       <!-- ================================================================ -->
       <div class="step" id="step2">
         <div class="step-header">Secure Payment</div>
-        <div class="step-sub">Handled by Paystack. Your card details are never seen by Crelab.</div>
-        <!-- Paystack inline checkout. Card data never touches Crelab servers. PCI SAQ A scope. -->
+        <div class="step-sub">Handled by Paystack. Your card details are never seen by Crellab.</div>
+        <!-- Paystack inline checkout. Card data never touches Crellab servers. PCI SAQ A scope. -->
 
         <div class="trust-banner mt-4">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
           <p>Funds are held securely. Adunola won't receive payment until you confirm delivery.</p>
         </div>
 
         <div class="paystack-panel mt-5">
           <div class="paystack-header">
             <span class="paystack-wordmark">Paystack</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
           </div>
 
           <div class="paystack-amount">₦89,250</div>
-          <div class="paystack-sub">to Crelab — Standard Package</div>
+          <div class="paystack-sub">to Crellab — Standard Package</div>
           <!-- Provider displayName and package name injected. -->
 
           <div style="margin-top:var(--space-5);display:flex;flex-direction:column;gap:var(--space-3)">
@@ -789,7 +993,11 @@
           <button class="paystack-pay-btn" id="toStep3">Pay ₦89,250 Securely</button>
 
           <div class="txt-centre mt-2 paystack-security">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
             Secured by Paystack · PCI DSS Compliant
           </div>
         </div>
@@ -922,4 +1130,5 @@
     })();
   </script>
 </body>
+
 </html>

@@ -1,93 +1,99 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="crelab-design" content="design-system">
-  <meta name="crelab-component" content="NavBar,ClButton,ClBadge,ClCard,ClInput,ExploreVideoCard,ServicePackageCard,ExperienceLevelBadge,AvailabilityBadge,EscrowStatusPill">
-  <title>Adunola Okonkwo — Crelab</title>
+  <meta name="crellab-design" content="design-system">
+  <meta name="crellab-component"
+    content="NavBar,ClButton,ClBadge,ClCard,ClInput,ExploreVideoCard,ServicePackageCard,ExperienceLevelBadge,AvailabilityBadge,EscrowStatusPill">
+  <title>Adunola Okonkwo — Crellab</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
 
     :root {
-      --color-bg:              #0A0A0A;
-      --color-surface:         #141414;
-      --color-surface-raised:  #1C1C1C;
-      --color-border:          #2A2A2A;
-      --color-border-mid:      #3D3D3D;
-      --color-accent:          #E8FF47;
-      --color-accent-dim:      #C8DF3C;
-      --color-accent-muted:    #1E2200;
-      --color-text-primary:    #F2F2F2;
-      --color-text-secondary:  #9A9A9A;
-      --color-text-tertiary:   #5C5C5C;
-      --color-text-inverse:    #0A0A0A;
-      --color-success:         #4ADE80;
-      --color-warning:         #FACC15;
-      --color-error:           #F87171;
-      --color-info:            #60A5FA;
-      --color-escrow-held:     #FACC15;
+      --color-bg: #0A0A0A;
+      --color-surface: #141414;
+      --color-surface-raised: #1C1C1C;
+      --color-border: #2A2A2A;
+      --color-border-mid: #3D3D3D;
+      --color-accent: #E8FF47;
+      --color-accent-dim: #C8DF3C;
+      --color-accent-muted: #1E2200;
+      --color-text-primary: #F2F2F2;
+      --color-text-secondary: #9A9A9A;
+      --color-text-tertiary: #5C5C5C;
+      --color-text-inverse: #0A0A0A;
+      --color-success: #4ADE80;
+      --color-warning: #FACC15;
+      --color-error: #F87171;
+      --color-info: #60A5FA;
+      --color-escrow-held: #FACC15;
       --color-escrow-progress: #A78BFA;
       --color-escrow-released: #4ADE80;
       --color-escrow-disputed: #F87171;
 
       --font-display: 'Syne', system-ui, sans-serif;
-      --font-body:    'Inter', system-ui, sans-serif;
-      --font-mono:    'JetBrains Mono', monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
 
-      --text-xs:   0.75rem;
-      --text-sm:   0.875rem;
+      --text-xs: 0.75rem;
+      --text-sm: 0.875rem;
       --text-base: 1rem;
-      --text-lg:   1.125rem;
-      --text-xl:   1.25rem;
-      --text-2xl:  1.5rem;
-      --text-3xl:  1.875rem;
-      --text-4xl:  2.25rem;
-      --text-5xl:  3rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+      --text-3xl: 1.875rem;
+      --text-4xl: 2.25rem;
+      --text-5xl: 3rem;
 
-      --weight-regular:   400;
-      --weight-medium:    500;
-      --weight-semibold:  600;
-      --weight-bold:      700;
+      --weight-regular: 400;
+      --weight-medium: 500;
+      --weight-semibold: 600;
+      --weight-bold: 700;
       --weight-extrabold: 800;
 
-      --leading-tight:   1.2;
-      --leading-normal:  1.5;
+      --leading-tight: 1.2;
+      --leading-normal: 1.5;
       --leading-relaxed: 1.7;
 
-      --space-1:  0.25rem;
-      --space-2:  0.5rem;
-      --space-3:  0.75rem;
-      --space-4:  1rem;
-      --space-5:  1.25rem;
-      --space-6:  1.5rem;
-      --space-8:  2rem;
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
       --space-10: 2.5rem;
       --space-12: 3rem;
       --space-16: 4rem;
       --space-20: 5rem;
 
-      --radius-sm:   4px;
-      --radius-md:   8px;
-      --radius-lg:   12px;
-      --radius-xl:   16px;
-      --radius-2xl:  24px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-2xl: 24px;
       --radius-full: 9999px;
 
       --max-width-content: 1200px;
       --nav-height: 69px;
       --sidebar-width: 300px;
 
-      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --duration-fast:   150ms;
-      --duration-base:   250ms;
-      --duration-slow:   400ms;
+      --duration-fast: 150ms;
+      --duration-base: 250ms;
+      --duration-slow: 400ms;
       --duration-slower: 600ms;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background: var(--color-bg);
@@ -101,7 +107,9 @@
     }
 
     @media (max-width: 640px) {
-      body { padding-bottom: 80px; }
+      body {
+        padding-bottom: 80px;
+      }
     }
 
     /* ============================================================
@@ -123,7 +131,7 @@
       left: 0;
       right: 0;
       height: 64px;
-      background: rgba(10,10,10,0.85);
+      background: rgba(10, 10, 10, 0.85);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--color-border);
@@ -163,6 +171,7 @@
       color: var(--color-text-primary);
       letter-spacing: -0.01em;
     }
+
     /* platformConfig.name — never hardcoded in production */
 
     .nav-center {
@@ -170,6 +179,7 @@
       align-items: center;
       gap: var(--space-8);
     }
+
     .nav-center a {
       font-family: var(--font-body);
       font-weight: var(--weight-medium);
@@ -178,7 +188,10 @@
       text-decoration: none;
       transition: color var(--duration-fast) var(--ease-out);
     }
-    .nav-center a:hover { color: var(--color-text-primary); }
+
+    .nav-center a:hover {
+      color: var(--color-text-primary);
+    }
 
     .nav-right {
       display: flex;
@@ -200,6 +213,7 @@
       flex-direction: column;
       gap: 4px;
     }
+
     .nav-hamburger span {
       display: block;
       width: 16px;
@@ -222,10 +236,12 @@
       pointer-events: none;
       transition: opacity 250ms var(--ease-out);
     }
+
     .mobile-overlay.open {
       opacity: 1;
       pointer-events: auto;
     }
+
     .mobile-overlay a {
       font-family: var(--font-display);
       font-size: var(--text-2xl);
@@ -233,6 +249,7 @@
       text-decoration: none;
       font-weight: var(--weight-bold);
     }
+
     .mobile-overlay .close-btn {
       position: absolute;
       top: var(--space-6);
@@ -251,8 +268,15 @@
     }
 
     @media (max-width: 640px) {
-      .nav-center, .nav-right { display: none; }
-      .nav-hamburger { display: flex; }
+
+      .nav-center,
+      .nav-right {
+        display: none;
+      }
+
+      .nav-hamburger {
+        display: flex;
+      }
     }
 
     /* ============================================================
@@ -271,36 +295,68 @@
       text-decoration: none;
       white-space: nowrap;
       transition: background var(--duration-fast) var(--ease-out),
-                  border-color var(--duration-fast) var(--ease-out),
-                  color var(--duration-fast) var(--ease-out);
+        border-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
     }
-    .cl-btn:active { transform: scale(0.98); }
-    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
-    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
-    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
-    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+    .cl-btn:active {
+      transform: scale(0.98);
+    }
+
+    .cl-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .cl-btn-default {
+      height: 40px;
+      padding: 0 var(--space-4);
+      font-size: 14px;
+    }
+
+    .cl-btn-sm {
+      height: 32px;
+      padding: 0 var(--space-3);
+      font-size: 13px;
+    }
+
+    .cl-btn-lg {
+      height: 48px;
+      padding: 0 var(--space-6);
+      font-size: 15px;
+    }
 
     .cl-btn-primary {
       background: var(--color-accent);
       color: var(--color-text-inverse);
       border-color: transparent;
     }
-    .cl-btn-primary:hover { background: var(--color-accent-dim); }
+
+    .cl-btn-primary:hover {
+      background: var(--color-accent-dim);
+    }
 
     .cl-btn-outlined {
       background: transparent;
       color: var(--color-text-primary);
       border-color: var(--color-border-mid);
     }
-    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    .cl-btn-outlined:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
 
     .cl-btn-ghost {
       background: transparent;
       color: var(--color-text-secondary);
       border-color: transparent;
     }
-    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+
+    .cl-btn-ghost:hover {
+      color: var(--color-text-primary);
+    }
 
     /* ============================================================
        ClBadge
@@ -317,10 +373,27 @@
       white-space: nowrap;
       line-height: 1.5;
     }
-    .cl-badge-accent { background: var(--color-accent); color: var(--color-text-inverse); }
-    .cl-badge-accent-muted { background: var(--color-accent-muted); color: var(--color-accent); }
-    .cl-badge-success { background: rgba(74,222,128,0.12); color: var(--color-success); }
-    .cl-badge-surface { background: var(--color-surface-raised); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+
+    .cl-badge-accent {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+
+    .cl-badge-accent-muted {
+      background: var(--color-accent-muted);
+      color: var(--color-accent);
+    }
+
+    .cl-badge-success {
+      background: rgba(74, 222, 128, 0.12);
+      color: var(--color-success);
+    }
+
+    .cl-badge-surface {
+      background: var(--color-surface-raised);
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+    }
 
     /* ============================================================
        ClCard
@@ -332,7 +405,10 @@
       padding: var(--space-5);
       transition: border-color 200ms var(--ease-out);
     }
-    .cl-card:hover { border-color: var(--color-border-mid); }
+
+    .cl-card:hover {
+      border-color: var(--color-border-mid);
+    }
 
     /* ============================================================
        ExploreVideoCard
@@ -347,10 +423,12 @@
       display: flex;
       flex-direction: column;
     }
+
     .explore-card:hover {
       transform: scale(1.02);
       box-shadow: 0 0 0 1px var(--color-accent), 0 0 16px rgba(232, 255, 71, 0.15);
     }
+
     .explore-card-video {
       position: relative;
       display: flex;
@@ -359,20 +437,23 @@
       flex: 1;
       width: 100%;
     }
+
     .explore-card-video .play-icon {
       width: 24px;
       height: 24px;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255, 255, 255, 0.5);
     }
+
     .explore-card-gradient {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
       height: 60%;
-      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
       pointer-events: none;
     }
+
     .explore-card-info {
       position: absolute;
       bottom: 0;
@@ -383,10 +464,12 @@
       flex-direction: column;
       gap: 2px;
     }
+
     .explore-card-category {
       align-self: flex-start;
       margin-bottom: var(--space-2);
     }
+
     .explore-card-name {
       font-family: var(--font-display);
       font-size: 14px;
@@ -394,11 +477,13 @@
       color: var(--color-text-primary);
       line-height: var(--leading-tight);
     }
+
     .explore-card-meta {
       display: flex;
       align-items: center;
       gap: var(--space-2);
     }
+
     .explore-card-stars {
       font-family: var(--font-mono);
       font-size: 12px;
@@ -406,16 +491,19 @@
       color: var(--color-warning);
       font-variant-numeric: tabular-nums;
     }
+
     .explore-card-price {
       font-family: var(--font-body);
       font-size: 12px;
       color: var(--color-text-secondary);
     }
+
     .explore-card-price .price-amount {
       font-family: var(--font-mono);
       color: var(--color-accent);
       font-weight: var(--weight-medium);
     }
+
     .explore-card-hover-cta {
       position: absolute;
       top: var(--space-3);
@@ -433,10 +521,12 @@
       pointer-events: none;
       white-space: nowrap;
     }
+
     .explore-card:hover .explore-card-hover-cta {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+
     .explore-card-drive-badge {
       position: absolute;
       bottom: var(--space-2);
@@ -466,15 +556,18 @@
       flex: 1;
       min-width: 200px;
     }
+
     .pkg-card.standard {
       border-top: 3px solid var(--color-accent);
     }
+
     .pkg-card-popular {
       position: absolute;
       top: 0;
       right: var(--space-4);
       transform: translateY(-50%);
     }
+
     .pkg-tier {
       font-family: var(--font-body);
       font-size: 11px;
@@ -483,12 +576,14 @@
       letter-spacing: 0.06em;
       color: var(--color-text-tertiary);
     }
+
     .pkg-name {
       font-family: var(--font-display);
       font-size: var(--text-base);
       font-weight: var(--weight-bold);
       color: var(--color-text-primary);
     }
+
     .pkg-price {
       font-family: var(--font-mono);
       font-size: 28px;
@@ -497,16 +592,19 @@
       font-variant-numeric: tabular-nums;
       line-height: var(--leading-tight);
     }
+
     .pkg-turnaround {
       font-family: var(--font-body);
       font-size: 12px;
       color: var(--color-text-secondary);
     }
+
     .pkg-divider {
       height: 1px;
       background: var(--color-border);
       margin: var(--space-1) 0;
     }
+
     .pkg-deliverables {
       display: flex;
       flex-direction: column;
@@ -515,6 +613,7 @@
       padding: 0;
       margin: 0;
     }
+
     .pkg-deliverables li {
       font-family: var(--font-body);
       font-size: 13px;
@@ -523,11 +622,13 @@
       align-items: center;
       gap: var(--space-2);
     }
+
     .pkg-deliverables li::before {
       content: '✓';
       color: var(--color-success);
       font-weight: var(--weight-bold);
     }
+
     .pkg-cta {
       margin-top: auto;
     }
@@ -547,8 +648,9 @@
       white-space: nowrap;
       line-height: 1.4;
     }
+
     .avail-badge.now {
-      background: rgba(74,222,128,0.12);
+      background: rgba(74, 222, 128, 0.12);
       color: var(--color-success);
     }
 
@@ -563,8 +665,9 @@
       white-space: nowrap;
       line-height: 1.4;
     }
+
     .exp-badge.established {
-      background: rgba(167,139,250,0.12);
+      background: rgba(167, 139, 250, 0.12);
       color: var(--color-escrow-progress);
     }
 
@@ -580,6 +683,7 @@
       border-bottom: 1px solid var(--color-border);
       overflow: hidden;
     }
+
     .cover-hero-placeholder {
       width: 100%;
       height: 100%;
@@ -590,25 +694,29 @@
       flex-direction: column;
       gap: var(--space-2);
     }
+
     .cover-hero-placeholder svg {
       width: 48px;
       height: 48px;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255, 255, 255, 0.4);
     }
+
     .cover-hero-placeholder span {
       font-family: var(--font-body);
       font-size: 12px;
       color: var(--color-text-tertiary);
     }
+
     .cover-hero-gradient {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
       height: 60%;
-      background: linear-gradient(to top, rgba(10,10,10,0.9) 0%, transparent 100%);
+      background: linear-gradient(to top, rgba(10, 10, 10, 0.9) 0%, transparent 100%);
       pointer-events: none;
     }
+
     /* <video autoplay muted loop playsInline> in production. Cover video from provider.coverVideoUrl. */
 
     /* ============================================================
@@ -619,12 +727,14 @@
       margin: 0 auto;
       padding: var(--space-6) var(--space-6) var(--space-8) var(--space-6);
     }
+
     .identity-row-1 {
       display: flex;
       align-items: center;
       gap: var(--space-4);
       margin-bottom: var(--space-3);
     }
+
     .identity-avatar {
       width: 72px;
       height: 72px;
@@ -640,6 +750,7 @@
       color: var(--color-text-primary);
       flex-shrink: 0;
     }
+
     .identity-name {
       font-family: var(--font-display);
       font-weight: var(--weight-extrabold);
@@ -647,6 +758,7 @@
       color: var(--color-text-primary);
       line-height: var(--leading-tight);
     }
+
     .identity-row-2 {
       display: flex;
       flex-wrap: wrap;
@@ -654,6 +766,7 @@
       gap: var(--space-2);
       margin-top: var(--space-2);
     }
+
     .identity-row-2 .sep {
       width: 3px;
       height: 3px;
@@ -661,6 +774,7 @@
       background: var(--color-text-tertiary);
       flex-shrink: 0;
     }
+
     .identity-location {
       display: inline-flex;
       align-items: center;
@@ -669,35 +783,42 @@
       font-size: 13px;
       color: var(--color-text-secondary);
     }
+
     .identity-location svg {
       width: 12px;
       height: 12px;
       flex-shrink: 0;
     }
+
     .identity-yrs {
       font-family: var(--font-body);
       font-size: 13px;
       color: var(--color-text-secondary);
     }
+
     .identity-rating {
       font-family: var(--font-mono);
       font-size: 13px;
       color: var(--color-warning);
     }
+
     .identity-rating .count {
       font-family: var(--font-body);
       color: var(--color-text-secondary);
     }
+
     .identity-row-3 {
       max-width: 560px;
       margin-top: var(--space-3);
     }
+
     .identity-bio {
       font-family: var(--font-body);
       font-size: 15px;
       color: var(--color-text-secondary);
       line-height: 1.65;
     }
+
     .identity-row-4 {
       margin-top: var(--space-5);
       display: flex;
@@ -716,11 +837,13 @@
       flex-direction: row;
       gap: var(--space-8);
     }
+
     .profile-main {
       flex: 1;
       min-width: 0;
       padding-bottom: 80px;
     }
+
     .profile-sidebar {
       width: var(--sidebar-width);
       flex-shrink: 0;
@@ -742,27 +865,36 @@
       column-gap: var(--space-2);
       padding-bottom: var(--space-4);
     }
+
     .portfolio-grid .explore-card {
       display: inline-block;
       width: 100%;
       margin-bottom: var(--space-2);
       break-inside: avoid;
     }
+
     .portfolio-grid .explore-card-video {
       min-height: 160px;
     }
 
     @media (max-width: 768px) {
-      .portfolio-grid { columns: 2; }
+      .portfolio-grid {
+        columns: 2;
+      }
     }
+
     @media (max-width: 480px) {
-      .portfolio-grid { columns: 2; column-gap: 4px; }
+      .portfolio-grid {
+        columns: 2;
+        column-gap: 4px;
+      }
     }
 
     .drive-section {
       margin-top: var(--space-7);
       padding-top: var(--space-4);
     }
+
     .drive-header {
       display: flex;
       align-items: center;
@@ -770,17 +902,20 @@
       flex-wrap: wrap;
       margin-bottom: var(--space-4);
     }
+
     .drive-header .label {
       font-family: var(--font-body);
       font-weight: var(--weight-semibold);
       font-size: 14px;
       color: var(--color-text-secondary);
     }
+
     .drive-header .meta {
       font-family: var(--font-body);
       font-size: 11px;
       color: var(--color-text-tertiary);
     }
+
     .drive-header .refresh {
       font-family: var(--font-body);
       font-size: 11px;
@@ -788,18 +923,25 @@
       cursor: pointer;
       margin-left: auto;
     }
-    .drive-header .refresh:hover { text-decoration: underline; }
+
+    .drive-header .refresh:hover {
+      text-decoration: underline;
+    }
+
     .drive-cards {
       display: flex;
       gap: var(--space-2);
     }
+
     .drive-cards .explore-card {
       flex: 1;
       min-width: 0;
     }
+
     .drive-cards .explore-card-video {
       min-height: 180px;
     }
+
     /* source: DRIVE items from PortfolioService.getByProvider(). DriveService.ingestFolder() populates these. */
 
     /* ============================================================
@@ -808,13 +950,17 @@
     .packages-section {
       padding-top: var(--space-10);
     }
+
     .packages-row {
       display: flex;
       gap: var(--space-4);
       align-items: stretch;
     }
+
     @media (max-width: 768px) {
-      .packages-row { flex-direction: column; }
+      .packages-row {
+        flex-direction: column;
+      }
     }
 
     /* ============================================================
@@ -823,6 +969,7 @@
     .work-history {
       padding-top: var(--space-10);
     }
+
     .work-item {
       display: flex;
       align-items: center;
@@ -832,43 +979,53 @@
       flex-wrap: wrap;
       gap: var(--space-2);
     }
-    .work-item:last-child { border-bottom: none; }
+
+    .work-item:last-child {
+      border-bottom: none;
+    }
+
     .work-item-left {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
+
     .work-item-client {
       font-family: var(--font-body);
       font-weight: var(--weight-semibold);
       font-size: 14px;
       color: var(--color-text-primary);
     }
+
     .work-item-type {
       font-family: var(--font-body);
       font-size: 13px;
       color: var(--color-text-secondary);
     }
+
     .work-item-right {
       display: flex;
       align-items: center;
       gap: var(--space-3);
       flex-shrink: 0;
     }
+
     .work-item-date {
       font-family: var(--font-body);
       font-size: 12px;
       color: var(--color-text-tertiary);
     }
+
     .work-item-verified {
       font-family: var(--font-body);
       font-size: 11px;
       color: var(--color-success);
-      border: 1px solid rgba(74,222,128,0.25);
+      border: 1px solid rgba(74, 222, 128, 0.25);
       border-radius: var(--radius-full);
       padding: 2px 8px;
       white-space: nowrap;
     }
+
     /* isVerifiedBooking=true entries show the Verified badge. booking.id links to /bookings/[id]. */
 
     /* ============================================================
@@ -878,6 +1035,7 @@
       padding-top: var(--space-10);
       padding-bottom: 100px;
     }
+
     .reviews-heading-row {
       display: flex;
       align-items: baseline;
@@ -886,6 +1044,7 @@
       gap: var(--space-2);
       margin-bottom: var(--space-3);
     }
+
     .reviews-summary {
       font-family: var(--font-mono);
       font-size: var(--text-2xl);
@@ -893,15 +1052,18 @@
       font-weight: var(--weight-bold);
       font-variant-numeric: tabular-nums;
     }
+
     .reviews-summary .count {
       font-family: var(--font-body);
       font-size: 14px;
       font-weight: var(--weight-regular);
       color: var(--color-text-secondary);
     }
+
     .review-card {
       margin-top: var(--space-3);
     }
+
     .review-top {
       display: flex;
       align-items: center;
@@ -909,26 +1071,30 @@
       flex-wrap: wrap;
       gap: var(--space-2);
     }
+
     .review-author {
       font-family: var(--font-body);
       font-weight: var(--weight-semibold);
       font-size: 14px;
       color: var(--color-text-primary);
     }
+
     .review-badge {
       font-family: var(--font-body);
       font-size: 11px;
       color: var(--color-success);
-      border: 1px solid rgba(74,222,128,0.25);
+      border: 1px solid rgba(74, 222, 128, 0.25);
       border-radius: var(--radius-full);
       padding: 2px 8px;
       white-space: nowrap;
     }
+
     .review-date {
       font-family: var(--font-body);
       font-size: 12px;
       color: var(--color-text-tertiary);
     }
+
     .review-stars {
       font-family: var(--font-mono);
       font-size: 14px;
@@ -936,6 +1102,7 @@
       margin-top: var(--space-2);
       letter-spacing: 2px;
     }
+
     .review-text {
       font-family: var(--font-body);
       font-size: 14px;
@@ -950,10 +1117,17 @@
     .profile-sidebar {
       display: block;
     }
+
     @media (max-width: 1024px) {
-      .profile-sidebar { display: none; }
-      .profile-content-wrap { flex-direction: column; }
+      .profile-sidebar {
+        display: none;
+      }
+
+      .profile-content-wrap {
+        flex-direction: column;
+      }
     }
+
     .sidebar-card {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -962,6 +1136,7 @@
       position: sticky;
       top: calc(var(--nav-height) + 12px);
     }
+
     .sidebar-title {
       font-family: var(--font-display);
       font-weight: var(--weight-bold);
@@ -969,11 +1144,13 @@
       color: var(--color-text-primary);
       margin-bottom: var(--space-3);
     }
+
     .sidebar-packages {
       display: flex;
       flex-direction: column;
       gap: var(--space-2);
     }
+
     .sidebar-pkg-radio {
       display: flex;
       align-items: center;
@@ -985,23 +1162,33 @@
       cursor: pointer;
       transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
     }
+
     .sidebar-pkg-radio.selected {
       border-color: var(--color-accent);
       background: var(--color-accent-muted);
     }
-    .sidebar-pkg-radio:hover { border-color: var(--color-border-mid); }
-    .sidebar-pkg-radio.selected:hover { border-color: var(--color-accent); }
+
+    .sidebar-pkg-radio:hover {
+      border-color: var(--color-border-mid);
+    }
+
+    .sidebar-pkg-radio.selected:hover {
+      border-color: var(--color-accent);
+    }
+
     .sidebar-pkg-name {
       font-family: var(--font-body);
       font-size: 13px;
       color: var(--color-text-primary);
     }
+
     .sidebar-pkg-amt {
       font-family: var(--font-mono);
       font-size: 13px;
       color: var(--color-accent);
       font-weight: var(--weight-medium);
     }
+
     .sidebar-price-display {
       font-family: var(--font-mono);
       font-size: 32px;
@@ -1011,12 +1198,14 @@
       margin-top: var(--space-5);
       font-variant-numeric: tabular-nums;
     }
+
     .sidebar-cta {
       width: 100%;
       margin-top: var(--space-4);
       height: 48px;
       border-radius: var(--radius-sm);
     }
+
     .sidebar-trust {
       font-family: var(--font-body);
       font-size: 11px;
@@ -1025,6 +1214,7 @@
       margin-top: var(--space-2);
       line-height: 1.5;
     }
+
     /* ClBookingDrawer opens on button click. Package pre-populated from selected radio. */
 
     /* ============================================================
@@ -1037,7 +1227,7 @@
       left: 0;
       right: 0;
       height: 72px;
-      background: rgba(10,10,10,0.95);
+      background: rgba(10, 10, 10, 0.95);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-top: 1px solid var(--color-border);
@@ -1045,15 +1235,20 @@
       align-items: center;
       padding: 0 16px;
     }
+
     @media (max-width: 640px) {
-      .mobile-booking-bar { display: flex; }
+      .mobile-booking-bar {
+        display: flex;
+      }
     }
+
     .mobile-booking-btn {
       width: 100%;
       height: 48px;
       border-radius: var(--radius-sm);
       margin: 0;
     }
+
     /* Provider displayName injected. ClBookingDrawer opens as bottom sheet. */
 
     /* ============================================================
@@ -1078,27 +1273,53 @@
       transition: opacity var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
       z-index: 20;
     }
+
     .scroll-top.visible {
       opacity: 1;
       pointer-events: auto;
     }
-    .scroll-top:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+
+    .scroll-top:hover {
+      background: var(--color-surface-raised);
+      color: var(--color-text-primary);
+    }
+
     @media (max-width: 640px) {
-      .scroll-top { bottom: 88px; }
+      .scroll-top {
+        bottom: 88px;
+      }
     }
 
     /* ============================================================
        Responsive adjustments
     ============================================================ */
     @media (max-width: 640px) {
-      .identity-name { font-size: var(--text-2xl); }
-      .identity-bar { padding-left: var(--space-4); padding-right: var(--space-4); }
-      .profile-content-wrap { padding-left: var(--space-4); padding-right: var(--space-4); }
-      .drive-cards { flex-wrap: wrap; }
-      .drive-cards .explore-card { flex: 1 1 calc(50% - 4px); min-width: 0; }
+      .identity-name {
+        font-size: var(--text-2xl);
+      }
+
+      .identity-bar {
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+      }
+
+      .profile-content-wrap {
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+      }
+
+      .drive-cards {
+        flex-wrap: wrap;
+      }
+
+      .drive-cards .explore-card {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+      }
     }
   </style>
 </head>
+
 <body>
   <!-- Accent bar -->
   <div class="nav-accent-bar"></div>
@@ -1108,7 +1329,7 @@
     <div class="nav-inner">
       <div class="nav-left">
         <div class="nav-logo-mark"></div>
-        <span class="nav-logo-text">Crelab</span>
+        <span class="nav-logo-text">Crellab</span>
         <!-- platformConfig.name — never hardcoded in production -->
       </div>
       <div class="nav-center">
@@ -1142,7 +1363,7 @@
   <div class="cover-hero">
     <div class="cover-hero-placeholder">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polygon points="5 3 19 12 5 21 5 3"/>
+        <polygon points="5 3 19 12 5 21 5 3" />
       </svg>
       <span>Showreel</span>
     </div>
@@ -1160,10 +1381,15 @@
     </div>
 
     <div class="identity-row-2">
-      <span class="cl-badge cl-badge-accent-muted" style="font-size:12px;padding:3px 10px;border-radius:var(--radius-full)">Content Creator</span>
+      <span class="cl-badge cl-badge-accent-muted"
+        style="font-size:12px;padding:3px 10px;border-radius:var(--radius-full)">Content Creator</span>
       <span class="sep"></span>
       <span class="identity-location">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
         Lagos, Nigeria
       </span>
       <span class="sep"></span>
@@ -1177,12 +1403,15 @@
     </div>
 
     <div class="identity-row-3">
-      <p class="identity-bio">I make brand content that actually gets watched. Specialising in UGC and lifestyle campaigns for Nigerian and pan-African brands — from concept to final cut. My work has helped 40+ brands grow their social presence authentically.</p>
+      <p class="identity-bio">I make brand content that actually gets watched. Specialising in UGC and lifestyle
+        campaigns for Nigerian and pan-African brands — from concept to final cut. My work has helped 40+ brands grow
+        their social presence authentically.</p>
     </div>
 
     <div class="identity-row-4">
       <button class="cl-btn cl-btn-primary cl-btn-lg" style="border-radius:var(--radius-md)">Request Booking</button>
-      <button class="cl-btn cl-btn-outlined cl-btn-lg" style="border-radius:var(--radius-md)" id="viewPackages">View Packages ↓</button>
+      <button class="cl-btn cl-btn-outlined cl-btn-lg" style="border-radius:var(--radius-md)" id="viewPackages">View
+        Packages ↓</button>
     </div>
   </div>
 
@@ -1201,7 +1430,9 @@
 
           <div class="explore-card" style="height:240px">
             <div class="explore-card-video" style="background:#141414;flex:1">
-              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
               <div class="explore-card-gradient"></div>
               <div class="explore-card-info">
                 <span class="cl-badge cl-badge-accent explore-card-category">UGC Campaign</span>
@@ -1217,7 +1448,9 @@
 
           <div class="explore-card" style="height:320px">
             <div class="explore-card-video" style="background:#0D0D1A;flex:1">
-              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
               <div class="explore-card-gradient"></div>
               <div class="explore-card-info">
                 <span class="cl-badge cl-badge-accent explore-card-category">Product Launch</span>
@@ -1233,7 +1466,9 @@
 
           <div class="explore-card" style="height:260px">
             <div class="explore-card-video" style="background:#0A0A14;flex:1">
-              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
               <div class="explore-card-gradient"></div>
               <div class="explore-card-info">
                 <span class="cl-badge cl-badge-accent explore-card-category">Event Coverage</span>
@@ -1249,7 +1484,9 @@
 
           <div class="explore-card" style="height:300px">
             <div class="explore-card-video" style="background:#141414;flex:1">
-              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
               <div class="explore-card-gradient"></div>
               <div class="explore-card-info">
                 <span class="cl-badge cl-badge-accent explore-card-category">Social Content</span>
@@ -1265,7 +1502,9 @@
 
           <div class="explore-card" style="height:350px">
             <div class="explore-card-video" style="background:#0D0D1A;flex:1">
-              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
               <div class="explore-card-gradient"></div>
               <div class="explore-card-info">
                 <span class="cl-badge cl-badge-accent explore-card-category">Brand Film</span>
@@ -1281,7 +1520,9 @@
 
           <div class="explore-card" style="height:230px">
             <div class="explore-card-video" style="background:#0A0A14;flex:1">
-              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
               <div class="explore-card-gradient"></div>
               <div class="explore-card-info">
                 <span class="cl-badge cl-badge-accent explore-card-category">Tutorial</span>
@@ -1297,7 +1538,9 @@
 
           <div class="explore-card" style="height:280px">
             <div class="explore-card-video" style="background:#141414;flex:1">
-              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
               <div class="explore-card-gradient"></div>
               <div class="explore-card-info">
                 <span class="cl-badge cl-badge-accent explore-card-category">Testimonial</span>
@@ -1313,7 +1556,9 @@
 
           <div class="explore-card" style="height:310px">
             <div class="explore-card-video" style="background:#0D0D1A;flex:1">
-              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
               <div class="explore-card-gradient"></div>
               <div class="explore-card-info">
                 <span class="cl-badge cl-badge-accent explore-card-category">Behind the Scenes</span>
@@ -1333,14 +1578,21 @@
         <div class="drive-section">
           <div class="drive-header">
             <span class="label">Portfolio via Google Drive</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--color-text-tertiary)"><path d="M6 2L18 2 22 8 22 22 2 22 2 8Z"/><path d="M6 2L10 8 14 8 18 2"/><path d="M2 8L22 8"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              style="color:var(--color-text-tertiary)">
+              <path d="M6 2L18 2 22 8 22 22 2 22 2 8Z" />
+              <path d="M6 2L10 8 14 8 18 2" />
+              <path d="M2 8L22 8" />
+            </svg>
             <span class="meta">Last synced 3h ago</span>
             <span class="refresh">Refresh ↻</span>
           </div>
           <div class="drive-cards">
             <div class="explore-card" style="height:200px">
               <div class="explore-card-video" style="background:#0D0D1A;flex:1">
-                <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
                 <div class="explore-card-gradient"></div>
                 <div class="explore-card-info">
                   <span class="explore-card-name">Q4 Campaign Reel</span>
@@ -1354,7 +1606,9 @@
             </div>
             <div class="explore-card" style="height:200px">
               <div class="explore-card-video" style="background:#0A0A14;flex:1">
-                <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
                 <div class="explore-card-gradient"></div>
                 <div class="explore-card-info">
                   <span class="explore-card-name">Product Showcase</span>
@@ -1368,7 +1622,9 @@
             </div>
             <div class="explore-card" style="height:200px">
               <div class="explore-card-video" style="background:#141414;flex:1">
-                <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
                 <div class="explore-card-gradient"></div>
                 <div class="explore-card-info">
                   <span class="explore-card-name">Brand Documentary</span>
@@ -1413,7 +1669,9 @@
           <!-- Standard -->
           <div class="pkg-card standard">
             <div class="pkg-card-popular">
-              <span class="cl-badge cl-badge-accent" style="font-weight:var(--weight-bold);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;padding:1px 8px;border-radius:var(--radius-sm)">Most Popular</span>
+              <span class="cl-badge cl-badge-accent"
+                style="font-weight:var(--weight-bold);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;padding:1px 8px;border-radius:var(--radius-sm)">Most
+                Popular</span>
             </div>
             <span class="pkg-tier">Tier</span>
             <span class="pkg-name">Standard</span>
@@ -1468,7 +1726,7 @@
           </div>
           <div class="work-item-right">
             <span class="work-item-date">Jun 2026</span>
-            <span class="work-item-verified">Verified on Crelab</span>
+            <span class="work-item-verified">Verified on Crellab</span>
           </div>
         </div>
 
@@ -1479,7 +1737,7 @@
           </div>
           <div class="work-item-right">
             <span class="work-item-date">Apr 2026</span>
-            <span class="work-item-verified">Verified on Crelab</span>
+            <span class="work-item-verified">Verified on Crellab</span>
           </div>
         </div>
 
@@ -1511,7 +1769,9 @@
             <span class="review-date">2 weeks ago</span>
           </div>
           <div class="review-stars">★★★★★</div>
-          <p class="review-text">Adunola was a dream to work with. She understood our brand voice immediately and delivered content that felt more like us than anything we've produced in-house. The engagement on the reels was insane — our highest ever. Already booking the Standard package for next quarter.</p>
+          <p class="review-text">Adunola was a dream to work with. She understood our brand voice immediately and
+            delivered content that felt more like us than anything we've produced in-house. The engagement on the reels
+            was insane — our highest ever. Already booking the Standard package for next quarter.</p>
         </div>
 
         <div class="cl-card review-card">
@@ -1521,7 +1781,9 @@
             <span class="review-date">1 month ago</span>
           </div>
           <div class="review-stars">★★★★★</div>
-          <p class="review-text">Professional from start to finish. The pre-production call was thorough, she delivered ahead of schedule, and the quality was top-tier. Our Instagram engagement doubled after posting her content. Will definitely be a repeat client.</p>
+          <p class="review-text">Professional from start to finish. The pre-production call was thorough, she delivered
+            ahead of schedule, and the quality was top-tier. Our Instagram engagement doubled after posting her content.
+            Will definitely be a repeat client.</p>
         </div>
 
         <div class="cl-card review-card">
@@ -1531,7 +1793,9 @@
             <span class="review-date">2 months ago</span>
           </div>
           <div class="review-stars">★★★★★</div>
-          <p class="review-text">We needed someone who could capture the energy of Lagos nightlife for our brand launch. Adunola nailed it. The edit was tight, the vibe was authentic, and her turnaround was impressive. Highly recommend for any brand looking for real, unfiltered content.</p>
+          <p class="review-text">We needed someone who could capture the energy of Lagos nightlife for our brand launch.
+            Adunola nailed it. The edit was tight, the vibe was authentic, and her turnaround was impressive. Highly
+            recommend for any brand looking for real, unfiltered content.</p>
         </div>
       </div>
 
@@ -1577,7 +1841,10 @@
   <!-- Scroll to Top Button                                             -->
   <!-- ================================================================ -->
   <button class="scroll-top" id="scrollTop" aria-label="Scroll to top">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
   </button>
 
   <script>
@@ -1633,4 +1900,5 @@
     })();
   </script>
 </body>
+
 </html>

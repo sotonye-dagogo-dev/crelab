@@ -1,12 +1,17 @@
 # In Progress
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-01 — Growth & Reliability F1–F9 closed)
-> - last-verified-against-code: 2026-10-01
+> - last-updated-by: execute-feature (Session 2026-10-07 — DB migration & script close-out)
+> - last-verified-against-code: 2026-10-07
 > - staleness-policy: update after each major sub-step; clear on close
 
-*(No active work — the "Growth & Reliability (2026-09-30)" sprint F1–F9 is **CLOSED**.)*
+*(No active work — the "DB Migration & Script Close-Out (2026-10-07)" task is **CLOSED**.)*
 
-- **Status:** Sprint complete — all nine workstreams (F1 Founding-100, F2 referrals + F2/F7 leaderboard, F3 countdown, F4 error-boundary bug reporting, F5 landing stats, F6 back-to-top, F8 webinars, F9 platform-name compliance, plus the shared config/nav/layout foundation) implemented. QA gate passed: `npx tsc --noEmit` 0 errors · `npm run lint` 0 errors · `npm run build` exit 0 (`/leaderboard`, `/referrals`, `/webinars`, `/admin/countdown`, `/admin/webinars`, `/bug-report`, `/api/webinars`) · `npx vitest run` 389/392 (3 pre-existing failures at HEAD: `media.test.ts` file-size case + 2 `BlogPostService.test.ts` adminList cases).
-- **Open item (1):** apply `drizzle/migrations/0007_referrals_and_error_context.sql` **manually on Supabase** (journal untouched past `0002`; until applied, referral/webinar code fails at runtime against a live DB), then **commit** — the working tree holds every F1–F9 change uncommitted.
-- **Full record:** `checkpoints/session-log.md` → Session 2026-10-01; doc close ran `update-ai-system.md` (deep sync) + a final `sync-context.md`.
+- **Status:** Migration + script close-out complete — idempotent `0003_close-out-schema-drift`
+  generated and applied live (baselined 0000–0002; 6 tables verified, 4 migrations tracked);
+  `db:{generate,migrate,baseline,push,studio,backup,reset}` + `predb:seed:rollback`
+  scripts added; `seed-rollback.ts` seed-scoped by default. QA gate passed: `npx tsc
+  --noEmit` clean · `npx vitest run` 389/392 (3 pre-existing failures at HEAD, unchanged).
+- **Full record:** `checkpoints/session-log.md` → Session 2026-10-07.
+- **Residual risks:** `pg_dump` not installed on this machine (verify `db:backup` elsewhere
+  before the next destructive op); RLS policies still unapplied (pre-existing).

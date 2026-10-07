@@ -9,7 +9,7 @@ import {
 
 /**
  * Captures `?ref=CODE` from any entry point (share link, email, social post)
- * into the `crelab_ref` cookie and strips the parameter from the URL. Runs
+ * into the `crellab_ref` cookie and strips the parameter from the URL. Runs
  * once on mount; sign-up later posts to `/api/referrals/claim`, which reads and
  * clears the cookie. Reads `window.location` directly so the root layout never
  * needs a `useSearchParams` Suspense boundary.

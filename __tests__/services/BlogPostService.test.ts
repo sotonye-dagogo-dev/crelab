@@ -70,7 +70,7 @@ const blogRow = {
   heroImageUrl: null,
   category: "pricing",
   tags: [],
-  author: "Crelab Editorial",
+  author: "Crellab Editorial",
   publishedAt: "2026-08-01T00:00:00Z",
   published: true,
   spotlightProviderSlug: null,

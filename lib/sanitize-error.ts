@@ -18,7 +18,7 @@ import type { IErrorLogEntry } from "@/lib/error-log-buffer";
 export const MAX_ERROR_CONTEXT_BYTES = 8 * 1024;
 
 /** sessionStorage key used to hand the payload from a boundary to the form. */
-export const ERROR_CONTEXT_STORAGE_KEY = "crelab-error-context";
+export const ERROR_CONTEXT_STORAGE_KEY = "crellab-error-context";
 
 const TRUNCATION_SUFFIX = "…[truncated]";
 

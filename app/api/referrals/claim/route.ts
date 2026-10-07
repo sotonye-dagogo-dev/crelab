@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { REFERRAL_COOKIE, ReferralService } from "@/services/ReferralService";
 
 /**
- * Claim the referral captured in the `crelab_ref` cookie for the signed-in
+ * Claim the referral captured in the `crellab_ref` cookie for the signed-in
  * user. Idempotent — replaying inserts nothing (unique on
  * user/invitee/degree/source) — and always clears the cookie afterwards so a
  * later account on the same browser can't reuse it.

@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ErrorReportDialog } from "./ErrorReportDialog";
 import { usePlatformConfig } from "@/lib/config-context";
-import { getErrorLogEntries, installErrorLogBuffer } from "@/lib/error-log-buffer";
+import {
+  getErrorLogEntries,
+  installErrorLogBuffer,
+} from "@/lib/error-log-buffer";
 import { sanitizeErrorContext, stashErrorContext } from "@/lib/sanitize-error";
 
 type ErrorSource = "window.onerror" | "unhandledrejection";
@@ -14,7 +17,7 @@ type ErrorSource = "window.onerror" | "unhandledrejection";
  *
  * Hooks the window `error` event (the `window.onerror` path) and
  * `unhandledrejection`, stashes a sanitised payload in sessionStorage
- * (`crelab-error-context`) and offers the report dialog — the page keeps
+ * (`crellab-error-context`) and offers the report dialog — the page keeps
  * running, nothing is thrown away. Gated on `bugReport.enabled`.
  */
 export function GlobalErrorCatcher() {
@@ -31,7 +34,11 @@ export function GlobalErrorCatcher() {
 
     installErrorLogBuffer();
 
-    const capture = (source: ErrorSource, message: string, stack: string | null) => {
+    const capture = (
+      source: ErrorSource,
+      message: string,
+      stack: string | null,
+    ) => {
       if (capturingRef.current) return; // guard against re-entrant failures
       capturingRef.current = true;
       try {
@@ -56,7 +63,11 @@ export function GlobalErrorCatcher() {
     const onWindowError = (event: ErrorEvent) => {
       const err = event.error;
       if (err instanceof Error) {
-        capture("window.onerror", `${err.name}: ${err.message}`, err.stack ?? null);
+        capture(
+          "window.onerror",
+          `${err.name}: ${err.message}`,
+          err.stack ?? null,
+        );
         return;
       }
       if (!event.message && !err) return; // resource load errors — not app failures
@@ -66,10 +77,18 @@ export function GlobalErrorCatcher() {
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason: unknown = event.reason;
       if (reason instanceof Error) {
-        capture("unhandledrejection", `${reason.name}: ${reason.message}`, reason.stack ?? null);
+        capture(
+          "unhandledrejection",
+          `${reason.name}: ${reason.message}`,
+          reason.stack ?? null,
+        );
         return;
       }
-      capture("unhandledrejection", toText(reason) || "Unhandled promise rejection", null);
+      capture(
+        "unhandledrejection",
+        toText(reason) || "Unhandled promise rejection",
+        null,
+      );
     };
 
     window.addEventListener("error", onWindowError);
@@ -91,7 +110,13 @@ export function GlobalErrorCatcher() {
     setOpen(false);
   }
 
-  return <ErrorReportDialog open={open} onReport={handleReport} onContinue={handleContinue} />;
+  return (
+    <ErrorReportDialog
+      open={open}
+      onReport={handleReport}
+      onContinue={handleContinue}
+    />
+  );
 }
 
 function toText(value: unknown): string {
