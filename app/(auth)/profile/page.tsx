@@ -6,6 +6,7 @@ import { createAuthClient } from "better-auth/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/lib/toast";
 import { ClButton, ClCard, ClInput, ClBadge, ClBackButton } from "@/components/ui";
+import { EarlyMemberBadge } from "@/components/shared/EarlyMemberBadge";
 import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight, LogOut } from "lucide-react";
 
 const authClient = createAuthClient();
@@ -169,6 +170,7 @@ export default function ProfilePage() {
                 ) : (
                   <ClBadge variant="warning"><ShieldAlert size={11} strokeWidth={2} /> Unverified</ClBadge>
                 )}
+                <EarlyMemberBadge />
               </div>
             </div>
           </div>

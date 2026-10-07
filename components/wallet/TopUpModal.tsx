@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { ClModal, ClButton } from "@/components/ui";
 import { useToast } from "@/lib/toast";
+import { usePlatformConfig } from "@/lib/config-context";
 import { Lock, Building2, CreditCard } from "lucide-react";
 
 interface TopUpModalProps {
@@ -15,6 +16,7 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [method, setMethod] = useState<"card" | "bank">("card");
   const { toast } = useToast();
+  const { name: platformName } = usePlatformConfig();
 
   const handleCardTopUp = useCallback(async () => {
     const amountKobo = parseInt(amount, 10) * 100;
@@ -76,7 +78,7 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
       open={open}
       onClose={onClose}
       title="Top Up Wallet"
-      description="Fund your Crellab wallet with a card payment or bank transfer."
+      description={`Fund your ${platformName} wallet with a card payment or bank transfer.`}
       size="sm"
     >
       <label className="text-[13px] font-medium text-[var(--color-text-secondary)] mb-1.5 block">
@@ -134,7 +136,7 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
 
           <p className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)] mt-4 text-center">
             <Lock size={11} strokeWidth={2} />
-            Secured by Paystack. Your card details are never seen by Crellab.
+            Secured by Paystack. Your card details are never seen by {platformName}.
           </p>
         </>
       ) : (

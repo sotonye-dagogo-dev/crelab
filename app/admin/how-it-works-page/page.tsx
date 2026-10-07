@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClCard, ClBadge } from "@/components/ui";
 import { useToast } from "@/lib/toast";
+import { usePlatformConfig } from "@/lib/config-context";
+import { fillPlatformName } from "@/lib/platform-copy";
 import { ArrowUp, ArrowDown, Trash2, Plus, GripVertical } from "lucide-react";
 import type { IHowItWorksPage } from "@/types";
 
@@ -13,6 +15,8 @@ const inputClass =
 const labelClass =
   "block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]";
 
+// Module-scope default: `{{name}}` tokens are resolved with the platform name
+// from config wherever this default is used (see fillHowItWorksPageName).
 const DEFAULT_HOW_IT_WORKS: IHowItWorksPage = {
   id: "how-it-works-1",
   heroTitle: "How It Works",
@@ -59,22 +63,34 @@ const DEFAULT_HOW_IT_WORKS: IHowItWorksPage = {
     { id: "search-simulator", title: "Search & Discovery Simulator", description: "See how creators appear in search results based on profile completeness", type: "search-simulator" },
   ],
   faqs: [
-    { question: "How do I get paid as a creator?", answer: "Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your CreLab wallet. You can withdraw to your bank account anytime.", category: "payments" },
-    { question: "What's the platform fee?", answer: "CreLab charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.", category: "payments" },
+    { question: "How do I get paid as a creator?", answer: "Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your {{name}} wallet. You can withdraw to your bank account anytime.", category: "payments" },
+    { question: "What's the platform fee?", answer: "{{name}} charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.", category: "payments" },
     { question: "Can I cancel a booking?", answer: "Yes. Full refunds are available within 48 hours of booking. After that, a 50% cancellation fee applies to protect the creator's time.", category: "bookings" },
     { question: "How do I build my portfolio?", answer: "Upload videos and images directly, or connect Google Drive to sync your existing portfolio. Portfolio items appear on your public profile and in the Explore feed.", category: "creators" },
     { question: "What types of creators can I hire?", answer: "We support Content Creators (UGC, lifestyle, brand content) and Cinematographers/Videographers (events, commercials, narrative, documentary). Each has tailored profile fields.", category: "clients" },
     { question: "Is my data secure?", answer: "Yes. We use bank-grade encryption, row-level database security, and comply with NDPR 2023. Payment data is handled by Paystack (PCI DSS Level 1 certified).", category: "security" },
   ],
-  metaTitle: "How It Works - Crellab",
-  metaDescription: "Learn how Crellab works for creators and clients. Booking flow, escrow protection, milestone payments, and more.",
+  metaTitle: "How It Works - {{name}}",
+  metaDescription: "Learn how {{name}} works for creators and clients. Booking flow, escrow protection, milestone payments, and more.",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
 
+function fillHowItWorksPageName(page: IHowItWorksPage, name: string): IHowItWorksPage {
+  return {
+    ...page,
+    faqs: page.faqs.map((faq) => ({ ...faq, answer: fillPlatformName(faq.answer, name) })),
+    metaTitle: page.metaTitle ? fillPlatformName(page.metaTitle, name) : page.metaTitle,
+    metaDescription: page.metaDescription
+      ? fillPlatformName(page.metaDescription, name)
+      : page.metaDescription,
+  };
+}
+
 export default function AdminHowItWorksPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { name: platformName } = usePlatformConfig();
   const [page, setPage] = useState<IHowItWorksPage | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -91,9 +107,9 @@ export default function AdminHowItWorksPage() {
     if (data) {
       setPage(data);
     } else {
-      setPage(DEFAULT_HOW_IT_WORKS);
+      setPage(fillHowItWorksPageName(DEFAULT_HOW_IT_WORKS, platformName));
     }
-  }, [data]);
+  }, [data, platformName]);
 
   const saveMutation = useMutation({
     mutationFn: async (payload: IHowItWorksPage) => {
@@ -204,7 +220,7 @@ export default function AdminHowItWorksPage() {
     );
   }
 
-  const cfg = page ?? DEFAULT_HOW_IT_WORKS;
+  const cfg = page ?? fillHowItWorksPageName(DEFAULT_HOW_IT_WORKS, platformName);
 
   return (
     <div>

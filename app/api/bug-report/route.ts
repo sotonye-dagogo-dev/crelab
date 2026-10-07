@@ -5,9 +5,11 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { uploadFile } from "@/lib/cloudinary";
+import { sanitizeErrorContext, type IErrorContext } from "@/lib/sanitize-error";
 
 const MAX_SCREENSHOTS = 3;
 const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024; // 8 MB per screenshot
+const MAX_ERROR_CONTEXT_CHARS = 64 * 1024; // raw JSON string limit before sanitising
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -30,6 +32,8 @@ const bodySchema = z.object({
   reporterEmail: z.string().email().max(254).optional().or(z.literal("")),
   reporterName: z.string().max(120).optional(),
   screenshotUrls: z.array(z.string().url().max(2000)).max(MAX_SCREENSHOTS).optional(),
+  /** Sanitised payload from the error boundary — JSON string (multipart) or serialised object */
+  errorContext: z.string().max(MAX_ERROR_CONTEXT_CHARS, "Captured error context is too large").optional(),
 });
 
 function isFormDataRequest(req: NextRequest): boolean {
@@ -69,6 +73,8 @@ export async function POST(req: NextRequest) {
         reporterEmail: form.get("reporterEmail") ?? undefined,
         reporterName: form.get("reporterName") ?? undefined,
       };
+      const ctxRaw = form.get("errorContext");
+      if (typeof ctxRaw === "string" && ctxRaw) raw.errorContext = ctxRaw;
       // screenshotUrls may be sent as JSON string or repeated fields
       const urlsRaw = form.get("screenshotUrls");
       if (typeof urlsRaw === "string" && urlsRaw) {
@@ -146,6 +152,14 @@ export async function POST(req: NextRequest) {
       }
     } else {
       const json = await req.json();
+      // Accept an already-serialised object too — normalise to a string for validation
+      if (json && typeof json === "object" && json.errorContext && typeof json.errorContext !== "string") {
+        try {
+          json.errorContext = JSON.stringify(json.errorContext);
+        } catch {
+          delete json.errorContext;
+        }
+      }
       const check = bodySchema.safeParse(json);
       if (!check.success) {
         return NextResponse.json(
@@ -159,6 +173,16 @@ export async function POST(req: NextRequest) {
 
     const reporterEmail = (parsed.reporterEmail && parsed.reporterEmail.trim()) || sessionUser?.email || null;
     const reporterName = (parsed.reporterName && parsed.reporterName.trim()) || sessionUser?.name || null;
+
+    // Re-sanitise server-side — the client's version is untrusted input
+    let errorContext: IErrorContext | null = null;
+    if (parsed.errorContext) {
+      try {
+        errorContext = sanitizeErrorContext(parsed.errorContext);
+      } catch {
+        errorContext = null;
+      }
+    }
 
     const report = {
       id: crypto.randomUUID(),
@@ -175,6 +199,7 @@ export async function POST(req: NextRequest) {
       screenshotUrls,
       reporterEmail,
       reporterName,
+      errorContext,
       adminNotes: null,
       resolvedAt: null,
       resolvedById: null,

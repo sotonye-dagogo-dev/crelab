@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-09-23)
-> - last-verified-against-code: 2026-09-23
-> - last-synced: 2026-09-23 (session-log entry — Session 2026-09-23, seed rollback + package panel wrap + nav home removal + explore source tag removal)
+> - last-updated-by: update-ai-system (Session 2026-10-01)
+> - last-verified-against-code: 2026-10-01
+> - last-synced: 2026-10-01 (session-log entry — Session 2026-10-01, Growth & Reliability sprint F1–F9 executed)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -64,12 +64,17 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Size | Task | Status |
 |------|------|--------|
-| [M] | Founding-100 badge: `EarlyMemberService` rank-over-`user.createdAt` (no schema change), `firstHundred` config, `/api/early-access`, `EarlyMemberBadge` in navbar + profile | [ ] |
-| [L] | Referral system: `referral_codes` + `referral_events` migration, `ReferralService` (cookie claim, degree-1 + degree-2 ACID write), `?ref=` capture, `/register` claim hook, `/api/referrals/*`, `/referrals` page | [ ] |
-| [M] | Leaderboard: `LeaderboardService` pluggable factor registry (referrals first), `leaderboard` config, `/api/leaderboard`, public `/leaderboard` page, nav/footer links | [ ] |
-| [M] | Countdown widget: `countdown` config + icon allowlist, `CountdownWidget`/`CountdownSlot` with framer-motion, landing + explore slots, `/admin/countdown` editor | [ ] |
-| [L] | Error-boundary bug reporting: `app/error.tsx` + `global-error.tsx`, global catcher, sanitised console/stack capture, popup → `/bug-report` with `errorContext`, `bug_reports.error_context` column, admin triage block, `bugReport` config | [ ] |
-| [S] | Platform docs + tests: How It Works referral section/FAQs, explainer copy, new test suite for the four features | [ ] |
+| [M] | Founding-100 badge: `EarlyMemberService` rank-over-`user.createdAt` (no schema change), `firstHundred` config, `/api/early-access`, `EarlyMemberBadge` in navbar + profile | [x] |
+| [L] | Referral system: `referral_codes` + `referral_events` migration, `ReferralService` (cookie claim, degree-1 + degree-2 ACID write), `?ref=` capture, `/register` claim hook, `/api/referrals/*`, `/referrals` page | [x] |
+| [M] | Leaderboard: `LeaderboardService` pluggable factor registry (referrals first), `leaderboard` config, `/api/leaderboard`, public `/leaderboard` page, nav/footer links | [x] |
+| [M] | Countdown widget: `countdown` config + icon allowlist, `CountdownWidget`/`CountdownSlot` with framer-motion, landing + explore slots, `/admin/countdown` editor | [x] |
+| [L] | Error-boundary bug reporting: `app/error.tsx` + `global-error.tsx`, global catcher, sanitised console/stack capture, popup → `/bug-report` with `errorContext`, `bug_reports.error_context` column, admin triage block, `bugReport` config | [x] |
+| [S] | Platform docs + tests: How It Works referral section/FAQs, explainer copy, new test suite for the four features | [x] |
+| [M] | Landing stats derived from the platform: `PlatformStatsService` aggregates + metadata-driven `landingStats` config replacing the hardcoded 1.2k/5k/4.9 figures | [x] |
+| [S] | Platform-wide dynamic back-to-top button (`ScrollToTopButton` + `scrollToTop` config), replacing the explore page's inline FAB | [x] |
+| [M] | Leaderboard activity factors: portfolio-items, bookings and ratings factors added to the pluggable factor registry + public "How scoring works" transparency panel | [x] |
+| [L] | Webinars: `webinars` + `webinar_registrations` tables, `WebinarService`, public `/webinars` (upcoming registration for guests + members, past recordings/content), `/admin/webinars`, wired confirmation email, nav/footer links | [x] |
+| [M] | Platform-name compliance run: `lib/platform-copy.ts`, all display-copy instances moved to `config.name`/`{{name}}`, infrastructure allowlist, `__tests__/platform-name-compliance.test.ts` guard | [x] |
 
 ---
 

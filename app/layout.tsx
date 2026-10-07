@@ -5,6 +5,9 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { Providers } from "@/components/shared/Providers";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
+import { ReferralCapture } from "@/components/shared/ReferralCapture";
+import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
+import { GlobalErrorCatcher } from "@/components/error/GlobalErrorCatcher";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { buildSeoMetadata } from "@/lib/seo";
@@ -51,6 +54,9 @@ export default async function RootLayout({
               <Navbar />
               <main className="flex-1 pt-16">{children}</main>
               <Footer />
+              <ReferralCapture />
+              <GlobalErrorCatcher />
+              <ScrollToTopButton />
             </Providers>
           </ThemeProvider>
         </PlatformConfigProvider>

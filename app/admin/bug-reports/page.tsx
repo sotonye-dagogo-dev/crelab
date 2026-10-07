@@ -4,8 +4,23 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClBadge, ClTextarea, ClSelect } from "@/components/ui";
 import { useToast } from "@/lib/toast";
+import { sanitizeErrorContext, type IErrorContext } from "@/lib/sanitize-error";
 import type { IBugReport } from "@/types";
-import { Bug, Clock, AlertTriangle, Mail, Image as ImageIcon, CheckSquare, Square } from "lucide-react";
+import {
+  Bug,
+  Clock,
+  AlertTriangle,
+  Mail,
+  Image as ImageIcon,
+  CheckSquare,
+  Square,
+  Terminal,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+
+/** Bug report row as returned by the API (includes the jsonb error_context). */
+type BugReportRow = IBugReport & { errorContext?: unknown };
 
 const statusColors: Record<string, "warning" | "info" | "success" | "default"> = {
   OPEN: "warning",
@@ -21,6 +36,11 @@ const statusLabels: Record<string, string> = {
   CLOSED: "Closed",
 };
 
+function formatCtxTimestamp(value: string): string {
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? value || "—" : new Date(parsed).toLocaleString();
+}
+
 export default function AdminBugReportsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -31,9 +51,10 @@ export default function AdminBugReportsPage() {
   const [bulkStatus, setBulkStatus] = useState<string>("");
   const [bulkNotes, setBulkNotes] = useState<string>("");
   const [bulkSendEmail, setBulkSendEmail] = useState<boolean>(true);
+  const [expandedCtx, setExpandedCtx] = useState<Record<string, boolean>>({});
 
 
-  const { data: reports = [], isLoading } = useQuery<IBugReport[]>({
+  const { data: reports = [], isLoading } = useQuery<BugReportRow[]>({
     queryKey: ["admin-bug-reports"],
     queryFn: async () => {
       const res = await fetch("/api/admin/bug-reports");
@@ -237,6 +258,11 @@ export default function AdminBugReportsPage() {
             const isSelected = selectedIds.has(report.id);
             const effectiveNotes = notesInput[report.id] ?? (report.adminNotes ?? "");
             const sendEmail = sendEmailToggles[report.id] ?? true;
+            // Re-sanitise on render — never trust stored client input blindly
+            const errorCtx: IErrorContext | null = report.errorContext
+              ? sanitizeErrorContext(report.errorContext)
+              : null;
+            const ctxExpanded = Boolean(expandedCtx[report.id]);
             return (
               <div
                 key={report.id}
@@ -276,6 +302,93 @@ export default function AdminBugReportsPage() {
                 <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap break-words ml-7">
                   {report.description}
                 </p>
+
+                {errorCtx && (
+                  <div className="ml-7 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedCtx((prev) => ({ ...prev, [report.id]: !prev[report.id] }))}
+                      aria-expanded={ctxExpanded}
+                      className="flex w-full items-center justify-between gap-3 text-left"
+                    >
+                      <span className="flex min-w-0 items-center gap-2 text-[12px] font-semibold">
+                        <Terminal className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]" />
+                        Captured error context
+                        <span className="font-normal text-[var(--color-text-tertiary)] truncate" title={errorCtx.message}>
+                          {errorCtx.message || "—"}
+                        </span>
+                      </span>
+                      {ctxExpanded ? (
+                        <ChevronUp className="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]" />
+                      )}
+                    </button>
+
+                    {ctxExpanded && (
+                      <div className="mt-3 space-y-3 text-[12px]">
+                        <div>
+                          <span className="font-semibold text-[var(--color-text-tertiary)]">Message</span>
+                          <p className="mt-1 whitespace-pre-wrap break-words text-[var(--color-text-secondary)]">
+                            {errorCtx.message || "—"}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-x-6 gap-y-1">
+                          <span className="text-[var(--color-text-tertiary)]">
+                            <span className="font-semibold">Timestamp:</span>{" "}
+                            {formatCtxTimestamp(errorCtx.timestamp)}
+                          </span>
+                          {errorCtx.source && (
+                            <span className="text-[var(--color-text-tertiary)]">
+                              <span className="font-semibold">Source:</span> {errorCtx.source}
+                            </span>
+                          )}
+                        </div>
+
+                        {errorCtx.url && (
+                          <div>
+                            <span className="font-semibold text-[var(--color-text-tertiary)]">URL</span>
+                            <a
+                              href={errorCtx.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 block underline hover:text-[var(--color-text-primary)] break-words"
+                            >
+                              {errorCtx.url}
+                            </a>
+                          </div>
+                        )}
+
+                        <div>
+                          <span className="font-semibold text-[var(--color-text-tertiary)]">Stack</span>
+                          {errorCtx.stack ? (
+                            <pre className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-[11px] text-[var(--color-text-secondary)]">
+                              {errorCtx.stack}
+                            </pre>
+                          ) : (
+                            <p className="mt-1 text-[var(--color-text-tertiary)]">No stack trace captured.</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <span className="font-semibold text-[var(--color-text-tertiary)]">
+                            Console logs ({errorCtx.consoleLogs.length})
+                          </span>
+                          {errorCtx.consoleLogs.length > 0 ? (
+                            <pre className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-[11px] text-[var(--color-text-secondary)]">
+                              {errorCtx.consoleLogs
+                                .map((entry) => `${entry.time || "—"} [${entry.level}] ${entry.message}`)
+                                .join("\n")}
+                            </pre>
+                          ) : (
+                            <p className="mt-1 text-[var(--color-text-tertiary)]">No console output captured.</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {(report.reporterEmail || report.reporterName || report.userId) && (
                   <div className="flex flex-wrap items-center gap-3 text-[12px] ml-7">

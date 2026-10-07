@@ -309,6 +309,10 @@ export interface IFeatureFlags {
   googleDriveSync: boolean;
   blogEnabled: boolean;
   emailNotifications?: boolean;
+  /** Referral programme + public leaderboard (nav links, /referrals, /leaderboard) */
+  referralsEnabled?: boolean;
+  /** Public webinars landing + registration (/webinars) */
+  webinarsEnabled?: boolean;
 }
 
 export type EmailTemplateBlock =
@@ -411,6 +415,259 @@ export interface IDashboardConfig {
   availabilityLookaheadDays: number;
 }
 
+/* ── Growth: founding-100, referrals, leaderboard, countdown, bug report,
+     landing stats, back-to-top, webinars ── */
+
+export interface IEarlyMemberConfig {
+  /** Master switch — when off, no rank fetch and no badge render */
+  enabled: boolean;
+  /** Number of earliest registrations that qualify for the badge */
+  limit: number;
+  badgeLabel: string;
+  title: string;
+  description: string;
+  /** Show the member's registration rank (e.g. "#42") alongside the badge */
+  showRank: boolean;
+}
+
+export interface IReferralConfig {
+  enabled: boolean;
+  /** Points awarded for a direct (degree-1) referral */
+  directPoints: number;
+  /** Points awarded for a second-degree (referral-of-referral) signup */
+  secondDegreePoints: number;
+  heroTitle: string;
+  heroSubtitle: string;
+  shareLabel: string;
+  copiedLabel: string;
+  explainerTitle: string;
+  explainerItems: string[];
+}
+
+/** Config row for one leaderboard scoring factor (F7 — factors are data). */
+export interface LeaderboardFactor {
+  key: string;
+  enabled: boolean;
+  label: string;
+  description: string;
+  /** Relative contribution to the weighted score */
+  weight: number;
+  /** Render the unscaled factor value next to the weighted score */
+  showRawValue: boolean;
+}
+
+export interface ILeaderboardConfig {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  howItWorksTitle: string;
+  /** Rows per page on the public leaderboard */
+  pageSize: number;
+  /**
+   * Factor registry rows keyed by factor key (`referrals`, `portfolio`,
+   * `bookings`, `ratings`). A record rather than an array so admin editors can
+   * save dotted paths (e.g. `leaderboard.factors.referrals.weight`) without the
+   * config deep-set logic replacing the collection.
+   */
+  factors: Record<string, LeaderboardFactor>;
+}
+
+export interface ILeaderboardRow {
+  rank: number;
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  /** Weighted score used for ranking */
+  score: number;
+  /** Weighted contribution per factor key */
+  breakdown: Record<string, number>;
+  /** Unscaled factor values (rendered when the factor has showRawValue) */
+  rawValues?: Record<string, number>;
+  isCurrentUser?: boolean;
+}
+
+export interface IReferralCode {
+  id: string;
+  userId: string;
+  code: string;
+  /** ISO 8601 */
+  createdAt: string;
+  /** ISO 8601 */
+  updatedAt: string;
+}
+
+export interface IReferralEvent {
+  id: string;
+  /** Who earns the points */
+  userId: string;
+  /** The account created through the referral */
+  inviteeId: string;
+  /** Direct owner of the code that was used */
+  referrerId: string;
+  code: string | null;
+  /** 1 = direct signup, 2 = referral of a referral */
+  degree: number;
+  points: number;
+  source: string;
+  /** ISO 8601 */
+  createdAt: string;
+}
+
+export interface IReferralSummary {
+  code: string;
+  shareUrl: string;
+  totalPoints: number;
+  directReferrals: number;
+  secondDegreeReferrals: number;
+  inviteeCount: number;
+}
+
+export type CountdownArea = "landing" | "explore";
+
+export interface ICountdownWidget {
+  id: string;
+  enabled: boolean;
+  title: string;
+  description?: string;
+  /** ISO 8601 moment the widget counts down to */
+  endsAt: string;
+  /** Slots this widget renders in */
+  areas: CountdownArea[];
+  /** Ascending render order within a slot */
+  orderIndex: number;
+  /** lucide icon name — must be listed in `ICountdownConfig.iconAllowlist` */
+  icon?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+export interface ICountdownConfig {
+  /** Master switch for every countdown slot */
+  enabled: boolean;
+  /** Curated lucide icon names offered in the admin icon picker (§15 — lucide only) */
+  iconAllowlist: string[];
+  /**
+   * Widgets rendered by filtering `enabled` + `areas`, ordered by `orderIndex`.
+   * Empty by default so slots render nothing until an admin adds one.
+   */
+  widgets: ICountdownWidget[];
+}
+
+export type BugReportSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export interface IBugReportConfig {
+  /** Master switch for the error-boundary report popup */
+  enabled: boolean;
+  popupTitle: string;
+  popupMessage: string;
+  reportButtonLabel: string;
+  continueButtonLabel: string;
+  /** Severity preselected on reports raised from the popup */
+  severity: BugReportSeverity;
+  /** Attach captured console-log entries to the report */
+  includeConsoleLogs: boolean;
+}
+
+export type LandingStatFormat = "count" | "compact" | "rating";
+
+export interface ILandingStatItem {
+  id: string;
+  /** Aggregate resolved by PlatformStatsService (providers, bookings, reviews, portfolioItems, user, teamMembers) */
+  key: string;
+  label: string;
+  format: LandingStatFormat;
+  orderIndex: number;
+  enabled: boolean;
+  /** Rendered when the aggregate is unavailable — never blank or NaN */
+  fallbackValue: string;
+}
+
+export interface ILandingStatsConfig {
+  /**
+   * Stat items keyed by item id. A record rather than an array so admin editors
+   * can save dotted paths (e.g. `landingStats.items.creators.fallbackValue`)
+   * without the config deep-set logic replacing the collection. Order within a
+   * slot comes from each item's `orderIndex`.
+   */
+  items: Record<string, ILandingStatItem>;
+}
+
+export interface IScrollToTopConfig {
+  enabled: boolean;
+  /** Scroll distance in px before the button appears */
+  thresholdPx: number;
+  /** Visible label / aria-label on the button */
+  label: string;
+}
+
+export type WebinarStatus = "UPCOMING" | "LIVE" | "CANCELLED" | "ENDED";
+
+export type WebinarRegistrationStatus = "REGISTERED" | "CANCELLED";
+
+export interface IWebinar {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  coverUrl: string | null;
+  status: WebinarStatus;
+  /** ISO 8601 */
+  startsAt: string | null;
+  /** ISO 8601 */
+  endsAt: string | null;
+  durationMinutes: number | null;
+  locationNote: string | null;
+  ctaLabel: string | null;
+  ctaHref: string | null;
+  recordingUrl: string | null;
+  /** Past-webinar materials — EmailTemplateBlock[] */
+  contentBlocks: EmailTemplateBlock[];
+  metaTitle: string | null;
+  metaDescription: string | null;
+  orderIndex: number;
+  active: boolean;
+  /** ISO 8601 */
+  createdAt: string;
+  /** ISO 8601 */
+  updatedAt: string;
+  /** Aggregate count for the admin list */
+  registrationCount?: number;
+}
+
+export interface IWebinarRegistration {
+  id: string;
+  webinarId: string;
+  /** Null for guest registrations — guests only leave an email */
+  userId: string | null;
+  email: string;
+  /** Lowercased uniqueness key */
+  emailKey: string;
+  name: string | null;
+  /** NDPR: marketing consent is explicit and stored, never assumed */
+  consentMarketing: boolean;
+  status: WebinarRegistrationStatus;
+  /** ISO 8601 */
+  createdAt: string;
+  /** ISO 8601 */
+  updatedAt: string;
+}
+
+export interface IWebinarsConfig {
+  heroTitle: string;
+  heroSubtitle: string;
+  upcomingTitle: string;
+  pastTitle: string;
+  /** Seats per webinar (0 = unlimited) */
+  maxRegistrantsPerWebinar: number;
+  /** Prompt shown to guests after a successful registration */
+  guestPrompt: string;
+  guestPromptCtaLabel: string;
+  registerCtaLabel: string;
+  registeredLabel: string;
+  marketingConsentLabel: string;
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
@@ -426,6 +683,14 @@ export interface IPlatformConfig {
   wallet: IWalletConfig;
   mediaUpload?: IMediaUploadConfig;
   dashboard?: IDashboardConfig;
+  firstHundred?: IEarlyMemberConfig;
+  referral?: IReferralConfig;
+  leaderboard?: ILeaderboardConfig;
+  countdown?: ICountdownConfig;
+  bugReport?: IBugReportConfig;
+  landingStats?: ILandingStatsConfig;
+  scrollToTop?: IScrollToTopConfig;
+  webinars?: IWebinarsConfig;
   blogConfig?: IBlogConfig;
   emailConfig?: IEmailConfig;
   devCredit?: IDevCredit;

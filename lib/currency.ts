@@ -1,5 +1,5 @@
 /**
- * All money in Crellab is stored as kobo (integer). These helpers are the
+ * All money on the platform is stored as kobo (integer). These helpers are the
  * single conversion point between the naira values users enter/read and the
  * kobo values persisted in the database.
  */

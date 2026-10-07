@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-09-22 — provider tiles public + ordered display)
-> - last-verified-against-code: 2026-09-22
+> - last-updated-by: update-ai-system (Session 2026-10-01 — Growth & Reliability sprint F1–F9)
+> - last-verified-against-code: 2026-10-01
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -219,8 +219,54 @@ Blog posts (DB-backed)
   → app/(public)/blog/page.tsx + [slug]/page.tsx read via BlogPostService — block-content detected by `type` (EmailTemplateBlock[] → BlocksContent/ContentBlocks) vs `_type` (Sanity portable text → ArticleBody); hero via getPostHeroUrl
   → app/sitemap.ts + components/blog/BlogCard.tsx use BlogPostService.getAllSlugs
 
+EarlyMemberService (services/EarlyMemberService.ts)
+  → lib/db.ts + drizzle/schema.ts (user table only — window function `ROW_NUMBER() OVER (ORDER BY created_at, id)`, no new table)
+  → PlatformConfigService (firstHundred config) + Next.js unstable_cache (tag `early-members`)
+  → consumed by app/api/early-access/route.ts (authed status) + components/shared/EarlyMemberBadge.tsx (Navbar desktop/mobile + profile header + /referrals)
+
+ReferralService (services/ReferralService.ts)
+  → lib/db.ts + drizzle/schema.ts (referral_codes, referral_events) + drizzle-orm tx (ACID degree-1 + degree-2 write in one transaction)
+  → lib/referral-cookie.ts (crelab_ref cookie read/clear) + PlatformConfigService (referral config: directPoints/secondDegreePoints)
+  → consumed by app/api/referrals/me (GET) + app/api/referrals/claim (POST, idempotent) + app/(auth)/register (claim hook after sign-up) + app/(auth)/referrals page + components/shared/ReferralCapture.tsx (?ref= capture, mounted in app/layout.tsx)
+
+LeaderboardService (services/LeaderboardService.ts)
+  → lib/db.ts + drizzle/schema.ts (referral_events, portfolio_items, bookings, reviews) + drizzle-orm aggregate queries
+  → PlatformConfigService (leaderboard.factors.* — enabled/label/description/weight/showRawValue per factor)
+  → factor registry: LeaderboardFactor { key, label, weight, collect() } — referrals (SUM points), portfolio (visible count), bookings (count), ratings (AVG(rating) × ln(1 + count)); ranking/breakdown code is factor-agnostic
+  → consumed by app/api/leaderboard/route.ts (GET) + app/(public)/leaderboard/page.tsx + LeaderboardClient.tsx ("How scoring works" panel reads the same config) + __tests__/services/LeaderboardService.test.ts
+
+PlatformStatsService (services/PlatformStatsService.ts)
+  → lib/db.ts + drizzle/schema.ts (providers, bookings, reviews, portfolio_items, user, team_members) + unstable_cache (tag `platform-stats`, 300s)
+  → lib/landing-stats.ts (getOrderedStatItems + format helpers; null → config fallbackValue)
+  → consumed by app/page.tsx + app/(public)/home/page.tsx (server) → components/landing/LandingContent.tsx
+
+WebinarService (services/WebinarService.ts)
+  → lib/db.ts + drizzle/schema.ts (webinars, webinar_registrations) — registration dedupes via unique `(webinar_id, lower(email))` / partial unique `(webinar_id, user_id)` **upsert** (no pre-read race)
+  → lib/webinars.ts (server/client-safe copy + status helpers) + PlatformConfigService (webinars config) + EmailService (wired `webinarRegistration` confirmation, non-blocking)
+  → consumed by app/api/webinars (GET list) + app/api/webinars/[id]/register (POST, guest + auth, zod) + app/api/admin/webinars (+[id]) + app/(public)/webinars page + app/admin/webinars page + AuditService on admin mutations
+
+Countdown widget
+  → lib/countdown.ts (pure math/expiry/area selection) + lib/countdown-icons.ts (curated lucide allowlist)
+  → components/shared/CountdownWidget.tsx (framer-motion, prefers-reduced-motion gate, mount-gated tick) + CountdownSlot.tsx (filters config widgets by enabled/area, ordered by orderIndex)
+  → consumed by components/landing/LandingContent.tsx (landing slot) + app/(public)/explore/page.tsx (explore slot) + app/admin/countdown/page.tsx (editor → PATCH single config key `countdown.widgets`)
+
+Error-boundary bug reporting pipeline
+  → lib/error-log-buffer.ts (console ring buffer) + lib/sanitize-error.ts (redaction + truncation + 8 KB cap)
+  → components/error/GlobalErrorCatcher.tsx (window.onerror + unhandledrejection, non-blocking) mounted in app/layout.tsx; app/error.tsx (route boundary, reset()) + app/global-error.tsx (root boundary)
+  → handoff to app/(public)/bug-report/page.tsx via sessionStorage `crelab-error-context` (never query strings — stacks exceed URL limits)
+  → app/api/bug-report/route.ts (zod + re-sanitise) → drizzle/schema.ts bug_reports.error_context → app/admin/bug-reports/page.tsx triage block
+
+Platform-name copy (lib/platform-copy.ts)
+  → leaf module — PLATFORM_NAME_TOKEN (`{{name}}`) + fillPlatformName(text, name); display copy resolves from config.name at render time
+  → consumed by LandingContent, page metadata, About/How-It-Works fallbacks, MockDataService, blog-fallback, BookingClient, AdminSidebar, TopUpModal
+  → guarded by __tests__/platform-name-compliance.test.ts (source scan + explicit infrastructure allowlist)
+
+ScrollToTopButton (components/shared/ScrollToTopButton.tsx)
+  → lib/config-context (scrollToTop config: enabled/thresholdPx/label) + framer-motion (reduced-motion gated)
+  → mounted once in app/layout.tsx; replaces the explore page's inline FAB
+
 Drizzle
-   → drizzle/schema.ts (single source of truth — exports all tables (incl. blog_posts), enums, relations)
+   → drizzle/schema.ts (single source of truth — exports all tables (incl. blog_posts, referral_codes, referral_events, webinars, webinar_registrations), enums, relations)
   → postgres driver (lib/db.ts)
   → drizzle-kit (migrations)
 ```
@@ -242,7 +288,7 @@ Drizzle
 | framer-motion | Animation | components/ |
 | tailwindcss | Styling | app/, components/ |
 | shadcn/ui (via Cl* wrappers) | UI primitives (wrapped) | components/ui/ |
-| zod | Schema validation (package.json) | — |
+| zod | Schema validation (package.json) | app/api/explore, app/api/admin/*/batch, app/api/webinars, app/api/admin/webinars, app/api/webinars/[id]/register, app/api/bug-report |
 | Cloudinary (via lib/cloudinary.ts raw fetch — no SDK) | Media upload, thumbnail, signed delete | lib/cloudinary.ts, app/api/media/upload, app/api/admin/media/[id] |
 | Google Drive API (raw fetch — no SDK import in lib/drive.ts) | Google Drive portfolio sync | lib/drive.ts, services/DriveService.ts |
 | @sanity/client, @sanity/image-url (via next-sanity) | Sanity CMS content fetching + image URL builder | lib/sanity.ts, sanity/, app/(public)/blog/ |

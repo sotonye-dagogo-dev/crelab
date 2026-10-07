@@ -7,8 +7,10 @@ import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import type { IHowItWorksPage } from "@/types";
 import { SandboxesGrid } from "@/components/how-it-works/Sandboxes";
+import { fillPlatformName } from "@/lib/platform-copy";
 
-// Static fallback data for build-time and when DB is unavailable
+// Static fallback data for build-time and when DB is unavailable.
+// `{{name}}` tokens are resolved against config at render time (see below).
 const FALLBACK_HOW_IT_WORKS_PAGE: IHowItWorksPage = {
   id: "how-it-works-1",
   heroTitle: "How It Works",
@@ -47,6 +49,17 @@ const FALLBACK_HOW_IT_WORKS_PAGE: IHowItWorksPage = {
         { step: 4, title: "Milestone Payments", description: "For larger projects, split payments into milestones. Each milestone is funded upfront and released upon approval." },
       ],
     },
+    {
+      id: "invite-earn",
+      title: "Invite & earn",
+      subtitle: "Grow the community and climb the leaderboard",
+      steps: [
+        { step: 1, title: "Grab your invite link", description: "Open the Referrals page and copy your personal invite link — every account gets a unique one." },
+        { step: 2, title: "Friends join with your link", description: "When someone creates an account through your link, you automatically earn direct-referral points." },
+        { step: 3, title: "Earn again when they invite", description: "When the people you invited bring in their own friends, you earn second-degree points too." },
+        { step: 4, title: "Climb the leaderboard", description: "Your referral points and platform activity feed a weighted score that ranks the most active members publicly." },
+      ],
+    },
   ],
   sandboxes: [
     { id: "booking-flow", title: "Booking Flow Simulator", description: "Experience the end-to-end booking process as a client or creator", type: "booking-simulator" },
@@ -55,18 +68,32 @@ const FALLBACK_HOW_IT_WORKS_PAGE: IHowItWorksPage = {
     { id: "search-simulator", title: "Search & Discovery Simulator", description: "See how creators appear in search results based on profile completeness", type: "search-simulator" },
   ],
   faqs: [
-    { question: "How do I get paid as a creator?", answer: "Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your CreLab wallet. You can withdraw to your bank account anytime.", category: "payments" },
-    { question: "What's the platform fee?", answer: "CreLab charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.", category: "payments" },
+    { question: "How do I get paid as a creator?", answer: "Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your {{name}} wallet. You can withdraw to your bank account anytime.", category: "payments" },
+    { question: "What's the platform fee?", answer: "{{name}} charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.", category: "payments" },
     { question: "Can I cancel a booking?", answer: "Yes. Full refunds are available within 48 hours of booking. After that, a 50% cancellation fee applies to protect the creator's time.", category: "bookings" },
     { question: "How do I build my portfolio?", answer: "Upload videos and images directly, or connect Google Drive to sync your existing portfolio. Portfolio items appear on your public profile and in the Explore feed.", category: "creators" },
     { question: "What types of creators can I hire?", answer: "We support Content Creators (UGC, lifestyle, brand content) and Cinematographers/Videographers (events, commercials, narrative, documentary). Each has tailored profile fields.", category: "clients" },
     { question: "Is my data secure?", answer: "Yes. We use bank-grade encryption, row-level database security, and comply with NDPR 2023. Payment data is handled by Paystack (PCI DSS Level 1 certified).", category: "security" },
+    { question: "How do referrals work?", answer: "Share your personal invite link from the Referrals page. When someone signs up with it you earn direct-referral points, and you earn a smaller second-degree bonus when they invite others in turn. Self-referrals are blocked.", category: "referrals" },
+    { question: "How is the leaderboard scored?", answer: "Each member gets a weighted score across the factors that are switched on — referral points, visible portfolio items, bookings and review ratings. The \"How scoring works\" panel on the leaderboard page lists every active factor with its description and weight, so the ranking is fully transparent.", category: "referrals" },
+    { question: "What is the Founding 100 badge?", answer: "The first 100 accounts to register — ordered by sign-up time — receive a Founding 100 badge that appears on their profile and referrals page. Early members and seeded accounts count too; the badge is derived from registration order, so no one is skipped.", category: "creators" },
   ],
-  metaTitle: "How It Works - Crellab",
-  metaDescription: "Learn how Crellab works for creators and clients. Booking flow, escrow protection, milestone payments, and more.",
+  metaTitle: "How It Works - {{name}}",
+  metaDescription: "Learn how {{name}} works for creators and clients. Booking flow, escrow protection, milestone payments, and more.",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
+
+function fillHowItWorksPageName(page: IHowItWorksPage, name: string): IHowItWorksPage {
+  return {
+    ...page,
+    faqs: page.faqs.map((faq) => ({ ...faq, answer: fillPlatformName(faq.answer, name) })),
+    metaTitle: page.metaTitle ? fillPlatformName(page.metaTitle, name) : page.metaTitle,
+    metaDescription: page.metaDescription
+      ? fillPlatformName(page.metaDescription, name)
+      : page.metaDescription,
+  };
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const { buildSeoMetadata } = await import("@/lib/seo");
@@ -84,6 +111,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HowItWorksPage() {
+  let config;
+  try {
+    config = await PlatformConfigService.getCached();
+  } catch {
+    config = DEFAULT_CONFIG;
+  }
+
   let pageData: IHowItWorksPage | null = null;
   try {
     const result = await db
@@ -98,7 +132,7 @@ export default async function HowItWorksPage() {
     // DB unavailable, will use fallback
   }
 
-  const data = pageData || FALLBACK_HOW_IT_WORKS_PAGE;
+  const data = pageData || fillHowItWorksPageName(FALLBACK_HOW_IT_WORKS_PAGE, config.name);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">

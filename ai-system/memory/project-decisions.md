@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: Session 2026-09-23
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: execute-feature (Session 2026-10-01 — Growth & Reliability F1–F9)
+> - last-verified-against-code: 2026-10-01
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -33,6 +33,98 @@
 ---
 
 ## Decisions
+
+## Leaderboard Scoring: Pluggable Factor Registry + Config Weights, Not a Fixed Formula
+
+**Decision:** Leaderboard ranking is computed by `services/LeaderboardService.ts` as a registry of `LeaderboardFactor` objects (`key`, `label`, `weight`, `collect()`), each reading raw values through its own aggregate query; the weighted score and rank order are produced by factor-agnostic code. Which factors exist, whether they are enabled, their labels/descriptions and their weights all live in config (`leaderboard.factors.*`), and every enabled factor is surfaced on the public page in a "How scoring works" panel. Four factors ship: `referrals` (`SUM(points)` over `referral_events`), `portfolio` (visible item count), `bookings` (count only), and `ratings` — whose raw value is **`AVG(rating) × ln(1 + count)`**, so a perfect rating from one review cannot outrank a strong rating earned across many.
+**Date:** 2026-10-01
+**Made by:** Implementer (per execute-feature directive — "primarily powered by referrals but extensible to other scoring factors")
+**Supersedes:** None (implements engineering principle §2 for the leaderboard)
+**Superseded by:** None
+
+**Reason:**
+A hardcoded formula makes every scoring change a code change + deploy, and hides the ranking logic from operators. The directive explicitly asked for extensibility; metadata-driven factors let the admin turn a factor off, retune a weight, or rewrite copy without touching ranking code. The `ratings` formula needed diminishing returns on count — `AVG × ln(1 + count)` rewards breadth of validation while staying bounded and computable in SQL/JS without per-row loops.
+
+**Alternatives Considered:**
+- A single fixed formula (e.g. referrals-only score) — rejected: F7 landed within the same sprint and would have required a rewrite.
+- Storing precomputed scores on user rows (denormalised, cron-refreshed) — rejected: adds a consistency/refresh problem for no read-path benefit at current scale; the aggregates are cheap and cacheable.
+- `AVG(rating) × count` (linear) — rejected: lets review volume alone dominate; the log damping keeps one 5-star review from beating a well-reviewed creator.
+- Hiding raw factor values — partially adopted instead: `showRawValue` is per-factor config (hidden for `referrals`, shown for portfolio/bookings/ratings).
+
+**Implications:**
+- Adding a factor = one `LeaderboardFactor` implementation + one config entry; no changes to ranking, pagination, API shape, or the transparency panel (they all iterate config).
+- The leaderboard renders only already-public profile fields (display name + avatar) and aggregate counts — invitee identities, booking amounts, counterparties and dates never appear.
+- Any future factor must be expressible as an aggregate over existing tables without exposing private data, or it does not belong in the registry.
+
+---
+
+## Admin-Edited Config Lists Are Keyed Records — Arrays Only as a Single Atomic Key
+
+**Decision:** Config collections that the admin edits field-by-field are stored as keyed records (`landingStats.items.{id}.*`, `leaderboard.factors.{key}.*`) so each leaf is addressable by a stable dotted key (`landingStats.items.creators.label`). A list that must stay an array (`countdown.widgets`) is written only as one whole-array value under a single key by its dedicated editor, never as indexed leaf paths.
+**Date:** 2026-10-01
+**Made by:** Implementer (execute-feature, Growth & Reliability sprint)
+**Supersedes:** None (complements the "Deep-Merge Config Keys When Round-Tripping DB Rows" lesson)
+**Superseded by:** None
+
+**Reason:**
+The config editor saves one dotted key per field, and `setNestedValue` in `PlatformConfigService` deep-sets that path on merge — but a path that walks *through* an array (`widgets.0.title`) cannot be reconstructed after a reorder/insert/delete (positional keys are not stable identities), so positional list edits get clobbered or land on the wrong item once the list changes. Keyed records give every item a stable identity that survives reordering, and make enable/disable/weight edits independent per item.
+
+**Alternatives Considered:**
+- Arrays with indexed dotted keys (`countdown.widgets.0.label`) — rejected: indices shift on reorder/remove, so a saved field can target a different widget; merging is order-dependent.
+- Saving the whole config blob on every field edit — rejected: racy across concurrent admin edits and rewrites untouched keys.
+- Custom list-editor API endpoints for every list — rejected: `countdown.widgets` proves the pattern where it *is* warranted (one atomic key from the dedicated `/admin/countdown` page), without inventing a second config write path elsewhere.
+
+**Implications:**
+- New admin-editable lists default to keyed records; reach for a single atomic array key only when a dedicated page owns the whole list and saves it at once.
+- Consumers iterate `Object.values(...)` ordered by an explicit `orderIndex`, never by object key order.
+- This is why `landingStats`/`leaderboard.factors` are objects while `countdown.widgets` is an array — the shape follows the write pattern, not preference.
+
+---
+
+## Platform-Name Copy Resolves From `config.name` With a `{{name}}` Token + Enforced Infrastructure Allowlist
+
+**Decision:** Display copy never contains a literal platform name. It resolves from `config.name` at render time, or — where a constant cannot read config at module scope (fallback blog/mock bodies, static defaults) — carries the `PLATFORM_NAME_TOKEN` (`{{name}}`) and is filled via `fillPlatformName` from `lib/platform-copy.ts`. Infrastructure identifiers that are *not* display copy (config `name`/`fromName`/`fromEmail`, Better Auth `cookiePrefix`, payment references, demo emails, origin fallbacks, storage keys, the anonymous-mail domain) sit on an explicit allowlist, and `__tests__/platform-name-compliance.test.ts` fails the build on any `Crelab|CreLab|Crellab` outside that allowlist.
+**Date:** 2026-10-01
+**Made by:** Implementer (execute-feature F9 compliance run)
+**Supersedes:** None (enforces the existing "Config-Driven Over Hardcoded" principle for the platform name specifically)
+**Superseded by:** None
+
+**Reason:**
+The platform was renamed ("Crellab") but hardcoded name instances kept reappearing across landing, About, How It Works, blog fallback, mock data, email/payment copy — each one a silent divergence from `config.name` that an admin rename would not fix. A one-off grep cleans today's instances; a compliance test with an explicit allowlist keeps it enforced rather than aspirational, while the allowlist prevents the legitimate non-display identifiers (a cookie prefix or payment ref must not change when an operator renames the platform) from being "fixed" into breakage.
+
+**Alternatives Considered:**
+- A one-time search-and-replace with no guard — rejected: the drift returned within a few sprints last time.
+- Failing on *any* occurrence — rejected: would forbid `cookiePrefix`, payment refs and `fromEmail`, which must stay stable across a rename.
+- Resolving only in React components — rejected: metadata, fallback content and mock data are module-scope and have no config access; the token bridges them.
+
+**Implications:**
+- Any new hardcoded name instance fails `npm test` until it either resolves from config, uses the `{{name}}` token, or is deliberately added to the reviewed allowlist with a reason.
+- A future platform rename is now a single `config.name` edit (plus email sender config) rather than a code sweep.
+
+---
+
+## Webinar Registration Dedupe: Unique Index + Upsert, Not a Pre-Read Check
+
+**Decision:** Webinar registration is idempotent at the database: `webinar_registrations` carries a unique `(webinar_id, lower(email))` constraint plus a partial unique `(webinar_id, user_id)` where `user_id` is set, and `WebinarService.register` writes with an upsert that treats the conflict as "already registered". No "does this email exist?" read runs before the write.
+**Date:** 2026-10-01
+**Made by:** Implementer (execute-feature F8)
+**Supersedes:** None (extends the project's idempotency posture — webhook `DuplicateWebhookError`, referral cookie claim — to form submissions)
+**Superseded by:** None
+
+**Reason:**
+A pre-read check is a classic race: two concurrent submits both read "not registered" and both insert, either double-seating the registration or blowing up on the constraint with a 500 the user cannot interpret. The unique index is the only authoritative arbiter, so the conflict is handled where the truth lives — the second submit resolves to the existing row and returns the same "you're registered" state.
+
+**Alternatives Considered:**
+- SELECT-then-INSERT with an application-level check — rejected: TOCTOU race under concurrent submits (exactly what a "Reserve my seat" double-click produces).
+- Advisory locks / serializable transactions per registration — rejected: heavier than a unique constraint for a two-row write with no secondary effects.
+- Dropping the constraint and de-duplicating in a cron — rejected: leaves the duplicate visible to users and admins until the job runs.
+
+**Implications:**
+- `maxRegistrantsPerWebinar` capacity checks must be evaluated with the conflict path in mind (a losing upsert must not consume capacity twice).
+- The same pattern applies to any future "one row per actor per entity" form: unique index first, upsert second, never a guarding read.
+- Guest registrations key on `lower(email)`; signed-in users key on `user_id` — both constraints are part of the `0007` migration (currently **unapplied** — residual risk until it runs on Supabase).
+
+---
 
 ## Portfolio Source Provenance (DIRECT/DRIVE) Is Portfolio-Context UI Only
 

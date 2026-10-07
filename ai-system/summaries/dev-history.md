@@ -1,9 +1,36 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: seed-rollback + panel-wrap + nav-home + explore-source-tag (Session 2026-09-23)
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: execute-feature (Session 2026-10-01 — Growth & Reliability F1–F9 close)
+> - last-verified-against-code: 2026-10-01
 
+
+## Sprint 2026-10-01 — Growth & Reliability (F1–F9): Founding-100 + Referrals/Leaderboard + Countdown + Error Reporting + Stats/Back-to-Top/Webinars/Name Compliance
+
+### What
+Executed the bulk "Growth & Reliability (2026-09-30)" sprint end-to-end (planned 2026-09-30, resumed 2026-10-01 via `resume-session.md`, drift check = **minor**: `drizzle/schema.ts` already held the new tables although the checkpoint said "implementation not started", and the missing migration `0007` was written in this session). Nine workstreams shipped: F1 Founding-100 badge, F2 referral system + F2/F7 public leaderboard, F3 countdown widget, F4 error-boundary bug reporting, F5 derived landing stats, F6 platform-wide back-to-top, F8 webinars, F9 platform-name compliance — plus the shared config/type/nav/layout foundation.
+
+### Why
+- Growth loops (referrals + leaderboard + Founding-100 scarcity) and retention surfaces (countdown, webinars, real landing stats) were the highest-leverage items on the roadmap's growth track.
+- Bug reporting only worked as a form; users never saw an encouragement when an error actually fired, and engineers got no stack/console context.
+- Hardcoded "Crelab/CreLab" display copy had drifted from the config-driven rule (`config.name` = "Crellab") with nothing enforcing it.
+- Bulk-sprint directive: the 2026-09-30 plan (F1–F4 + docs/tests) was expanded by Amendment A (F5–F9) rather than replacing it.
+
+### Key Changes
+- **F1 Founding-100** — `services/EarlyMemberService.ts` (rank = `ROW_NUMBER() OVER (ORDER BY created_at, id)`, `unstable_cache` tag `early-members`), `components/shared/EarlyMemberBadge.tsx` (Navbar desktop/mobile + profile), `GET /api/early-access`, `firstHundred` config. No schema change; seeded users intentionally counted.
+- **F2 Referrals** — `referral_codes` + `referral_events` (migration `0007_referrals_and_error_context.sql`); `services/ReferralService.ts` writes degree-1 and degree-2 events in one ACID transaction with an idempotent cookie claim; `lib/referral-cookie.ts` + `components/shared/ReferralCapture.tsx` capture `?ref=` in the root layout; claim hook on `/register` (password + Google); `GET /api/referrals/me`, `POST /api/referrals/claim`, authed `/referrals`.
+- **F2/F7 Leaderboard** — `services/LeaderboardService.ts` pluggable `LeaderboardFactor` registry with four factors — `referrals` (`SUM(points)`), `portfolio` (visible count), `bookings` (count only — no amounts/counterparties/dates), `ratings` (`AVG(rating) × ln(1 + count)`); `leaderboard.factors.*` config supplies enabled/label/description/weight/showRawValue; `GET /api/leaderboard`; public `/leaderboard` (podium + paginated table) with a "How scoring works" transparency panel. Privacy: display name + avatar only.
+- **F3 Countdown** — `lib/countdown.ts` + `lib/countdown-icons.ts` (curated lucide allowlist), `components/shared/CountdownWidget.tsx` + `CountdownSlot.tsx` (framer-motion digit roll, `prefers-reduced-motion` gate, mount-gated tick → hydration-safe), landing + explore slots, `/admin/countdown` editor saving the single atomic key `countdown.widgets`.
+- **F4 Error-boundary bug reporting** — `lib/error-log-buffer.ts` (console ring buffer) + `lib/sanitize-error.ts` (redacts emails/bearer/JWT/session tokens/cookies/data URIs; truncates; 8 KB cap); `components/error/ErrorReportDialog.tsx` + `GlobalErrorCatcher.tsx` (`window.onerror` + `unhandledrejection`, non-blocking); `app/error.tsx` (Continue via `reset()`) + `app/global-error.tsx`; `/bug-report` reads the stashed payload from `sessionStorage` (`crelab-error-context`) with attach/detach; `POST /api/bug-report` validates then **re-sanitises** and stores `error_context`; admin triage block on `/admin/bug-reports`.
+- **F5 Landing stats** — `services/PlatformStatsService.ts` cached aggregates (tag `platform-stats`, 300s) with a null → `fallbackValue` degradation path; `landingStats.items.{id}` keyed-record config; `LandingContent` iterates config instead of the hardcoded 1.2k / 5k / 4.9 figures.
+- **F6 Back-to-top** — `components/shared/ScrollToTopButton.tsx` mounted once in `app/layout.tsx` (`scrollToTop` config: enabled/thresholdPx/label); explore's inline FAB removed.
+- **F8 Webinars** — `webinars` + `webinar_registrations` tables (unique `(webinar_id, lower(email))`, partial unique `(webinar_id, user_id)`); `services/WebinarService.ts` registers via unique-index **upsert** (concurrent double submits collapse to one row); `GET /api/webinars`, `POST /api/webinars/[id]/register` (guest + auth, zod, explicit marketing-consent column), admin CRUD `/api/admin/webinars` (+`[id]`, AuditService) and `/admin/webinars`; public `/webinars` (upcoming registration, past recordings + `EmailTemplateBlock[]` content); wired `webinarRegistration` confirmation email via `services/EmailService.ts` / `lib/email-templates.ts`.
+- **F9 Platform-name compliance** — `lib/platform-copy.ts` (`PLATFORM_NAME_TOKEN`, `fillPlatformName`); all display-copy instances resolve from `config.name` ("Crellab") with `{{name}}` tokens for module-scope constants; explicit infrastructure allowlist (config name/from*, cookie prefix, payment refs, demo emails, storage key, origin fallbacks); `__tests__/platform-name-compliance.test.ts` fails on any `Crelab|CreLab|Crellab` outside the allowlist.
+- **Shared foundation** — 8 config keys (`firstHundred`, `referral`, `leaderboard`, `countdown`, `bugReport`, `landingStats`, `scrollToTop`, `webinars`) + `features.referralsEnabled`/`features.webinarsEnabled` in `config/platform.config.ts`, types in `types/index.ts`, "Growth" section in `app/admin/config/page.tsx`, flag-gated Navbar/Footer Leaderboard/Webinars links, AdminSidebar countdown/webinars entries, three layout mounts.
+- **Docs close (this session)** — `session-log.md`, `dev-history.md` (this entry), `project-decisions.md` (+4 decisions), `update-ai-system.md` deep sync (`system-architecture.md`, `index/repo-map.md`, `index/dependency-graph.md`, `planning/project-plan.md`, `memory/lessons-learned.md`), final `sync-context.md`, `checkpoints/in-progress.md` cleared.
+
+### Status
+Pass — `npx tsc --noEmit` → **0 errors**; `npm run lint` → **0 errors**; `npm run build` → **exit 0** (routes present: `/leaderboard`, `/referrals`, `/webinars`, `/admin/countdown`, `/admin/webinars`, `/bug-report`, `/api/webinars`); `npx vitest run` → **389 passed / 392 total**, the 3 failures are PRE-EXISTING at HEAD and unrelated: `__tests__/media.test.ts` (file-size limit case) and `__tests__/services/BlogPostService.test.ts` (2 adminList resilience cases) — confirmed against the HEAD/stashed baseline. **Residual risk:** `drizzle/migrations/0007_referrals_and_error_context.sql` is written but **not applied** (journal untouched past `0002`); until applied on Supabase, referral/webinar code fails at runtime against a live DB. Nothing committed — the working tree holds all changes uncommitted.
 
 ## Sprint 2026-09-23 — Seed Rollback + Book Panel Wrap + Nav Home Removal + Explore Source Tag
 

@@ -142,6 +142,8 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     googleDriveSync: true,
     blogEnabled: true,
     emailNotifications: true,
+    referralsEnabled: true,
+    webinarsEnabled: true,
   },
   mediaUpload: {
     enabled: true,
@@ -172,6 +174,180 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
   },
   dashboard: {
     availabilityLookaheadDays: 30,
+  },
+  firstHundred: {
+    enabled: true,
+    limit: 100,
+    badgeLabel: "Founding 100",
+    title: "You're a founding member",
+    description:
+      "You joined during the first 100 registrations — one of the earliest supporters of the community.",
+    showRank: true,
+  },
+  referral: {
+    enabled: true,
+    directPoints: 100,
+    secondDegreePoints: 25,
+    heroTitle: "Invite & earn",
+    heroSubtitle:
+      "Share your invite link, earn points when friends join — and earn again when they invite their own friends.",
+    shareLabel: "Copy invite link",
+    copiedLabel: "Link copied",
+    explainerTitle: "How it works",
+    explainerItems: [
+      "Share your unique invite link with a friend.",
+      "They sign up with your link and you earn direct-referral points.",
+      "When they invite someone else, you earn second-degree points too.",
+      "Your points decide your place on the leaderboard.",
+    ],
+  },
+  leaderboard: {
+    enabled: true,
+    title: "Leaderboard",
+    subtitle: "The most active creators and connectors on the platform, ranked by weighted score.",
+    howItWorksTitle: "How scoring works",
+    pageSize: 20,
+    factors: {
+      referrals: {
+        key: "referrals",
+        enabled: true,
+        label: "Referrals",
+        description: "Points earned by inviting new members — directly and through the people they invite.",
+        weight: 1,
+        showRawValue: false,
+      },
+      portfolio: {
+        key: "portfolio",
+        enabled: true,
+        label: "Portfolio",
+        description: "Number of visible portfolio items published on the profile.",
+        weight: 0.5,
+        showRawValue: true,
+      },
+      bookings: {
+        key: "bookings",
+        enabled: true,
+        label: "Bookings",
+        description: "Total bookings made on the platform — activity counts, not amounts.",
+        weight: 0.75,
+        showRawValue: true,
+      },
+      ratings: {
+        key: "ratings",
+        enabled: true,
+        label: "Ratings",
+        description: "Average review rating weighted by the number of reviews received.",
+        weight: 0.5,
+        showRawValue: true,
+      },
+    },
+  },
+  countdown: {
+    enabled: true,
+    iconAllowlist: [
+      "Clock",
+      "Hourglass",
+      "Timer",
+      "Rocket",
+      "Flame",
+      "Sparkles",
+      "Star",
+      "Zap",
+      "Megaphone",
+      "Calendar",
+      "PartyPopper",
+      "Bell",
+    ],
+    // Empty by default: slots render nothing until an admin adds a widget,
+    // so existing landing/explore output is unchanged.
+    widgets: [],
+  },
+  bugReport: {
+    enabled: true,
+    popupTitle: "Something went wrong",
+    popupMessage:
+      "We hit an unexpected error. Reporting it takes a second and helps us fix it faster — the technical details we captured can be attached to your report.",
+    reportButtonLabel: "Report this error",
+    continueButtonLabel: "Keep browsing",
+    severity: "MEDIUM",
+    includeConsoleLogs: true,
+  },
+  landingStats: {
+    items: {
+      creators: {
+        id: "creators",
+        key: "providers",
+        label: "Creators",
+        format: "compact",
+        orderIndex: 0,
+        enabled: true,
+        fallbackValue: "1.2k+",
+      },
+      bookings: {
+        id: "bookings",
+        key: "bookings",
+        label: "Bookings",
+        format: "compact",
+        orderIndex: 1,
+        enabled: true,
+        fallbackValue: "5k+",
+      },
+      avgRating: {
+        id: "avgRating",
+        key: "reviews",
+        label: "Avg rating",
+        format: "rating",
+        orderIndex: 2,
+        enabled: true,
+        fallbackValue: "4.9",
+      },
+      portfolio: {
+        id: "portfolio",
+        key: "portfolioItems",
+        label: "Portfolio items",
+        format: "compact",
+        orderIndex: 3,
+        enabled: false,
+        fallbackValue: "800+",
+      },
+      members: {
+        id: "members",
+        key: "user",
+        label: "Members",
+        format: "compact",
+        orderIndex: 4,
+        enabled: false,
+        fallbackValue: "2k+",
+      },
+      team: {
+        id: "team",
+        key: "teamMembers",
+        label: "Team",
+        format: "count",
+        orderIndex: 5,
+        enabled: false,
+        fallbackValue: "10+",
+      },
+    },
+  },
+  scrollToTop: {
+    enabled: true,
+    thresholdPx: 400,
+    label: "Back to top",
+  },
+  webinars: {
+    heroTitle: "Webinars",
+    heroSubtitle:
+      "Live sessions with creators and brands — practical, focused, and free to join.",
+    upcomingTitle: "Upcoming sessions",
+    pastTitle: "Past sessions",
+    maxRegistrantsPerWebinar: 500,
+    guestPrompt:
+      "Create an account to save your seat and keep access to recordings and future sessions.",
+    guestPromptCtaLabel: "Create account",
+    registerCtaLabel: "Reserve my seat",
+    registeredLabel: "You're registered",
+    marketingConsentLabel: "Email me about future sessions and platform news.",
   },
   blogConfig: {
     heroTitle: "Insights for Nigerian Creators & Brands",
@@ -338,6 +514,24 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 {{adminNotesBlock}}
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">If the issue persists, please reply to this email or submit a new report. Thanks for helping us make {{name}} better.</p>
 <p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      webinarRegistration: {
+        name: "Webinar Registration",
+        subject: "Your seat is reserved — {{webinarTitle}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">You're on the list</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Your seat for <strong style="color:#F2F2F2;">{{webinarTitle}}</strong> is reserved — no further action needed.</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">When: <strong style="color:#F2F2F2;">{{startsAt}}</strong></p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{joinUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View session details</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;">Save this email — the link above takes you to the session page any time.</p>
 </div>`,
         enabled: true,
       },

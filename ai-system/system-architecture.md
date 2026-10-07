@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-09-22 — provider tiles public + ordered display)
-> - last-verified-against-code: 2026-09-22
+> - last-updated-by: update-ai-system (Session 2026-10-01 — Growth & Reliability sprint F1–F9)
+> - last-verified-against-code: 2026-10-01
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -16,10 +16,11 @@ Client (Browser)
     |
     v
 Next.js App Router (app/)
-    |-- (public)  -- Guest: Landing/Explore, Category Browse, Search, Profiles, Blog, Verify-email, About, How It Works, Portfolio Gallery
-    |-- (auth)    -- Authenticated: Dashboard, Bookings, Messages, Profile, Profile Edit
-    |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Media, Email Templates, Blog Templates, Blog Posts, Users
-    |-- api/      -- Route handlers: Auth, Bookings, Portfolio, Webhooks, Cron, Admin
+    |-- (public)  -- Guest: Landing/Explore, Category Browse, Search, Profiles, Blog, Verify-email, About, How It Works, Portfolio Gallery, Leaderboard, Webinars, Bug Report
+    |-- (auth)    -- Authenticated: Dashboard, Bookings, Messages, Profile, Profile Edit, Referrals
+    |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Media, Email Templates, Blog Templates, Blog Posts, Users, Countdown, Webinars, Bug Reports
+    |-- api/      -- Route handlers: Auth, Bookings, Portfolio, Webhooks, Cron, Admin, Leaderboard, Referrals, Webinars, Early-access
+    |-- error.tsx / global-error.tsx + components/error/GlobalErrorCatcher (window.onerror + unhandledrejection)
     |
     v
 Service Layer (services/)
@@ -37,6 +38,11 @@ Service Layer (services/)
     |-- MockDataService         -- Mock data fallback when DB unavailable
     |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + password reset)
     |-- BlogPostService         -- Blog post CRUD + DB→Sanity→fallback merge (admin/DB posts win, dedup by slug)
+    |-- EarlyMemberService      -- Founding-100 rank via ROW_NUMBER() over user.createdAt (cached, no schema change)
+    |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim
+    |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking
+    |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert)
+    |-- PlatformStatsService    -- Cached landing aggregates with null → fallbackValue degradation
     |
     v
 Data Access Layer
@@ -45,7 +51,7 @@ Data Access Layer
     |
     v
 Data Stores
-    |-- PostgreSQL (Supabase)     -- Primary DB: users, bookings, payments, about_page, how_it_works_page, media_assets, portfolio_items, etc.
+    |-- PostgreSQL (Supabase)     -- Primary DB: users, bookings, payments, about_page, how_it_works_page, media_assets, portfolio_items, referral_codes, referral_events, webinars, webinar_registrations, bug_reports.error_context, etc.
     |-- Sanity CMS                -- Blog content, creator spotlights
     |-- Cloudinary                -- Video/image upload, thumbnails
     |-- Mux                       -- Video streaming
@@ -58,16 +64,17 @@ Data Stores
 
 | Module | Responsibility | Key Files | Dependencies |
 |--------|---------------|-----------|--------------|
-| Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search, blog, verify-email, about, how-it-works, portfolio gallery | `app/(public)/` | Components, Services |
-| Auth Routes | Authenticated pages: dashboard, booking, profile (page/setup/media), register, login | `app/(auth)/` | AuthGate, Services |
-| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, media, email templates, blog templates, users | `app/admin/` | requireRole('ADMIN'), Services |
-| API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, verify-email, newsletter, webhooks, cron | `app/api/` | Services, Lib |
+| Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search, blog, verify-email, about, how-it-works, portfolio gallery, leaderboard, webinars, bug-report | `app/(public)/` | Components, Services |
+| Auth Routes | Authenticated pages: dashboard, booking, profile (page/setup/media), register, login, referrals | `app/(auth)/` | AuthGate, Services |
+| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, media, email templates, blog templates, users, countdown, webinars | `app/admin/` | requireRole('ADMIN'), Services |
+| API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, verify-email, newsletter, webhooks, cron, leaderboard, referrals, webinars, early-access, bug-report | `app/api/` | Services, Lib |
+| Error Boundaries | Route-segment (`app/error.tsx`), root (`app/global-error.tsx`) and global window catcher (sanitised console/stack capture → `/bug-report`) | `components/error/`, `app/error.tsx`, `app/global-error.tsx` | Lib (sanitize-error, error-log-buffer) |
 | UI Wrappers | Cl* wrappers around shadcn/ui primitives | `components/ui/` | shadcn/ui, Tailwind |
 | Feature Components | Domain-specific UI: explore cards, profile sections, booking drawer, admin panels | `components/` | UI Wrappers, Types |
-| Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore, email | `services/` | Lib, Types, Drizzle |
+| Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore, email + growth (early-member, referral, leaderboard, webinar, platform stats) | `services/` | Lib, Types, Drizzle |
 | Types | Global TS interfaces: entities, API responses, enums, explore types, email template blocks | `types/` | None |
 | Config | Platform config with DB override capability | `config/` | Types |
-| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks | `lib/` | SDK packages |
+| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks, platform-copy, sanitize-error, error-log-buffer, countdown, referral-cookie, landing-stats, webinars | `lib/` | SDK packages |
 | Drizzle | Database schema, migrations, RLS policies | `drizzle/` | Supabase, postgres |
 
 ---
@@ -241,6 +248,15 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | BLOG_CONFIG | blogConfig.heroTitle / heroSubtitle / newsletter / footerTagline — drives blog page hero + newsletter section, admin-editable at /admin/blog-templates | platform.config.ts | hero + newsletter defaults |
 | NEXT_PUBLIC_APP_URL | Absolute origin for SEO canonical URLs + email logo links (falls back to VERCEL_URL, then http://localhost:3000) | .env | - |
 | ENABLE_DESIGN_VIEWER | Mounts the dev-only design-asset viewer at `/__design/*`; must be false in production builds | .env | false |
+| FIRST_HUNDRED | `firstHundred` — Founding-100 badge (enabled, limit, badgeLabel, title, description, showRank); admin fields in the config editor "Growth" section | platform.config.ts | { enabled: true, limit: 100, badgeLabel: 'Founding 100' } |
+| REFERRAL | `referral` — invite copy + points (`directPoints` 100, `secondDegreePoints` 25, explainer items) | platform.config.ts | { enabled: true, directPoints: 100, secondDegreePoints: 25 } |
+| LEADERBOARD | `leaderboard` — page copy, `pageSize`, and `factors.{referrals,portfolio,bookings,ratings}` (enabled/label/description/weight/showRawValue) driving the pluggable factor registry | platform.config.ts | weights 1 / 0.5 / 0.75 / 0.5, all enabled |
+| COUNTDOWN | `countdown` — `enabled`, `iconAllowlist` (curated lucide names), `widgets[]` (edited on `/admin/countdown`, saved atomically as the single key `countdown.widgets`) | platform.config.ts | { enabled: true, widgets: [] } |
+| BUG_REPORT | `bugReport` — error popup copy, CTA labels, severity, includeConsoleLogs | platform.config.ts | { enabled: true, severity: 'MEDIUM', includeConsoleLogs: true } |
+| LANDING_STATS | `landingStats.items.{id}` — keyed record of stat items (key, label, format, orderIndex, enabled, fallbackValue) feeding the landing stats | platform.config.ts | creators/bookings/avgRating enabled; portfolio/members/team disabled |
+| SCROLL_TO_TOP | `scrollToTop` — enabled / thresholdPx / label for the platform-wide `ScrollToTopButton` | platform.config.ts | { enabled: true, thresholdPx: 400 } |
+| WEBINARS | `webinars` — page copy, `maxRegistrantsPerWebinar`, guest prompt + registration CTA + marketing-consent label | platform.config.ts | { maxRegistrantsPerWebinar: 500 } |
+| FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Leaderboard & Webinars links and the referral/webinar surfaces | platform.config.ts | both `true` |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
 
@@ -318,6 +334,20 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-01 — Growth & Reliability Sprint (F1–F9)
+- **F1 Founding-100 badge** — `services/EarlyMemberService.ts` computes registration rank with `ROW_NUMBER() OVER (ORDER BY created_at, id)` (window function, no schema change, `unstable_cache` tag `early-members`); `components/shared/EarlyMemberBadge.tsx` in Navbar + profile; `GET /api/early-access`; `firstHundred` config.
+- **F2 Referrals + leaderboard** — new tables `referral_codes`, `referral_events` (migration `0007_referrals_and_error_context.sql`); `services/ReferralService.ts` issues codes and writes degree-1/degree-2 events in one ACID transaction with an idempotent cookie claim (`lib/referral-cookie.ts`, `components/shared/ReferralCapture.tsx` mounted in the root layout, claim hook on `/register`); routes `GET /api/referrals/me`, `POST /api/referrals/claim`, authed `/referrals` page.
+- **F2/F7 Public leaderboard** — `services/LeaderboardService.ts` factor registry (`LeaderboardFactor` = key/label/weight/collect) with four factors: `referrals` (SUM points), `portfolio` (visible item count), `bookings` (count), `ratings` (`AVG(rating) × ln(1 + count)`); `leaderboard.factors.*` config toggles/weights them; `GET /api/leaderboard`; public `/leaderboard` with a "How scoring works" transparency panel (labels, descriptions, weights — no private data; display name + avatar only).
+- **F3 Countdown widget** — `lib/countdown.ts` + `lib/countdown-icons.ts` (curated lucide allowlist), `components/shared/CountdownWidget.tsx` + `CountdownSlot.tsx` (framer-motion, `prefers-reduced-motion` gate, mount-gated tick for hydration safety), slots on landing + explore, admin editor at `/admin/countdown` (saved as the single atomic key `countdown.widgets`).
+- **F4 Error-boundary bug reporting** — `lib/error-log-buffer.ts` (console ring buffer) + `lib/sanitize-error.ts` (redaction + 8 KB cap); `components/error/ErrorReportDialog.tsx` + `GlobalErrorCatcher.tsx` (`window.onerror` + `unhandledrejection`, non-blocking), route boundary `app/error.tsx` (Continue via `reset()`) and root `app/global-error.tsx`; handoff to `/bug-report` via `sessionStorage` (not query strings — stacks exceed URL limits); `POST /api/bug-report` re-sanitises and stores `error_context` on `bug_reports`; admin triage block on `/admin/bug-reports`.
+- **F5 Landing stats** — `services/PlatformStatsService.ts` cached aggregates with a null → `fallbackValue` degradation path; `landingStats.items.{id}` keyed-record config; `LandingContent` iterates config instead of the hardcoded 1.2k/5k/4.9 figures.
+- **F6 Back-to-top** — `components/shared/ScrollToTopButton.tsx` mounted once in the root layout (`scrollToTop` config); the explore page's inline FAB removed.
+- **F8 Webinars** — new tables `webinars`, `webinar_registrations` (unique `(webinar_id, lower(email))` + partial unique `(webinar_id, user_id)`); `services/WebinarService.ts` registers via unique-index **upsert** (dedupe without a pre-read race); `GET /api/webinars`, `POST /api/webinars/[id]/register` (guest + auth, zod, marketing consent stored on the row), admin CRUD at `/api/admin/webinars` (+`[id]`) and `/admin/webinars`; public `/webinars` (upcoming registration, past recordings/content blocks); wired `webinarRegistration` confirmation email.
+- **F9 Platform-name compliance** — `lib/platform-copy.ts` (`PLATFORM_NAME_TOKEN`, `fillPlatformName`) resolves display copy from `config.name`; module-scope constants carry the `{{name}}` token; explicit infrastructure allowlist; `__tests__/platform-name-compliance.test.ts` fails the build on any `Crelab|CreLab|Crellab` outside the allowlist.
+- **Shared foundation** — 8 config keys + `features.referralsEnabled`/`features.webinarsEnabled` in `config/platform.config.ts`, types in `types/index.ts`, "Growth" section in `app/admin/config/page.tsx`, Navbar/Footer flag-gated links, AdminSidebar countdown/webinars entries, three root-layout mounts (`ReferralCapture`, `GlobalErrorCatcher`, `ScrollToTopButton`).
+- **QA gate:** `npx tsc --noEmit` 0 errors; `npm run lint` 0 errors; `npm run build` exit 0 (routes: `/leaderboard`, `/referrals`, `/webinars`, `/admin/countdown`, `/admin/webinars`, `/bug-report`, `/api/webinars`); `npx vitest run` 389/392 (3 pre-existing failures at HEAD: `media.test.ts` file-size case + 2 `BlogPostService.test.ts` adminList resilience cases).
+- **Residual risk:** migration `drizzle/migrations/0007_referrals_and_error_context.sql` is written but **not applied** (journal untouched past `0002`; repo convention is manual application on Supabase). Until applied, referral/webinar code fails at runtime against a live DB. Nothing committed — all changes are uncommitted in the working tree.
 
 ### 2026-08-13 — Wired Email Templates + Blog Post Management + Admin Responsive Fixes
 - `lib/email-templates.ts` (new): `WIRED_EMAIL_TEMPLATES` registry — welcome / verifyEmail / emailChanged / bookingConfirmation / paymentReceived / passwordReset, each with `label` + `trigger` (the user event that fires it) + `isWiredEmailTemplate(key)`. These emails are owned by code paths, so they are preview + simulate ONLY.

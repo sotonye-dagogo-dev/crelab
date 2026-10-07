@@ -77,6 +77,9 @@ export const SAMPLE_EMAIL_VARS: Record<string, string> = {
   bookingUrl: `${appOriginForPreview()}/dashboard`,
   verifyUrl: `${appOriginForPreview()}/verify-email?token=preview-token`,
   resetUrl: `${appOriginForPreview()}/reset-password?token=preview-token`,
+  webinarTitle: "Pricing Your Creative Work",
+  startsAt: "Saturday, 10 October 2026, 5:00 pm (WAT)",
+  joinUrl: `${appOriginForPreview()}/webinars`,
   logoUrl: resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath),
 };
 

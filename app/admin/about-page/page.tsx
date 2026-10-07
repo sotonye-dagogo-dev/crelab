@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClCard } from "@/components/ui";
 import { useToast } from "@/lib/toast";
+import { usePlatformConfig } from "@/lib/config-context";
+import { fillPlatformName } from "@/lib/platform-copy";
 import { ArrowUp, ArrowDown, Trash2, Plus } from "lucide-react";
 import type { IAboutPage } from "@/types";
 
@@ -13,9 +15,11 @@ const inputClass =
 const labelClass =
   "block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]";
 
+// Module-scope default: `{{name}}` tokens are resolved with the platform name
+// from config wherever this default is used (see fillAboutPageName).
 const DEFAULT_ABOUT: IAboutPage = {
   id: "about-1",
-  heroTitle: "About Crellab",
+  heroTitle: "About {{name}}",
   heroSubtitle: "We're building the future of creative hiring in Africa — connecting brands with talented creators, cinematographers, and videographers.",
   sections: [
     {
@@ -41,15 +45,27 @@ const DEFAULT_ABOUT: IAboutPage = {
     { label: "Report a Bug", href: "/bug-report" },
     { label: "Contact Us", href: "#contact" },
   ],
-  metaTitle: "About Crellab - Connecting African Creatives with Opportunity",
-  metaDescription: "Learn about Crellab's mission to connect brands with talented African creators, cinematographers, and videographers. Built for African creativity.",
+  metaTitle: "About {{name}} - Connecting African Creatives with Opportunity",
+  metaDescription: "Learn about {{name}}'s mission to connect brands with talented African creators, cinematographers, and videographers. Built for African creativity.",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
 
+function fillAboutPageName(page: IAboutPage, name: string): IAboutPage {
+  return {
+    ...page,
+    heroTitle: fillPlatformName(page.heroTitle, name),
+    metaTitle: page.metaTitle ? fillPlatformName(page.metaTitle, name) : page.metaTitle,
+    metaDescription: page.metaDescription
+      ? fillPlatformName(page.metaDescription, name)
+      : page.metaDescription,
+  };
+}
+
 export default function AdminAboutPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { name: platformName } = usePlatformConfig();
   const [about, setAbout] = useState<IAboutPage | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -66,9 +82,9 @@ export default function AdminAboutPage() {
     if (data) {
       setAbout(data);
     } else {
-      setAbout(DEFAULT_ABOUT);
+      setAbout(fillAboutPageName(DEFAULT_ABOUT, platformName));
     }
-  }, [data]);
+  }, [data, platformName]);
 
   const saveMutation = useMutation({
     mutationFn: async (payload: IAboutPage) => {
@@ -137,7 +153,7 @@ export default function AdminAboutPage() {
     );
   }
 
-  const cfg = about ?? DEFAULT_ABOUT;
+  const cfg = about ?? fillAboutPageName(DEFAULT_ABOUT, platformName);
 
   return (
     <div>

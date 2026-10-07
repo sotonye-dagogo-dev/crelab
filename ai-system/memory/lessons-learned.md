@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 34)
-> - last-verified-against-code: 2026-08-28
+> - last-updated-by: update-ai-system (Session 2026-10-01)
+> - last-verified-against-code: 2026-10-01
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -599,6 +599,24 @@
 4. SEO metadata generated via existing `lib/seo.ts` `buildSeoMetadata` helper.
 
 **Apply When:** Adding any static/landing page that needs admin content management.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Error Boundary → Form Handoff: sessionStorage, Not Query Strings
+
+**Context:** The error-reporting flow (F4) needs to carry what the boundary captured — message, stack, the last 60 console lines, URL, timestamp — from `GlobalErrorCatcher`/`app/error.tsx` into the `/bug-report` form so the submission includes real diagnostics.
+
+**What We Learned:**
+1. Never put a stack trace (or any captured payload) in a query string: URLs are length-limited in practice (browsers/proxies truncate around ~2k–8k), stacks plus console logs blow past that, and the payload ends up in server logs, Referer headers and browser history — a leak as well as a truncation bug.
+2. `sessionStorage` is the right handoff medium: it survives the client-side navigation to `/bug-report`, dies with the tab (no cross-page persistence), and needs no server round trip. Stash under one namespaced key (`crelab-error-context`) and read it once on mount.
+3. The payload must be sanitised **twice**: at capture time (so the stash never holds a raw token/email) and again server-side on `POST /api/bug-report` (the stash is client-writable — never trust it).
+4. Make the attachment explicit and detachable in the UI: show an "attached details" panel with the captured message, and let the user remove it before submitting. Users who are asked to report an error will otherwise paste whatever they fear is sensitive.
+5. Buffer the console *before* the failure: a ring buffer installed at layout mount (`lib/error-log-buffer.ts`, idempotent install) is the only way to have the lines leading up to the crash.
+
+**Apply When:** Wiring any error/exception flow into a form, or moving any large/sensitive payload between routes — think storage lifetime + sanitisation at both ends, not URL parameters.
 
 **Supersedes:** None
 **Superseded by:** None
