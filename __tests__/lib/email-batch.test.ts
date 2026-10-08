@@ -5,13 +5,14 @@ import {
   filterRecipients,
   invertSelection,
   buildBatchResultMessage,
+  partitionByVerification,
   type EmailRecipient,
 } from "@/lib/email-batch";
 
 const recipients: EmailRecipient[] = [
-  { id: "u1", name: "Ada Creator", email: "ada@example.com", role: "PROVIDER", hasMarketingConsent: true, createdAt: "2026-01-01T00:00:00.000Z" },
-  { id: "u2", name: "Brand Bob", email: "bob@example.com", role: "CLIENT", hasMarketingConsent: false, createdAt: "2026-01-02T00:00:00.000Z" },
-  { id: "u3", name: "Cara Creator", email: "cara@example.com", role: "PROVIDER", hasMarketingConsent: false, createdAt: "2026-01-03T00:00:00.000Z" },
+  { id: "u1", name: "Ada Creator", email: "ada@example.com", role: "PROVIDER", emailVerified: true, hasMarketingConsent: true, createdAt: "2026-01-01T00:00:00.000Z" },
+  { id: "u2", name: "Brand Bob", email: "bob@example.com", role: "CLIENT", emailVerified: false, hasMarketingConsent: false, createdAt: "2026-01-02T00:00:00.000Z" },
+  { id: "u3", name: "Cara Creator", email: "cara@example.com", role: "PROVIDER", emailVerified: true, hasMarketingConsent: false, createdAt: "2026-01-03T00:00:00.000Z" },
 ];
 
 describe("normalizeRecipientIds", () => {
@@ -56,6 +57,34 @@ describe("filterRecipients", () => {
     expect(
       filterRecipients(recipients, { role: "PROVIDER", consent: "SUBSCRIBERS", search: "ada" }).map((r) => r.id),
     ).toEqual(["u1"]);
+  });
+
+  it("VERIFIED keeps verified (and legacy rows missing the flag)", () => {
+    const withLegacy: EmailRecipient[] = [
+      ...recipients,
+      { id: "u4", name: "Legacy Lee", email: "lee@example.com", role: "CLIENT", hasMarketingConsent: false, createdAt: "2026-01-04T00:00:00.000Z" },
+    ];
+    expect(filterRecipients(withLegacy, { verified: "VERIFIED" }).map((r) => r.id).sort()).toEqual(["u1", "u3", "u4"]);
+  });
+
+  it("UNVERIFIED keeps only unverified", () => {
+    expect(filterRecipients(recipients, { verified: "UNVERIFIED" }).map((r) => r.id)).toEqual(["u2"]);
+  });
+
+  it("no verified filter keeps everyone (backward compatible)", () => {
+    expect(filterRecipients(recipients, {}).map((r) => r.id)).toEqual(["u1", "u2", "u3"]);
+  });
+});
+
+describe("partitionByVerification", () => {
+  it("splits verified/unverified, treating a missing flag as verified", () => {
+    expect(
+      partitionByVerification([
+        { id: "u1", emailVerified: true },
+        { id: "u2", emailVerified: false },
+        { id: "u3" },
+      ]),
+    ).toEqual({ verified: ["u1", "u3"], unverified: ["u2"] });
   });
 });
 

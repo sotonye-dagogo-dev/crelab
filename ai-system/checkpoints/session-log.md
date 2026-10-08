@@ -11,6 +11,40 @@
 
 ## Sessions
 
+## Session 2026-10-08 — Email Verification + Wired Delivery Tightening (execute-feature)
+
+**Directive:** unverified emails filtered out by default in send lists (toggle to include + notice); wired emails delivered reliably incl. bug-report flow (templates editable); welcome on Google OAuth; verify flow triggered on email/password signup; end-to-end, non-breaking, config-driven.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system, project-context, project-decisions; moderate architecture impact (new shared lib, auth hook, config block, banner component — no schema/migration/route removals, no hard gates); scope/decision checks pass. Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Root causes found:**
+1. Verify link dead: `/api/verify-email/send` built `/verify-email?done=1&token=…` but the page only auto-verified when `token && !done` → clickers saw fake success, stayed unverified, welcome never fired.
+2. Signup never routed to verify: `useAuth.signUp` fire-and-forget send + register page routed straight to setup/explore → flow silently skipped (unverified pile-up).
+3. No server-side guarantee: verification depended on one client fetch.
+4. OAuth welcome fire-and-forget: `router.replace` ran before fetch resolved → failures invisible.
+5. Batch lists had no verification signal at all (recipients API returned no `emailVerified`).
+6. Bug-report creation sent nothing (only status changes did); no `bugReportReceived` template.
+
+**Completed:**
+1. **Recipients API** — `GET /api/admin/email/recipients` returns `emailVerified` per row + new `verified=all|verified|unverified` param (API default `all`, non-breaking).
+2. **`lib/email-batch.ts`** — `EmailRecipient.emailVerified?` (missing = verified, legacy-safe), `RecipientFilter.verified`, `partitionByVerification()`; +4 tests.
+3. **Picker UI** — `EmailBatchSendDialog` defaults to verified-only with an "Include unverified addresses" toggle + explicit bounce notice, per-row Unverified badge, `verified` query param, `unverifiedIncluded` surfaced in the result toast.
+4. **Batch send** — `POST /api/admin/email/send` honours explicit selection (opt-in = intent) but reports `unverifiedIncluded` in response + audit (`email.batch`).
+5. **Verify flow** — new `lib/verify-email.ts` (`buildVerifyUrl` token-only link, `sendVerificationEmailTo` with real display-name lookup, dead-token cleanup); send route refactored onto it; `lib/auth.ts` `databaseHooks.user.create.after` auto-sends verification for unverified new accounts (OAuth pre-verified skip; guarded, never fails signup); `useAuth` duplicate client send removed (single server send); register page routes email signups to `/verify-email?email=…&new=1&next=…`; verify page verifies token even with `done=1`, shows spinner + invalid-link hint, and `new=1` mode shows check-inbox copy + Continue CTA.
+6. **OAuth welcome** — register finalize now awaits `/api/email/welcome` (20s bound) with honest failure toast; account creation unaffected either way.
+7. **Banner + config** — new `emailVerification.bannerEnabled` (default true, admin-editable in Email section); new `VerifyEmailBanner` in root layout (session-scoped dismiss, resend + cooldown, config-gated; missing block = enabled).
+8. **Bug-report ack** — new wired `bugReportReceived` template (DEFAULT_CONFIG + WIRED map + `EmailService.sendBugReportReceived`); `POST /api/bug-report` fires it best-effort post-insert (never fails the 201); sample vars (`reportTitle`, `statusLabel`, `adminNotesBlock`) + editor variable list extended (also adds missing webinar vars).
+9. **QA gate:** `vitest` → 39 files, **452 passed / 0 failed** (+10 new); `tsc --noEmit` clean; `next lint` 0 errors (pre-existing warnings only); `next build` green.
+10. **Doc sync:** dev-history, task-queue (Completed + `last-synced`), system-architecture (auth/email/bug-report flows + Recent Changes), index/repo-map + dependency-graph, memory/project-decisions (verification decisions), repair-system (dead-link entry); in-progress.md cleared.
+
+**Files Modified/Created:** `lib/verify-email.ts` + `components/shared/VerifyEmailBanner.tsx` + `__tests__/lib/verify-email.test.ts` (new); `lib/auth.ts` (signup hook), `hooks/useAuth.ts` (drop duplicate send), `app/(auth)/register/page.tsx` (verify routing + awaited welcome), `app/(public)/verify-email/page.tsx` (token hardening + new mode), `app/api/verify-email/send/route.ts` (shared helper), `app/api/admin/email/recipients/route.ts` + `app/api/admin/email/send/route.ts` + `lib/email-batch.ts` + `components/admin/EmailBatchSendDialog.tsx` (verification filtering), `config/platform.config.ts` (`emailVerification` + `bugReportReceived`), `lib/email-templates.ts` (WIRED), `services/EmailService.ts` (sendBugReportReceived), `app/api/bug-report/route.ts` (ack), `lib/email-blocks.ts` (samples), `components/admin/EmailTemplateBlocksEditor.tsx` (vars), `types/index.ts` (`IEmailVerificationConfig`), `app/admin/config/page.tsx` (banner toggle), `app/layout.tsx` (banner mount), `__tests__/lib/email-batch.test.ts` + `__tests__/platform-name-compliance.test.ts` (allowlist) + 8 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` was absent at session start; `npm ci --no-audit --no-fund` run (no dependency changes).
+- Residual risks: none. Verification stays optional (no hard gates); hook sends one mail per unverified signup (client duplicate removed); banner is dismissible per tab session; broadcast-to-marketing path unchanged.
+
 ## Session 2026-10-08 — Email Batch Send (selectable recipients) (execute-feature)
 
 **Directive:** extend email functionality beyond single-user test send and all-subscribers broadcast with a batch send where recipients are selectable (checkboxes, select-all, clear, undo, invert, quick filters like first 100 / only creators / only brands / only subscribers + search).

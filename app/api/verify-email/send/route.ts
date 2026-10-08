@@ -3,17 +3,15 @@ import { emailNotSentLabel, isResendConfigured } from "@/services/EmailService";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { resolveEmailTemplate } from "@/lib/email-templates";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { eq } from "drizzle-orm";
+import { sendVerificationEmailTo } from "@/lib/verify-email";
 
 /**
- * Public endpoint that triggers Better Auth's (non-blocking) email-verification
- * email for an account. The callback URL routes the user back to
- * /verify-email?done=1 where the success state and welcome email are handled.
+ * Public endpoint that triggers the (non-blocking) email-verification email
+ * for an account. The link routes the user back to `/verify-email?token=…`,
+ * which verifies on load and then lands on `?done=1` where the success state
+ * and welcome email are handled.
  *
- * The response reflects the REAL send outcome (captured via the request-scoped
- * email sink) rather than a false "sent" — Better Auth's callback swallows
- * failures, so without the sink the API could return success even when Resend
- * rejected the mail.
+ * The response reflects the REAL send outcome rather than a false "sent".
  */
 export async function POST(req: NextRequest) {
   try {
@@ -61,35 +59,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Generate verification token and URL ourselves so we can send the email
-    // directly via EmailService and get a reliable send result, instead of
-    // relying on Better Auth's callback which may execute outside the
-    // AsyncLocalStorage sink context.
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour
-    const { db } = await import("@/lib/db");
-    const { verification } = await import("@/drizzle/schema");
+    const outcome = await sendVerificationEmailTo(email, config);
 
-    await db.insert(verification).values({
-      id: crypto.randomUUID(),
-      identifier: email.toLowerCase(),
-      value: token,
-      expiresAt,
-    });
-
-    const baseUrl = process.env.BETTER_AUTH_URL || "http://localhost:3000";
-    const verifyUrl = `${baseUrl}/verify-email?done=1&token=${token}`;
-
-    const { EmailService } = await import("@/services/EmailService");
-    const result = await EmailService.sendVerifyEmail(email, "User", verifyUrl, config);
-
-    if (!result.sent) {
-      // Clean up the token since the email failed
-      await db.delete(verification).where(eq(verification.value, token));
+    if (!outcome.sent) {
       return NextResponse.json({
         success: true,
         sent: false,
-        reason: emailNotSentLabel(result.reason),
+        reason: emailNotSentLabel(outcome.result.reason),
       });
     }
 

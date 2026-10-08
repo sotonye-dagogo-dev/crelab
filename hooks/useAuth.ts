@@ -128,29 +128,11 @@ export function useAuth(): UseAuthReturn {
         }
       }
 
-      if (userResult) {
-        // Email/password signups are unverified — send the (non-blocking)
-        // verification email instead of the welcome mail. The welcome email is
-        // triggered after verification succeeds. Google signups are verified at
-        // creation and fire the welcome immediately from the register page.
-        fetch("/api/verify-email/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: userResult.email }),
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((json) => {
-            if (json && json.sent === false) {
-              console.warn(
-                `[useAuth] verification email to ${userResult.email} not sent: ${json.reason ?? "unknown"}`,
-              );
-            }
-          })
-          .catch((err) => {
-            console.error("[useAuth] failed to trigger verification email:", err);
-          });
-      }
-
+      // NOTE: the verification email is sent server-side (Better Auth
+      // `databaseHooks.user.create.after` in lib/auth.ts), so the flow is
+      // triggered even if this client goes away. No fire-and-forget fetch here
+      // — a duplicate send would mint a second token/email. Failures surface
+      // via the /verify-email resend form instead.
       return userResult;
     },
     [mockMode],

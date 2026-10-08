@@ -257,6 +257,15 @@ export class EmailService {
     return EmailService.send(to, "bugReportUnderReview", { ...vars, adminNotesBlock }, config);
   }
 
+  /** Acknowledgement fired (best-effort) right after a bug report is submitted. */
+  static async sendBugReportReceived(
+    to: string,
+    vars: { userName: string; reportTitle: string },
+    config?: IPlatformConfig,
+  ): Promise<EmailSendResult> {
+    return EmailService.send(to, "bugReportReceived", vars, config);
+  }
+
   static async sendBugReportResolved(
     to: string,
     vars: { userName: string; reportTitle: string; statusLabel: string; adminNotes?: string },

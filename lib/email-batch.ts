@@ -16,6 +16,10 @@ export interface EmailRecipient {
   name: string;
   email: string;
   role: EmailRecipientRole | string;
+  /** Whether the address completed email verification. Unverified addresses
+   *  are hidden from the picker by default (opt-in via the toggle) because
+   *  they may bounce. Optional for backward compatibility with older payloads. */
+  emailVerified?: boolean;
   hasMarketingConsent: boolean;
   createdAt: string;
 }
@@ -24,6 +28,7 @@ export interface RecipientFilter {
   search?: string;
   role?: "ALL" | EmailRecipientRole;
   consent?: "ALL" | "SUBSCRIBERS";
+  verified?: "ALL" | "VERIFIED" | "UNVERIFIED";
   limit?: number;
 }
 
@@ -63,6 +68,11 @@ export function filterRecipients(
   if (filter.consent === "SUBSCRIBERS") {
     out = out.filter((r) => r.hasMarketingConsent);
   }
+  if (filter.verified === "VERIFIED") {
+    out = out.filter((r) => r.emailVerified !== false);
+  } else if (filter.verified === "UNVERIFIED") {
+    out = out.filter((r) => r.emailVerified === false);
+  }
   if (search) {
     out = out.filter(
       (r) =>
@@ -83,6 +93,24 @@ export function invertSelection(
 ): string[] {
   const sel = selected instanceof Set ? selected : new Set(selected);
   return visibleIds.filter((id) => !sel.has(id));
+}
+
+/**
+ * Splits a recipient set into verified / unverified buckets (missing flag
+ * counts as verified — legacy payloads predate the field). Used by the batch
+ * send route to report how many selected addresses are unverified.
+ */
+export function partitionByVerification(recipients: Pick<EmailRecipient, "id" | "emailVerified">[]): {
+  verified: string[];
+  unverified: string[];
+} {
+  const verified: string[] = [];
+  const unverified: string[] = [];
+  for (const r of recipients) {
+    if (r.emailVerified === false) unverified.push(r.id);
+    else verified.push(r.id);
+  }
+  return { verified, unverified };
 }
 
 export function buildBatchResultMessage(

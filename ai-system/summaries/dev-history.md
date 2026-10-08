@@ -5,6 +5,23 @@
 > - last-verified-against-code: 2026-10-08
 
 
+## Session 2026-10-08 — Email Verification + Wired Delivery Tightening
+
+### What
+Directive: filter unverified emails out of send lists by default (toggle + notice); deliver wired emails reliably incl. bug-report flow; welcome on Google OAuth; trigger verify flow on email/password signup — end-to-end, non-breaking, config-driven.
+
+### Verification
+`vitest` → 39 files, **452 passed / 0 failed** (+10 new). `tsc --noEmit` → clean. `next lint` → 0 errors. `next build` → green.
+
+### Key Changes
+- **Verification reliability:** token-only verify links (fixes dead `done=1&token=` links); server-side signup hook auto-sends verification (single send — client duplicate removed); register routes email signups to `/verify-email?new=1&next=…`; verify page hardens token handling + fresh-signup mode with Continue CTA.
+- **OAuth welcome:** awaited (20s bound) with honest failure toast instead of fire-and-forget.
+- **Unverified filtering:** recipients API `emailVerified` + `verified` param; picker defaults verified-only with opt-in toggle + bounce notice + badges; batch send reports `unverifiedIncluded` (explicit selection honoured).
+- **Bug-report ack:** new wired `bugReportReceived` template (editable like other wired templates) fired best-effort on submission.
+- **Nudge UI:** config-driven `emailVerification.bannerEnabled` + persistent dismissible banner with resend.
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`), `system-architecture.md` (auth/email/bug-report flows + Recent Changes), `index/repo-map.md`, `index/dependency-graph.md`, `memory/project-decisions.md`, `repair-system.md` (dead-link entry); `in-progress.md` cleared.
+
+
 ## Session 2026-10-08 — Email Batch Send (selectable recipients)
 
 ### What

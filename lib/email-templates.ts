@@ -48,6 +48,10 @@ export const WIRED_EMAIL_TEMPLATES: Record<
     label: "Bug Report — Under Review",
     trigger: "Sent when an admin moves a bug report to In Progress (under review).",
   },
+  bugReportReceived: {
+    label: "Bug Report — Received",
+    trigger: "Sent immediately when a bug report is submitted (acknowledgement).",
+  },
   bugReportResolved: {
     label: "Bug Report — Resolved",
     trigger: "Sent when an admin marks a bug report as Resolved or Closed.",
