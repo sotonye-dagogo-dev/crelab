@@ -1,8 +1,38 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — cover-visible-everywhere)
+> - last-updated-by: execute-feature (Session 2026-10-08 — countdown-first-on-home)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Countdown First on Home
+
+### What
+Directive: adjust the positioning of the countdown widget on the home page such that it's the first thing there, like on the explore page.
+
+### Verification
+`npx vitest run` → 35 files, **424 passed / 0 failed**. `npm run typecheck` → exit 0. `npx next lint --file components/landing/LandingContent.tsx` → no warnings or errors. `npm run build` → success.
+
+### Key Changes
+- **`components/landing/LandingContent.tsx`** — `<CountdownSlot area="landing" />` moved from below the hero to the top of the page container (first child), mirroring `app/(public)/explore/page.tsx`. Both `/` and `/home` render `LandingContent`, so one edit fixes both routes. No-op when no countdown is active (`CountdownSlot` returns `null` when disabled or no widgets match), so no empty gap or layout shift.
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`); `in-progress.md` cleared. Deep `update-ai-system.md` not invoked: no architecture impact, `[XS]` origin (per `execute-feature.md` Step 5.5, `sync-context`-level close suffices).
+
+
+## Session 2026-10-08 — Public-Pages Team/Webinars Re-verification (team empty-state fix)
+
+### What
+Directive: ensure the team page actually retrieves and renders team member data, and re-verify all public pages (old and new, e.g. webinars). Reported symptom: a member added in admin, but the user-facing `/team` page still empty.
+
+### Verification
+`npm test` → 35 files, **424 passed / 0 failed** (+6 new `TeamService` tests). `npm run typecheck` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only). `npm run build` → success; `/`, `/home`, `/about`, `/how-it-works`, `/team`, `/blog`, `/leaderboard`, `/webinars`, `/api/team` all render `ƒ` (dynamic).
+
+### Key Changes
+- **Root cause** — `/team` queried `team_members` inline in a server component with no `force-dynamic`: Next statically prerendered the build-time (empty) result, so later admin additions never appeared until redeploy. The DB-error fallback (`MockDataService.getTeamMembers()`) returns `[]` outside mock mode, so production showed the "Coming Soon" empty state despite rows existing.
+- **New `services/TeamService.ts`** — `listPublic()` (active-only, `orderIndex` + `createdAt`), pure `normalizeSocialLinks()` (array | legacy JSON-string | null → array), `serializeTeamMember()`; 6 tests in `__tests__/services/TeamService.test.ts`.
+- **Page + API** — `/team` reads via the service with `export const dynamic = "force-dynamic"` and `console.error` on DB failure; new public `GET /api/team` (same read path, mock fallback only when mock mode enabled).
+- **Stale-prerender sweep** — `force-dynamic` added to `/about`, `/how-it-works`, `/home`, `/` (same direct-DB-in-server-component hazard; about/how-it-works were masked by hardcoded fallbacks). Webinars/blog/leaderboard (already `force-dynamic`) and explore (client-fetched) verified correct with no change: `WebinarService.listPublic` gates `active=true` + derived upcoming/past phase; `BlogPostService.list` merges DB(`published=true`)→Sanity→fallback; leaderboard client-fetches `/api/leaderboard`.
+- **Seed** — `scripts/seed.ts` stores `socialLinks` as native jsonb arrays (legacy stringified rows still read fine via the normaliser).
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`), `system-architecture.md` (service list + Recent Changes), `index/repo-map.md`, `index/dependency-graph.md`; `in-progress.md` cleared. Deep `update-ai-system.md` not invoked: no architecture impact and no `[L]`/`[XL]` origin (per `execute-feature.md` Step 5.5, `sync-context`-level close suffices).
 
 
 ## Session 2026-10-08 — Cover-Visible-Everywhere (content views + portfolios)

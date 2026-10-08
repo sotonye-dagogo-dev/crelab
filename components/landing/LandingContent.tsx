@@ -30,6 +30,9 @@ export function LandingContent({ config, stats = null }: Props) {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
+      {/* ── Countdown first — mirrors explore page slot position ── */}
+      <CountdownSlot area="landing" />
+
       {/* ── Hero ── */}
       <section className="w-full bg-gradient-to-b from-[var(--color-surface)] to-[var(--color-bg)] border-b border-[var(--color-border)]">
         <div className="max-w-[1200px] w-full mx-auto flex flex-row justify-between items-center gap-8 px-6 py-12 md:py-16 max-[900px]:flex-col-reverse max-[900px]:text-center">
@@ -103,8 +106,6 @@ export function LandingContent({ config, stats = null }: Props) {
           </div>
         </div>
       </section>
-
-      <CountdownSlot area="landing" />
 
       {/* ── Categories teaser ── */}
       <section className="max-w-[1200px] mx-auto px-6 py-12">

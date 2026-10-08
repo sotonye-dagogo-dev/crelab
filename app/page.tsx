@@ -5,6 +5,9 @@ import { PlatformStatsService, type IPlatformStats } from "@/services/PlatformSt
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { buildSeoMetadata } from "@/lib/seo";
 
+// Landing stats + config resolve live — never serve a stale prerender.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   let config;
   try {

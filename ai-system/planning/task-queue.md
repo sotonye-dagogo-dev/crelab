@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — nav/footer/leaderboard polish: 408/408, docs reconciled)
+> - last-updated-by: execute-feature (Session 2026-10-08 — countdown-first-on-home, docs reconciled)
 > - last-verified-against-code: 2026-10-08
-> - last-synced: 2026-10-08 (nav/footer/leaderboard polish: 408/408, docs reconciled)
+> - last-synced: 2026-10-08 (countdown-first-on-home: 424/424, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -97,6 +97,8 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Countdown first on home: `<CountdownSlot area="landing" />` moved to top of `LandingContent` (first child, mirroring explore page; fixes both `/` and `/home`). 424/424 vitest, tsc 0 errors, lint 0 errors, build green | 2026-10-08 |
+| Public-pages team/webinars re-verification: empty `/team` fixed | 2026-10-08 | (static prerender → `force-dynamic` + `TeamService.listPublic` + `GET /api/team` + socialLinks normalisation + seed jsonb arrays); `force-dynamic` added to `/about`, `/how-it-works`, `/home`, `/`; webinars/blog/leaderboard/explore verified no-change. 424/424 vitest, tsc 0 errors, lint 0 errors, build green (all public routes `ƒ` dynamic) | 2026-10-08 |
 | Nav/footer/leaderboard polish: scrollable mobile nav overlay (dedicated nav scroll region, smaller links on short screens); zero-duplication footer (Platform/Company/Support & Legal, each link once); leaderboard Score always visible on mobile (`ClDataTable.tableClassName` override → `min-w-0` below lg, `max-w-[38vw]` member truncation + tooltips, tabular-nums score). 408/408 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-08 |
 | Countdown/leaderboard/tiles/content: centered countdown + full-URL CTAs (new-tab); leaderboard member truncation + pinned Score + narrower mobile table; provider name opaque pill (routing already via Link); setup-time cover→portfolio attach + orphan rescue; backfill cover-repair pass (dry-run aware). 408/408 vitest, tsc 0 errors, lint 0 errors | 2026-10-08 |
 | Residual risks (pagination + orphan backfill): leaderboard 30s user-agnostic board cache + batched candidate load + per-request current-user rank/score + CDN cache headers + client page cache/prefetch/Your-rank banner; `MediaAssetService.backfillOrphans` (owner-matched one-click rescue, dry-run) + `POST /api/admin/media/backfill` + admin Backfill UI. 407/407 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |

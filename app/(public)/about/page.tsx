@@ -8,6 +8,9 @@ import type { Metadata } from "next";
 import type { IAboutPage } from "@/types";
 import { fillPlatformName } from "@/lib/platform-copy";
 
+// Admin-managed content — always render live so edits appear immediately.
+export const dynamic = "force-dynamic";
+
 // Static fallback data for build-time and when DB is unavailable.
 // `{{name}}` tokens are resolved against config at render time (see below).
 const FALLBACK_ABOUT_PAGE: IAboutPage = {

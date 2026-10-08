@@ -1491,3 +1491,46 @@ verified via `git stash`), no regressions.
 **Notes / Blockers:**
 - Read-path cover fill on the explore gallery applies to the first page only (cursor pages serve real rows); covers beyond the first-page fill materialise as real rows via setup/reconcile/backfill, so the fill converges to zero over time. Same pattern as the pre-existing mock-parity fill.
 - Pre-existing cover-only providers heal on read immediately AND persistently via the existing admin Backfill (now photo-aware).
+
+## Session 2026-10-08 — Public-Pages Team/Webinars Re-verification (execute-feature)
+
+**Directive:** ensure the team page actually retrieves and renders the team members data, and the same goes for all public pages (re-verification for old and new pages such as webinars; member added in admin but user-facing team page still empty).
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/migration/route-contract change; additive `GET /api/team` only); scope/project-decisions checks pass (public content surfaces stay admin-manageable, config-driven). Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Root cause** — `app/(public)/team/page.tsx` ran its `team_members` query inline in a server component with no `force-dynamic`, so Next statically prerendered the build-time (empty) result and later admin additions never surfaced until redeploy. The `catch` fallback (`MockDataService.getTeamMembers()`) returns `[]` unless `NEXT_PUBLIC_MOCK_DATA=true`, so production showed the "Coming Soon" empty state despite rows in the table.
+2. **New `services/TeamService.ts`** — `listPublic()` (active-only, `orderIndex` + `createdAt`), pure `normalizeSocialLinks()` (array | legacy JSON-string | null → array, drops malformed entries), `serializeTeamMember()`; 6 tests in `__tests__/services/TeamService.test.ts` (array passthrough, legacy string parse, malformed/null handling, serialise, list, error propagation).
+3. **Page + API** — `/team` reads via the service with `export const dynamic = "force-dynamic"` + `console.error` on DB failure; new public `GET /api/team` (same read path; mock fallback only when mock mode enabled, else honest 500).
+4. **Stale-prerender sweep** — `export const dynamic = "force-dynamic"` added to `app/(public)/about`, `app/(public)/how-it-works`, `app/(public)/home`, `app/page.tsx` (same direct-DB-in-server-component hazard; about/how-it-works were masked by hardcoded fallbacks). Verified no-change: webinars (`force-dynamic` + `WebinarService.listPublic` gates `active=true` + derived phase; statuses UPCOMING/LIVE surface as upcoming, ENDED/CANCELLED as past), blog (`force-dynamic` + `BlogPostService.list` merges DB `published=true` → Sanity → fallback), leaderboard (`force-dynamic` + client fetch), explore (client fetch), home/landing (now dynamic, `PlatformStatsService.getCached` with fallback degradation).
+5. **Seed** — `scripts/seed.ts` stores `socialLinks` as native jsonb arrays (was `JSON.stringify`; legacy rows still read via the normaliser).
+6. **QA gate:** `npm test` → 35 files, **424 passed / 0 failed**; `npm run typecheck` → exit 0 (one stray-brace fix in the team page during the gate); `npm run lint` → 0 errors (pre-existing unused-var warnings only); `npm run build` → success with `/`, `/home`, `/about`, `/how-it-works`, `/team`, `/blog`, `/leaderboard`, `/webinars`, `/api/team` all `ƒ` (dynamic).
+7. **Doc sync (sync-context level):** dev-history (this entry), task-queue Completed + `last-synced`, system-architecture (service list + Recent Changes), index/repo-map + dependency-graph (`TeamService` rows); in-progress.md cleared. Full `update-ai-system.md` deep sync NOT invoked: no architecture impact and no `[L]`/`[XL]` origin (per `execute-feature.md` Step 5.5).
+
+**Files Modified/Created:** `services/TeamService.ts` (new), `app/api/team/route.ts` (new), `__tests__/services/TeamService.test.ts` (new), `app/(public)/team/page.tsx`, `app/(public)/about/page.tsx`, `app/(public)/how-it-works/page.tsx`, `app/(public)/home/page.tsx`, `app/page.tsx`, `scripts/seed.ts` + 6 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` was absent at session start; `npm install --no-audit --no-fund` run (no dependency changes).
+- If `/team` ever reads empty again with rows present, check (1) the row's `active` flag (public lists filter `active=true`), (2) server logs for `[TeamPage]` / `[GET /api/team]` errors, (3) `GET /api/team` directly — page and API share `TeamService.listPublic`, so a divergence implicates caching, not the query.
+
+## Session 2026-10-08 — Countdown First on Home (execute-feature)
+
+**Directive:** adjust the positioning of the countdown widget on the home page such that it's the first thing there, like on the explore page.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (pure JSX reorder in one presentational component, no config/schema/route/logic change); scope/project-decisions checks pass. Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **`components/landing/LandingContent.tsx`** — moved `<CountdownSlot area="landing" />` from below the hero section to the top of the page container (first child), mirroring `app/(public)/explore/page.tsx` where `<CountdownSlot area="explore" />` is the first child. Both `/` and `/home` render `LandingContent`, so both routes are fixed by this single edit.
+2. **No-op safety when inactive** — `CountdownSlot` returns `null` when `countdown.enabled` is false or no widgets match the area/date window, so with no active countdown the home page renders exactly as before (no empty gap, no layout shift).
+3. **QA gate:** `npx vitest run` → 35 files, **424 passed / 0 failed**; `npm run typecheck` → exit 0; `npx next lint --file components/landing/LandingContent.tsx` → no warnings or errors; `npm run build` → success.
+4. **Doc sync (sync-context level):** dev-history (entry), task-queue Completed + `last-synced`, in-progress.md cleared. Full `update-ai-system.md` deep sync NOT invoked: no architecture impact and `[XS]` origin (per `execute-feature.md` Step 5.5).
+
+**Files Modified/Created:** `components/landing/LandingContent.tsx` + 4 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` was absent at session start; `npm ci --no-audit --no-fund` run (no dependency changes). Raw `npx tsc --noEmit` before install showed spurious missing-module errors — always use `npm run typecheck` (same command, but only meaningful with deps installed).
+- None. No residual risk: single-slot render verified (exactly one `<CountdownSlot>` in `LandingContent`); design-system tokens untouched.
