@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — nav/footer/leaderboard polish)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -212,8 +212,8 @@ Admin user management
 UI Wrappers (Cl*)
   → ClBackButton.tsx — hydration-safe history.back with fallback href (click-interception, no typeof window in render)
   → consumed by app/(auth)/profile/page.tsx + profile/media + profile/setup + bookings list/detail + wallet
-  → ClDataTable.tsx + ClPagination.tsx — config-driven reusable table (ClColumn<T>[] with hideOnMobile/checkbox columns, client-side pagination + useEffect page-clamp on data shrink, horizontal scroll, empty state) + pagination control (first/prev/next/last, ellipsis, "Showing x–y of z")
-  → consumed by app/admin/{users,media,providers,team,categories,config}/page.tsx
+  → ClDataTable.tsx + ClPagination.tsx — config-driven reusable table (ClColumn<T>[] with hideOnMobile/checkbox columns, client-side pagination + useEffect page-clamp on data shrink, horizontal scroll, empty state, optional `tableClassName` min-width override) + pagination control (first/prev/next/last, ellipsis, "Showing x–y of z")
+  → consumed by app/admin/{users,media,providers,team,categories,config}/page.tsx + app/(public)/leaderboard/LeaderboardClient.tsx (`tableClassName="min-w-0 lg:min-w-[720px]"` so Score fits 360px screens)
 
 Admin sidebar (components/admin)
   → AdminSidebar.tsx — nav + sign-out; props collapsed (72px icon-only rail) / mobileOpen / onToggle / onMobileClose
