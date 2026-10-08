@@ -190,14 +190,16 @@ Lib Module
   → lib/email-blocks.ts is a leaf module — blocksToHtml() serializes EmailTemplateBlock[] to inline-styled HTML + substituteSampleVars()/SAMPLE_EMAIL_VARS/previewVarsFor for previews (relative URLs resolved via lib/url resolveRelativeUrlsInHtml); consumed by EmailService + app/admin/email-templates
 
 Email verify flow (verify-email)
-  → lib/verify-email.ts (buildVerifyUrl token-only links + sendVerificationEmailTo: 1h token, display-name lookup, dead-token cleanup)
+  → lib/verify-email.ts (buildVerifyUrl token-only links + normalizeEmail trim/lowercase + sendVerificationEmailTo: 1h token, case-insensitive display-name lookup via ilike, dead-token cleanup)
   → lib/auth.ts databaseHooks.user.create.after (server-side verification mail for unverified creations; OAuth pre-verified skip; never fails signup)
   → app/api/verify-email/send/route.ts (public resend, shares the helper)
+  → app/api/verify-email/verify/route.ts (case-insensitive user match via ilike + affected-row check → honest 404 when no user matched, token retained; idempotent when already verified)
   → app/api/verify-email/welcome/route.ts (fires welcome email once session user is emailVerified)
-  → app/(public)/verify-email/page.tsx (token verify-on-load incl. legacy done=1&token=, resend form with 60s cooldown, new=1 fresh-signup mode with Continue CTA, done=1 success state firing the welcome POST)
+  → app/(public)/verify-email/page.tsx (token verify-on-load incl. legacy done=1&token=, resend form with 60s cooldown, new=1 fresh-signup mode with Continue CTA, done=1 success state firing the welcome POST; refreshes Better Auth session post-verify so stale unverified state clears)
   → app/(auth)/register/page.tsx (email signups route to /verify-email?new=1&next=…; OAuth finalize awaits /api/email/welcome with honest toast)
   → components/shared/VerifyEmailBanner.tsx (root-layout nudge for signed-in unverified users; emailVerification.bannerEnabled; session-dismissible resend)
-  → hooks/useAuth.ts (signUp relies on the server hook — no client send)
+  → hooks/useAuth.ts (signUp relies on the server hook — no client send; refresh() refetches session to clear stale verified flags)
+  → app/(auth)/profile/page.tsx ("I've verified — refresh status" affordance alongside resend when unverified)
 
 Newsletter
   → app/api/newsletter/route.ts (signed-in users get a granted MARKETING consent record)
@@ -211,8 +213,8 @@ Admin email send
   → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs + editable template name via EmailTemplateBlocksEditor → ContentBlocksEditor; wired badge/Simulate/banner; Send Test / Send to Selected… via EmailBatchSendDialog / Send to Subscribers)
 
 Admin user management
-  → app/api/admin/users/route.ts (GET search/list) + app/api/admin/users/[id]/route.ts (PATCH role/emailVerified, DELETE with self-guard)
-  → app/admin/users/page.tsx (search, role select, verify toggle, delete confirm)
+  → app/api/admin/users/route.ts (GET search/list, live DB read — no cache) + app/api/admin/users/[id]/route.ts (PATCH role/emailVerified, DELETE with self-guard)
+  → app/admin/users/page.tsx (search, role select, verify toggle, delete confirm, manual Refresh with staleTime 0 so the badge never shows a cached unverified)
 
 UI Wrappers (Cl*)
   → ClBackButton.tsx — hydration-safe history.back with fallback href (click-interception, no typeof window in render)

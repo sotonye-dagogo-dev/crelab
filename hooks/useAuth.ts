@@ -32,6 +32,8 @@ export interface UseAuthReturn {
   signInWithGoogle: (options?: GoogleSignInOptions) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<AuthUser | null>;
+  /** Re-fetch the server session and update cached state (clears stale verified flags). */
+  refresh: () => Promise<void>;
 }
 
 const MOCK_USER: AuthUser = {
@@ -108,6 +110,16 @@ export function useAuth(): UseAuthReturn {
     router.refresh();
   }, [router, mockMode]);
 
+  const refresh = useCallback(async () => {
+    if (mockMode) return;
+    try {
+      const session = await authClient.getSession();
+      setUser((session?.data?.user as unknown as AuthUser) ?? null);
+    } catch {
+      // Keep the last-known state on refresh failure.
+    }
+  }, [mockMode]);
+
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
       let userResult: AuthUser | null = null;
@@ -138,5 +150,5 @@ export function useAuth(): UseAuthReturn {
     [mockMode],
   );
 
-  return { user, isAuthenticated: !!user, isLoading, signIn, signInWithGoogle, signOut, signUp };
+  return { user, isAuthenticated: !!user, isLoading, signIn, signInWithGoogle, signOut, signUp, refresh };
 }

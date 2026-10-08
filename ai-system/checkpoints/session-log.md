@@ -11,6 +11,35 @@
 
 ## Sessions
 
+## Session 2026-10-08 — Verified-Status Hardening (execute-feature)
+
+**Directive:** Users received verification emails but still show unverified in admin panel + profile (caching vs DB-not-updated?). Fix end-to-end, then run `update-ai-system.md`.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system, project-context, project-decisions; bug-fix scope (auth verify path + session freshness + admin list affordance — no schema/migration, no hard gates, verification stays optional); scope/decision checks pass. Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Root causes found:**
+1. DB-not-updated (confirmed, not caching): `POST /api/verify-email/verify` used exact `eq(user.email, identifier)` while the token identifier is stored lowercased — mixed-case addresses updated 0 rows, yet the route returned `{success:true}` and deleted the token (false success, evidence destroyed, 1h TTL ticking).
+2. No affected-row check: success returned even when no user matched (missing/changed email).
+3. Stale client session: custom verify writes DB bypassing Better Auth; `useAuth` caches session in React state → profile/banner render stale `false` until remount/re-login. Admin `GET /api/admin/users` reads DB live (no cache) but had no manual refresh affordance.
+
+**Completed:**
+1. **`lib/verify-email.ts`** — new exported `normalizeEmail()` (trim + lowercase); display-name lookup via case-insensitive `ilike`.
+2. **Verify endpoint** — case-insensitive `ilike` match + `.returning()` affected-row check → honest 404 (token retained for retry) when no user matched; idempotent success when already verified; warn-logged.
+3. **`hooks/useAuth.ts`** — new `refresh()` (refetch server session, update state).
+4. **Verify page** — refreshes Better Auth session post-verify before redirecting to `?done=1`.
+5. **Profile page** — "I've verified — refresh status" affordance next to the resend button when unverified.
+6. **Admin users page** — `staleTime: 0` + manual Refresh button (live DB read, visibly uncached).
+7. **QA gate:** `vitest` → 39 files, **453 passed / 0 failed** (+1 normalizeEmail contract); `tsc --noEmit` clean; `next lint` 0 errors (pre-existing wallet-route warnings only); `next build` green.
+8. **Doc sync (update-ai-system deep sync inline per directive):** session-log (this entry), dev-history, task-queue (Completed + `last-synced`), system-architecture (verification flow + Recent Changes), index/dependency-graph, repair-system (silent-no-op entry), memory/lessons-learned (email-match lesson); in-progress.md cleared.
+
+**Files Modified/Created:** `lib/verify-email.ts` (normalizeEmail + ilike), `app/api/verify-email/verify/route.ts` (ilike + returning + 404), `hooks/useAuth.ts` (refresh), `app/(public)/verify-email/page.tsx` (post-verify session refresh), `app/(auth)/profile/page.tsx` (refresh-status affordance), `app/admin/users/page.tsx` (staleTime 0 + Refresh), `__tests__/lib/verify-email.test.ts` (+1 test) + 7 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` was absent at session start; `npm ci --no-audit --no-fund` run (no dependency changes).
+- Residual risk: users whose pre-fix tokens already expired (1h TTL) must click Resend (or ask admin to use manual Verify) — pre-existing tokens cannot be revived. Verification stays optional (no hard gates).
+
 ## Session 2026-10-08 — Email Verification + Wired Delivery Tightening (execute-feature)
 
 **Directive:** unverified emails filtered out by default in send lists (toggle to include + notice); wired emails delivered reliably incl. bug-report flow (templates editable); welcome on Google OAuth; verify flow triggered on email/password signup; end-to-end, non-breaking, config-driven.

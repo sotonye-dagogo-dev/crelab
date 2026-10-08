@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verification, user } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, ilike } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
@@ -73,17 +73,38 @@ export async function POST(req: NextRequest) {
     }
 
     if (isEmailChange && newEmail) {
-      // Update user's email to the new email
-      await db
+      // Update user's email to the new email (case-insensitive match on the
+      // current address — the token identifier was stored lowercased).
+      const updated = await db
         .update(user)
         .set({ email: newEmail, emailVerified: true })
-        .where(eq(user.email, email));
+        .where(ilike(user.email, email))
+        .returning({ id: user.id });
+      if (updated.length === 0) {
+        console.warn(`[POST /api/verify-email/verify] email-change: no user matched identifier for token`);
+        return NextResponse.json(
+          { success: false, error: "Account not found for this link. Request a fresh confirmation email." },
+          { status: 404 },
+        );
+      }
     } else {
-      // Mark user email as verified
-      await db
+      // Mark user email as verified (case-insensitive — the identifier is
+      // stored lowercased while user.email may carry original casing).
+      // Previously this used an exact eq() + returned success even when 0
+      // rows updated, so mixed-case addresses verified "successfully" while
+      // the DB stayed unverified in admin + profile.
+      const updated = await db
         .update(user)
         .set({ emailVerified: true })
-        .where(eq(user.email, email));
+        .where(ilike(user.email, email))
+        .returning({ id: user.id, emailVerified: user.emailVerified });
+      if (updated.length === 0) {
+        console.warn(`[POST /api/verify-email/verify] no user matched identifier for token`);
+        return NextResponse.json(
+          { success: false, error: "Account not found for this link. Request a fresh verification email." },
+          { status: 404 },
+        );
+      }
     }
 
     // Delete the used token

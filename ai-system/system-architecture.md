@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email verification tightening)
+> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -116,20 +116,30 @@ Data Stores
 ### Email Verification Flow
 ```
 1. Email/password signup -> Better Auth `databaseHooks.user.create.after` calls
-   `sendVerificationEmailTo()` (lib/verify-email.ts: 1h token + real display-name
-   lookup + dead-token cleanup) -> EmailService.sendVerifyEmail()
+   `sendVerificationEmailTo()` (lib/verify-email.ts: 1h token + `normalizeEmail`
+   trim/lowercase identifier + case-insensitive display-name lookup + dead-token
+   cleanup) -> EmailService.sendVerifyEmail()
 2. Register page routes the new account to /verify-email?email=…&new=1&next=…
    (fresh-signup mode: check-inbox copy + resend + Continue CTA back to `next`)
 3. User clicks the token-only link (/verify-email?token=…) -> page verifies on
-   load (even for legacy done=1&token= links) -> redirects to ?done=1
-4. Better Auth marks user.emailVerified=true, auto-signs-in (autoSignInAfterVerification)
+   load via POST /api/verify-email/verify (even for legacy done=1&token= links)
+   -> refreshes the Better Auth session -> redirects to ?done=1
+4. Verify endpoint matches the user case-insensitively (`ilike(user.email,
+   identifier)`), checks the affected row (honest 404 + token retained when no
+   user matched; idempotent success when already verified), then deletes the
+   used token. Better Auth marks user.emailVerified=true, auto-signs-in
+   (autoSignInAfterVerification)
 5. /verify-email?done=1 fires POST /api/verify-email/welcome, which sends the
    welcome email exactly once, only when emailVerified (public resend form at
    POST /api/verify-email/send shares the same helper)
 6. Google signups are pre-verified (hook skips) and fire the welcome email from
    the register finalize step (awaited, 20s bound, honest failure toast)
 7. Persistent VerifyEmailBanner (root layout, session-dismissible, resend +
-   cooldown) nudges any signed-in unverified user while bannerEnabled
+   cooldown) nudges any signed-in unverified user while bannerEnabled.
+   `useAuth.refresh()` refetches the session wherever the flag is rendered
+   (profile "I've verified — refresh status"); admin /admin/users pins
+   staleTime 0 + manual Refresh so the badge always reflects the live DB row.
+   Verification is never a hard gate.
 ```
 
 ### Email Template Management Flow
@@ -349,6 +359,11 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-08 — Verified-Status Hardening (DB-not-updated + stale session)
+- **Root cause of "received the email but still unverified everywhere"** — `POST /api/verify-email/verify` matched with exact `eq(user.email, identifier)` while the token identifier is stored lowercased: mixed-case addresses updated 0 rows, yet the route returned success and deleted the token (false success, no retry). Fixed with shared `normalizeEmail()` + case-insensitive `ilike` match + `.returning()` affected-row check (honest 404, token retained; idempotent when already verified).
+- **Stale-session half** — the custom verify writes the DB bypassing Better Auth while `useAuth` caches the session in state. `useAuth.refresh()` added; verify page refreshes the session post-verify; profile gains an "I've verified — refresh status" affordance; admin users page pins `staleTime: 0` + manual Refresh (rules out the caching hypothesis visibly). Verification stays optional — no hard gates.
+- **QA:** `vitest` 453/453 (39 files; +1 normalizeEmail contract), `tsc --noEmit` clean, `next lint` 0 errors, `next build` green.
 
 ### 2026-10-08 — Email Verification + Wired Delivery Tightening
 - **Dead verify link fixed** — links are token-only (`lib/verify-email.ts` `buildVerifyUrl`); the verify page verifies tokens even on legacy `done=1&token=` links (spinner + invalid-link hint, no false success).
