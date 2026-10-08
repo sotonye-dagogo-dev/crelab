@@ -120,6 +120,8 @@ function RegisterForm() {
     setSubmitting(true);
     try {
       let userId: string;
+      // Where the user should land after the post-signup verify step.
+      const next = resolvePostSignupRoute(role, searchParams.get("returnTo"));
 
       if (oAuthReturn && oAuthNewUser) {
         if (!user?.id) {
@@ -138,25 +140,32 @@ function RegisterForm() {
           }
         }
         claimReferral();
-        fetch("/api/email/welcome", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: user.email, name: user.name }),
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((json) => {
-            if (json && json.sent === false) {
-              toast(
-                json.reason === "Email notifications are currently disabled."
-                  ? "Welcome email is turned off in settings."
-                  : json.reason === "Email sending is not configured yet."
-                    ? "Welcome email could not be sent — email sending isn't configured yet."
-                    : "Welcome email could not be sent. You can still continue.",
-                "error",
-              );
-            }
-          })
-          .catch(() => {});
+        // Google addresses are pre-verified, so the welcome mail fires here.
+        // Awaited (bounded) so a failure is visible instead of vanishing with
+        // the redirect — the account itself is already created either way.
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 20000);
+          const welcomeRes = await fetch("/api/email/welcome", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: user.email, name: user.name }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          const welcomeJson = await welcomeRes.json().catch(() => null);
+          if (!welcomeRes.ok || (welcomeJson && welcomeJson.sent === false)) {
+            toast(
+              "Account created — but the welcome email couldn't be sent. Check your inbox later or contact support.",
+              "error",
+            );
+          }
+        } catch {
+          toast(
+            "Account created — but the welcome email couldn't be sent. Check your inbox later or contact support.",
+            "error",
+          );
+        }
       } else {
         const newUser = await signUp(name, email, password);
         if (!newUser?.id) {
@@ -184,7 +193,15 @@ function RegisterForm() {
         await captureConsent(userId, ConsentType.ANALYTICS, true);
       }
 
-      router.replace(resolvePostSignupRoute(role, searchParams.get("returnTo")));
+      if (oAuthReturn && oAuthNewUser) {
+        router.replace(next);
+      } else {
+        // Email/password signups start unverified — land on the verify flow
+        // first (it carries a Continue CTA back to `next`), so the verify step
+        // is seen rather than silently skipped.
+        const params = new URLSearchParams({ email, new: "1", next });
+        router.replace(`/verify-email?${params.toString()}`);
+      }
     } catch {
       setError("Registration failed. Please try again.");
     } finally {

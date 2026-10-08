@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: Session 2026-09-23
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: execute-feature (Session 2026-10-08 — email verification tightening)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -466,4 +466,60 @@ Never pass function props from Server Components to Client Components. Either:
 - `app/(public)/profile/[slug]/page.tsx` — removed `onBook={() => {}}` prop
 
 **Date:** 2026-07-28
+**Status:** Active
+
+---
+
+### Verify Link With `done=1&token=` Rendered False Success (Never Verified)
+**Symptom:**
+Users click the verification link, land on a "Email verified" success screen (and the welcome-mail attempt fails), but `user.emailVerified` stays `false` — unverified addresses accumulate and no welcome mail ever fires.
+
+**Root Cause:**
+`/api/verify-email/send` built links as `/verify-email?done=1&token=…`, but the page only auto-verified when `token && !done`. With `done=1` present the token branch never ran: the success UI rendered unconditionally and the `?done=1` welcome POST hit the `emailVerified` guard (400), so nothing actually happened.
+
+**Fix Applied:**
+- Links are token-only: `lib/verify-email.ts` `buildVerifyUrl()` → `/verify-email?token=…`; the page verifies on load, then redirects to `?done=1`.
+- Page hardened both ways: verifies the token even when `done=1` is also present (old links still in inboxes), shows a spinner while verifying, and surfaces an invalid/expired-link hint with the resend form instead of a false success screen.
+
+**Prevention:**
+Never encode two contradictory states in one link (`done` + `token`). The link carries the credential; the page derives the state after acting on it. Route all verify-link construction through `buildVerifyUrl()`.
+
+**Files Affected:**
+- `lib/verify-email.ts` (new)
+- `app/api/verify-email/send/route.ts`
+- `app/(public)/verify-email/page.tsx`
+
+**Date:** 2026-10-08
+**Status:** Active
+
+---
+
+### Verify Succeeds but `emailVerified` Stays False (Case-Sensitive Match + Silent No-Op + Stale Session)
+
+**Symptom:**
+Users confirm they received (and clicked) verification emails, yet both the admin users panel and their profile keep showing Unverified. No caching layer is involved — the DB row itself is still `false`.
+
+**Root Cause:**
+Three compounding defects in the custom verify path:
+1. `POST /api/verify-email/verify` matched with exact `eq(user.email, identifier)`, but the token identifier is stored lowercased (`sendVerificationEmailTo`) while `user.email` may carry original casing → 0 rows updated for mixed-case addresses.
+2. The route returned `{success:true}` even when 0 rows updated, then deleted the token — a false success with the evidence destroyed (no retry possible, 1h TTL already ticking).
+3. The custom verify writes the DB directly, bypassing the Better Auth session; `useAuth` caches the session in React state, so profile/banner keep rendering the stale `false` until remount/re-login.
+
+**Fix Applied:**
+- Identifier + match normalised: new `normalizeEmail()` (trim + lowercase) in `lib/verify-email.ts`; verify route + display-name lookup use case-insensitive `ilike(user.email, …)`; update uses `.returning()` and returns an honest 404 (token retained) when no user matched; already-verified stays idempotent success.
+- Session freshness: `useAuth` gains `refresh()`; verify page refreshes the Better Auth session post-verify before redirecting to `?done=1`; profile page gains an "I've verified — refresh status" affordance when unverified; admin users page pins `staleTime: 0` + a manual Refresh button so the badge always reflects the live DB row.
+
+**Prevention:**
+Never `eq()` an email column against a normalised value — always match case-insensitively (`ilike` or `lower()` both sides) via the shared `normalizeEmail()`. Never return success from a write route without checking the affected-row count. Any out-of-band DB write that bypasses the session must be followed by a session refetch wherever the flag is rendered.
+
+**Files Affected:**
+- `lib/verify-email.ts` (`normalizeEmail`, ilike lookup)
+- `app/api/verify-email/verify/route.ts` (ilike + returning + 404)
+- `hooks/useAuth.ts` (`refresh()`)
+- `app/(public)/verify-email/page.tsx` (post-verify session refresh)
+- `app/(auth)/profile/page.tsx` (refresh-status affordance)
+- `app/admin/users/page.tsx` (staleTime 0 + Refresh button)
+- `__tests__/lib/verify-email.test.ts` (normalizeEmail contract)
+
+**Date:** 2026-10-08
 **Status:** Active

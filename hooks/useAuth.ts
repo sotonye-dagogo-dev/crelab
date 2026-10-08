@@ -32,6 +32,8 @@ export interface UseAuthReturn {
   signInWithGoogle: (options?: GoogleSignInOptions) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<AuthUser | null>;
+  /** Re-fetch the server session and update cached state (clears stale verified flags). */
+  refresh: () => Promise<void>;
 }
 
 const MOCK_USER: AuthUser = {
@@ -108,6 +110,16 @@ export function useAuth(): UseAuthReturn {
     router.refresh();
   }, [router, mockMode]);
 
+  const refresh = useCallback(async () => {
+    if (mockMode) return;
+    try {
+      const session = await authClient.getSession();
+      setUser((session?.data?.user as unknown as AuthUser) ?? null);
+    } catch {
+      // Keep the last-known state on refresh failure.
+    }
+  }, [mockMode]);
+
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
       let userResult: AuthUser | null = null;
@@ -128,33 +140,15 @@ export function useAuth(): UseAuthReturn {
         }
       }
 
-      if (userResult) {
-        // Email/password signups are unverified — send the (non-blocking)
-        // verification email instead of the welcome mail. The welcome email is
-        // triggered after verification succeeds. Google signups are verified at
-        // creation and fire the welcome immediately from the register page.
-        fetch("/api/verify-email/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: userResult.email }),
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((json) => {
-            if (json && json.sent === false) {
-              console.warn(
-                `[useAuth] verification email to ${userResult.email} not sent: ${json.reason ?? "unknown"}`,
-              );
-            }
-          })
-          .catch((err) => {
-            console.error("[useAuth] failed to trigger verification email:", err);
-          });
-      }
-
+      // NOTE: the verification email is sent server-side (Better Auth
+      // `databaseHooks.user.create.after` in lib/auth.ts), so the flow is
+      // triggered even if this client goes away. No fire-and-forget fetch here
+      // — a duplicate send would mint a second token/email. Failures surface
+      // via the /verify-email resend form instead.
       return userResult;
     },
     [mockMode],
   );
 
-  return { user, isAuthenticated: !!user, isLoading, signIn, signInWithGoogle, signOut, signUp };
+  return { user, isAuthenticated: !!user, isLoading, signIn, signInWithGoogle, signOut, signUp, refresh };
 }

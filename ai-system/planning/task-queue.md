@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send, docs reconciled)
+> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening, docs reconciled)
 > - last-verified-against-code: 2026-10-08
-> - last-synced: 2026-10-08 (email batch send: 442/442, docs reconciled)
+> - last-synced: 2026-10-08 (verified-status hardening: 453/453, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -97,6 +97,8 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Verified-status hardening: case-insensitive verify match (`normalizeEmail` + `ilike`, honest 404 on no-match, idempotent when verified) + session freshness (`useAuth.refresh`, post-verify refresh, profile refresh-status affordance, admin `staleTime: 0` + Refresh). 453/453 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-08 |
+| Email verification + wired delivery tightening: token-only verify links (dead `done=1&token=` fixed) + server-side signup hook (`databaseHooks.user.create.after`, single send) + register→verify routing (`?new=1&next=`) + hardened verify page + awaited OAuth welcome + recipients `verified` filter (picker verified-only default + toggle/notice/badges, batch reports `unverifiedIncluded`) + wired `bugReportReceived` ack on submission + config-driven `emailVerification.bannerEnabled` + `VerifyEmailBanner`. 452/452 vitest, tsc 0 errors, lint 0 errors, build green + full deep sync | 2026-10-08 |
 | Email batch send: `lib/email-batch.ts` pure helpers (normalize/filter/invert/cap 500) + `GET /api/admin/email/recipients` (search/role/consent/limit/offset + marketing flag) + `POST /api/admin/email/send` `recipientIds` branch (wired guard, per-recipient send, `email.batch` audit) + `EmailBatchSendDialog` picker (checkboxes, select-all/invert/clear/10-deep undo, first-100/creators/brands/subscribers quick filters) on `/admin/email-templates`. 442/442 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-08 |
 | Referral discovery + auth-agnostic claim + team hiring config: `/referrals` linked from navbar/footer/profile/dashboards/leaderboard (flag-gated); `ReferralClaimOnAuth` root-layout retry + claim JSON `{code}` fallback (`resolveClaimCode`) + login claim hook (OAuth + email both covered, logic untouched); `/team` hiring block config-driven (`teamPage`) + `/admin/team` Page-settings editor. 431/431 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-08 |
 | Countdown first on home: `<CountdownSlot area="landing" />` moved to top of `LandingContent` (first child, mirroring explore page; fixes both `/` and `/home`). 424/424 vitest, tsc 0 errors, lint 0 errors, build green | 2026-10-08 |

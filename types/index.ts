@@ -339,6 +339,15 @@ export interface IEmailConfig {
   templates: Record<string, IEmailTemplate>;
 }
 
+/**
+ * Email-verification behaviour. Verification stays optional (non-breaking):
+ * unverified members keep full access, but the banner nudges them to confirm.
+ */
+export interface IEmailVerificationConfig {
+  /** Show the persistent "verify your email" banner to signed-in unverified users */
+  bannerEnabled: boolean;
+}
+
 export interface ITeamMember {
   id: string;
   name: string;
@@ -704,6 +713,7 @@ export interface IPlatformConfig {
   webinars?: IWebinarsConfig;
   blogConfig?: IBlogConfig;
   emailConfig?: IEmailConfig;
+  emailVerification?: IEmailVerificationConfig;
   devCredit?: IDevCredit;
   teamPage?: ITeamPageConfig;
 }

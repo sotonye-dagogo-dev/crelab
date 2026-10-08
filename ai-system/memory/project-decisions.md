@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
-> - last-verified-against-code: 2026-10-01
+> - last-updated-by: execute-feature (Session 2026-10-08 — email verification tightening)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -725,3 +725,44 @@ Test-send (one address) and broadcast (all MARKETING-consented users) left no mi
 
 **Implications:**
 New send paths must call the same wired guard and log a distinct audit action. Raising the 500 cap requires checking Resend rate limits + route timeout budget first. Picker filter logic that is unit-testable lives in pure `lib/email-batch.ts`, never inline in the dialog.
+
+---
+
+## Email Verification: Server-Sent, Optional, Banner-Nudged (Never Hard-Gated)
+
+**Decision:** Verification mail is sent server-side from `databaseHooks.user.create.after` (unverified creations only — OAuth arrivals are pre-verified and skip), exactly once (the old client fire-and-forget in `useAuth.signUp` is removed). Email/password signups land on `/verify-email?new=1&next=…` after registering; the verify page accepts bare `?token=` links and also verifies tokens arriving alongside legacy `done=1`. Verification stays strictly optional: no route or feature gates on `emailVerified`; unverified members instead see a config-driven (`emailVerification.bannerEnabled`, default on), dismissible-per-tab `VerifyEmailBanner` with resend. Batch send lists exclude unverified addresses by default with an explicit opt-in toggle + bounce notice (API `verified` param defaults to `all` so existing callers are unaffected; explicit selections are always honoured and reported via `unverifiedIncluded`).
+**Date:** 2026-10-08
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** None (extends the OAuth finalize + wired-email decisions; replaces the client-sent verification path)
+**Superseded by:** None
+
+**Reason:**
+Unverified addresses accumulated because the flow had three single points of failure: a dead verify link (token + `done=1` rendered false success), a client-only send (closed tab = no mail), and a signup redirect that skipped the verify page entirely. Each is fixed at the layer that owns it (link format, server hook, router), while keeping everything non-breaking — hard gates would lock out existing unverified members and break the guest-to-member funnel.
+
+**Alternatives Considered:**
+- Hard-gating features on `emailVerified` — rejected: locks out real existing users with no recovery path besides the inbox; the directive explicitly requires non-breaking changes.
+- Keeping the client fetch as well (belt-and-braces double send) — rejected: mints two valid tokens and two emails; the hook is the single reliable path and the verify page resend covers failures.
+- Server-side segment exclusion of unverified from broadcast — rejected for now: broadcast targets MARKETING-consented users (an engaged subset); silent exclusion there would confuse delivery reports. The picker (explicit targeting) is where the default-filter + toggle lives.
+
+**Implications:**
+Any future hard verification requirement must be a new opt-in config (e.g. `requireVerification`, default false), never a silent gate. New email list surfaces must default to verified-only with the same toggle + notice pattern. The signup hook must stay exception-safe — it runs inside the Better Auth creation flow.
+
+---
+
+## Bug-Report Acknowledgement: Wired `bugReportReceived` on Submission
+
+**Decision:** Every submitted bug report fires a wired `bugReportReceived` acknowledgement (best-effort, never fails the 201), joining the existing `bugReportUnderReview` / `bugReportResolved` status-change mails. Like all wired templates it is preview/simulate-only in the admin but fully editable (subject/body/enabled), with sample vars (`reportTitle`, `statusLabel`, `adminNotesBlock`) registered for previews and the visual-block variable inserter.
+**Date:** 2026-10-08
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** None (fills the submission-time gap in the bug-report email trio)
+**Superseded by:** None
+
+**Reason:**
+Reporters previously heard nothing until an admin changed status — silent submissions read as a black hole and suppress future reports. An immediate acknowledgement closes the loop; status mails keep their existing semantics unchanged.
+
+**Alternatives Considered:**
+- Reusing `bugReportUnderReview` for the ack — rejected: wrong status semantics ("under review" before anyone looked) and wrong subject line.
+- Blocking the 201 on mail success — rejected: report capture must never depend on Resend availability; the ack is fire-and-log.
+
+**Implications:**
+New user-triggered lifecycle emails default to wired + best-effort + editable, following this trio's pattern. Guest reports (reporterEmail only, no userId) receive the ack identically to signed-in reports.

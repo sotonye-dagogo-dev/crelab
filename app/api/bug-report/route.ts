@@ -208,6 +208,29 @@ export async function POST(req: NextRequest) {
 
     await db.insert(bugReports).values(report);
 
+    // Wired acknowledgement (best-effort, never fails the submission): the
+    // reporter hears back immediately, and status-change mails follow later.
+    if (reporterEmail) {
+      try {
+        const { PlatformConfigService } = await import("@/services/PlatformConfigService");
+        const { EmailService } = await import("@/services/EmailService");
+        const { resolveEmailTemplate } = await import("@/lib/email-templates");
+        const emailConfig = await PlatformConfigService.get();
+        if (
+          emailConfig.features?.emailNotifications &&
+          resolveEmailTemplate(emailConfig, "bugReportReceived")?.enabled
+        ) {
+          await EmailService.sendBugReportReceived(
+            reporterEmail,
+            { userName: reporterName ?? "there", reportTitle: parsed.title },
+            emailConfig,
+          );
+        }
+      } catch (e) {
+        console.error("[POST /api/bug-report] acknowledgement email failed", e);
+      }
+    }
+
     return NextResponse.json({ success: true, data: { id: report.id }, error: null }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/bug-report] error", err);
