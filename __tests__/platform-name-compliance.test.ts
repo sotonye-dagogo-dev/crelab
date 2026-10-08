@@ -129,6 +129,11 @@ const ALLOWLIST: AllowlistEntry[] = [
     reason: "Default Resend sender address (overridable via env/admin config)",
   },
   {
+    file: "components/shared/VerifyEmailBanner.tsx",
+    allowed: ["crellab-verify-banner-dismissed"],
+    reason: "sessionStorage key for the per-tab banner dismissal",
+  },
+  {
     file: "services/EscrowService.ts",
     allowed: ["CRELLAB-${booking.id}", "payment@crellab.app"],
     reason: "Paystack payment reference prefix and fallback client e-mail",

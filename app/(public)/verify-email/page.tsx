@@ -13,11 +13,18 @@ function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const done = searchParams.get("done") === "1";
   const token = searchParams.get("token");
+  // Fresh-signup handoff: the register page lands email/password signups here
+  // with `?email=…&new=1&next=…` so the verify step is seen, not skipped.
+  const isFreshSignup = searchParams.get("new") === "1";
+  const nextRoute = searchParams.get("next");
+  const safeNext =
+    nextRoute && nextRoute.startsWith("/") && !nextRoute.startsWith("//") ? nextRoute : "/explore";
 
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [verifyingToken, setVerifyingToken] = useState(false);
   const welcomeFired = useRef(false);
   const [welcomeNotSent, setWelcomeNotSent] = useState(false);
 
@@ -35,6 +42,7 @@ function VerifyEmailForm() {
   }, [done]);
 
   const verifyToken = useCallback(async (verificationToken: string) => {
+    setVerifyingToken(true);
     try {
       const res = await fetch("/api/verify-email/verify", {
         method: "POST",
@@ -48,18 +56,30 @@ function VerifyEmailForm() {
         } else {
           router.replace("/verify-email?done=1");
         }
+      } else {
+        // Invalid/expired token: fall through to the manual form with a hint.
+        setMessage(
+          json?.error
+            ? `That link didn't work (${json.error}). Enter your email below to get a fresh one.`
+            : "That link didn't work. Enter your email below to get a fresh one.",
+        );
+        setStatus("error");
       }
     } catch {
       // Ignore verification errors, let user use the manual form
+    } finally {
+      setVerifyingToken(false);
     }
   }, [router]);
 
-  // If we have a token, verify the email automatically
+  // If we have a token, verify the email automatically — even when `done=1`
+  // is also present (older links carried both; verifying first prevents a
+  // false success screen for a still-unverified address).
   useEffect(() => {
-    if (token && !done) {
+    if (token) {
       verifyToken(token);
     }
-  }, [token, done, verifyToken]);
+  }, [token, verifyToken]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -101,7 +121,7 @@ function VerifyEmailForm() {
     }
   };
 
-  if (done) {
+  if (done && !token) {
     return (
       <div className="flex flex-col items-center text-center">
         <div className="w-16 h-16 rounded-full bg-[var(--color-accent-muted)] flex items-center justify-center mb-4">
@@ -138,6 +158,17 @@ function VerifyEmailForm() {
     );
   }
 
+  if (verifyingToken || (token && !done)) {
+    return (
+      <div className="flex flex-col items-center text-center py-8">
+        <ClSpinner className="mb-4" />
+        <p className="text-[14px] text-[var(--color-text-secondary)]">
+          Verifying your email…
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-center mb-5">
@@ -146,11 +177,20 @@ function VerifyEmailForm() {
       <h1 className="font-[family-name:var(--font-display)] font-bold text-xl text-center text-[var(--color-text-primary)]">
         Verify your email
       </h1>
-      <p className="text-[13px] text-[var(--color-text-secondary)] text-center mt-2 leading-relaxed">
-        Enter the email address you signed up with and we&apos;ll send you a
-        verification link. Verifying is optional but unlocks welcome perks and
-        account recovery.
-      </p>
+      {isFreshSignup ? (
+        <p className="text-[13px] text-[var(--color-text-secondary)] text-center mt-2 leading-relaxed">
+          Account created — we&apos;ve sent a verification link to{" "}
+          <span className="text-[var(--color-text-primary)] font-semibold">{email || "your inbox"}</span>.
+          Confirm it to unlock welcome perks and account recovery. You can also
+          continue now and verify later.
+        </p>
+      ) : (
+        <p className="text-[13px] text-[var(--color-text-secondary)] text-center mt-2 leading-relaxed">
+          Enter the email address you signed up with and we&apos;ll send you a
+          verification link. Verifying is optional but unlocks welcome perks and
+          account recovery.
+        </p>
+      )}
 
       <div className="flex flex-col gap-3 mt-6">
         <div className="flex flex-col gap-1">
@@ -207,6 +247,15 @@ function VerifyEmailForm() {
             Didn&apos;t get it? Double-check you typed the right address, wait for the
             countdown above, then hit <span className="text-[var(--color-accent)]">resend</span>.
           </div>
+        )}
+
+        {isFreshSignup && (
+          <button
+            onClick={() => router.push(safeNext)}
+            className="h-11 px-5 rounded-[8px] border border-[var(--color-border-mid)] text-[var(--color-text-primary)] text-[14px] font-semibold w-full mt-1 cursor-pointer bg-transparent"
+          >
+            Continue without verifying →
+          </button>
         )}
       </div>
     </div>

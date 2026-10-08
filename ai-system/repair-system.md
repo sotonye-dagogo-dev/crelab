@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: Session 2026-09-23
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: execute-feature (Session 2026-10-08 — email verification tightening)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -466,4 +466,29 @@ Never pass function props from Server Components to Client Components. Either:
 - `app/(public)/profile/[slug]/page.tsx` — removed `onBook={() => {}}` prop
 
 **Date:** 2026-07-28
+**Status:** Active
+
+---
+
+### Verify Link With `done=1&token=` Rendered False Success (Never Verified)
+
+**Symptom:**
+Users click the verification link, land on a "Email verified" success screen (and the welcome-mail attempt fails), but `user.emailVerified` stays `false` — unverified addresses accumulate and no welcome mail ever fires.
+
+**Root Cause:**
+`/api/verify-email/send` built links as `/verify-email?done=1&token=…`, but the page only auto-verified when `token && !done`. With `done=1` present the token branch never ran: the success UI rendered unconditionally and the `?done=1` welcome POST hit the `emailVerified` guard (400), so nothing actually happened.
+
+**Fix Applied:**
+- Links are token-only: `lib/verify-email.ts` `buildVerifyUrl()` → `/verify-email?token=…`; the page verifies on load, then redirects to `?done=1`.
+- Page hardened both ways: verifies the token even when `done=1` is also present (old links still in inboxes), shows a spinner while verifying, and surfaces an invalid/expired-link hint with the resend form instead of a false success screen.
+
+**Prevention:**
+Never encode two contradictory states in one link (`done` + `token`). The link carries the credential; the page derives the state after acting on it. Route all verify-link construction through `buildVerifyUrl()`.
+
+**Files Affected:**
+- `lib/verify-email.ts` (new)
+- `app/api/verify-email/send/route.ts`
+- `app/(public)/verify-email/page.tsx`
+
+**Date:** 2026-10-08
 **Status:** Active

@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email verification tightening)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -100,9 +100,13 @@ Data Stores
 3. OAuth finalize: capture consent, self-assign PROVIDER role via POST /api/auth/role,
    send welcome email immediately (Google emails are already verified), then route
    to /profile/setup (provider) or /explore (client)
-4. Email/password signup: emailVerification plugin with sendOnSignUp=false — signUp POSTs
-   /api/verify-email/send (callbackURL "/verify-email?done=1") instead of the welcome email;
-   welcome email is deferred until verification succeeds
+4. Email/password signup: `databaseHooks.user.create.after` (lib/auth.ts) sends the
+   verification mail server-side for unverified creations (OAuth arrivals are
+   pre-verified and skip); the register page lands email signups on
+   `/verify-email?email=…&new=1&next=…` (verify-first, Continue CTA back to
+   setup/explore); the welcome email is deferred until verification succeeds.
+   Signed-in unverified users see a dismissible `VerifyEmailBanner`
+   (`emailVerification.bannerEnabled`) with resend — verification is never a hard gate.
 5. Better Auth stores session in Supabase adapter (httpOnly cookies)
 6. Next.js middleware checks session on protected routes (incl. /profile)
 7. Server components use getSession() / requireAuth() / requireRole()
@@ -111,15 +115,21 @@ Data Stores
 
 ### Email Verification Flow
 ```
-1. Email/password signup -> useAuth.signUp() POSTs /api/verify-email/send
-   -> auth.api.sendVerificationEmail({ callbackURL: "/verify-email?done=1" })
-2. /api/verify-email/send invokes custom sendVerificationEmail -> sendTransactionalEmail("verifyEmail", ...)
-   -> EmailService.sendVerifyEmail() (resolves logo absolute via lib/url resolveAbsoluteUrl)
-3. User clicks link -> Better Auth marks user.emailVerified=true, auto-signs-in (autoSignInAfterVerification)
-4. /verify-email page (public) shows verify/resend form with 60s cooldown
-5. With ?done=1 -> page fires POST /api/verify-email/welcome, which reads the session user
-   and — only when emailVerified — sends the welcome email exactly once
-6. Google signups are pre-verified and fire the welcome email immediately from the register page
+1. Email/password signup -> Better Auth `databaseHooks.user.create.after` calls
+   `sendVerificationEmailTo()` (lib/verify-email.ts: 1h token + real display-name
+   lookup + dead-token cleanup) -> EmailService.sendVerifyEmail()
+2. Register page routes the new account to /verify-email?email=…&new=1&next=…
+   (fresh-signup mode: check-inbox copy + resend + Continue CTA back to `next`)
+3. User clicks the token-only link (/verify-email?token=…) -> page verifies on
+   load (even for legacy done=1&token= links) -> redirects to ?done=1
+4. Better Auth marks user.emailVerified=true, auto-signs-in (autoSignInAfterVerification)
+5. /verify-email?done=1 fires POST /api/verify-email/welcome, which sends the
+   welcome email exactly once, only when emailVerified (public resend form at
+   POST /api/verify-email/send shares the same helper)
+6. Google signups are pre-verified (hook skips) and fire the welcome email from
+   the register finalize step (awaited, 20s bound, honest failure toast)
+7. Persistent VerifyEmailBanner (root layout, session-dismissible, resend +
+   cooldown) nudges any signed-in unverified user while bannerEnabled
 ```
 
 ### Email Template Management Flow
@@ -131,11 +141,11 @@ Data Stores
    -> real sends resolve relative URLs too (EmailService.send runs resolveRelativeUrlsInHtml on the filled HTML)
     -> template lookup is resilient: resolveEmailTemplate/resolveEmailTemplates (lib/email-templates.ts) merge hardcoded DEFAULT_CONFIG templates under DB-saved ones, so a wired template (e.g. verifyEmail) still applies when it was never saved to the DB (PlatformConfigService re-merges emailConfig on every get)
 2. New templates created via create-new-template modal (added to emailConfig.templates)
-3. Wired (code-triggered) templates — welcome / verifyEmail / emailChanged / bookingConfirmation / paymentReceived / passwordReset (lib/email-templates.ts WIRED_EMAIL_TEMPLATES, each with a trigger description):
+3. Wired (code-triggered) templates — welcome / verifyEmail / emailChanged / bookingConfirmation / paymentReceived / passwordReset / bugReportUnderReview / bugReportResolved / bugReportReceived / webinarRegistration (lib/email-templates.ts WIRED_EMAIL_TEMPLATES, each with a trigger description):
    -> preview + Simulate ONLY (useEmailSimulation) — badge + Zap icon + trigger banner in the admin
    -> /api/admin/email/send rejects wired keys for test-send AND broadcast (content/timing owned by code, not the operator)
    -> passwordReset fired by Better Auth emailAndPassword.sendResetPassword -> sendTransactionalEmail ({{resetUrl}} var)
-4. Admin-created (non-wired) templates: test-send + "Send to Subscribers" broadcast to MARKETING-consented users + "Send to Selected…" batch send to an explicit admin-picked set -> POST /api/admin/email/send -> EmailService. Batch recipients come from GET /api/admin/email/recipients (search/role/consent/limit/offset + hasMarketingConsent flag); picker logic (normalize/filter/invert/cap 500) lives in pure `lib/email-batch.ts`; batch sends are audit-logged as `email.batch`. Wired-key guard applies identically to all three paths.
+4. Admin-created (non-wired) templates: test-send + "Send to Subscribers" broadcast to MARKETING-consented users + "Send to Selected…" batch send to an explicit admin-picked set -> POST /api/admin/email/send -> EmailService. Batch recipients come from GET /api/admin/email/recipients (search/role/consent/verified/limit/offset + hasMarketingConsent + emailVerified flags; picker defaults to verified-only with an opt-in unverified toggle + bounce notice); picker logic (normalize/filter/invert/cap 500 + partitionByVerification) lives in pure `lib/email-batch.ts`; batch sends are audit-logged as `email.batch` (incl. `unverifiedIncluded` count — explicit selections are always honoured). Wired-key guard applies identically to all three paths.
 ```
 
 ### Blog Content Sections Flow
@@ -247,7 +257,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | CATEGORIES | Category slugs + field schema JSONB | platform.config.ts | ['content-creator', 'cinematographer'] |
 | FEATURES | Feature flags (guest browse, Drive sync, blog) | platform.config.ts | { guestBrowse: true, googleDriveSync: true, blogEnabled: true } |
 | MEDIA_UPLOAD | mediaUpload.enabled / cloudinaryEnabled / maxFileSizeMb / videoTypes / imageTypes / cleanupEnabled / cleanupOrphanAfterHours | platform.config.ts | { enabled: true, cloudinaryEnabled: true, maxFileSizeMb: 100, cleanupEnabled: true, cleanupOrphanAfterHours: 24 } |
-| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged, passwordReset) + fromName/fromEmail | platform.config.ts | template defaults + from settings. Wired (code-triggered) templates are preview/simulate-only; admin-created templates can be sent/broadcast. Templates saved in DB are merged OVER hardcoded defaults (resolveEmailTemplates) so wired templates never silently drop. Sender defaults to a real address on a subdomain (`hello@mail.crellab.com`) — no no-reply; overridable via RESEND_FROM_NAME/RESEND_FROM_EMAIL |
+| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged, passwordReset, bugReportReceived/underReview/resolved, webinarRegistration) + fromName/fromEmail | platform.config.ts | template defaults + from settings. Wired (code-triggered) templates are preview/simulate-only; admin-created templates can be sent/broadcast. Templates saved in DB are merged OVER hardcoded defaults (resolveEmailTemplates) so wired templates never silently drop. Sender defaults to a real address on a subdomain (`hello@mail.crellab.com`) — no no-reply; overridable via RESEND_FROM_NAME/RESEND_FROM_EMAIL |
 | BLOG_CONFIG | blogConfig.heroTitle / heroSubtitle / newsletter / footerTagline — drives blog page hero + newsletter section, admin-editable at /admin/blog-templates | platform.config.ts | hero + newsletter defaults |
 | NEXT_PUBLIC_APP_URL | Absolute origin for SEO canonical URLs + email logo links (falls back to VERCEL_URL, then http://localhost:3000) | .env | - |
 | ENABLE_DESIGN_VIEWER | Mounts the dev-only design-asset viewer at `/__design/*`; must be false in production builds | .env | false |
@@ -260,6 +270,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | SCROLL_TO_TOP | `scrollToTop` — enabled / thresholdPx / label for the platform-wide `ScrollToTopButton` | platform.config.ts | { enabled: true, thresholdPx: 400 } |
 | WEBINARS | `webinars` — page copy, `maxRegistrantsPerWebinar`, guest prompt + registration CTA + marketing-consent label | platform.config.ts | { maxRegistrantsPerWebinar: 500 } |
 | TEAM_PAGE | `teamPage` — public `/team` hiring block (hiringEnabled/hiringTitle/hiringSubtitle/hiringCtaLabel/hiringCtaHref, relative or full URL); admin-editable from the `/admin/team` Page-settings card (PATCH `teamPage.*` dotted keys) | platform.config.ts | { hiringEnabled: true, hiringCtaHref: '/about' } |
+| EMAIL_VERIFICATION | `emailVerification.bannerEnabled` — dismissible verify nudge with resend for signed-in unverified users (`VerifyEmailBanner`, root layout); never a hard gate | platform.config.ts | { bannerEnabled: true } |
 | FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Referrals/Leaderboard & Webinars links and the referral/webinar surfaces (referral discovery: navbar, footer, profile card, dashboard `ReferralBanner`, leaderboard CTA) | platform.config.ts | both `true` |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
@@ -338,6 +349,15 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-08 — Email Verification + Wired Delivery Tightening
+- **Dead verify link fixed** — links are token-only (`lib/verify-email.ts` `buildVerifyUrl`); the verify page verifies tokens even on legacy `done=1&token=` links (spinner + invalid-link hint, no false success).
+- **Server-side verification send** — `databaseHooks.user.create.after` (lib/auth.ts) mails unverified creations exactly once (OAuth pre-verified skip; never fails signup); `useAuth` client duplicate removed; shared `sendVerificationEmailTo()` (1h token, real display name, dead-token cleanup) backs both the hook and `POST /api/verify-email/send`.
+- **Signup routes through verify** — register lands email signups on `/verify-email?email=…&new=1&next=…` (check-inbox copy + resend + Continue CTA); OAuth finalize awaits `/api/email/welcome` (20s bound, honest toast).
+- **Unverified filtering** — recipients API gains `emailVerified` + `verified` param (default `all`); picker defaults verified-only with opt-in toggle + bounce notice + badges; batch send reports `unverifiedIncluded` (explicit selection honoured); `partitionByVerification()` in `lib/email-batch.ts`.
+- **Bug-report ack** — wired `bugReportReceived` template (editable, preview/simulate-only) fired best-effort on `POST /api/bug-report`, completing the received/under-review/resolved trio.
+- **Verify nudge** — `emailVerification.bannerEnabled` config (admin Email section) + `VerifyEmailBanner` in root layout (session-dismissible, resend + cooldown). Verification is never a hard gate.
+- **QA:** `vitest` 452/452 (39 files; +10 new), `tsc --noEmit` clean, `next lint` 0 errors, `next build` green.
 
 ### 2026-10-08 — Email Batch Send (selectable recipients)
 - **Batch send** — `POST /api/admin/email/send` gains a `{ templateKey, recipientIds: string[] }` branch alongside single `to` and `segment:"marketing"`: ids normalised (trim/dedupe/cap 500 via pure `lib/email-batch.ts`), wired-key guard identical to the other paths, per-recipient `EmailService.sendTemplate`, unresolvable ids counted as skipped, audit-logged as `email.batch`.

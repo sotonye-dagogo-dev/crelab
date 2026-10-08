@@ -364,6 +364,9 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     footerTagline: "Get hired for your creativity, not your follower count.",
     sectionOrder: ["posts", "sections", "newsletter", "footer"],
   },
+  emailVerification: {
+    bannerEnabled: true,
+  },
   emailConfig: {
     fromName: "Crellab",
     // Resend best practice: no "no-reply" (blocks feedback/reply, lowers trust)
@@ -514,6 +517,20 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 {{adminNotesBlock}}
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">If the issue persists, please reply to this email or submit a new report. Thanks for helping us make {{name}} better.</p>
 <p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      bugReportReceived: {
+        name: "Bug Report — Received",
+        subject: "Thanks — we received your report ({{reportTitle}})",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Report received</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Thanks for flagging <strong style="color:#F2F2F2;">{{reportTitle}}</strong> — we've logged it and our team will take a look. We'll email you when it's under review and again when it's resolved.</p>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Thanks for helping us improve.</p>
 </div>`,
         enabled: true,
       },

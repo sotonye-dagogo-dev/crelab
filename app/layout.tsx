@@ -7,6 +7,7 @@ import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { ReferralCapture } from "@/components/shared/ReferralCapture";
 import { ReferralClaimOnAuth } from "@/components/shared/ReferralClaimOnAuth";
+import { VerifyEmailBanner } from "@/components/shared/VerifyEmailBanner";
 import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { GlobalErrorCatcher } from "@/components/error/GlobalErrorCatcher";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
@@ -65,6 +66,7 @@ export default async function RootLayout({
               <Footer />
               <ReferralCapture />
               <ReferralClaimOnAuth />
+              <VerifyEmailBanner />
               <GlobalErrorCatcher />
               <ScrollToTopButton />
             </Providers>

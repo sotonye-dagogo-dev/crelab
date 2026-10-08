@@ -6,7 +6,7 @@ import { inArray } from "drizzle-orm";
 import { ConsentType } from "@/types";
 import { AuditService } from "@/services/AuditService";
 import { emailNotSentLabel } from "@/services/EmailService";
-import { MAX_BATCH_RECIPIENTS, buildBatchResultMessage, normalizeRecipientIds } from "@/lib/email-batch";
+import { MAX_BATCH_RECIPIENTS, buildBatchResultMessage, normalizeRecipientIds, partitionByVerification } from "@/lib/email-batch";
 import { isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-templates";
 
 /**
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       }
 
       const targets = await db
-        .select({ id: user.id, name: user.name, email: user.email })
+        .select({ id: user.id, name: user.name, email: user.email, emailVerified: user.emailVerified })
         .from(user)
         .where(inArray(user.id, ids));
 
@@ -124,13 +124,17 @@ export async function POST(req: NextRequest) {
       }
       // Ids that no longer resolve to a user count as skipped.
       skipped += ids.length - targets.length;
+      // Explicit selections are always honoured (the picker filters unverified
+      // by default and requires an opt-in toggle), but the outcome reports how
+      // many selected addresses are unverified so the admin can judge bounces.
+      const { unverified } = partitionByVerification(targets);
 
       await AuditService.log({
         userId: session.user.id,
         action: "email.batch",
         entity: "emailTemplate",
         entityId: templateKey,
-        newValue: { sent, skipped, total: ids.length },
+        newValue: { sent, skipped, total: ids.length, unverifiedIncluded: unverified.length },
       });
 
       return NextResponse.json({
@@ -138,6 +142,7 @@ export async function POST(req: NextRequest) {
         sent,
         skipped,
         total: ids.length,
+        unverifiedIncluded: unverified.length,
         message: buildBatchResultMessage(sent, skipped, ids.length),
       });
     }

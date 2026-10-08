@@ -53,6 +53,39 @@ export const auth = betterAuth({
     },
     usePlural: false,
   }),
+  databaseHooks: {
+    user: {
+      create: {
+        // Server-side guarantee for the verify-email flow: any account created
+        // with an unverified address (i.e. email/password signup — OAuth
+        // providers arrive pre-verified) gets a verification mail immediately,
+        // even if the client never calls /api/verify-email/send (closed tab,
+        // failed fetch). Non-blocking: failures are logged, signup never fails.
+        after: async (createdUser) => {
+          try {
+            if (!createdUser?.email || createdUser.emailVerified) return;
+            const { PlatformConfigService } = await import("@/services/PlatformConfigService");
+            const { sendVerificationEmailTo } = await import("@/lib/verify-email");
+            const config = await PlatformConfigService.get();
+            if (!config.features?.emailNotifications) return;
+            const { resolveEmailTemplate } = await import("@/lib/email-templates");
+            if (!resolveEmailTemplate(config, "verifyEmail")?.enabled) return;
+            const { isResendConfigured } = await import("@/services/EmailService");
+            if (!isResendConfigured()) return;
+            const outcome = await sendVerificationEmailTo(createdUser.email, config);
+            if (!outcome.sent) {
+              console.warn(
+                `[auth] signup verification email to ${createdUser.email} NOT sent: ${outcome.reason ?? "unknown"}`,
+              );
+            }
+          } catch (err) {
+            // Verification must never break signup.
+            console.error("[auth] signup verification hook failed:", err);
+          }
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     // Wired password-reset email: fired when a user requests a reset link via

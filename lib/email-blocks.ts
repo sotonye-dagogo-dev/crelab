@@ -80,6 +80,9 @@ export const SAMPLE_EMAIL_VARS: Record<string, string> = {
   webinarTitle: "Pricing Your Creative Work",
   startsAt: "Saturday, 10 October 2026, 5:00 pm (WAT)",
   joinUrl: `${appOriginForPreview()}/webinars`,
+  reportTitle: "Video upload stalls at 90%",
+  statusLabel: "Resolved",
+  adminNotesBlock: "Thanks — a fix is on the way.",
   logoUrl: resolveAbsoluteUrl(DEFAULT_CONFIG.logoPath),
 };
 

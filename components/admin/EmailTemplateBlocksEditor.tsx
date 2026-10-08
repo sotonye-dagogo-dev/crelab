@@ -14,6 +14,12 @@ const EMAIL_VARIABLES = [
   "bookingUrl",
   "verifyUrl",
   "resetUrl",
+  "webinarTitle",
+  "startsAt",
+  "joinUrl",
+  "reportTitle",
+  "statusLabel",
+  "adminNotesBlock",
   "logoUrl",
 ];
 

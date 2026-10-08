@@ -12,10 +12,13 @@ import { ConsentType } from "@/types";
  *  - search?: matches name or email (ilike)
  *  - role?: CLIENT | PROVIDER | ADMIN | ALL (default ALL)
  *  - consent?: all | marketing (default all; marketing = MARKETING-consented only)
+ *  - verified?: all | verified | unverified (default all — the picker UI defaults
+ *    to verified-only and opts in explicitly; the API stays unfiltered by default
+ *    so existing callers are unaffected)
  *  - limit?: 1..500 (default 100)
  *  - offset?: >= 0 (default 0)
  *
- * Returns `{ success, data: [{ id, name, email, role, hasMarketingConsent, createdAt }], total }`.
+ * Returns `{ success, data: [{ id, name, email, role, emailVerified, hasMarketingConsent, createdAt }], total }`.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -30,6 +33,9 @@ export async function GET(req: NextRequest) {
         : null;
     const consent = (params.get("consent") ?? "all").trim().toLowerCase();
     const marketingOnly = consent === "marketing" || consent === "subscribers";
+    const verifiedRaw = (params.get("verified") ?? "all").trim().toLowerCase();
+    const verifiedFilter =
+      verifiedRaw === "verified" || verifiedRaw === "unverified" ? verifiedRaw : null;
     const limitRaw = Number(params.get("limit") ?? "100");
     const limit = Number.isFinite(limitRaw)
       ? Math.min(Math.max(Math.floor(limitRaw), 1), 500)
@@ -45,6 +51,11 @@ export async function GET(req: NextRequest) {
     }
     if (role) {
       conditions.push(eq(user.role, role as "CLIENT" | "PROVIDER" | "ADMIN"));
+    }
+    if (verifiedFilter === "verified") {
+      conditions.push(eq(user.emailVerified, true));
+    } else if (verifiedFilter === "unverified") {
+      conditions.push(eq(user.emailVerified, false));
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -62,6 +73,7 @@ export async function GET(req: NextRequest) {
       name: string;
       email: string;
       role: "CLIENT" | "PROVIDER" | "ADMIN";
+      emailVerified: boolean;
       createdAt: Date;
     };
     let rows: RecipientRow[];
@@ -84,6 +96,7 @@ export async function GET(req: NextRequest) {
             name: user.name,
             email: user.email,
             role: user.role,
+            emailVerified: user.emailVerified,
             createdAt: user.createdAt,
           })
           .from(user)
@@ -105,6 +118,7 @@ export async function GET(req: NextRequest) {
           name: user.name,
           email: user.email,
           role: user.role,
+          emailVerified: user.emailVerified,
           createdAt: user.createdAt,
         })
         .from(user)
@@ -121,6 +135,7 @@ export async function GET(req: NextRequest) {
         name: r.name,
         email: r.email,
         role: r.role,
+        emailVerified: r.emailVerified,
         hasMarketingConsent: consentedIds.has(r.id),
         createdAt: r.createdAt.toISOString(),
       })),

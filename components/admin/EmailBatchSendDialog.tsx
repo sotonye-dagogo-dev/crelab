@@ -51,6 +51,9 @@ export function EmailBatchSendDialog({
   const [role, setRole] = useState<RoleFilter>("ALL");
   const [consent, setConsent] = useState<ConsentFilter>("ALL");
   const [limit, setLimit] = useState<number>(100);
+  // Unverified addresses are excluded by default — they may bounce. The admin
+  // can opt them back in with the toggle below (with an explicit notice).
+  const [includeUnverified, setIncludeUnverified] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [undoStack, setUndoStack] = useState<string[][]>([]);
   const [sending, setSending] = useState(false);
@@ -72,14 +75,15 @@ export function EmailBatchSendDialog({
       setRole("ALL");
       setConsent("ALL");
       setLimit(100);
+      setIncludeUnverified(false);
       setSelected([]);
       setUndoStack([]);
     }
   }, [open, templateKey]);
 
   const queryKey = useMemo(
-    () => ["admin-email-recipients", debouncedSearch, role, consent, limit],
-    [debouncedSearch, role, consent, limit],
+    () => ["admin-email-recipients", debouncedSearch, role, consent, limit, includeUnverified],
+    [debouncedSearch, role, consent, limit, includeUnverified],
   );
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -90,6 +94,7 @@ export function EmailBatchSendDialog({
         search: debouncedSearch,
         role,
         consent: consent === "SUBSCRIBERS" ? "marketing" : "all",
+        verified: includeUnverified ? "all" : "verified",
         limit: String(limit),
       });
       const res = await fetch(`/api/admin/email/recipients?${params.toString()}`);
@@ -184,7 +189,12 @@ export function EmailBatchSendDialog({
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Batch send failed");
-      onSent(json.message ?? `Batch send complete: ${json.sent} sent.`);
+      const base = json.message ?? `Batch send complete: ${json.sent} sent.`;
+      const unverifiedNote =
+        typeof json.unverifiedIncluded === "number" && json.unverifiedIncluded > 0
+          ? ` (${json.unverifiedIncluded} unverified included — delivery may fail for those addresses).`
+          : "";
+      onSent(`${base}${unverifiedNote}`);
       onClose();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Batch send failed", "error");
@@ -270,6 +280,26 @@ export function EmailBatchSendDialog({
           </button>
         </div>
 
+        <label className="flex items-start gap-2 cursor-pointer rounded-[10px] border border-[var(--color-border)] px-3 py-2">
+          <input
+            type="checkbox"
+            checked={includeUnverified}
+            onChange={(e) => setIncludeUnverified(e.target.checked)}
+            aria-label="Include unverified email addresses"
+            className="w-4 h-4 mt-[2px] accent-[var(--color-accent)] cursor-pointer shrink-0"
+          />
+          <span className="min-w-0">
+            <span className="block text-[13px] font-medium text-[var(--color-text-primary)]">
+              Include unverified addresses
+            </span>
+            <span className="block text-[12px] text-[var(--color-text-secondary)] leading-relaxed">
+              {includeUnverified
+                ? "Unverified addresses are included — delivery may fail for these recipients since their inboxes were never confirmed."
+                : "Unverified addresses are currently hidden. Tick to include them — delivery may fail since they're unverified."}
+            </span>
+          </span>
+        </label>
+
         <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-[var(--color-border-mid)] px-3 py-2">
           <ClButton variant="ghost" size="sm" onClick={selectAllVisible}>
             Select all{recipients.length > 0 ? ` (${recipients.length})` : ""}
@@ -341,6 +371,7 @@ export function EmailBatchSendDialog({
                     <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)] shrink-0">
                       {r.role === "PROVIDER" ? "Creator" : r.role === "CLIENT" ? "Brand" : r.role}
                       {r.hasMarketingConsent ? " · Sub" : ""}
+                      {r.emailVerified === false ? " · Unverified" : ""}
                     </span>
                   </label>
                 </li>
