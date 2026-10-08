@@ -1,8 +1,22 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Residual Risks: Leaderboard Pagination + Orphan Backfill
+
+### What
+Directive: address the logged residual risks, particularly the pagination issue for UI/UX optimisation. Two workstreams, both non-breaking and backward compatible.
+
+### Verification
+`npx vitest run` → 33 files, **407 passed / 0 failed** (+5 leaderboard cache/context tests, +3 backfill tests). `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only).
+
+### Key Changes
+- **Leaderboard pagination optimisation** (`services/LeaderboardService.ts`, `app/api/leaderboard/route.ts`, `app/(public)/leaderboard/LeaderboardClient.tsx`) — neutral ranking cached 30s (`BOARD_CACHE_TTL_MS`, `buildBoardCacheSignature`, `clearBoardCache`); candidates in `CANDIDATE_BATCH_SIZE` (1000) chunks; `applyCurrentUserContext()` stamps `isCurrentUser` + `currentUserRank`/`currentUserScore` per request (additive `LeaderboardPage` fields); API sends CDN `s-maxage=30` + `?refresh=true` bypass; client per-page cache + next-page prefetch + "You are ranked #N of M" banner with jump-to-rank; Refresh bypasses both caches.
+- **Orphan backfill** (`services/MediaAssetService.ts`, `app/api/admin/media/backfill/route.ts`, `app/admin/media/page.tsx`) — `backfillOrphans({limit, dryRun})` + pure `partitionBackfillCandidates()`; owner-matched orphans attach as visible DIRECT portfolio items (idempotent, via `PortfolioService.addItem`); provider-less/ownerless rows counted as skipped; explicit admin action only (audit-logged), with dry-run preview dialog. Manual `reconcileAsset` unchanged for ambiguous rows.
+- **Docs deep sync** — this entry + `session-log.md`, `task-queue.md` Completed, `project-plan.md` Completed, `project-decisions.md` (2 entries), `system-architecture.md` (module rows, media flow, Recent Changes), `dependency-graph.md` (cache + backfill edges), `repo-map.md` (backfill route), `lessons-learned.md`, `test-results.md` (407/407); freshness metadata updated everywhere touched.
 
 
 ## Session 2026-10-08 — Leaderboard Zero-Scores + Explore Content Parity + Upload→Portfolio Attach

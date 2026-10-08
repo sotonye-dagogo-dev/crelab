@@ -1,7 +1,7 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: overwritten on every test run — always current
 
@@ -12,17 +12,17 @@
 ## Last Run
 
 **Date:** 2026-10-08
-**Run by:** execute-feature (leaderboard-zero + explore-content + portfolio-attach) + update-ai-system deep sync
+**Run by:** execute-feature (residual-risks: leaderboard pagination + orphan backfill) + update-ai-system deep sync
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 399 | 0 | 0 |
+| Unit (vitest) | 407 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | Lint (next lint) | — | 0 errors (pre-existing warnings only) | — |
 | Production build | — | not re-run this session (no app-shell change; last green 2026-10-08 session) | — |
 
-**Overall Status:** ✅ All 399/399 tests pass. Typecheck clean. Lint 0 errors. +2 new leaderboard zero-score tests; 1 leaderboard expectation updated to the keep-zeros rule (see History).
+**Overall Status:** ✅ All 407/407 tests pass. Typecheck clean. Lint 0 errors. +5 new leaderboard cache/context tests; +3 new media backfill tests (see History).
 
 ---
 
@@ -38,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-08 | 407 | 0 | execute-feature: leaderboard pagination optimisation (30s board cache, batched candidates, current-user rank; +5 tests) + orphan backfill service/API/admin UI (+3 tests). tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 399 | 0 | execute-feature: leaderboard keeps zero-score rows (+2 tests, 1 expectation updated); explore portfolio mock fallback; upload→portfolio auto-attach + POST /api/portfolio/items. tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 398 | 0 | verify-work: resolved the 3 long-standing failures non-breaking (media message restores "too large" substring; BlogPostService expectations reflect merge-with-fallback). tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 395 | 3 | Auth cleanup + Explore tiles + Team + SEO session (7 fixes; 6 new social-platform tests). 3 failures pre-existing (media message + BlogPostService mocks ×2) |

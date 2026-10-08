@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -34,13 +34,13 @@ Service Layer (services/)
     |-- DashboardService        -- Role-aware Provider/Client dashboards (pipeline, stats, availability, payments, portfolio gallery)
     |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA (escrowKobo cleared atomically on release)
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute — approve now credits provider, not client)
-    |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile
+    |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile, backfillOrphans (bulk owner-matched rescue)
     |-- MockDataService         -- Mock data fallback when DB unavailable
     |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + password reset)
     |-- BlogPostService         -- Blog post CRUD + DB→Sanity→fallback merge (admin/DB posts win, dedup by slug)
     |-- EarlyMemberService      -- Founding-100 rank via ROW_NUMBER() over user.createdAt (cached, no schema change)
     |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim
-    |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking over ALL members (zero-score rows kept, ranked last)
+    |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking over ALL members (zero-score rows kept, ranked last) + 30s user-agnostic board cache + batched candidate load + per-request current-user rank
     |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert)
     |-- PlatformStatsService    -- Cached landing aggregates with null → fallbackValue degradation
     |
@@ -202,7 +202,7 @@ Data Stores
 ```
 1. Every upload records a row in media_assets (publicId, cloudName, assetId, uploaderId, url, thumbnailUrl, mimeType, sizeBytes, status)
 2. GET /api/media/assets (own list), DELETE /api/media/assets/[id], POST /api/media/assets/[id]/replace (swap references + delete old binary)
-3. Admin: GET /api/admin/media (all assets with referenced/grace/orphan filters, preview, search, dry-run) + POST /api/admin/media (Run cleanup) + POST /api/admin/media/reconcile (attach orphan to provider as portfolio/avatar/cover, audit-logged) + DELETE /api/admin/media/[id] (with ClConfirmDialog) + inline admin upload via MediaUpload (records with admin ownerId; shows Unlinked · grace until reconciled)
+3. Admin: GET /api/admin/media (all assets with referenced/grace/orphan filters, preview, search, dry-run) + POST /api/admin/media (Run cleanup) + POST /api/admin/media/reconcile (attach orphan to provider as portfolio/avatar/cover, audit-logged) + POST /api/admin/media/backfill (bulk owner-matched rescue → DIRECT portfolio items, dry-run preview, audit-logged; explicit admin action only) + DELETE /api/admin/media/[id] (with ClConfirmDialog) + inline admin upload via MediaUpload (records with admin ownerId; shows Unlinked · grace until reconciled/backfilled)
 4. Daily cron: /api/cron/media-cleanup scans media_assets for rows older than mediaUpload.cleanupOrphanAfterHours whose publicId is not referenced in providers/portfolio_items/blog_posts/team_members -> Cloudinary deleteAsset() + row removal. Gated by mediaUpload.cleanupEnabled. Recent uploads (<24h) show as Unlinked · grace, not Orphan, so the scheduled job never deletes fresh uploads even if the UI marks them unlinked.
 5. Delete clears references first (providers cover/avatar -> null; portfolio_items -> row removed; blog hero/team avatar like-checks in isReferenced) then deletes the Cloudinary binary. Irreversible at the binary level -> delete flows use ClConfirmDialog; reversible destructive actions (team member delete, portfolio removal) use useUndoable undo toasts
 6. Explore tiles avoid blank state: ExploreService supplies portfolioThumbnails (up to 4 visible thumbnails) + avatarUrl + coverVideoUrl per provider; ExploreVideoCard renders provider tiles by ordered preference — display photo (avatarUrl) alone if present, else cycles portfolioThumbnails on a 3.5s interval (dotted indicator), else initials avatar fallback when neither exists; video preview (previewVideoUrl/coverVideoUrl) overlays the tile when in view. Tiles (provider/content toggle) are available on both `/` (home) and `/explore` regardless of authentication (filter bar + toggle + grid are public; hero is guest-only).
@@ -335,6 +335,11 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-08 — Residual Risks: Leaderboard Pagination + Orphan Backfill
+- **Leaderboard pagination optimisation** — `services/LeaderboardService.ts`: neutral (user-agnostic) ranking cached 30s (`BOARD_CACHE_TTL_MS`, keyed by `buildBoardCacheSignature` so admin factor/weight changes bust it); candidates loaded in `CANDIDATE_BATCH_SIZE` (1000) chunks; `applyCurrentUserContext()` stamps `isCurrentUser` + `currentUserRank`/`currentUserScore` per request so the shared cache never leaks identity. `GET /api/leaderboard` sends `Cache-Control: public, s-maxage=30, stale-while-revalidate=60` + `?refresh=true` bypass. `LeaderboardClient` keeps a per-page cache (instant revisit + background revalidate), prefetches the next page, and shows a "You are ranked #N of M" banner with jump-to-rank when signed in. Additive fields only — existing consumers unaffected.
+- **Orphan backfill (explicit admin action)** — `MediaAssetService.backfillOrphans({limit, dryRun})` + pure `partitionBackfillCandidates()` attach every unreferenced ACTIVE asset whose owner still owns a provider profile as a visible DIRECT portfolio item (idempotent by URL; provider-less/ownerless rows counted as skipped, never guessed). `POST /api/admin/media/backfill` (ADMIN, audit-logged) + "Backfill orphans" button with dry-run preview dialog on `/admin/media`. Never automatic — per-asset `reconcileAsset` remains the path for ambiguous rows. Resolves the "pre-existing orphans don't auto-backfill" residual risk without violating the deliberate-reconcile decision.
+- **QA:** `vitest` 407/407 (33 files; +5 leaderboard cache/context tests, +3 backfill tests), `tsc --noEmit` exit 0, `next lint` 0 errors.
 
 ### 2026-10-08 — Leaderboard Zero-Scores + Explore Content Parity + Upload→Portfolio Attach
 - **Leaderboard keeps zero-score members** — `services/LeaderboardService.ts`: `scoreLeaderboard()` no longer drops `score <= 0` rows (newcomers rank below positive scores by the deterministic `userId` tie-break) and `getBoard()` scores **all** registered members via `loadAllCandidates()` instead of unioning only users with positive factor raws. Board stays populated from day one.

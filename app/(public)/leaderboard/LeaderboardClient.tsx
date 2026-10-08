@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Info, Medal, Trophy, UserRound } from "lucide-react";
 import {
   ClBadge,
@@ -38,30 +38,68 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
   const [data, setData] = useState<LeaderboardPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  // Per-page client cache: revisiting a page renders instantly with no flicker,
+  // then revalidates in the background. Prefetch fills the next page ahead.
+  const pageCache = useRef(new Map<number, LeaderboardPage>());
+
+  const fetchPage = useCallback(
+    async (targetPage: number, opts: { refresh?: boolean } = {}) => {
+      const params = new URLSearchParams({
+        page: String(targetPage),
+        pageSize: String(pageSize),
+      });
+      if (opts.refresh) params.set("refresh", "true");
+      const res = await fetch(`/api/leaderboard?${params.toString()}`);
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error("leaderboard request failed");
+      return json.data as LeaderboardPage;
+    },
+    [pageSize],
+  );
 
   const load = useCallback(
-    async (targetPage: number) => {
+    async (targetPage: number, opts: { refresh?: boolean } = {}) => {
+      const cached = !opts.refresh ? pageCache.current.get(targetPage) : undefined;
+      if (cached) {
+        // Instant render, then revalidate quietly so ranks never go stale.
+        setData(cached);
+        setLoading(false);
+        fetchPage(targetPage)
+          .then((fresh) => {
+            pageCache.current.set(targetPage, fresh);
+            setData(fresh);
+          })
+          .catch(() => {});
+        return;
+      }
       setLoading(true);
       setFailed(false);
       try {
-        const res = await fetch(
-          `/api/leaderboard?page=${targetPage}&pageSize=${encodeURIComponent(pageSize)}`,
-        );
-        const json = await res.json().catch(() => null);
-        if (!res.ok || !json?.success) throw new Error("leaderboard request failed");
-        setData(json.data as LeaderboardPage);
+        const fresh = await fetchPage(targetPage, opts);
+        pageCache.current.set(targetPage, fresh);
+        setData(fresh);
       } catch {
         setFailed(true);
       } finally {
         setLoading(false);
       }
     },
-    [pageSize],
+    [fetchPage],
   );
 
   useEffect(() => {
     load(page);
   }, [page, load]);
+
+  // Prefetch the next page so forward pagination feels instant.
+  useEffect(() => {
+    if (!data || page >= data.totalPages) return;
+    const next = page + 1;
+    if (pageCache.current.has(next)) return;
+    fetchPage(next)
+      .then((fresh) => pageCache.current.set(next, fresh))
+      .catch(() => {});
+  }, [data, page, fetchPage]);
 
   // Config rows are the fallback before the first response lands; the API's
   // list is authoritative once it arrives (it drops unimplemented factors).
@@ -165,6 +203,24 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
             {leaderboard?.subtitle ||
               "The most active creators and connectors on the platform, ranked by weighted score."}
           </p>
+          {typeof data?.currentUserRank === "number" && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-[8px] border border-[var(--color-accent)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] text-[var(--color-text-primary)]">
+              <Medal size={14} strokeWidth={2} className="text-[var(--color-accent)]" />
+              <span>
+                You are ranked <strong>#{data.currentUserRank}</strong> of {data.total.toLocaleString()}
+                {typeof data.currentUserScore === "number" &&
+                  ` · ${formatNumber(data.currentUserScore)} pts`}
+              </span>
+              {data.currentUserRank > pageSize * page || data.currentUserRank <= pageSize * (page - 1) ? (
+                <button
+                  onClick={() => setPage(Math.ceil(data.currentUserRank! / pageSize))}
+                  className="text-[var(--color-accent)] font-semibold cursor-pointer bg-transparent border-none p-0 text-[13px]"
+                >
+                  Jump to my rank →
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
 
         {loading && !data && (
@@ -288,7 +344,15 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
             </section>
 
             <div className="flex justify-center">
-              <ClButton variant="outlined" size="sm" onClick={() => load(page)} disabled={loading}>
+              <ClButton
+                variant="outlined"
+                size="sm"
+                onClick={() => {
+                  pageCache.current.clear();
+                  load(page, { refresh: true });
+                }}
+                disabled={loading}
+              >
                 Refresh
               </ClButton>
             </div>

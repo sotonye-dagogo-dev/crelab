@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -152,7 +152,8 @@ MediaAssetService (registry-driven media asset lifecycle)
   → lib/cloudinary.ts (deleteAsset, publicId extraction — signed admin ops via fetch to Cloudinary Admin API)
   → PlatformConfigService (mediaUpload.cleanupEnabled + cleanupOrphanAfterHours)
   → types/index.ts (IMediaAsset)
-  → consumed by app/api/media/upload (records on upload), app/api/media/confirm (direct-upload registration), app/api/media/batch-upload, app/api/media/assets (+ [id] delete, [id]/replace), app/api/admin/media (+ [id]), app/api/cron/media-cleanup
+  → consumed by app/api/media/upload (records on upload), app/api/media/confirm (direct-upload registration), app/api/media/batch-upload, app/api/media/assets (+ [id] delete, [id]/replace), app/api/admin/media (+ [id]), app/api/admin/media/backfill (bulk owner-matched rescue + dry-run, audit-logged), app/api/cron/media-cleanup
+  → backfillOrphans → services/PortfolioService.addItem (idempotent DIRECT portfolio attach; one-way edge, PortfolioService never imports MediaAssetService)
 
 Portfolio attach on upload (services/PortfolioService.attachUploadToProvider)
   → drizzle/schema.ts (providers lookup by userId → addItem, idempotent by URL/driveFileId)
@@ -247,7 +248,8 @@ LeaderboardService (services/LeaderboardService.ts)
   → lib/db.ts + drizzle/schema.ts (referral_events, portfolio_items, bookings, reviews) + drizzle-orm aggregate queries
   → PlatformConfigService (leaderboard.factors.* — enabled/label/description/weight/showRawValue per factor)
   → factor registry: LeaderboardFactor { key, label, weight, collect() } — referrals (SUM points), portfolio (visible count), bookings (count), ratings (AVG(rating) × ln(1 + count)); ranking/breakdown code is factor-agnostic
-  → consumed by app/api/leaderboard/route.ts (GET) + app/(public)/leaderboard/page.tsx + LeaderboardClient.tsx ("How scoring works" panel reads the same config) + __tests__/services/LeaderboardService.test.ts
+  → pagination optimisation: 30s user-agnostic board cache keyed by factor signature (`BOARD_CACHE_TTL_MS`, `buildBoardCacheSignature`, `clearBoardCache`); candidates loaded in `CANDIDATE_BATCH_SIZE` chunks; per-request `applyCurrentUserContext` stamps `isCurrentUser` + `currentUserRank`/`currentUserScore` so the shared cache never leaks identity
+  → consumed by app/api/leaderboard/route.ts (GET, CDN `s-maxage=30` + `?refresh=true` bypass) + app/(public)/leaderboard/page.tsx + LeaderboardClient.tsx (per-page client cache, next-page prefetch, "Your rank #N" banner + jump-to-rank) + __tests__/services/LeaderboardService.test.ts
 
 PlatformStatsService (services/PlatformStatsService.ts)
   → lib/db.ts + drizzle/schema.ts (providers, bookings, reviews, portfolio_items, user, team_members) + unstable_cache (tag `platform-stats`, 300s)

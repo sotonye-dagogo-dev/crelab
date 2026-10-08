@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   bookings,
@@ -58,10 +58,69 @@ export interface LeaderboardPage {
   enabled: boolean;
   /** Metadata for the "How scoring works" transparency panel */
   factors: Array<Pick<ResolvedLeaderboardFactor, "key" | "label" | "description" | "weight" | "showRawValue">>;
+  /** 1-based rank of the signed-in member in the full board (null when anonymous/unknown) */
+  currentUserRank?: number | null;
+  /** Score of the signed-in member (null when anonymous/unknown) */
+  currentUserScore?: number | null;
+  /** True when this page was served from the short-TTL board cache */
+  cached?: boolean;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
+
+/**
+ * Short-TTL cache for the fully ranked (user-agnostic) board. Page turns used
+ * to re-run every factor aggregate + reload every member per click; caching the
+ * neutral ranking for 30s makes pagination a slice operation instead of a
+ * full rescore. Identity (`isCurrentUser`, rank lookup) is applied per request
+ * from the cached ranking, so the cache never leaks one member's flag to another.
+ */
+export const BOARD_CACHE_TTL_MS = 30_000;
+/** Candidate rows are loaded in chunks of this size to avoid one giant row transfer. */
+export const CANDIDATE_BATCH_SIZE = 1000;
+
+interface BoardCacheEntry {
+  expiresAt: number;
+  ranked: ILeaderboardRow[];
+  factors: LeaderboardPage["factors"];
+  signature: string;
+}
+
+let boardCache: BoardCacheEntry | null = null;
+
+/** Clears the short-TTL board cache (tests, admin refresh flows). */
+export function clearBoardCache(): void {
+  boardCache = null;
+}
+
+/** Cache key: enabled-factor set + weights + raw-visibility. Any admin config change busts the cache. */
+export function buildBoardCacheSignature(
+  factors: Array<Pick<ResolvedLeaderboardFactor, "key" | "weight" | "showRawValue">>,
+): string {
+  return factors.map((f) => `${f.key}:${f.weight}:${f.showRawValue ? 1 : 0}`).join("|");
+}
+
+/**
+ * Pure helper: locate the signed-in member in an already-ranked board and
+ * stamp `isCurrentUser` onto a page slice. Keeps identity logic testable
+ * without a DB and keeps the shared cache user-agnostic.
+ */
+export function applyCurrentUserContext(
+  ranked: ILeaderboardRow[],
+  pageRows: ILeaderboardRow[],
+  currentUserId?: string | null,
+): { rows: ILeaderboardRow[]; currentUserRank: number | null; currentUserScore: number | null } {
+  if (!currentUserId) {
+    return { rows: pageRows, currentUserRank: null, currentUserScore: null };
+  }
+  const index = ranked.findIndex((row) => row.userId === currentUserId);
+  const rows = pageRows.map((row) =>
+    row.userId === currentUserId ? { ...row, isCurrentUser: true } : { ...row, isCurrentUser: false },
+  );
+  if (index === -1) return { rows, currentUserRank: null, currentUserScore: null };
+  return { rows, currentUserRank: index + 1, currentUserScore: ranked[index].score };
+}
 
 /* ── Pure helpers (tested without a DB) ── */
 
@@ -353,28 +412,44 @@ async function resolveConfig(): Promise<IPlatformConfig> {
   }
 }
 
-/** Every registered member is a candidate — including members whose score is
- *  still 0. The board ranks newcomers below positive scores instead of hiding
- *  them, so it stays populated from day one. */
+/**
+ * Every registered member is a candidate — including members whose score is
+ * still 0. The board ranks newcomers below positive scores instead of hiding
+ * them, so it stays populated from day one.
+ *
+ * Users are loaded in `CANDIDATE_BATCH_SIZE` chunks (stable `id` order) so a
+ * large membership never arrives as one giant row transfer; providers stay a
+ * single narrow query (one row per provider at most).
+ */
 async function loadAllCandidates(): Promise<LeaderboardCandidate[]> {
-  const [userRows, providerRows] = await Promise.all([
-    db.select({ id: user.id, name: user.name, image: user.image }).from(user),
-    db.select({
-      userId: providers.userId,
-      displayName: providers.displayName,
-      avatarUrl: providers.avatarUrl,
-    }).from(providers),
-  ]);
-
+  const providerRows = await db.select({
+    userId: providers.userId,
+    displayName: providers.displayName,
+    avatarUrl: providers.avatarUrl,
+  }).from(providers);
   const providerByUser = new Map(providerRows.map((row) => [row.userId, row]));
-  return userRows.map((row) => {
+
+  const toCandidate = (row: { id: string; name: string; image: string | null }): LeaderboardCandidate => {
     const provider = providerByUser.get(row.id);
     return {
       userId: row.id,
       displayName: provider?.displayName || row.name || "Member",
       avatarUrl: provider?.avatarUrl || row.image || null,
     };
-  });
+  };
+
+  const candidates: LeaderboardCandidate[] = [];
+  for (let offset = 0; ; offset += CANDIDATE_BATCH_SIZE) {
+    const batch = await db
+      .select({ id: user.id, name: user.name, image: user.image })
+      .from(user)
+      .orderBy(asc(user.id))
+      .limit(CANDIDATE_BATCH_SIZE)
+      .offset(offset);
+    for (const row of batch) candidates.push(toCandidate(row));
+    if (batch.length < CANDIDATE_BATCH_SIZE) break;
+  }
+  return candidates;
 }
 
 export class LeaderboardService {
@@ -383,9 +458,16 @@ export class LeaderboardService {
    * values (a failing factor contributes 0 instead of failing the page), every
    * registered member is scored (0 when they have no activity yet) and ranked,
    * then the ranking is sliced into the requested page.
+   *
+   * Performance: the neutral (user-agnostic) ranking is cached for
+   * `BOARD_CACHE_TTL_MS` keyed by the enabled-factor signature, so turning
+   * pages is a slice — not a rescore. Pass `bypassCache: true` (e.g.
+   * `?refresh=true`) to force a fresh collect. The signed-in member's rank and
+   * `isCurrentUser` flags are derived per request from the ranking, so the
+   * shared cache never leaks identity between members.
    */
   static async getBoard(
-    opts: { page?: number; pageSize?: number; currentUserId?: string | null } = {},
+    opts: { page?: number; pageSize?: number; currentUserId?: string | null; bypassCache?: boolean } = {},
   ): Promise<LeaderboardPage> {
     const config = await resolveConfig();
     const leaderboard = resolveLeaderboardConfig(config);
@@ -399,6 +481,9 @@ export class LeaderboardService {
       totalPages: 1,
       enabled: false,
       factors: [],
+      currentUserRank: null,
+      currentUserScore: null,
+      cached: false,
     };
     if (!flagOn) return empty;
 
@@ -410,36 +495,55 @@ export class LeaderboardService {
       weight,
       showRawValue,
     }));
+    const signature = buildBoardCacheSignature(factors);
 
-    const collected = await Promise.all(
-      factors.map((factor) =>
-        factor
-          .collect()
-          .catch((err) => {
-            console.error(`[LeaderboardService] factor "${factor.key}" failed`, err);
-            return {} as Record<string, number>;
-          }),
-      ),
-    );
-    const rawByFactor: Record<string, Record<string, number>> = {};
-    factors.forEach((factor, index) => {
-      rawByFactor[factor.key] = collected[index];
-    });
+    let ranked: ILeaderboardRow[];
+    let cached = false;
+    const hit =
+      !opts.bypassCache &&
+      boardCache !== null &&
+      boardCache.signature === signature &&
+      boardCache.expiresAt > Date.now();
+    if (hit) {
+      ranked = boardCache!.ranked;
+      cached = true;
+    } else {
+      const collected = await Promise.all(
+        factors.map((factor) =>
+          factor
+            .collect()
+            .catch((err) => {
+              console.error(`[LeaderboardService] factor "${factor.key}" failed`, err);
+              return {} as Record<string, number>;
+            }),
+        ),
+      );
+      const rawByFactor: Record<string, Record<string, number>> = {};
+      factors.forEach((factor, index) => {
+        rawByFactor[factor.key] = collected[index];
+      });
 
-    const candidates = await loadAllCandidates();
-    const ranked = scoreLeaderboard(candidates, rawByFactor, factors, {
-      currentUserId: opts.currentUserId ?? null,
-    });
+      const candidates = await loadAllCandidates();
+      // Neutral ranking: no currentUserId here — identity is stamped per
+      // request below so the cached rows stay shareable across members.
+      ranked = scoreLeaderboard(candidates, rawByFactor, factors);
+      boardCache = { expiresAt: Date.now() + BOARD_CACHE_TTL_MS, ranked, factors: factorMeta, signature };
+    }
+
     const paged = paginateRows(ranked, opts.page, pageSize);
+    const identity = applyCurrentUserContext(ranked, paged.rows, opts.currentUserId ?? null);
 
     return {
-      rows: paged.rows,
+      rows: identity.rows,
       page: paged.page,
       pageSize: paged.pageSize,
       total: paged.total,
       totalPages: paged.totalPages,
       enabled: true,
-      factors: factorMeta,
+      factors: hit ? boardCache!.factors : factorMeta,
+      currentUserRank: identity.currentUserRank,
+      currentUserScore: identity.currentUserScore,
+      cached,
     };
   }
 }

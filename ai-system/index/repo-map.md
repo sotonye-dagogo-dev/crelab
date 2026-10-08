@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -60,13 +60,13 @@ crelab/
 │   │   ├── countdown/      # Countdown widget editor (list add/remove/reorder, datetime, icon allowlist, areas, live preview)
 │   │   ├── disputes/       # Dispute resolution dashboard
 │   │   ├── email-templates/ # Admin-editable email templates (Visual/HTML/Preview tabs)
-│   │   ├── media/          # Media asset manager (filters, preview, upload, reconcile orphan → portfolio/avatar/cover, dry-run + cleanup)
+  │   │   ├── media/          # Media asset manager (filters, preview, upload, reconcile orphan → portfolio/avatar/cover, backfill orphans bulk + dry-run, cleanup dry-run)
 │   │   ├── providers/      # Provider review queue
 │   │   ├── users/          # User management (search, role, verify, delete)
 │   │   └── webinars/       # Webinar manager (CRUD, status/publish toggle, registration counts)
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
-│       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/email/send, /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all)
+  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send, /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all)
 │       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission (re-sanitises + stores error_context)
 │       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)
@@ -110,7 +110,7 @@ crelab/
 │   ├── EmailService.ts       # Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate)
 │   ├── ExploreService.ts   # Provider search + portfolioThumbnails (carousel payload)
 │   ├── LeaderboardService.ts # Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking
-│   ├── MediaAssetService.ts  # Media asset registry: record, list, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile
+  │   ├── MediaAssetService.ts  # Media asset registry: record, list, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile, backfillOrphans (bulk owner-matched rescue)
 │   ├── MilestoneService.ts
 │   ├── MockDataService.ts
 │   ├── PaymentService.ts

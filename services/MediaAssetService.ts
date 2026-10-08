@@ -16,6 +16,8 @@ import {
 } from "@/lib/cloudinary";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { PortfolioService } from "@/services/PortfolioService";
+import { PortfolioItemSource } from "@/types";
 
 export interface CleanupResult {
   enabled: boolean;
@@ -109,6 +111,49 @@ export function resolveDeletableAssets(
       row.createdAt.getTime() < olderThan.getTime() &&
       !referencedPublicIds.has(row.publicId),
   );
+}
+
+export interface BackfillResult {
+  /** Unreferenced ACTIVE assets considered */
+  candidates: number;
+  /** Assets attached to their owner's provider portfolio */
+  attached: number;
+  /** Dry-run only: assets that would be attached */
+  wouldAttach: number;
+  /** Orphans whose owner has no provider profile (still need manual reconcile) */
+  skippedNoProvider: number;
+  /** Orphans whose owner has no recorded user id at all */
+  skippedNoOwner: number;
+  /** Orphans already present in the target portfolio (idempotent no-op) */
+  skippedAlreadyAttached: number;
+  errors: string[];
+}
+
+/**
+ * Pure helper: split ACTIVE asset rows into backfill candidates (unreferenced
+ * rows that carry an owner id) and the rest. Age-grace is deliberately ignored
+ * here — attaching an unlinked upload to its owner's portfolio early is the
+ * point (it also removes the row from the future orphan-cleanup pipeline).
+ */
+export function partitionBackfillCandidates(
+  rows: MediaAssetRow[],
+  referencedPublicIds: Set<string>,
+): { candidates: MediaAssetRow[]; referenced: number; ownerless: number } {
+  const candidates: MediaAssetRow[] = [];
+  let referenced = 0;
+  let ownerless = 0;
+  for (const row of rows) {
+    if (row.status !== "ACTIVE" || referencedPublicIds.has(row.publicId)) {
+      referenced++;
+      continue;
+    }
+    if (!row.ownerId) {
+      ownerless++;
+      continue;
+    }
+    candidates.push(row);
+  }
+  return { candidates, referenced, ownerless };
 }
 
 function mapAsset(row: MediaAssetRow): IMediaAsset {
@@ -355,6 +400,87 @@ export class MediaAssetService {
     // cover
     await db.update(providers).set({ coverVideoUrl: asset.url }).where(eq(providers.id, opts.providerId));
     return { reconciled: true, targetId: opts.providerId };
+  }
+
+  /**
+   * One-click rescue for pre-existing orphans: attaches every unreferenced
+   * ACTIVE asset whose owner still owns a provider profile to that portfolio
+   * as a visible DIRECT item (idempotent by URL — already-attached rows are
+   * counted, not duplicated).
+   *
+   * Explicit admin action only — never run automatically — because orphans
+   * whose owner has no provider (admin uploads, deleted providers) still need
+   * the deliberate per-asset `reconcileAsset` choice of target + provider.
+   * New uploads already auto-attach via `PortfolioService.attachUploadToProvider`,
+   * so this is the migration aid for rows recorded before that wiring existed.
+   */
+  static async backfillOrphans(opts?: {
+    limit?: number;
+    dryRun?: boolean;
+  }): Promise<BackfillResult> {
+    const limit = Math.min(Math.max(Math.floor(opts?.limit ?? 100), 1), 1000);
+    const dryRun = Boolean(opts?.dryRun);
+
+    const rows = await db
+      .select()
+      .from(mediaAssets)
+      .where(eq(mediaAssets.status, "ACTIVE"))
+      .orderBy(desc(mediaAssets.createdAt));
+    const referenced = await MediaAssetService.loadReferencedPublicIds();
+    const { candidates, ownerless } = partitionBackfillCandidates(rows, referenced);
+
+    const result: BackfillResult = {
+      candidates: candidates.length,
+      attached: 0,
+      wouldAttach: 0,
+      skippedNoProvider: 0,
+      skippedNoOwner: ownerless,
+      skippedAlreadyAttached: 0,
+      errors: [],
+    };
+
+    for (const asset of candidates.slice(0, limit)) {
+      try {
+        const providerRows = await db
+          .select({ id: providers.id })
+          .from(providers)
+          .where(eq(providers.userId, asset.ownerId!))
+          .limit(1);
+        const provider = providerRows[0];
+        if (!provider) {
+          result.skippedNoProvider++;
+          continue;
+        }
+        const existing = await db
+          .select({ id: portfolioItems.id, url: portfolioItems.url })
+          .from(portfolioItems)
+          .where(eq(portfolioItems.providerId, provider.id));
+        const normUrl = asset.url.trim().toLowerCase();
+        if (existing.some((it) => it.url.trim().toLowerCase() === normUrl)) {
+          result.skippedAlreadyAttached++;
+          continue;
+        }
+        if (dryRun) {
+          result.wouldAttach++;
+          continue;
+        }
+        await PortfolioService.addItem({
+          providerId: provider.id,
+          source: PortfolioItemSource.DIRECT,
+          url: asset.url,
+          thumbnailUrl: asset.thumbnailUrl ?? undefined,
+          title: asset.publicId,
+          mimeType: asset.mimeType ?? `${asset.resourceType}/unknown`,
+        });
+        result.attached++;
+      } catch (err) {
+        result.errors.push(
+          `Asset ${asset.id} (${asset.publicId}): ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
+      }
+    }
+
+    return result;
   }
 
   /**
