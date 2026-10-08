@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — nav/footer/leaderboard polish: 408/408, docs reconciled)
 > - last-verified-against-code: 2026-10-08
-> - last-synced: 2026-10-08 (residual-risks pagination + backfill: 407/407, docs reconciled)
+> - last-synced: 2026-10-08 (nav/footer/leaderboard polish: 408/408, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -97,6 +97,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Nav/footer/leaderboard polish: scrollable mobile nav overlay (dedicated nav scroll region, smaller links on short screens); zero-duplication footer (Platform/Company/Support & Legal, each link once); leaderboard Score always visible on mobile (`ClDataTable.tableClassName` override → `min-w-0` below lg, `max-w-[38vw]` member truncation + tooltips, tabular-nums score). 408/408 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-08 |
 | Countdown/leaderboard/tiles/content: centered countdown + full-URL CTAs (new-tab); leaderboard member truncation + pinned Score + narrower mobile table; provider name opaque pill (routing already via Link); setup-time cover→portfolio attach + orphan rescue; backfill cover-repair pass (dry-run aware). 408/408 vitest, tsc 0 errors, lint 0 errors | 2026-10-08 |
 | Residual risks (pagination + orphan backfill): leaderboard 30s user-agnostic board cache + batched candidate load + per-request current-user rank/score + CDN cache headers + client page cache/prefetch/Your-rank banner; `MediaAssetService.backfillOrphans` (owner-matched one-click rescue, dry-run) + `POST /api/admin/media/backfill` + admin Backfill UI. 407/407 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |
 | Leaderboard zero-scores + Explore content parity + Upload→portfolio attach: `scoreLeaderboard` keeps 0-score rows + `getBoard` scores all members; `/api/explore/portfolio` mock fallback mirroring `/api/explore`; `PortfolioService.attachUploadToProvider` wired best-effort into upload/confirm/batch-upload + new idempotent `POST /api/portfolio/items`; profile empty-portfolio state. 399/399 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |

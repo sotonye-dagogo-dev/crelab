@@ -40,34 +40,9 @@ export async function Footer() {
               Platform
             </h4>
             <Link
-              href="/"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
-              Home
-            </Link>
-            <Link
               href="/explore"
               className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Explore
-            </Link>
-            <Link
-              href="/how-it-works"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
-              How It Works
-            </Link>
-            <Link
-              href="/about"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
-              About
-            </Link>
-            <Link
-              href="/blog"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
-              Blog
-            </Link>
-            <Link
-              href="/bug-report"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
-              Report a Bug
             </Link>
             {config.features?.referralsEnabled !== false && (
               <Link
@@ -83,6 +58,11 @@ export async function Footer() {
                 Webinars
               </Link>
             )}
+            <Link
+              href="/blog"
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+              Blog
+            </Link>
           </div>
           <div>
             <h4 className="mb-3 font-[family-name:var(--font-display)] text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
@@ -108,21 +88,16 @@ export async function Footer() {
               className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Team
             </Link>
-            <Link
-              href="/privacy"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
-              Privacy
-            </Link>
-            <Link
-              href="/terms"
-              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
-              Terms
-            </Link>
           </div>
           <div>
             <h4 className="mb-3 font-[family-name:var(--font-display)] text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">
-              Legal
+              Support & Legal
             </h4>
+            <Link
+              href="/bug-report"
+              className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+              Report a Bug
+            </Link>
             <Link
               href="/privacy"
               className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
