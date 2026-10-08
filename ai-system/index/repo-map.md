@@ -81,7 +81,7 @@ crelab/
 │       ├── portfolio/      # Portfolio CRUD (+ items list, reorder, individual item PATCH/DELETE)
 │       ├── profile/        # Profile management (setup)
 │       ├── referrals/      # GET /referrals/me + POST /referrals/claim (idempotent cookie claim + JSON {code} fallback)
-│       ├── verify-email/   # Verify-email: /send (shared sendVerificationEmailTo helper) + /welcome (fires welcome once verified) + /verify (token verify)
+│       ├── verify-email/   # Verify-email: /send (shared sendVerificationEmailTo helper) + /welcome (fires welcome once verified) + /verify (case-insensitive token verify with affected-row check)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
 │       ├── webinars/       # GET /webinars + POST /webinars/[id]/register (unique-index upsert)
 │       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or Paystack initiate with real client email + metadata
@@ -165,7 +165,7 @@ crelab/
 │   ├── schema.ts           # Drizzle schema (single source of truth for DB shape)
 │   └── migrations/         # Generated SQL migrations
 ├── hooks/
-│   └── useAuth.ts          # Client-side auth hook (signIn, signInWithGoogle, signOut, signUp — verification mail is server-sent via the auth hook)
+│   └── useAuth.ts          # Client-side auth hook (signIn, signInWithGoogle, signOut, signUp, refresh — verification mail is server-sent via the auth hook)
 ├── scripts/                 # Database seeding + utility scripts
 │   ├── seed.ts             # DB seed: creates users via Better Auth API + inserts all seed data
 │   ├── seed-rollback.ts    # Rollback: deletes all seed data in FK-safe reverse order

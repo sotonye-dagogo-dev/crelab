@@ -15,7 +15,7 @@ const authClient = createAuthClient();
 export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, isLoading, signOut } = useAuth();
+  const { user, isLoading, signOut, refresh } = useAuth();
   const platformConfig = usePlatformConfig();
   const referralsEnabled =
     platformConfig.features?.referralsEnabled !== false &&
@@ -36,6 +36,7 @@ export default function ProfilePage() {
 
   const [verifySending, setVerifySending] = useState(false);
   const [verifySent, setVerifySent] = useState(false);
+  const [refreshingStatus, setRefreshingStatus] = useState(false);
 
   const [newEmail, setNewEmail] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
@@ -253,9 +254,27 @@ export default function ProfilePage() {
                   Verification email sent — check your inbox (and spam folder).
                 </div>
               ) : (
-                <ClButton variant="primary" size="default" onClick={handleSendVerification} loading={verifySending}>
-                  Send verification email
-                </ClButton>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ClButton variant="primary" size="default" onClick={handleSendVerification} loading={verifySending}>
+                    Send verification email
+                  </ClButton>
+                  <ClButton
+                    variant="outlined"
+                    size="default"
+                    onClick={async () => {
+                      setRefreshingStatus(true);
+                      try {
+                        await refresh();
+                        router.refresh();
+                      } finally {
+                        setRefreshingStatus(false);
+                      }
+                    }}
+                    loading={refreshingStatus}
+                  >
+                    I&apos;ve verified — refresh status
+                  </ClButton>
+                </div>
               )
             )}
           </ClCard>

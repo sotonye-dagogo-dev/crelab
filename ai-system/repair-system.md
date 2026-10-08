@@ -471,7 +471,6 @@ Never pass function props from Server Components to Client Components. Either:
 ---
 
 ### Verify Link With `done=1&token=` Rendered False Success (Never Verified)
-
 **Symptom:**
 Users click the verification link, land on a "Email verified" success screen (and the welcome-mail attempt fails), but `user.emailVerified` stays `false` — unverified addresses accumulate and no welcome mail ever fires.
 
@@ -489,6 +488,38 @@ Never encode two contradictory states in one link (`done` + `token`). The link c
 - `lib/verify-email.ts` (new)
 - `app/api/verify-email/send/route.ts`
 - `app/(public)/verify-email/page.tsx`
+
+**Date:** 2026-10-08
+**Status:** Active
+
+---
+
+### Verify Succeeds but `emailVerified` Stays False (Case-Sensitive Match + Silent No-Op + Stale Session)
+
+**Symptom:**
+Users confirm they received (and clicked) verification emails, yet both the admin users panel and their profile keep showing Unverified. No caching layer is involved — the DB row itself is still `false`.
+
+**Root Cause:**
+Three compounding defects in the custom verify path:
+1. `POST /api/verify-email/verify` matched with exact `eq(user.email, identifier)`, but the token identifier is stored lowercased (`sendVerificationEmailTo`) while `user.email` may carry original casing → 0 rows updated for mixed-case addresses.
+2. The route returned `{success:true}` even when 0 rows updated, then deleted the token — a false success with the evidence destroyed (no retry possible, 1h TTL already ticking).
+3. The custom verify writes the DB directly, bypassing the Better Auth session; `useAuth` caches the session in React state, so profile/banner keep rendering the stale `false` until remount/re-login.
+
+**Fix Applied:**
+- Identifier + match normalised: new `normalizeEmail()` (trim + lowercase) in `lib/verify-email.ts`; verify route + display-name lookup use case-insensitive `ilike(user.email, …)`; update uses `.returning()` and returns an honest 404 (token retained) when no user matched; already-verified stays idempotent success.
+- Session freshness: `useAuth` gains `refresh()`; verify page refreshes the Better Auth session post-verify before redirecting to `?done=1`; profile page gains an "I've verified — refresh status" affordance when unverified; admin users page pins `staleTime: 0` + a manual Refresh button so the badge always reflects the live DB row.
+
+**Prevention:**
+Never `eq()` an email column against a normalised value — always match case-insensitively (`ilike` or `lower()` both sides) via the shared `normalizeEmail()`. Never return success from a write route without checking the affected-row count. Any out-of-band DB write that bypasses the session must be followed by a session refetch wherever the flag is rendered.
+
+**Files Affected:**
+- `lib/verify-email.ts` (`normalizeEmail`, ilike lookup)
+- `app/api/verify-email/verify/route.ts` (ilike + returning + 404)
+- `hooks/useAuth.ts` (`refresh()`)
+- `app/(public)/verify-email/page.tsx` (post-verify session refresh)
+- `app/(auth)/profile/page.tsx` (refresh-status affordance)
+- `app/admin/users/page.tsx` (staleTime 0 + Refresh button)
+- `__tests__/lib/verify-email.test.ts` (normalizeEmail contract)
 
 **Date:** 2026-10-08
 **Status:** Active

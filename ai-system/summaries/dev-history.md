@@ -1,8 +1,23 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
+> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Verified-Status Hardening
+
+### What
+Directive: users received verification emails but still show unverified in admin panel + profile (caching vs DB-not-updated?). Fix end-to-end (non-breaking), then run `update-ai-system.md`.
+
+### Verification
+`vitest` → 39 files, **453 passed / 0 failed** (+1 new). `tsc --noEmit` → clean. `next lint` → 0 errors. `next build` → green.
+
+### Key Changes
+- **DB-not-updated (confirmed root cause):** verify endpoint matched with exact `eq()` against a lowercased token identifier → 0 rows for mixed-case addresses, yet returned success and deleted the token. Now `normalizeEmail()` + case-insensitive `ilike` + affected-row check (honest 404, token retained; idempotent when already verified).
+- **Stale session:** `useAuth.refresh()` added; verify page refreshes session post-verify; profile gains "I've verified — refresh status"; admin users page pins `staleTime: 0` + manual Refresh (caching hypothesis visibly ruled out).
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`), `system-architecture.md` (verification flow + Recent Changes), `index/dependency-graph.md`, `repair-system.md` (silent-no-op entry), `memory/lessons-learned.md`; `in-progress.md` cleared. Deep `update-ai-system.md` invoked inline per directive.
+- Residual risk: pre-fix expired tokens (1h TTL) need Resend or admin manual Verify. Verification stays optional — no hard gates.
 
 
 ## Session 2026-10-08 — Email Verification + Wired Delivery Tightening

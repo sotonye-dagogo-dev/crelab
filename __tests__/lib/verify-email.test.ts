@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildVerifyUrl } from "@/lib/verify-email";
+import { buildVerifyUrl, normalizeEmail } from "@/lib/verify-email";
 import { WIRED_EMAIL_TEMPLATES, isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-templates";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 
@@ -12,6 +12,13 @@ describe("buildVerifyUrl", () => {
 
   it("encodes token characters", () => {
     expect(buildVerifyUrl("a/b?c=d")).toContain(`token=${encodeURIComponent("a/b?c=d")}`);
+  });
+});
+
+describe("normalizeEmail", () => {
+  it("trims and lowercases so token identifiers match mixed-case user rows", () => {
+    expect(normalizeEmail("  User@Mail.COM ")).toBe("user@mail.com");
+    expect(normalizeEmail("already@lower.com")).toBe("already@lower.com");
   });
 });
 

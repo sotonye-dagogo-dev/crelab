@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClBadge, ClDataTable, type ClColumn } from "@/components/ui";
 import { useToast } from "@/lib/toast";
-import { Search, Trash2, ShieldCheck, ShieldOff } from "lucide-react";
+import { RefreshCw, Search, Trash2, ShieldCheck, ShieldOff } from "lucide-react";
 
 interface AdminUser {
   id: string;
@@ -27,8 +27,11 @@ export default function AdminUsersPage() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["admin-users", search],
+    // Always read emailVerified live from the DB — a cached badge is exactly
+    // the "still unverified in admin" false alarm this page must not produce.
+    staleTime: 0,
     queryFn: async () => {
       const res = await fetch(`/api/admin/users?search=${encodeURIComponent(search)}`);
       const json = await res.json();
@@ -172,14 +175,25 @@ export default function AdminUsersPage() {
           </div>
         </div>
         <div className="w-full sm:w-[280px] shrink-0">
-          <div className="relative">
-            <Search size={15} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
-            <input
-              className="h-10 pl-9 pr-3 w-full rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[13px] text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
-              placeholder="Search name or email"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search size={15} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
+              <input
+                className="h-10 pl-9 pr-3 w-full rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[13px] text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
+                placeholder="Search name or email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              aria-label="Refresh user list"
+              title="Refresh (reads live verification status)"
+              className="inline-flex items-center justify-center w-10 h-10 rounded-[8px] border border-[var(--color-border-mid)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] cursor-pointer bg-transparent disabled:opacity-60"
+            >
+              <RefreshCw size={15} strokeWidth={2} className={isFetching ? "animate-spin" : undefined} />
+            </button>
           </div>
         </div>
       </div>

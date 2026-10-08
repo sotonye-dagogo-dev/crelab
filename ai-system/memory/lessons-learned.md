@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — referral surfaces + team hiring config)
+> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -30,6 +30,22 @@
 ---
 
 ## Lessons
+
+## Email Columns: Match Case-Insensitively, Check the Affected Row, Refresh the Session
+
+**Context:** Users clicked verification emails yet stayed unverified in both admin and profile. The token identifier was stored lowercased while `user.email` kept original casing; the verify route used exact `eq()` (0 rows, silent success, token deleted), and the custom verify bypassed the Better Auth session that the UI renders from.
+
+**What We Learned:**
+1. Never `eq()` an email column against a normalised value — route all email matching through a shared normaliser (`normalizeEmail`: trim + lowercase) and match case-insensitively (`ilike` or `lower()` both sides). Applies to the verify update, the display-name lookup, and any future email-keyed write.
+2. Never return success from a write route without checking the affected-row count (`.returning()`): an honest 404 with the token retained beats a false success with the evidence deleted.
+3. Any out-of-band DB write that bypasses the session must be followed by a session refetch wherever the flag renders (`useAuth.refresh()` + post-verify refresh + profile affordance); admin live-reads should pin `staleTime: 0` with a manual Refresh so "caching" is visibly ruled out.
+
+**Apply When:** Any email-keyed token/confirmation flow; any direct-DB write to a field the session also carries.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
 
 ## Compliance Guardrails Catch Real Defaults Bugs — Read the Failure Literally
 

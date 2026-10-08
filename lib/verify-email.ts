@@ -1,10 +1,19 @@
-import { eq } from "drizzle-orm";
+import { eq, ilike } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { user, verification } from "@/drizzle/schema";
 import { EmailService, type EmailSendResult } from "@/services/EmailService";
 import type { IPlatformConfig } from "@/types";
 
 export const VERIFY_EMAIL_TTL_MS = 3600 * 1000; // 1 hour
+
+/**
+ * Canonical email form for verification matching + storage. Lowercasing here
+ * is what makes the verify-then-update path case-insensitive: signup may
+ * store `User@Mail.com` while the token identifier is stored lowercased.
+ */
+export function normalizeEmail(raw: string): string {
+  return raw.trim().toLowerCase();
+}
 
 function baseUrl(): string {
   return process.env.BETTER_AUTH_URL || "http://localhost:3000";
@@ -37,7 +46,7 @@ export async function sendVerificationEmailTo(
   rawEmail: string,
   config: IPlatformConfig,
 ): Promise<VerificationSendOutcome> {
-  const to = rawEmail.trim().toLowerCase();
+  const to = normalizeEmail(rawEmail);
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + VERIFY_EMAIL_TTL_MS);
 
@@ -50,10 +59,11 @@ export async function sendVerificationEmailTo(
 
   let displayName = "there";
   try {
+    // Case-insensitive: the stored user.email may carry original casing.
     const rows = await db
       .select({ name: user.name })
       .from(user)
-      .where(eq(user.email, to))
+      .where(ilike(user.email, to))
       .limit(1);
     if (rows.length && rows[0].name) displayName = rows[0].name;
   } catch {

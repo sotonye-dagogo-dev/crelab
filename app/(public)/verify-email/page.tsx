@@ -3,8 +3,11 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { createAuthClient } from "better-auth/client";
 import { ClLogo, ClSpinner } from "@/components/ui";
 import { MailCheck, RotateCcw } from "lucide-react";
+
+const authClient = createAuthClient();
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -51,6 +54,14 @@ function VerifyEmailForm() {
       });
       const json = await res.json();
       if (res.ok && json.success) {
+        // The verify endpoint writes user.emailVerified directly in the DB,
+        // bypassing the Better Auth session — pull a fresh session now so the
+        // profile/banner stop showing a stale "unverified" after redirect.
+        try {
+          await authClient.getSession();
+        } catch {
+          // Session refresh is best-effort; the landing pages refetch on mount.
+        }
         if (json.emailChange) {
           router.replace("/profile?emailChanged=1");
         } else {
