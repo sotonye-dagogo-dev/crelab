@@ -6,6 +6,7 @@ import { Providers } from "@/components/shared/Providers";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { ReferralCapture } from "@/components/shared/ReferralCapture";
+import { ReferralClaimOnAuth } from "@/components/shared/ReferralClaimOnAuth";
 import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { GlobalErrorCatcher } from "@/components/error/GlobalErrorCatcher";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
@@ -63,6 +64,7 @@ export default async function RootLayout({
               <main className="flex-1 pt-16">{children}</main>
               <Footer />
               <ReferralCapture />
+              <ReferralClaimOnAuth />
               <GlobalErrorCatcher />
               <ScrollToTopButton />
             </Providers>

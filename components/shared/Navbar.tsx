@@ -20,6 +20,7 @@ const navLinks: {
   { href: "/dashboard", label: "Dashboard" },
   { href: "/blog", label: "Blog" },
   { href: "/team", label: "Team" },
+  { href: "/referrals", label: "Referrals", flag: "referralsEnabled" },
   { href: "/leaderboard", label: "Leaderboard", flag: "referralsEnabled" },
   { href: "/webinars", label: "Webinars", flag: "webinarsEnabled" },
 ];

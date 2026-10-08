@@ -1,13 +1,145 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton, ClConfirmDialog, ClDataTable, type ClColumn } from "@/components/ui";
+import { ClButton, ClCard, ClConfirmDialog, ClDataTable, type ClColumn } from "@/components/ui";
 import { TeamMemberModal } from "@/components/admin/TeamMemberModal";
 import { useToast } from "@/lib/toast";
 import { useUndoable } from "@/lib/use-undoable";
 import { useBatchSelect, BatchToolbar } from "@/components/admin/BatchOperations";
 import type { ITeamMember } from "@/types";
+
+const TEAM_PAGE_DEFAULTS = {
+  hiringEnabled: true,
+  hiringTitle: "Want to be part of the team?",
+  hiringSubtitle: "We are always looking for talented people who share our vision.",
+  hiringCtaLabel: "View Open Positions",
+  hiringCtaHref: "/about",
+};
+
+function TeamPageSettings() {
+  const { toast } = useToast();
+  const [values, setValues] = useState(TEAM_PAGE_DEFAULTS);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/config")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data?.teamPage) {
+          setValues({ ...TEAM_PAGE_DEFAULTS, ...json.data.teamPage });
+        }
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const set = (key: keyof typeof TEAM_PAGE_DEFAULTS, value: string | boolean) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      for (const [key, value] of Object.entries(values)) {
+        const res = await fetch("/api/admin/config", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: `teamPage.${key}`, value }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error ?? `Failed to save teamPage.${key}`);
+      }
+      toast("Team page settings saved", "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to save settings", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputClass =
+    "h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[13px] text-[var(--color-text-primary)] outline-none w-full focus:border-[var(--color-accent)]";
+  const labelClass =
+    "block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]";
+
+  return (
+    <ClCard className="mb-6 p-5 sm:p-6">
+      <h3 className="font-[family-name:var(--font-display)] font-bold text-[16px] tracking-[-0.01em]">
+        Page settings
+      </h3>
+      <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5 mb-4">
+        Controls the “join the team / open positions” block on the public /team page. The link
+        accepts a relative path (e.g. /bug-report) or a full URL (https://…, mailto:…).
+      </p>
+      {!loaded ? (
+        <div className="text-[13px] text-[var(--color-text-secondary)]">Loading settings…</div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <label className="flex items-center gap-2 cursor-pointer text-[13px] text-[var(--color-text-primary)]">
+            <button
+              role="switch"
+              aria-checked={values.hiringEnabled}
+              onClick={() => set("hiringEnabled", !values.hiringEnabled)}
+              className={`inline-flex items-center w-9 h-5 rounded-[9999px] relative transition-colors cursor-pointer border-none ${
+                values.hiringEnabled ? "bg-[var(--color-accent)]" : "bg-[var(--color-border-mid)]"
+              }`}
+              aria-label="Toggle hiring block"
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  values.hiringEnabled ? "translate-x-4" : ""
+                }`}
+              />
+            </button>
+            Show hiring block on the public team page
+          </label>
+          <div>
+            <label className={labelClass}>Heading</label>
+            <input
+              className={inputClass}
+              value={values.hiringTitle}
+              onChange={(e) => set("hiringTitle", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Subheading</label>
+            <input
+              className={inputClass}
+              value={values.hiringSubtitle}
+              onChange={(e) => set("hiringSubtitle", e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Button label</label>
+              <input
+                className={inputClass}
+                value={values.hiringCtaLabel}
+                onChange={(e) => set("hiringCtaLabel", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Button link</label>
+              <input
+                className={inputClass}
+                value={values.hiringCtaHref}
+                onChange={(e) => set("hiringCtaHref", e.target.value)}
+                placeholder="https://… or mailto:… or /path"
+              />
+            </div>
+          </div>
+          <div>
+            <ClButton variant="primary" size="default" onClick={handleSave} loading={saving}>
+              Save settings
+            </ClButton>
+          </div>
+        </div>
+      )}
+    </ClCard>
+  );
+}
 
 export default function AdminTeamPage() {
   const queryClient = useQueryClient();
@@ -262,6 +394,8 @@ export default function AdminTeamPage() {
           </ClButton>
         </div>
       </div>
+
+      <TeamPageSettings />
 
       <BatchToolbar
         ids={memberIds}

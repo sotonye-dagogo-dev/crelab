@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { createAuthClient } from "better-auth/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/lib/toast";
+import { usePlatformConfig } from "@/lib/config-context";
 import { ClButton, ClCard, ClInput, ClBadge, ClBackButton } from "@/components/ui";
 import { EarlyMemberBadge } from "@/components/shared/EarlyMemberBadge";
-import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight, LogOut } from "lucide-react";
+import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight, LogOut, UserPlus } from "lucide-react";
 
 const authClient = createAuthClient();
 
@@ -15,6 +16,10 @@ export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, isLoading, signOut } = useAuth();
+  const platformConfig = usePlatformConfig();
+  const referralsEnabled =
+    platformConfig.features?.referralsEnabled !== false &&
+    platformConfig.referral?.enabled !== false;
 
   const [signingOut, setSigningOut] = useState(false);
 
@@ -215,6 +220,22 @@ export default function ProfilePage() {
               </div>
             </div>
           </ClCard>
+
+          {referralsEnabled && (
+            <ClCard className="p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <UserPlus size={15} strokeWidth={2} className="text-[var(--color-accent)]" />
+                <h2 className="font-[family-name:var(--font-display)] font-bold text-[17px]">Invite & earn</h2>
+              </div>
+              <div className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mb-4">
+                Share your invite link — earn points when friends join, and again when they invite
+                their own friends.
+              </div>
+              <ClButton variant="primary" size="default" onClick={() => router.push("/referrals")}>
+                Get my invite link <ArrowRight size={14} strokeWidth={2} />
+              </ClButton>
+            </ClCard>
+          )}
 
           <ClCard className="p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
