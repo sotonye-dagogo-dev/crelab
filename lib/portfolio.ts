@@ -1,4 +1,5 @@
 import type { IPortfolioItem } from "@/types";
+import { PortfolioItemSource } from "@/types";
 
 /**
  * Sanitized, short, unique asset label.
@@ -68,6 +69,82 @@ function normalizeUrl(url: string): string {
 /** Whether this item is a video — used for badge/overlay decisions. */
 export function isVideoItem(item: Pick<IPortfolioItem, "mimeType"> | { mimeType?: string | null }): boolean {
   return !!item.mimeType && item.mimeType.startsWith("video/");
+}
+
+/**
+ * Cover fallback: any uploaded cover (video OR photo) must surface as a
+ * portfolio/content item, while the display picture (avatarUrl / user.image)
+ * must NEVER surface. The providers table only stores covers in
+ * `coverVideoUrl` (which may hold an image URL when the user uploaded a
+ * photo as cover), so this helper treats that single field as the cover —
+ * never the avatar.
+ */
+export function isImageCoverUrl(url: string): boolean {
+  return /\.(jpe?g|png|webp|gif|avif|heic)(\?.*)?$/i.test(url.trim());
+}
+
+export function coverMimeType(url: string): string {
+  const lower = url.trim().toLowerCase();
+  if (/\.png(\?|$)/.test(lower)) return "image/png";
+  if (/\.webp(\?|$)/.test(lower)) return "image/webp";
+  if (/\.gif(\?|$)/.test(lower)) return "image/gif";
+  if (/\.avif(\?|$)/.test(lower)) return "image/avif";
+  if (/\.(jpe?g|heic)(\?|$)/.test(lower)) return "image/jpeg";
+  if (/\.(mp4|webm|mov|m4v)(\?|$)/.test(lower)) return "video/mp4";
+  if (/\.avi(\?|$)/.test(lower)) return "video/x-msvideo";
+  // Cloudinary delivery URLs without an extension: guess from the resource-type segment.
+  if (/\/video\/upload\//.test(lower)) return "video/mp4";
+  if (/\/image\/upload\//.test(lower)) return "image/jpeg";
+  return "video/mp4";
+}
+
+/**
+ * Build the synthetic portfolio item for a provider cover. Deterministic id
+ * (`cover-<providerId>`) so repeated merges never duplicate and React keys
+ * stay stable. Image covers use the cover itself as thumbnail; video covers
+ * leave thumbnail resolution to the caller (Cloudinary-derived when possible).
+ */
+export function buildCoverFallbackItem(
+  providerId: string,
+  coverUrl: string,
+  thumbnailUrl?: string | null,
+): IPortfolioItem {
+  const url = coverUrl.trim();
+  const image = isImageCoverUrl(url);
+  const now = new Date().toISOString();
+  return {
+    id: `cover-${providerId}`,
+    providerId,
+    source: PortfolioItemSource.DIRECT,
+    url,
+    thumbnailUrl: thumbnailUrl ?? (image ? url : null),
+    title: "Cover",
+    caption: null,
+    driveFileId: null,
+    mimeType: coverMimeType(url),
+    orderIndex: -1,
+    visible: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * Merge a provider cover into an already-fetched portfolio list. No-op when
+ * the cover is blank or already present (same normalized URL) — so real
+ * portfolio rows added by the write path always win and the fallback never
+ * duplicates. Never takes an avatar: callers must only pass coverVideoUrl.
+ */
+export function withCoverFallback(
+  items: IPortfolioItem[],
+  providerId: string,
+  coverUrl: string | null | undefined,
+  thumbnailUrl?: string | null,
+): IPortfolioItem[] {
+  if (!coverUrl || !coverUrl.trim()) return items;
+  const normCover = coverUrl.trim().toLowerCase();
+  if (items.some((it) => it.url.trim().toLowerCase() === normCover)) return items;
+  return [buildCoverFallbackItem(providerId, coverUrl, thumbnailUrl), ...items];
 }
 
 /** Serialized key for system propagation (index suffixed) */

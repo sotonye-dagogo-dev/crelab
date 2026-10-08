@@ -1,7 +1,7 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-updated-by: execute-feature (Session 2026-10-08 — cover-visible-everywhere)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: overwritten on every test run — always current
 
@@ -12,17 +12,17 @@
 ## Last Run
 
 **Date:** 2026-10-08
-**Run by:** execute-feature (residual-risks: leaderboard pagination + orphan backfill) + update-ai-system deep sync
+**Run by:** execute-feature (cover-visible-everywhere) + update-ai-system deep sync
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 407 | 0 | 0 |
+| Unit (vitest) | 418 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | Lint (next lint) | — | 0 errors (pre-existing warnings only) | — |
 | Production build | — | not re-run this session (no app-shell change; last green 2026-10-08 session) | — |
 
-**Overall Status:** ✅ All 407/407 tests pass. Typecheck clean. Lint 0 errors. +5 new leaderboard cache/context tests; +3 new media backfill tests (see History).
+**Overall Status:** ✅ All 418/418 tests pass. Typecheck clean. Lint 0 errors. +8 new portfolio cover-fallback tests; +2 new media backfill tests (photo cover, already-attached cover); see History.
 
 ---
 

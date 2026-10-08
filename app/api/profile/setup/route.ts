@@ -130,9 +130,12 @@ export async function POST(req: Request) {
       const { PortfolioItemSource } = await import("@/types");
       if (coverVideoUrl && typeof coverVideoUrl === "string" && coverVideoUrl.trim()) {
         const coverUrl = coverVideoUrl.trim();
-        const isImage = /\.(jpe?g|png|webp|gif|avif|heic)$/i.test(coverUrl);
+        const { coverMimeType, isImageCoverUrl } = await import("@/lib/portfolio");
+        const isImage = isImageCoverUrl(coverUrl);
         let thumbnailUrl: string | undefined;
-        if (!isImage) {
+        if (isImage) {
+          thumbnailUrl = coverUrl;
+        } else {
           try {
             const { generateVideoThumbnail } = await import("@/lib/cloudinary");
             thumbnailUrl = generateVideoThumbnail(coverUrl) || undefined;
@@ -146,14 +149,21 @@ export async function POST(req: Request) {
           url: coverUrl,
           thumbnailUrl,
           title: "Cover video",
-          mimeType: isImage ? "image/jpeg" : "video/mp4",
+          mimeType: coverMimeType(coverUrl),
         });
       }
-      // Rescue any other library uploads the user made while onboarding.
+      // Rescue any other library uploads the user made while onboarding —
+      // except the display picture (avatarUrl): avatars must never surface as
+      // portfolio/content items, while the cover (video OR photo) always must.
       const { MediaAssetService } = await import("@/services/MediaAssetService");
       const orphans = await MediaAssetService.listByOwner(userId).catch(() => []);
+      const normAvatar = typeof avatarUrl === "string" ? avatarUrl.trim().toLowerCase() : "";
+      const normCover = typeof coverVideoUrl === "string" ? coverVideoUrl.trim().toLowerCase() : "";
       for (const asset of orphans.slice(0, 20)) {
         try {
+          const normAsset = asset.url.trim().toLowerCase();
+          if (normAvatar && normAsset === normAvatar) continue;
+          if (normCover && normAsset === normCover) continue; // already attached above
           await PortfolioService.attachUploadToProvider(userId, {
             url: asset.url,
             thumbnailUrl: asset.thumbnailUrl,

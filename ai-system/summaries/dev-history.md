@@ -1,8 +1,23 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — nav/footer/leaderboard polish)
+> - last-updated-by: execute-feature (Session 2026-10-08 — cover-visible-everywhere)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Cover-Visible-Everywhere (content views + portfolios)
+
+### What
+Directive: any uploaded content must be visible in the explore content view and on provider portfolio pages — even when it currently only serves as the cover video/photo (display picture / avatar excluded). Providers showed cycling thumbnails on the providers view and viewable assets on the admin dashboard, yet content view and portfolios reported "No portfolio items found".
+
+### Verification
+`npm run test -- --run` → 34 files, **418 passed / 0 failed** (+8 portfolio cover-fallback tests, +2 backfill photo-cover/already-attached tests). `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only).
+
+### Key Changes
+- **Pure helpers** (`lib/portfolio.ts`) — `isImageCoverUrl` / `coverMimeType` / `buildCoverFallbackItem` (deterministic `cover-<providerId>` id, `orderIndex: -1`) / `withCoverFallback` (no-op on blank or already-present cover; never takes an avatar).
+- **Write path** — `reconcileAsset(cover)` now also ensures a visible DIRECT portfolio item (idempotent, advisory); setup orphan-rescue skips the avatar URL (display pictures never become content); backfill cover-repair handles photo covers (image mime + self-thumbnail) instead of assuming `video/mp4`; setup cover attach uses the shared helpers.
+- **Read path** — public portfolio page + `GET /api/explore/portfolio` (first-page fill) merge a missing cover as a synthetic item so pre-existing cover-only providers heal on read without waiting for admin Backfill; `ExploreService` counts a lone cover in `portfolioCount` and supplies a cover thumbnail to the tile carousel when no portfolio thumbnails exist.
+- **Docs close** — this entry + `session-log.md`, `project-decisions.md` (cover-vs-avatar), `system-architecture.md`, `dependency-graph.md`, `test-results.md` (418/418); `in-progress.md` cleared.
 
 
 ## Session 2026-10-08 — Nav / Footer / Leaderboard Polish
