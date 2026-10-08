@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import { portfolioItems, providers } from "@/drizzle/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
-import type { IPortfolioItem, PortfolioItemSource } from "@/types";
+import type { IPortfolioItem } from "@/types";
+import { PortfolioItemSource } from "@/types";
 
 export interface IPortfolioService {
   getByProvider(providerId: string): Promise<IPortfolioItem[]>;
@@ -160,8 +161,46 @@ export class PortfolioService {
     });
   }
 
-  static async setHidden(
-    id: string,
+  /**
+   * Attach a freshly uploaded media asset to the uploader's provider portfolio
+   * (when the uploader owns one). Uploads otherwise land only in the
+   * `media_assets` library as unlinked rows, so provider portfolios and the
+   * explore content view would stay empty despite successful uploads.
+   *
+   * Non-fatal by contract: returns `null` when the owner has no provider
+   * profile (e.g. admin uploads — those stay orphan until reconciled via
+   * `MediaAssetService.reconcileAsset`), and callers must swallow errors so a
+   * portfolio failure never fails the already-recorded upload. Idempotent via
+   * the `addItem` duplicate check (same URL → existing row returned).
+   */
+  static async attachUploadToProvider(
+    ownerUserId: string | null,
+    asset: {
+      url: string;
+      thumbnailUrl?: string | null;
+      mimeType: string;
+      title?: string;
+    },
+  ): Promise<IPortfolioItem | null> {
+    if (!ownerUserId) return null;
+    const providerRows = await db
+      .select({ id: providers.id })
+      .from(providers)
+      .where(eq(providers.userId, ownerUserId))
+      .limit(1);
+    const provider = providerRows[0];
+    if (!provider) return null;
+    return PortfolioService.addItem({
+      providerId: provider.id,
+      source: PortfolioItemSource.DIRECT,
+      url: asset.url,
+      thumbnailUrl: asset.thumbnailUrl ?? undefined,
+      title: asset.title,
+      mimeType: asset.mimeType,
+    });
+  }
+
+  static async setHidden(    id: string,
     visible: boolean,
   ): Promise<IPortfolioItem> {
     const [row] = await db

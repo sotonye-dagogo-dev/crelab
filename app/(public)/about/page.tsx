@@ -6,11 +6,13 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { IAboutPage } from "@/types";
+import { fillPlatformName } from "@/lib/platform-copy";
 
-// Static fallback data for build-time and when DB is unavailable
+// Static fallback data for build-time and when DB is unavailable.
+// `{{name}}` tokens are resolved against config at render time (see below).
 const FALLBACK_ABOUT_PAGE: IAboutPage = {
   id: "about-1",
-  heroTitle: "About Crellab",
+  heroTitle: "About {{name}}",
   heroSubtitle: "We're building the future of creative hiring in Africa — connecting brands with talented creators, cinematographers, and videographers.",
   sections: [
     {
@@ -36,11 +38,22 @@ const FALLBACK_ABOUT_PAGE: IAboutPage = {
     { label: "Report a Bug", href: "/bug-report" },
     { label: "Contact Us", href: "#contact" },
   ],
-  metaTitle: "About Crellab - Connecting African Creatives with Opportunity",
-  metaDescription: "Learn about Crellab's mission to connect brands with talented African creators, cinematographers, and videographers. Built for African creativity.",
+  metaTitle: "About {{name}} - Connecting African Creatives with Opportunity",
+  metaDescription: "Learn about {{name}}'s mission to connect brands with talented African creators, cinematographers, and videographers. Built for African creativity.",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
+
+function fillAboutPageName(page: IAboutPage, name: string): IAboutPage {
+  return {
+    ...page,
+    heroTitle: fillPlatformName(page.heroTitle, name),
+    metaTitle: page.metaTitle ? fillPlatformName(page.metaTitle, name) : page.metaTitle,
+    metaDescription: page.metaDescription
+      ? fillPlatformName(page.metaDescription, name)
+      : page.metaDescription,
+  };
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const { buildSeoMetadata } = await import("@/lib/seo");
@@ -58,6 +71,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
+  let config;
+  try {
+    config = await PlatformConfigService.getCached();
+  } catch {
+    config = DEFAULT_CONFIG;
+  }
+
   let pageData: IAboutPage | null = null;
   try {
     const result = await db
@@ -72,7 +92,7 @@ export default async function AboutPage() {
     // DB unavailable, will use fallback
   }
 
-  const data = pageData || FALLBACK_ABOUT_PAGE;
+  const data = pageData || fillAboutPageName(FALLBACK_ABOUT_PAGE, config.name);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -127,7 +147,7 @@ export default async function AboutPage() {
             Ready to get started?
           </h2>
           <p className="text-[var(--color-text-secondary)] mb-6 max-w-[480px] mx-auto">
-            Join thousands of creators and brands already using Crellab to build amazing
+            Join thousands of creators and brands already using {config.name} to build amazing
             things together.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -105,6 +105,11 @@ function RegisterForm() {
     }
   }, [oAuthReturn, oAuthNewUser, isLoading, isAuthenticated, router, searchParams]);
 
+  const claimReferral = () => {
+    // Non-blocking — referral attribution must never gate or delay sign-up.
+    fetch("/api/referrals/claim", { method: "POST" }).catch(() => {});
+  };
+
   const handleSubmit = async () => {
     if (!consentTerms) {
       setError("You must agree to the Terms of Service and Privacy Policy");
@@ -132,6 +137,7 @@ function RegisterForm() {
             throw new Error("Failed to set account type");
           }
         }
+        claimReferral();
         fetch("/api/email/welcome", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -167,6 +173,7 @@ function RegisterForm() {
             throw new Error("Failed to set account type");
           }
         }
+        claimReferral();
       }
 
       await captureConsent(userId, ConsentType.TERMS, consentTerms);

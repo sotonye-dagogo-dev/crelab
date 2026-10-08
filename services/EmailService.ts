@@ -267,4 +267,13 @@ export class EmailService {
       : "";
     return EmailService.send(to, "bugReportResolved", { ...vars, adminNotesBlock }, config);
   }
+
+  /** F8: seat confirmation for an upcoming webinar (guest or signed-in). */
+  static async sendWebinarRegistration(
+    to: string,
+    vars: { userName: string; webinarTitle: string; startsAt: string; joinUrl: string },
+    config?: IPlatformConfig,
+  ): Promise<EmailSendResult> {
+    return EmailService.send(to, "webinarRegistration", vars, config);
+  }
 }

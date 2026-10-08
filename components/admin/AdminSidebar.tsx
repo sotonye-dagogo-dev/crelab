@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlatformConfig } from "@/lib/config-context";
 import {
   Settings,
   Grid3X3,
@@ -22,6 +23,8 @@ import {
   History,
   Info,
   BookOpen,
+  Timer,
+  Video,
 } from "lucide-react";
 import { ClLogo } from "@/components/ui";
 
@@ -96,6 +99,16 @@ const navItems = [
     href: "/admin/how-it-works-page",
     icon: <BookOpen size={16} strokeWidth={1.5} />,
   },
+  {
+    label: "Countdown",
+    href: "/admin/countdown",
+    icon: <Timer size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "Webinars",
+    href: "/admin/webinars",
+    icon: <Video size={16} strokeWidth={1.5} />,
+  },
 ];
 
 export function AdminSidebar({
@@ -112,6 +125,7 @@ export function AdminSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { name: platformName } = usePlatformConfig();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -135,7 +149,7 @@ export function AdminSidebar({
           collapsed ? "justify-center px-2" : ""
         }`}
         onClick={() => navigate("/admin/config")}
-        title={collapsed ? "Crellab" : undefined}
+        title={collapsed ? platformName : undefined}
       >
         {collapsed ? (
           <ClLogo variant="icon" iconWidth={24} iconHeight={24} />

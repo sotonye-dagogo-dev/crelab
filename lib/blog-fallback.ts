@@ -1,6 +1,21 @@
 import type { IBlogPost } from "@/types/blog";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { fillPlatformName } from "@/lib/platform-copy";
 
-const fallbackPosts: IBlogPost[] = [
+// Module-scope fallback content: `{{name}}` tokens cannot read config here, so
+// they are resolved with fillPostName() inside each getter (the call site).
+interface FallbackContentBlock {
+  _type: "block";
+  _key: string;
+  style: string;
+  children: { _type: "span"; _key: string; text: string }[];
+}
+
+interface FallbackPost extends Omit<IBlogPost, "content"> {
+  content: FallbackContentBlock[];
+}
+
+const fallbackPosts: FallbackPost[] = [
   {
     _id: "fallback-1",
     title: "How to Choose the Right Content Creator for Your Brand",
@@ -10,18 +25,18 @@ const fallbackPosts: IBlogPost[] = [
       { _type: "block", _key: "h2-1", style: "h2", children: [{ _type: "span", _key: "h2-1-text", text: "1. Define Your Goals" }] },
       { _type: "block", _key: "p1", style: "normal", children: [{ _type: "span", _key: "p1-text", text: "Before you start browsing portfolios, get crystal clear on what you want to achieve. Are you looking for brand awareness? Product sales? Event coverage? Different creators excel at different types of content." }] },
       { _type: "block", _key: "h2-2", style: "h2", children: [{ _type: "span", _key: "h2-2-text", text: "2. Review Their Portfolio" }] },
-      { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "A creator's portfolio is their resume. Look for consistency in quality, storytelling ability, and whether their style aligns with your brand's aesthetic. On Crelab, you can watch video portfolios directly in the feed." }] },
+      { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "A creator's portfolio is their resume. Look for consistency in quality, storytelling ability, and whether their style aligns with your brand's aesthetic. On {{name}}, you can watch video portfolios directly in the feed." }] },
       { _type: "block", _key: "h2-3", style: "h2", children: [{ _type: "span", _key: "h2-3-text", text: "3. Check Reviews and Ratings" }] },
       { _type: "block", _key: "p3", style: "normal", children: [{ _type: "span", _key: "p3-text", text: "Previous client experiences tell you a lot. Look for creators with consistent high ratings and detailed reviews that mention professionalism, communication, and delivery quality." }] },
       { _type: "block", _key: "h2-4", style: "h2", children: [{ _type: "span", _key: "h2-4-text", text: "4. Start with a Small Project" }] },
-      { _type: "block", _key: "p4", style: "normal", children: [{ _type: "span", _key: "p4-text", text: "If you're unsure, many creators offer basic packages that are perfect for a trial run. Crelab's escrow system protects both parties, so you can start with confidence." }] },
-      { _type: "block", _key: "outro", style: "normal", children: [{ _type: "span", _key: "outro-text", text: "Ready to find your perfect creator? Browse Crelab's curated marketplace and discover Nigeria's best creative talent today." }] },
+      { _type: "block", _key: "p4", style: "normal", children: [{ _type: "span", _key: "p4-text", text: "If you're unsure, many creators offer basic packages that are perfect for a trial run. {{name}}'s escrow system protects both parties, so you can start with confidence." }] },
+      { _type: "block", _key: "outro", style: "normal", children: [{ _type: "span", _key: "outro-text", text: "Ready to find your perfect creator? Browse {{name}}'s curated marketplace and discover Nigeria's best creative talent today." }] },
     ],
     metaDescription: "A practical guide for brands looking to hire content creators in Nigeria. Learn how to evaluate portfolios, check reviews, and find the perfect creative partner.",
     heroImage: null,
     category: "hiring-guides",
     tags: ["hiring", "content creation", "brand marketing"],
-    author: "Crelab Editorial",
+    author: "{{name}} Editorial",
     publishedAt: "2026-07-15T00:00:00Z",
   },
   {
@@ -33,7 +48,7 @@ const fallbackPosts: IBlogPost[] = [
       { _type: "block", _key: "h2-1", style: "h2", children: [{ _type: "span", _key: "h2-1-text", text: "Know Your Costs" }] },
       { _type: "block", _key: "p1", style: "normal", children: [{ _type: "span", _key: "p1-text", text: "Start by calculating your monthly operating costs: equipment maintenance, software subscriptions, transportation, data, and your own time. A simple formula: (Monthly Costs + Desired Salary) / Available Working Days = Minimum Daily Rate." }] },
       { _type: "block", _key: "h2-2", style: "h2", children: [{ _type: "span", _key: "h2-2-text", text: "Research Market Rates" }] },
-      { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "On Crelab, you can browse what other creators with similar experience levels charge. Emerging creators typically price between ₦25,000–₦75,000 per project, while established and veteran creators command ₦100,000–₦750,000+." }] },
+      { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "On {{name}}, you can browse what other creators with similar experience levels charge. Emerging creators typically price between ₦25,000–₦75,000 per project, while established and veteran creators command ₦100,000–₦750,000+." }] },
       { _type: "block", _key: "h2-3", style: "h2", children: [{ _type: "span", _key: "h2-3-text", text: "Package Your Services" }] },
       { _type: "block", _key: "p3", style: "normal", children: [{ _type: "span", _key: "p3-text", text: "Tiered packages (Basic, Standard, Premium) make it easy for clients to choose. Each tier should offer progressively more value — more videos, faster turnaround, additional revisions, or extra deliverables." }] },
     ],
@@ -41,7 +56,7 @@ const fallbackPosts: IBlogPost[] = [
     heroImage: null,
     category: "pricing",
     tags: ["pricing", "freelance tips", "creative business"],
-    author: "Crelab Editorial",
+    author: "{{name}} Editorial",
     publishedAt: "2026-07-10T00:00:00Z",
   },
   {
@@ -61,7 +76,7 @@ const fallbackPosts: IBlogPost[] = [
     heroImage: null,
     category: "industry-news",
     tags: ["video marketing", "content strategy", "branding"],
-    author: "Crelab Editorial",
+    author: "{{name}} Editorial",
     publishedAt: "2026-07-05T00:00:00Z",
   },
   {
@@ -73,13 +88,13 @@ const fallbackPosts: IBlogPost[] = [
       { _type: "block", _key: "h2-1", style: "h2", children: [{ _type: "span", _key: "h2-1-text", text: "The Turning Point" }] },
       { _type: "block", _key: "p1", style: "normal", children: [{ _type: "span", _key: "p1-text", text: "\"The moment I stopped trying to be everything to everyone was when my career took off,\" Chioma recalls. \"I niched down to lifestyle and beauty UGC, and suddenly brands started reaching out to me.\"" }] },
       { _type: "block", _key: "h2-2", style: "h2", children: [{ _type: "span", _key: "h2-2-text", text: "Building a Portfolio" }] },
-      { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "Chioma credits her Crelab portfolio for landing her biggest clients. \"Having a professional space where clients can see my work, read reviews, and book me directly has been transformative. It's like having a 24/7 salesperson.\"" }] },
+      { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "Chioma credits her {{name}} portfolio for landing her biggest clients. \"Having a professional space where clients can see my work, read reviews, and book me directly has been transformative. It's like having a 24/7 salesperson.\"" }] },
     ],
     metaDescription: "Meet Chioma Eze, the Lagos-based content creator who built a thriving UGC career. Learn her strategies for niching down, building a portfolio, and landing brand deals.",
     heroImage: null,
     category: "creator-spotlights",
     tags: ["creator spotlight", "UGC", "career growth"],
-    author: "Crelab Editorial",
+    author: "{{name}} Editorial",
     publishedAt: "2026-06-28T00:00:00Z",
   },
   {
@@ -91,13 +106,13 @@ const fallbackPosts: IBlogPost[] = [
       { _type: "block", _key: "h2-1", style: "h2", children: [{ _type: "span", _key: "h2-1-text", text: "What You Need to Know" }] },
       { _type: "block", _key: "p1", style: "normal", children: [{ _type: "span", _key: "p1-text", text: "NDPR requires consent for data collection, purpose limitation, data minimisation, and the right to erasure. For creators, this means being transparent about how you use client data and footage." }] },
       { _type: "block", _key: "h2-2", style: "h2", children: [{ _type: "span", _key: "h2-2-text", text: "Practical Steps" }] },
-      { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "Create a simple privacy policy, obtain written consent before publishing content featuring individuals, store client data securely, and have a process for deletion requests. Crelab's built-in consent management makes this easier." }] },
+      { _type: "block", _key: "p2", style: "normal", children: [{ _type: "span", _key: "p2-text", text: "Create a simple privacy policy, obtain written consent before publishing content featuring individuals, store client data securely, and have a process for deletion requests. {{name}}'s built-in consent management makes this easier." }] },
     ],
     metaDescription: "A practical guide to NDPR compliance for Nigerian creative professionals. Learn how to protect client data and stay compliant with data protection regulations.",
     heroImage: null,
     category: "content-creation",
     tags: ["NDPR", "compliance", "data protection", "legal"],
-    author: "Crelab Editorial",
+    author: "{{name}} Editorial",
     publishedAt: "2026-06-20T00:00:00Z",
   },
   {
@@ -117,23 +132,40 @@ const fallbackPosts: IBlogPost[] = [
     heroImage: null,
     category: "content-creation",
     tags: ["video production", "budget tips", "filmmaking"],
-    author: "Crelab Editorial",
+    author: "{{name}} Editorial",
     publishedAt: "2026-06-15T00:00:00Z",
   },
 ];
 
+function fillPostName(post: FallbackPost): FallbackPost {
+  const name = DEFAULT_CONFIG.name;
+  return {
+    ...post,
+    author: fillPlatformName(post.author, name),
+    content: post.content.map((block) => ({
+      ...block,
+      children: block.children.map((child) => ({
+        ...child,
+        text: fillPlatformName(child.text, name),
+      })),
+    })),
+  };
+}
+
 export function getFallbackPosts(): IBlogPost[] {
-  return fallbackPosts;
+  return fallbackPosts.map(fillPostName);
 }
 
 export function getFallbackPostBySlug(slug: string): IBlogPost | null {
-  return fallbackPosts.find((p) => p.slug.current === slug) ?? null;
+  const post = fallbackPosts.find((p) => p.slug.current === slug);
+  return post ? fillPostName(post) : null;
 }
 
 export function getFallbackRelatedPosts(category: string, currentSlug: string, limit = 3): IBlogPost[] {
   return fallbackPosts
     .filter((p) => p.category === category && p.slug.current !== currentSlug)
-    .slice(0, limit);
+    .slice(0, limit)
+    .map(fillPostName);
 }
 
 export function getFallbackPostSlugs(): { slug: string }[] {

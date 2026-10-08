@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -455,6 +456,8 @@ export const bugReports = pgTable("bug_reports", {
   reporterEmail: text("reporter_email"),
   reporterName: text("reporter_name"),
   screenshotUrls: jsonb("screenshot_urls").default([]),
+  /** Sanitised technical context captured by the error boundary (message, stack, console logs) */
+  errorContext: jsonb("error_context"),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   resolvedById: text("resolved_by_id").references(() => user.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -555,3 +558,139 @@ export const howItWorksPage = pgTable("how_it_works_page", {
 });
 
 export const howItWorksPageRelations = relations(howItWorksPage, () => ({}));
+
+/* ── Referrals ── */
+
+/**
+ * One referral code per user, issued lazily on first access. Codes are opaque
+ * short strings carried in the share link (`/register?ref=CODE`) and captured
+ * in a cookie for the duration of sign-up.
+ */
+export const referralCodes = pgTable(
+  "referral_codes",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("referral_codes_code_idx").on(t.code), uniqueIndex("referral_codes_user_id_idx").on(t.userId)],
+);
+
+/**
+ * One row per (earner, invitee, degree, source). Degree 1 = the invitee signed
+ * up with this user's code. Degree 2 = the invitee was referred by someone this
+ * user had already referred — so the same invitee produces two rows owned by
+ * two different earners, and `referrerId` always names the direct link owner.
+ */
+export const referralEvents = pgTable(
+  "referral_events",
+  {
+    id: text("id").primaryKey(),
+    /** Who earns the points */
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** The account created through the referral */
+    inviteeId: text("invitee_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Direct owner of the code that was used (constant across degrees) */
+    referrerId: text("referrer_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    code: text("code"),
+    degree: integer("degree").notNull().default(1),
+    points: integer("points").notNull().default(0),
+    /** Factor key so other point sources can share the table later */
+    source: text("source").notNull().default("referral"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("referral_events_unique").on(t.userId, t.inviteeId, t.degree, t.source),
+    index("referral_events_invitee_idx").on(t.inviteeId),
+    index("referral_events_user_idx").on(t.userId),
+  ],
+);
+
+export const referralCodesRelations = relations(referralCodes, ({ one }) => ({
+  user: one(user, { fields: [referralCodes.userId], references: [user.id] }),
+}));
+
+export const referralEventsRelations = relations(referralEvents, ({ one }) => ({
+  user: one(user, { fields: [referralEvents.userId], references: [user.id] }),
+  invitee: one(user, { fields: [referralEvents.inviteeId], references: [user.id] }),
+  referrer: one(user, { fields: [referralEvents.referrerId], references: [user.id] }),
+}));
+
+/* ── Webinars ── */
+
+export const webinarStatusEnum = pgEnum("webinar_status", ["UPCOMING", "LIVE", "CANCELLED", "ENDED"]);
+export const webinarRegistrationStatusEnum = pgEnum("webinar_registration_status", ["REGISTERED", "CANCELLED"]);
+
+export const webinars = pgTable(
+  "webinars",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    subtitle: text("subtitle"),
+    description: text("description"),
+    coverUrl: text("cover_url"),
+    status: webinarStatusEnum("status").notNull().default("UPCOMING"),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    durationMinutes: integer("duration_minutes"),
+    locationNote: text("location_note"),
+    ctaLabel: text("cta_label"),
+    ctaHref: text("cta_href"),
+    recordingUrl: text("recording_url"),
+    /** Past-webinar materials — EmailTemplateBlock[] rendered by ContentBlocks */
+    contentBlocks: jsonb("content_blocks").default([]),
+    metaTitle: text("meta_title"),
+    metaDescription: text("meta_description"),
+    orderIndex: integer("order_index").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("webinars_slug_idx").on(t.slug), index("webinars_status_idx").on(t.status, t.startsAt)],
+);
+
+export const webinarRegistrations = pgTable(
+  "webinar_registrations",
+  {
+    id: text("id").primaryKey(),
+    webinarId: text("webinar_id")
+      .notNull()
+      .references(() => webinars.id, { onDelete: "cascade" }),
+    /** Null for guest registrations — guests only leave an email */
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    email: text("email").notNull(),
+    /** Lowercased copy of `email` — the uniqueness key (portable, no lower() index) */
+    emailKey: text("email_key").notNull(),
+    name: text("name"),
+    /** NDPR: marketing consent is explicit and stored, never assumed */
+    consentMarketing: boolean("consent_marketing").notNull().default(false),
+    status: webinarRegistrationStatusEnum("status").notNull().default("REGISTERED"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("webinar_registrations_email_idx").on(t.webinarId, t.emailKey),
+    uniqueIndex("webinar_registrations_user_idx").on(t.webinarId, t.userId),
+    index("webinar_registrations_status_idx").on(t.webinarId, t.status),
+  ],
+);
+
+export const webinarsRelations = relations(webinars, ({ many }) => ({
+  registrations: many(webinarRegistrations),
+}));
+
+export const webinarRegistrationsRelations = relations(webinarRegistrations, ({ one }) => ({
+  webinar: one(webinars, { fields: [webinarRegistrations.webinarId], references: [webinars.id] }),
+  user: one(user, { fields: [webinarRegistrations.userId], references: [user.id] }),
+}));

@@ -1,91 +1,96 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="crelab-design" content="design-system">
-  <meta name="crelab-component" content="NavBar,ExploreVideoCard,ClButton,FilterBar,GuestHero,ScrollToTop">
-  <title>Crelab — Explore</title>
+  <meta name="crellab-design" content="design-system">
+  <meta name="crellab-component" content="NavBar,ExploreVideoCard,ClButton,FilterBar,GuestHero,ScrollToTop">
+  <title>Crellab — Explore</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700;800&display=swap');
 
     :root {
-      --color-bg:              #0A0A0A;
-      --color-surface:         #141414;
-      --color-surface-raised:  #1C1C1C;
-      --color-border:          #2A2A2A;
-      --color-border-mid:      #3D3D3D;
-      --color-accent:          #E8FF47;
-      --color-accent-dim:      #C8DF3C;
-      --color-accent-muted:    #1E2200;
-      --color-text-primary:    #F2F2F2;
-      --color-text-secondary:  #9A9A9A;
-      --color-text-tertiary:   #5C5C5C;
-      --color-text-inverse:    #0A0A0A;
-      --color-success:         #4ADE80;
-      --color-warning:         #FACC15;
-      --color-error:           #F87171;
-      --color-info:            #60A5FA;
-      --color-escrow-held:     #FACC15;
+      --color-bg: #0A0A0A;
+      --color-surface: #141414;
+      --color-surface-raised: #1C1C1C;
+      --color-border: #2A2A2A;
+      --color-border-mid: #3D3D3D;
+      --color-accent: #E8FF47;
+      --color-accent-dim: #C8DF3C;
+      --color-accent-muted: #1E2200;
+      --color-text-primary: #F2F2F2;
+      --color-text-secondary: #9A9A9A;
+      --color-text-tertiary: #5C5C5C;
+      --color-text-inverse: #0A0A0A;
+      --color-success: #4ADE80;
+      --color-warning: #FACC15;
+      --color-error: #F87171;
+      --color-info: #60A5FA;
+      --color-escrow-held: #FACC15;
       --color-escrow-progress: #A78BFA;
       --color-escrow-released: #4ADE80;
       --color-escrow-disputed: #F87171;
 
       --font-display: 'Syne', system-ui, sans-serif;
-      --font-body:    'Inter', system-ui, sans-serif;
-      --font-mono:    'JetBrains Mono', monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
 
-      --text-xs:   0.75rem;
-      --text-sm:   0.875rem;
+      --text-xs: 0.75rem;
+      --text-sm: 0.875rem;
       --text-base: 1rem;
-      --text-lg:   1.125rem;
-      --text-xl:   1.25rem;
-      --text-2xl:  1.5rem;
-      --text-3xl:  1.875rem;
-      --text-4xl:  2.25rem;
-      --text-5xl:  3rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.25rem;
+      --text-2xl: 1.5rem;
+      --text-3xl: 1.875rem;
+      --text-4xl: 2.25rem;
+      --text-5xl: 3rem;
 
-      --weight-regular:   400;
-      --weight-medium:    500;
-      --weight-semibold:  600;
-      --weight-bold:      700;
+      --weight-regular: 400;
+      --weight-medium: 500;
+      --weight-semibold: 600;
+      --weight-bold: 700;
       --weight-extrabold: 800;
 
-      --leading-tight:   1.2;
-      --leading-normal:  1.5;
+      --leading-tight: 1.2;
+      --leading-normal: 1.5;
       --leading-relaxed: 1.7;
 
-      --space-1:  0.25rem;
-      --space-2:  0.5rem;
-      --space-3:  0.75rem;
-      --space-4:  1rem;
-      --space-5:  1.25rem;
-      --space-6:  1.5rem;
-      --space-8:  2rem;
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
       --space-10: 2.5rem;
       --space-12: 3rem;
       --space-16: 4rem;
       --space-20: 5rem;
 
-      --radius-sm:   4px;
-      --radius-md:   8px;
-      --radius-lg:   12px;
-      --radius-xl:   16px;
-      --radius-2xl:  24px;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-2xl: 24px;
       --radius-full: 9999px;
 
       --max-width-content: 1200px;
 
-      --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --duration-fast:   150ms;
-      --duration-base:   250ms;
-      --duration-slow:   400ms;
+      --duration-fast: 150ms;
+      --duration-base: 250ms;
+      --duration-slow: 400ms;
       --duration-slower: 600ms;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background: var(--color-bg);
@@ -116,7 +121,7 @@
       left: 0;
       right: 0;
       height: 64px;
-      background: rgba(10,10,10,0.85);
+      background: rgba(10, 10, 10, 0.85);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--color-border);
@@ -156,6 +161,7 @@
       color: var(--color-text-primary);
       letter-spacing: -0.01em;
     }
+
     /* platformConfig.name — never hardcoded in production */
 
     .nav-center {
@@ -163,6 +169,7 @@
       align-items: center;
       gap: var(--space-8);
     }
+
     .nav-center a {
       font-family: var(--font-body);
       font-weight: var(--weight-medium);
@@ -171,7 +178,10 @@
       text-decoration: none;
       transition: color var(--duration-fast) var(--ease-out);
     }
-    .nav-center a:hover { color: var(--color-text-primary); }
+
+    .nav-center a:hover {
+      color: var(--color-text-primary);
+    }
 
     .nav-right {
       display: flex;
@@ -194,6 +204,7 @@
       flex-direction: column;
       gap: 4px;
     }
+
     .nav-hamburger span {
       display: block;
       width: 16px;
@@ -218,10 +229,12 @@
       pointer-events: none;
       transition: opacity 250ms var(--ease-out);
     }
+
     .mobile-overlay.open {
       opacity: 1;
       pointer-events: auto;
     }
+
     .mobile-overlay a {
       font-family: var(--font-display);
       font-size: var(--text-2xl);
@@ -229,6 +242,7 @@
       text-decoration: none;
       font-weight: var(--weight-bold);
     }
+
     .mobile-overlay .close-btn {
       position: absolute;
       top: var(--space-6);
@@ -262,37 +276,72 @@
       text-decoration: none;
       white-space: nowrap;
       transition: background var(--duration-fast) var(--ease-out),
-                  border-color var(--duration-fast) var(--ease-out),
-                  color var(--duration-fast) var(--ease-out);
+        border-color var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out);
     }
-    .cl-btn:active { transform: scale(0.98); }
-    .cl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
-    .cl-btn-default { height: 40px; padding: 0 var(--space-4); font-size: 14px; }
-    .cl-btn-sm { height: 32px; padding: 0 var(--space-3); font-size: 13px; }
-    .cl-btn-lg { height: 48px; padding: 0 var(--space-6); font-size: 15px; }
+    .cl-btn:active {
+      transform: scale(0.98);
+    }
+
+    .cl-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .cl-btn-default {
+      height: 40px;
+      padding: 0 var(--space-4);
+      font-size: 14px;
+    }
+
+    .cl-btn-sm {
+      height: 32px;
+      padding: 0 var(--space-3);
+      font-size: 13px;
+    }
+
+    .cl-btn-lg {
+      height: 48px;
+      padding: 0 var(--space-6);
+      font-size: 15px;
+    }
 
     .cl-btn-primary {
       background: var(--color-accent);
       color: var(--color-text-inverse);
       border-color: transparent;
     }
-    .cl-btn-primary:hover { background: var(--color-accent-dim); }
-    .cl-btn-primary:active { background: var(--color-accent-dim); }
+
+    .cl-btn-primary:hover {
+      background: var(--color-accent-dim);
+    }
+
+    .cl-btn-primary:active {
+      background: var(--color-accent-dim);
+    }
 
     .cl-btn-outlined {
       background: transparent;
       color: var(--color-text-primary);
       border-color: var(--color-border-mid);
     }
-    .cl-btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    .cl-btn-outlined:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
 
     .cl-btn-ghost {
       background: transparent;
       color: var(--color-text-secondary);
       border-color: transparent;
     }
-    .cl-btn-ghost:hover { color: var(--color-text-primary); }
+
+    .cl-btn-ghost:hover {
+      color: var(--color-text-primary);
+    }
 
     /* ============================================================
        Guest Hero
@@ -305,6 +354,7 @@
       align-items: center;
       padding: var(--space-12) var(--space-6);
     }
+
     .guest-hero-inner {
       max-width: var(--max-width-content);
       width: 100%;
@@ -315,10 +365,12 @@
       align-items: center;
       gap: var(--space-8);
     }
+
     .guest-hero-left {
       flex: 1;
       max-width: 560px;
     }
+
     .guest-hero-heading {
       font-family: var(--font-display);
       font-weight: var(--weight-extrabold);
@@ -328,11 +380,13 @@
       letter-spacing: -0.02em;
       margin-bottom: var(--space-6);
     }
+
     .guest-hero-actions {
       display: flex;
       gap: var(--space-3);
       flex-wrap: wrap;
     }
+
     .guest-hero-video-placeholder {
       width: 360px;
       height: 200px;
@@ -344,10 +398,11 @@
       justify-content: center;
       flex-shrink: 0;
     }
+
     .guest-hero-video-placeholder svg {
       width: 36px;
       height: 36px;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255, 255, 255, 0.4);
     }
 
     /* ============================================================
@@ -358,7 +413,7 @@
       top: 69px;
       width: 100%;
       height: 56px;
-      background: rgba(10,10,10,0.95);
+      background: rgba(10, 10, 10, 0.95);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--color-border);
@@ -367,6 +422,7 @@
       align-items: center;
       padding: 0 var(--space-6);
     }
+
     .filter-inner {
       max-width: var(--max-width-content);
       width: 100%;
@@ -377,11 +433,13 @@
       align-items: center;
       height: 100%;
     }
+
     .filter-search-wrap {
       position: relative;
       flex: 1;
       min-width: 120px;
     }
+
     .filter-search-wrap svg {
       position: absolute;
       left: 10px;
@@ -392,6 +450,7 @@
       color: var(--color-text-tertiary);
       pointer-events: none;
     }
+
     .filter-search {
       width: 100%;
       height: 36px;
@@ -405,8 +464,14 @@
       outline: none;
       transition: border-color var(--duration-fast) var(--ease-out);
     }
-    .filter-search::placeholder { color: var(--color-text-tertiary); }
-    .filter-search:focus { border-color: var(--color-accent); }
+
+    .filter-search::placeholder {
+      color: var(--color-text-tertiary);
+    }
+
+    .filter-search:focus {
+      border-color: var(--color-accent);
+    }
 
     .filter-select {
       height: 36px;
@@ -426,9 +491,17 @@
       background-position: right 10px center;
       transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
     }
-    .filter-select:focus { border-color: var(--color-accent); }
-    .filter-select.active { border-color: var(--color-accent); color: var(--color-text-primary); }
-    <!-- Filter schema rendered from platformConfig.categories in production. Never hardcoded. -->
+
+    .filter-select:focus {
+      border-color: var(--color-accent);
+    }
+
+    .filter-select.active {
+      border-color: var(--color-accent);
+      color: var(--color-text-primary);
+    }
+
+    < !-- Filter schema rendered from platformConfig.categories in production. Never hardcoded. -->
 
     /* ============================================================
        Masonry Grid
@@ -438,13 +511,29 @@
       margin: 0 auto;
       padding: var(--space-6) var(--space-6) 0;
     }
+
     .explore-grid {
       column-count: 2;
       column-gap: var(--space-2);
     }
-    @media (min-width: 640px) { .explore-grid { column-count: 3; } }
-    @media (min-width: 1024px) { .explore-grid { column-count: 4; } }
-    @media (min-width: 1440px) { .explore-grid { column-count: 5; } }
+
+    @media (min-width: 640px) {
+      .explore-grid {
+        column-count: 3;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .explore-grid {
+        column-count: 4;
+      }
+    }
+
+    @media (min-width: 1440px) {
+      .explore-grid {
+        column-count: 5;
+      }
+    }
 
     /* ============================================================
        ExploreVideoCard
@@ -461,10 +550,12 @@
       margin-bottom: var(--space-2);
       break-inside: avoid;
     }
+
     .explore-card:hover {
       transform: scale(1.02);
       box-shadow: 0 0 0 1px var(--color-accent), 0 0 16px rgba(232, 255, 71, 0.15);
     }
+
     .explore-card-video {
       position: relative;
       background: var(--color-surface-raised);
@@ -473,20 +564,23 @@
       justify-content: center;
       width: 100%;
     }
+
     .explore-card-video .play-icon {
       width: 24px;
       height: 24px;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255, 255, 255, 0.5);
     }
+
     .explore-card-gradient {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
       height: 60%;
-      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
       pointer-events: none;
     }
+
     .explore-card-info {
       position: absolute;
       bottom: 0;
@@ -497,10 +591,12 @@
       flex-direction: column;
       gap: 2px;
     }
+
     .explore-card-category {
       align-self: flex-start;
       margin-bottom: var(--space-2);
     }
+
     .cl-badge-category {
       display: inline-flex;
       align-items: center;
@@ -513,6 +609,7 @@
       background: var(--color-accent);
       color: var(--color-text-inverse);
     }
+
     .explore-card-name {
       font-family: var(--font-display);
       font-size: 14px;
@@ -520,11 +617,13 @@
       color: var(--color-text-primary);
       line-height: var(--leading-tight);
     }
+
     .explore-card-meta {
       display: flex;
       align-items: center;
       gap: var(--space-2);
     }
+
     .explore-card-stars {
       font-family: var(--font-mono);
       font-size: 12px;
@@ -532,16 +631,19 @@
       color: var(--color-warning);
       font-variant-numeric: tabular-nums;
     }
+
     .explore-card-price {
       font-family: var(--font-body);
       font-size: 12px;
       color: var(--color-text-secondary);
     }
+
     .explore-card-price .price-amount {
       font-family: var(--font-mono);
       color: var(--color-accent);
       font-weight: var(--weight-medium);
     }
+
     .explore-card-hover-cta {
       position: absolute;
       top: var(--space-3);
@@ -560,10 +662,12 @@
       white-space: nowrap;
       z-index: 2;
     }
+
     .explore-card:hover .explore-card-hover-cta {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+
     .explore-card-drive-badge {
       position: absolute;
       bottom: var(--space-2);
@@ -578,7 +682,8 @@
       line-height: 1.4;
       z-index: 2;
     }
-    <!-- IntersectionObserver triggers autoplay in production. Muted looped <video> replaces placeholder. -->
+
+    < !-- IntersectionObserver triggers autoplay in production. Muted looped <video>replaces placeholder. -->
 
     /* ============================================================
        Load More
@@ -611,10 +716,12 @@
       transition: opacity var(--duration-base) var(--ease-out), background var(--duration-fast) var(--ease-out);
       z-index: 30;
     }
+
     .scroll-top-btn.visible {
       opacity: 1;
       pointer-events: auto;
     }
+
     .scroll-top-btn:hover {
       background: var(--color-surface-raised);
       color: var(--color-text-primary);
@@ -624,23 +731,64 @@
        Responsive
     ============================================================ */
     @media (max-width: 640px) {
-      .nav-center { display: none; }
-      .nav-right { display: none; }
-      .nav-hamburger { display: flex; }
-      .guest-hero-inner { flex-direction: column; text-align: center; }
-      .guest-hero-heading { font-size: var(--text-3xl); }
-      .guest-hero-actions { justify-content: center; }
-      .guest-hero-video-placeholder { display: none; }
-      .filter-inner { overflow-x: auto; gap: var(--space-2); scrollbar-width: none; }
-      .filter-inner::-webkit-scrollbar { display: none; }
-      .filter-select { min-width: 100px; flex-shrink: 0; }
-      .scroll-top-btn { bottom: 16px; right: 16px; }
+      .nav-center {
+        display: none;
+      }
+
+      .nav-right {
+        display: none;
+      }
+
+      .nav-hamburger {
+        display: flex;
+      }
+
+      .guest-hero-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .guest-hero-heading {
+        font-size: var(--text-3xl);
+      }
+
+      .guest-hero-actions {
+        justify-content: center;
+      }
+
+      .guest-hero-video-placeholder {
+        display: none;
+      }
+
+      .filter-inner {
+        overflow-x: auto;
+        gap: var(--space-2);
+        scrollbar-width: none;
+      }
+
+      .filter-inner::-webkit-scrollbar {
+        display: none;
+      }
+
+      .filter-select {
+        min-width: 100px;
+        flex-shrink: 0;
+      }
+
+      .scroll-top-btn {
+        bottom: 16px;
+        right: 16px;
+      }
     }
+
     @media (min-width: 641px) {
-      .mobile-overlay { display: none !important; }
+      .mobile-overlay {
+        display: none !important;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- ========== Nav Bar ========== -->
@@ -650,7 +798,7 @@
       <div class="nav-left">
         <div class="nav-logo-mark"></div>
         <!-- platformConfig.name — never hardcoded in production -->
-        <span class="nav-logo-text">Crelab</span>
+        <span class="nav-logo-text">Crellab</span>
       </div>
       <div class="nav-center">
         <a href="#">Explore</a>
@@ -684,13 +832,17 @@
         <!-- platformConfig.tagline in production -->
         <h1 class="guest-hero-heading">Get hired for your creativity, not your follower count.</h1>
         <div class="guest-hero-actions">
-          <button class="cl-btn cl-btn-default cl-btn-primary" style="height:44px;padding:0 24px">Browse Creators</button>
-          <button class="cl-btn cl-btn-default cl-btn-outlined" style="height:44px;padding:0 24px">Join as Creator</button>
+          <button class="cl-btn cl-btn-default cl-btn-primary" style="height:44px;padding:0 24px">Browse
+            Creators</button>
+          <button class="cl-btn cl-btn-default cl-btn-outlined" style="height:44px;padding:0 24px">Join as
+            Creator</button>
         </div>
       </div>
       <!-- Cover reel autoplay in production -->
       <div class="guest-hero-video-placeholder">
-        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z" />
+        </svg>
       </div>
     </div>
   </section>
@@ -699,7 +851,10 @@
   <div class="filter-bar">
     <div class="filter-inner">
       <div class="filter-search-wrap">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="M16 16l4 4"/></svg>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="10.5" cy="10.5" r="7.5" />
+          <path d="M16 16l4 4" />
+        </svg>
         <input class="filter-search" type="text" placeholder="Search creators..." />
       </div>
       <select class="filter-select">
@@ -738,7 +893,9 @@
       <!-- Card 1 -->
       <div class="explore-card" style="--card-h:240px">
         <div class="explore-card-video" style="height:240px;background:#141414">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -755,7 +912,9 @@
       <!-- Card 2 -->
       <div class="explore-card" style="--card-h:320px">
         <div class="explore-card-video" style="height:320px;background:#0D0D1A">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -773,7 +932,9 @@
       <!-- Card 3 -->
       <div class="explore-card" style="--card-h:260px">
         <div class="explore-card-video" style="height:260px;background:#0A0A14">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -790,7 +951,9 @@
       <!-- Card 4 -->
       <div class="explore-card" style="--card-h:300px">
         <div class="explore-card-video" style="height:300px;background:#141414">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -807,7 +970,9 @@
       <!-- Card 5 -->
       <div class="explore-card" style="--card-h:280px">
         <div class="explore-card-video" style="height:280px;background:#0D0D1A">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -824,7 +989,9 @@
       <!-- Card 6 -->
       <div class="explore-card" style="--card-h:340px">
         <div class="explore-card-video" style="height:340px;background:#0A0A14">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -842,7 +1009,9 @@
       <!-- Card 7 -->
       <div class="explore-card" style="--card-h:250px">
         <div class="explore-card-video" style="height:250px;background:#141414">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -859,7 +1028,9 @@
       <!-- Card 8 -->
       <div class="explore-card" style="--card-h:310px">
         <div class="explore-card-video" style="height:310px;background:#0D0D1A">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -876,7 +1047,9 @@
       <!-- Card 9 -->
       <div class="explore-card" style="--card-h:270px">
         <div class="explore-card-video" style="height:270px;background:#0A0A14">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -894,7 +1067,9 @@
       <!-- Card 10 -->
       <div class="explore-card" style="--card-h:330px">
         <div class="explore-card-video" style="height:330px;background:#141414">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -911,7 +1086,9 @@
       <!-- Card 11 -->
       <div class="explore-card" style="--card-h:290px">
         <div class="explore-card-video" style="height:290px;background:#0D0D1A">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -928,7 +1105,9 @@
       <!-- Card 12 -->
       <div class="explore-card" style="--card-h:350px">
         <div class="explore-card-video" style="height:350px;background:#0A0A14">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -945,7 +1124,9 @@
       <!-- Card 13 -->
       <div class="explore-card" style="--card-h:255px">
         <div class="explore-card-video" style="height:255px;background:#141414">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -963,7 +1144,9 @@
       <!-- Card 14 -->
       <div class="explore-card" style="--card-h:315px">
         <div class="explore-card-video" style="height:315px;background:#0D0D1A">
-          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </div>
         <div class="explore-card-gradient"></div>
         <div class="explore-card-hover-cta">View Profile →</div>
@@ -986,38 +1169,40 @@
 
   <!-- Scroll to top -->
   <button class="scroll-top-btn" id="scrollTopBtn" aria-label="Scroll to top">
-    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20"><path d="M18 15l-6-6-6 6"/></svg>
+    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="20" height="20">
+      <path d="M18 15l-6-6-6 6" />
+    </svg>
   </button>
 
   <script>
-    (function() {
+    (function () {
       // ---- Hamburger menu ----
       var hamburger = document.getElementById('hamburger');
       var overlay = document.getElementById('mobileOverlay');
       var closeBtn = document.getElementById('closeOverlay');
       if (hamburger && overlay) {
-        hamburger.addEventListener('click', function() { overlay.classList.add('open'); });
-        closeBtn.addEventListener('click', function() { overlay.classList.remove('open'); });
-        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.classList.remove('open'); });
+        hamburger.addEventListener('click', function () { overlay.classList.add('open'); });
+        closeBtn.addEventListener('click', function () { overlay.classList.remove('open'); });
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.classList.remove('open'); });
       }
 
       // ---- Scroll to top ----
       var scrollBtn = document.getElementById('scrollTopBtn');
-      window.addEventListener('scroll', function() {
+      window.addEventListener('scroll', function () {
         if (window.scrollY > 300) {
           scrollBtn.classList.add('visible');
         } else {
           scrollBtn.classList.remove('visible');
         }
       });
-      scrollBtn.addEventListener('click', function() {
+      scrollBtn.addEventListener('click', function () {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
       // ---- Filter select active state ----
       var selects = document.querySelectorAll('.filter-select');
-      selects.forEach(function(sel) {
-        sel.addEventListener('change', function() {
+      selects.forEach(function (sel) {
+        sel.addEventListener('change', function () {
           if (this.selectedIndex > 0) {
             this.classList.add('active');
           } else {
@@ -1029,7 +1214,7 @@
       // ---- Masonry card hover fix (no JS needed, CSS handles it) ----
 
       // ---- Overlay close on Escape ----
-      document.addEventListener('keydown', function(e) {
+      document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && overlay && overlay.classList.contains('open')) {
           overlay.classList.remove('open');
         }
@@ -1037,4 +1222,5 @@
     })();
   </script>
 </body>
+
 </html>

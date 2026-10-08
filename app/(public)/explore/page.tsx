@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState, useMemo, useEffect } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { ChevronUp, Grid, List } from "lucide-react";
+import { Grid, List } from "lucide-react";
 import { usePlatformConfig } from "@/lib/config-context";
 import { ExploreFilterBar } from "@/components/explore/ExploreFilterBar";
 import { ExploreGrid } from "@/components/explore/ExploreGrid";
 import { PortfolioGallery } from "@/components/explore/PortfolioGallery";
+import { CountdownSlot } from "@/components/shared/CountdownSlot";
 import type { IExploreFilters, PaginatedResponse, IExploreCard, IPortfolioItem } from "@/types";
 
 type PortfolioGalleryResponse = PaginatedResponse<IPortfolioItem>;
@@ -14,14 +15,7 @@ type PortfolioGalleryResponse = PaginatedResponse<IPortfolioItem>;
 export default function ExplorePage() {
   const platformConfig = usePlatformConfig();
   const [filters, setFilters] = useState<IExploreFilters>({});
-  const [scrollY, setScrollY] = useState(0);
   const [viewMode, setViewMode] = useState<"creators" | "gallery">("creators");
-
-  useEffect(() => {
-    const handler = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handler, { passive: true });
-    return () => window.removeEventListener("scroll", handler);
-  }, []);
 
   const fetchProviders = useCallback(
     async ({ pageParam }: { pageParam: string | undefined }) => {
@@ -101,12 +95,10 @@ export default function ExplorePage() {
     [galleryData],
   );
 
-  const handleScrollToTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
+      <CountdownSlot area="explore" />
+
       <ExploreFilterBar
         categories={platformConfig.categories}
         filters={filters}
@@ -167,16 +159,6 @@ export default function ExplorePage() {
           isError={galleryError}
         />
       )}
-
-      <button
-        onClick={handleScrollToTop}
-        aria-label="Scroll to top"
-        className={`fixed bottom-8 right-8 max-[640px]:bottom-4 max-[640px]:right-4 w-11 h-11 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] cursor-pointer flex items-center justify-center z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] ${
-          scrollY > 300 ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <ChevronUp size={20} strokeWidth={2.5} />
-      </button>
     </div>
   );
 }

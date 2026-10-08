@@ -1,21 +1,51 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ClButton, ClInput, ClTextarea, ClSelect } from "@/components/ui";
 import { useToast } from "@/lib/toast";
-import { Bug, X, Upload } from "lucide-react";
+import { usePlatformConfig } from "@/lib/config-context";
+import { clearErrorContext, readErrorContext, type IErrorContext } from "@/lib/sanitize-error";
+import { Bug, X, Upload, Paperclip, Unlink, ChevronDown, ChevronUp } from "lucide-react";
 
 const MAX_SCREENSHOTS = 3;
 const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024;
 
+function formatTimestamp(value: string): string {
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? value : new Date(parsed).toLocaleString();
+}
+
 export default function BugReportPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { bugReport } = usePlatformConfig();
   const [submitting, setSubmitting] = useState(false);
   const [screenshots, setScreenshots] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Technical context handed over by the error boundary via sessionStorage.
+  // `?e=1` is only the signal that a payload should be picked up.
+  const [attached, setAttached] = useState<IErrorContext | null>(null);
+  const [showAttachedDetails, setShowAttachedDetails] = useState(false);
+  const [severity, setSeverity] = useState<string>("MEDIUM");
+  const severityPref = bugReport?.severity;
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("e") !== "1") return;
+    const ctx = readErrorContext();
+    if (!ctx) return;
+    setAttached(ctx);
+    // Severity preselected on reports raised from the error popup (config-driven)
+    if (severityPref) setSeverity(severityPref);
+  }, [severityPref]);
+
+  function detachErrorContext() {
+    clearErrorContext();
+    setAttached(null);
+    setShowAttachedDetails(false);
+    toast("Captured error details detached", "success");
+  }
 
   function addFiles(files: FileList | File[]) {
     const incoming = Array.from(files);
@@ -58,10 +88,11 @@ export default function BugReportPage() {
     if (base.get("stepsToReproduce")) fd.set("stepsToReproduce", base.get("stepsToReproduce") as string);
     if (base.get("expectedBehavior")) fd.set("expectedBehavior", base.get("expectedBehavior") as string);
     if (base.get("actualBehavior")) fd.set("actualBehavior", base.get("actualBehavior") as string);
-    fd.set("severity", (base.get("severity") as string) || "MEDIUM");
+    fd.set("severity", severity);
     if (base.get("reporterEmail")) fd.set("reporterEmail", base.get("reporterEmail") as string);
     if (base.get("reporterName")) fd.set("reporterName", base.get("reporterName") as string);
     if (typeof window !== "undefined") fd.set("pageUrl", window.location.href);
+    if (attached) fd.set("errorContext", JSON.stringify(attached));
     for (const f of screenshots) fd.append("screenshots", f);
 
     try {
@@ -83,6 +114,7 @@ export default function BugReportPage() {
       }
 
       toast("Bug report submitted. Thank you!", "success");
+      clearErrorContext();
       router.push("/");
     } catch {
       toast("Something went wrong. Please try again.", "error");
@@ -100,6 +132,83 @@ export default function BugReportPage() {
             Report a Bug
           </h1>
         </div>
+
+        {/* Captured error handed over by the error boundary (sessionStorage) */}
+        {attached && (
+          <section
+            aria-label="Attached error details"
+            className="mb-6 rounded-lg border border-[var(--color-primary)]/40 bg-[var(--color-surface)] p-4 space-y-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <Paperclip className="w-4 h-4 shrink-0 mt-0.5 text-[var(--color-primary)]" />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold">Attached error details</p>
+                  <p className="text-[12px] text-[var(--color-text-tertiary)]">
+                    Captured automatically when the error happened — they will be sent with your report unless you detach them.
+                  </p>
+                </div>
+              </div>
+              <ClButton type="button" variant="outlined" size="sm" onClick={detachErrorContext}>
+                <Unlink className="w-3.5 h-3.5" />
+                Detach
+              </ClButton>
+            </div>
+
+            <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 space-y-1.5">
+              <p className="text-[13px] font-mono break-words text-[var(--color-text-primary)]">
+                {attached.message || "Unknown error"}
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--color-text-tertiary)]">
+                <span>{formatTimestamp(attached.timestamp)}</span>
+                {attached.source && <span>{attached.source}</span>}
+                {attached.url && (
+                  <span className="truncate max-w-[300px]" title={attached.url}>
+                    {attached.url}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAttachedDetails((prev) => !prev)}
+              aria-expanded={showAttachedDetails}
+              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+            >
+              {showAttachedDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {showAttachedDetails ? "Hide technical details" : "Show technical details"}
+            </button>
+
+            {showAttachedDetails && (
+              <div className="space-y-3 text-[12px]">
+                {attached.stack ? (
+                  <div>
+                    <span className="font-semibold text-[var(--color-text-tertiary)]">Stack trace</span>
+                    <pre className="mt-1 max-h-64 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-2 text-[11px] text-[var(--color-text-secondary)]">
+                      {attached.stack}
+                    </pre>
+                  </div>
+                ) : (
+                  <p className="text-[var(--color-text-tertiary)]">No stack trace was captured.</p>
+                )}
+
+                {attached.consoleLogs.length > 0 && (
+                  <div>
+                    <span className="font-semibold text-[var(--color-text-tertiary)]">
+                      Console logs ({attached.consoleLogs.length})
+                    </span>
+                    <pre className="mt-1 max-h-64 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-2 text-[11px] text-[var(--color-text-secondary)]">
+                      {attached.consoleLogs
+                        .map((entry) => `${entry.time || "—"} [${entry.level}] ${entry.message}`)
+                        .join("\n")}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <label className="flex flex-col gap-1.5">
@@ -158,7 +267,7 @@ export default function BugReportPage() {
 
           <label className="flex flex-col gap-1.5">
             <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Severity</span>
-            <ClSelect name="severity" defaultValue="MEDIUM">
+            <ClSelect name="severity" value={severity} onChange={(e) => setSeverity(e.target.value)}>
               <option value="LOW">Low — Minor cosmetic issue</option>
               <option value="MEDIUM">Medium — Affects workflow</option>
               <option value="HIGH">High — Feature broken</option>

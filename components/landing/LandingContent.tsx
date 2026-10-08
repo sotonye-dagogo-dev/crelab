@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClLogo } from "@/components/ui";
 import type { IPlatformConfig } from "@/types";
+import type { IPlatformStats } from "@/services/PlatformStatsService";
 import {
   Search,
   Shield,
@@ -15,13 +16,17 @@ import {
   Zap,
 } from "lucide-react";
 import { LandingHeroActions } from "./LandingHeroActions";
+import { CountdownSlot } from "@/components/shared/CountdownSlot";
+import { getOrderedStatItems, resolveLandingStatValue } from "@/lib/landing-stats";
 
 interface Props {
   config: IPlatformConfig;
+  stats?: IPlatformStats | null;
 }
 
-export function LandingContent({ config }: Props) {
+export function LandingContent({ config, stats = null }: Props) {
   const categories = config.categories.filter((c) => c.active);
+  const statItems = getOrderedStatItems(config.landingStats);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -53,7 +58,7 @@ export function LandingContent({ config }: Props) {
                 href="/about"
                 className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:underline underline-offset-4"
               >
-                About CreLab
+                About {config.name}
               </Link>
               <Link
                 href="/team"
@@ -75,22 +80,31 @@ export function LandingContent({ config }: Props) {
             <ClLogo variant="full" logoWidth={520} logoHeight={180} priority />
             {/* Mini stats under logo */}
             <div className="grid grid-cols-3 gap-2 w-full max-w-[360px]">
-              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[10px] px-3 py-3 text-center">
-                <div className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)]">1.2k+</div>
-                <div className="text-[11px] text-[var(--color-text-tertiary)] font-medium">Creators</div>
-              </div>
-              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[10px] px-3 py-3 text-center">
-                <div className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)]">5k+</div>
-                <div className="text-[11px] text-[var(--color-text-tertiary)] font-medium">Bookings</div>
-              </div>
-              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[10px] px-3 py-3 text-center">
-                <div className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-accent)]">4.9</div>
-                <div className="text-[11px] text-[var(--color-text-tertiary)] font-medium">Avg rating</div>
-              </div>
+              {statItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[10px] px-3 py-3 text-center"
+                >
+                  <div
+                    className={`font-[family-name:var(--font-display)] font-bold text-[18px] ${
+                      item.format === "rating"
+                        ? "text-[var(--color-accent)]"
+                        : "text-[var(--color-text-primary)]"
+                    }`}
+                  >
+                    {resolveLandingStatValue(item, stats)}
+                  </div>
+                  <div className="text-[11px] text-[var(--color-text-tertiary)] font-medium">
+                    {item.label}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
+
+      <CountdownSlot area="landing" />
 
       {/* ── Categories teaser ── */}
       <section className="max-w-[1200px] mx-auto px-6 py-12">
@@ -134,7 +148,7 @@ export function LandingContent({ config }: Props) {
       <section className="bg-[var(--color-surface)] border-y border-[var(--color-border)]">
         <div className="max-w-[1200px] mx-auto px-6 py-12">
           <div className="text-center max-w-[640px] mx-auto mb-8">
-            <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] md:text-[26px] text-[var(--color-text-primary)] tracking-[-0.01em]">How CreLab works</h2>
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] md:text-[26px] text-[var(--color-text-primary)] tracking-[-0.01em]">How {config.name} works</h2>
             <p className="text-[14px] text-[var(--color-text-secondary)] mt-2 leading-relaxed">
               Whether you&apos;re a creator looking for work or a brand searching for talent — the flow is simple, transparent, and escrow-protected.
             </p>

@@ -31,7 +31,7 @@ async function sendTransactionalEmail(
       // visible in logs so it isn't silently swallowed.
       console.warn(
         `[auth] email "${templateKey}" to ${to} NOT sent: ${result.reason ?? "unknown"}` +
-          (result.error ? ` — ${result.error}` : ""),
+        (result.error ? ` — ${result.error}` : ""),
       );
     }
   } catch (err) {
@@ -112,7 +112,7 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    cookiePrefix: "crelab",
+    cookiePrefix: "crellab",
   },
 });
 

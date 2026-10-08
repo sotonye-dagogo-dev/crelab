@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Design Tokens — CreLab</title>
+  <title>Design Tokens — Crellab</title>
   <style>
     :root {
       --color-bg: #0A0A0A;
@@ -46,7 +47,11 @@
       --color-info: #2563EB;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       background: var(--color-bg);
@@ -56,64 +61,122 @@
       transition: background 0.3s, color 0.3s;
     }
 
-    h1, h2, h3 { font-family: var(--font-display); }
-    h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: 1.5rem; }
-    h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; margin-top: 2rem; }
-    h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; margin-top: 1.5rem; }
+    h1,
+    h2,
+    h3 {
+      font-family: var(--font-display);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      margin-top: 2rem;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      margin-top: 1.5rem;
+    }
 
     .theme-toggle {
-      position: fixed; top: 1rem; right: 1rem;
-      display: flex; gap: 0.25rem;
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.25rem;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 8px; padding: 0.25rem;
+      border-radius: 8px;
+      padding: 0.25rem;
     }
+
     .theme-toggle button {
-      padding: 0.375rem 0.75rem; border-radius: 6px;
-      border: none; cursor: pointer; font-size: 0.8125rem; font-weight: 600;
-      background: transparent; color: var(--color-text-secondary);
+      padding: 0.375rem 0.75rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      background: transparent;
+      color: var(--color-text-secondary);
       transition: all 0.15s;
     }
+
     .theme-toggle button.active {
-      background: var(--color-accent); color: var(--color-text-inverse);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
     }
 
     .token-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1rem; margin-bottom: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
+
     .token-card {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 10px; padding: 1rem;
+      border-radius: 10px;
+      padding: 1rem;
     }
+
     .token-name {
-      font-family: var(--font-mono); font-size: 0.75rem;
-      color: var(--color-text-tertiary); margin-bottom: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-text-tertiary);
+      margin-bottom: 0.5rem;
     }
+
     .token-value {
-      font-size: 0.8125rem; color: var(--color-text-secondary);
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
     }
+
     .color-swatch {
-      width: 100%; height: 2.5rem; border-radius: 6px;
-      margin-bottom: 0.5rem; border: 1px solid var(--color-border);
+      width: 100%;
+      height: 2.5rem;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+      border: 1px solid var(--color-border);
     }
 
     .theme-group {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
       margin-bottom: 2rem;
     }
+
     @media (max-width: 768px) {
-      .theme-group { grid-template-columns: 1fr; }
+      .theme-group {
+        grid-template-columns: 1fr;
+      }
     }
 
     .typo-sample {
-      padding: 1rem; background: var(--color-surface);
-      border: 1px solid var(--color-border); border-radius: 10px; margin-bottom: 0.75rem;
+      padding: 1rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
     }
-    .typo-sample.mono { font-family: var(--font-mono); }
+
+    .typo-sample.mono {
+      font-family: var(--font-mono);
+    }
   </style>
 </head>
+
 <body class>
   <div class="theme-toggle" id="themeToggle">
     <button data-theme="system" class="active">System</button>
@@ -121,7 +184,7 @@
     <button data-theme="light">Light</button>
   </div>
 
-  <h1>Design Tokens — CreLab</h1>
+  <h1>Design Tokens — Crellab</h1>
   <p style="color: var(--color-text-secondary); margin-bottom: 2rem;">
     Colour, typography, and spacing tokens for both dark and light themes.
   </p>
@@ -255,4 +318,5 @@
     });
   </script>
 </body>
+
 </html>

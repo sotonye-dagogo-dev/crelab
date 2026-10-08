@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { ClDialog, ClButton, ClInput, ClTextarea } from "@/components/ui";
+import { useState, useCallback, useEffect } from "react";
+import { ClDialog, ClButton, ClInput, ClTextarea, ClSelect } from "@/components/ui";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { X } from "lucide-react";
 import type { ITeamMember } from "@/types";
+import {
+  SOCIAL_PLATFORM_OPTIONS,
+  normalizeSocialPlatform,
+  toStoredPlatform,
+  type SocialPlatformKind,
+} from "@/lib/social-platforms";
 
 interface TeamMemberModalProps {
   open: boolean;
@@ -13,8 +20,20 @@ interface TeamMemberModalProps {
 }
 
 interface SocialLinkRow {
-  platform: string;
+  kind: SocialPlatformKind;
+  custom: string;
   url: string;
+}
+
+function toRow(link: { platform: string; url: string }): SocialLinkRow {
+  const { kind, customLabel } = normalizeSocialPlatform(link.platform);
+  return { kind, custom: kind === "other" ? customLabel : "", url: link.url ?? "" };
+}
+
+function emptyRows(member?: ITeamMember | null): SocialLinkRow[] {
+  const links = member?.socialLinks as { platform: string; url: string }[] | undefined;
+  if (links && links.length > 0) return links.map(toRow);
+  return [{ kind: "x", custom: "", url: "" }];
 }
 
 export function TeamMemberModal({
@@ -29,40 +48,32 @@ export function TeamMemberModal({
   const [avatarUrl, setAvatarUrl] = useState(member?.avatarUrl ?? "");
   const [orderIndex, setOrderIndex] = useState(member?.orderIndex ?? 0);
   const [active, setActive] = useState(member?.active ?? true);
-  const initialSocialLinks: SocialLinkRow[] = member?.socialLinks
-    ? (member.socialLinks as SocialLinkRow[])
-    : [];
-  const [socialLinks, setSocialLinks] = useState<SocialLinkRow[]>(
-    initialSocialLinks.length > 0
-      ? initialSocialLinks
-      : [{ platform: "", url: "" }],
-  );
+  const [socialLinks, setSocialLinks] = useState<SocialLinkRow[]>(() => emptyRows(member));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const isEditing = !!member;
 
-  const handleClose = useCallback(() => {
+  // Sync form when a different member is opened (modal stays mounted).
+  useEffect(() => {
+    if (!open) return;
     setName(member?.name ?? "");
     setRole(member?.role ?? "");
     setBio(member?.bio ?? "");
     setAvatarUrl(member?.avatarUrl ?? "");
     setOrderIndex(member?.orderIndex ?? 0);
     setActive(member?.active ?? true);
-    const resetSocialLinks: SocialLinkRow[] = member?.socialLinks
-      ? (member.socialLinks as SocialLinkRow[])
-      : [];
-    setSocialLinks(
-      resetSocialLinks.length > 0
-        ? resetSocialLinks
-        : [{ platform: "", url: "" }],
-    );
+    setSocialLinks(emptyRows(member));
+    setError("");
+  }, [open, member]);
+
+  const handleClose = useCallback(() => {
     setError("");
     onClose();
-  }, [member, onClose]);
+  }, [onClose]);
 
   const addSocial = useCallback(() => {
-    setSocialLinks((prev) => [...prev, { platform: "", url: "" }]);
+    setSocialLinks((prev) => [...prev, { kind: "x", custom: "", url: "" }]);
   }, []);
 
   const removeSocial = useCallback((index: number) => {
@@ -91,7 +102,9 @@ export function TeamMemberModal({
     setIsSubmitting(true);
     setError("");
 
-    const links = socialLinks.filter((s) => s.platform.trim() && s.url.trim());
+    const links = socialLinks
+      .map((s) => ({ platform: toStoredPlatform(s.kind, s.custom), url: s.url.trim() }))
+      .filter((s) => s.platform.trim() && s.url.trim());
 
     const payload: Partial<ITeamMember> = {
       name: name.trim(),
@@ -168,15 +181,13 @@ export function TeamMemberModal({
         />
       </div>
 
-      <div className="flex flex-col gap-1 mb-4">
-        <label className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-secondary)]">
-          Avatar URL
-        </label>
-        <ClInput
-          type="text"
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          placeholder="https://..."
+      <div className="mb-4">
+        <ImageUploadField
+          label="Avatar"
+          value={avatarUrl ?? ""}
+          onChange={setAvatarUrl}
+          helper="Upload directly or paste an image URL."
+          aspect="square"
         />
       </div>
 
@@ -217,29 +228,48 @@ export function TeamMemberModal({
         {socialLinks.map((link, index) => (
           <div
             key={index}
-            className="flex gap-2 items-center py-2 border-b border-[var(--color-border)] last:border-b-0"
+            className="flex flex-col gap-2 py-2 border-b border-[var(--color-border)] last:border-b-0"
           >
-            <input
-              type="text"
-              placeholder="Platform"
-              value={link.platform}
-              onChange={(e) => updateSocial(index, { platform: e.target.value })}
-              className="h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none w-[120px] flex-shrink-0 focus:border-[var(--color-accent)] placeholder:text-[var(--color-text-tertiary)]"
-            />
-            <input
-              type="text"
-              placeholder="URL"
-              value={link.url}
-              onChange={(e) => updateSocial(index, { url: e.target.value })}
-              className="h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none flex-1 focus:border-[var(--color-accent)] placeholder:text-[var(--color-text-tertiary)]"
-            />
-            <button
-              onClick={() => removeSocial(index)}
-              className="text-[var(--color-error)] cursor-pointer bg-transparent border-none p-1 flex-shrink-0 hover:opacity-70"
-              aria-label="Remove social link"
-            >
-              <X size={16} strokeWidth={2.5} />
-            </button>
+            <div className="flex gap-2 items-center">
+              <div className="w-[160px] flex-shrink-0">
+              <ClSelect
+                value={link.kind}
+                onChange={(e) =>
+                  updateSocial(index, { kind: e.target.value as SocialPlatformKind })
+                }
+                aria-label="Social platform"
+              >
+                {SOCIAL_PLATFORM_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </ClSelect>
+              </div>
+              <input
+                type="text"
+                placeholder="URL"
+                value={link.url}
+                onChange={(e) => updateSocial(index, { url: e.target.value })}
+                className="h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none flex-1 focus:border-[var(--color-accent)] placeholder:text-[var(--color-text-tertiary)]"
+              />
+              <button
+                onClick={() => removeSocial(index)}
+                className="text-[var(--color-error)] cursor-pointer bg-transparent border-none p-1 flex-shrink-0 hover:opacity-70"
+                aria-label="Remove social link"
+              >
+                <X size={16} strokeWidth={2.5} />
+              </button>
+            </div>
+            {link.kind === "other" && (
+              <input
+                type="text"
+                placeholder="Type custom platform name (e.g. Behance)"
+                value={link.custom}
+                onChange={(e) => updateSocial(index, { custom: e.target.value })}
+                className="h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none w-full focus:border-[var(--color-accent)] placeholder:text-[var(--color-text-tertiary)]"
+              />
+            )}
           </div>
         ))}
         <button

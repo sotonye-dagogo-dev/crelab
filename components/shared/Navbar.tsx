@@ -8,13 +8,20 @@ import { useEffect, useState } from "react";
 import { ClLogo } from "@/components/ui";
 import { ThemeToggler } from "./ThemeToggler";
 
-const navLinks = [
+const navLinks: {
+  href: string;
+  label: string;
+  /** Optional IFeatureFlags key — the link renders unless the flag is false */
+  flag?: "referralsEnabled" | "webinarsEnabled";
+}[] = [
   { href: "/explore", label: "Explore" },
   { href: "/how-it-works", label: "How It Works" },
   { href: "/about", label: "About" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/blog", label: "Blog" },
   { href: "/team", label: "Team" },
+  { href: "/leaderboard", label: "Leaderboard", flag: "referralsEnabled" },
+  { href: "/webinars", label: "Webinars", flag: "webinarsEnabled" },
 ];
 
 export function Navbar() {
@@ -27,7 +34,8 @@ export function Navbar() {
   const isUserAdmin = user?.role === "ADMIN";
   const visibleLinks = navLinks.filter(
     (l) =>
-      l.href !== "/blog" || features?.blogEnabled !== false,
+      (l.href !== "/blog" || features?.blogEnabled !== false) &&
+      (!l.flag || features?.[l.flag] !== false),
   );
 
   useEffect(() => {

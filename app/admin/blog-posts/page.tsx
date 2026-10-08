@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClBadge, ClConfirmDialog, ClDataTable, ClModal, ClErrorState, type ClColumn } from "@/components/ui";
 import { useToast } from "@/lib/toast";
+import { usePlatformConfig } from "@/lib/config-context";
 import { ContentBlocksEditor } from "@/components/admin/ContentBlocksEditor";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import type { IBlogPost, BlogCategory } from "@/types/blog";
@@ -95,6 +96,7 @@ function toDraft(post: IBlogPost): PostDraft {
 export default function AdminBlogPostsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { name: platformName } = usePlatformConfig();
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<PostDraft>(emptyDraft());
   const [postToDelete, setPostToDelete] = useState<IBlogPost | null>(null);
@@ -449,7 +451,7 @@ export default function AdminBlogPostsPage() {
                 <label className={labelClass}>Author</label>
                 <input
                   className={inputClass}
-                  placeholder="e.g. Crelab Editorial"
+                  placeholder={`e.g. ${platformName} Editorial`}
                   value={draft.author}
                   onChange={(e) => setDraft({ ...draft, author: e.target.value })}
                 />

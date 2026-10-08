@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: Session 2026-09-23
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-verified-against-code: 2026-10-01
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -33,6 +33,98 @@
 ---
 
 ## Decisions
+
+## Leaderboard Scoring: Pluggable Factor Registry + Config Weights, Not a Fixed Formula
+
+**Decision:** Leaderboard ranking is computed by `services/LeaderboardService.ts` as a registry of `LeaderboardFactor` objects (`key`, `label`, `weight`, `collect()`), each reading raw values through its own aggregate query; the weighted score and rank order are produced by factor-agnostic code. Which factors exist, whether they are enabled, their labels/descriptions and their weights all live in config (`leaderboard.factors.*`), and every enabled factor is surfaced on the public page in a "How scoring works" panel. Four factors ship: `referrals` (`SUM(points)` over `referral_events`), `portfolio` (visible item count), `bookings` (count only), and `ratings` — whose raw value is **`AVG(rating) × ln(1 + count)`**, so a perfect rating from one review cannot outrank a strong rating earned across many.
+**Date:** 2026-10-01
+**Made by:** Implementer (per execute-feature directive — "primarily powered by referrals but extensible to other scoring factors")
+**Supersedes:** None (implements engineering principle §2 for the leaderboard)
+**Superseded by:** None
+
+**Reason:**
+A hardcoded formula makes every scoring change a code change + deploy, and hides the ranking logic from operators. The directive explicitly asked for extensibility; metadata-driven factors let the admin turn a factor off, retune a weight, or rewrite copy without touching ranking code. The `ratings` formula needed diminishing returns on count — `AVG × ln(1 + count)` rewards breadth of validation while staying bounded and computable in SQL/JS without per-row loops.
+
+**Alternatives Considered:**
+- A single fixed formula (e.g. referrals-only score) — rejected: F7 landed within the same sprint and would have required a rewrite.
+- Storing precomputed scores on user rows (denormalised, cron-refreshed) — rejected: adds a consistency/refresh problem for no read-path benefit at current scale; the aggregates are cheap and cacheable.
+- `AVG(rating) × count` (linear) — rejected: lets review volume alone dominate; the log damping keeps one 5-star review from beating a well-reviewed creator.
+- Hiding raw factor values — partially adopted instead: `showRawValue` is per-factor config (hidden for `referrals`, shown for portfolio/bookings/ratings).
+
+**Implications:**
+- Adding a factor = one `LeaderboardFactor` implementation + one config entry; no changes to ranking, pagination, API shape, or the transparency panel (they all iterate config).
+- The leaderboard renders only already-public profile fields (display name + avatar) and aggregate counts — invitee identities, booking amounts, counterparties and dates never appear.
+- Any future factor must be expressible as an aggregate over existing tables without exposing private data, or it does not belong in the registry.
+
+---
+
+## Admin-Edited Config Lists Are Keyed Records — Arrays Only as a Single Atomic Key
+
+**Decision:** Config collections that the admin edits field-by-field are stored as keyed records (`landingStats.items.{id}.*`, `leaderboard.factors.{key}.*`) so each leaf is addressable by a stable dotted key (`landingStats.items.creators.label`). A list that must stay an array (`countdown.widgets`) is written only as one whole-array value under a single key by its dedicated editor, never as indexed leaf paths.
+**Date:** 2026-10-01
+**Made by:** Implementer (execute-feature, Growth & Reliability sprint)
+**Supersedes:** None (complements the "Deep-Merge Config Keys When Round-Tripping DB Rows" lesson)
+**Superseded by:** None
+
+**Reason:**
+The config editor saves one dotted key per field, and `setNestedValue` in `PlatformConfigService` deep-sets that path on merge — but a path that walks *through* an array (`widgets.0.title`) cannot be reconstructed after a reorder/insert/delete (positional keys are not stable identities), so positional list edits get clobbered or land on the wrong item once the list changes. Keyed records give every item a stable identity that survives reordering, and make enable/disable/weight edits independent per item.
+
+**Alternatives Considered:**
+- Arrays with indexed dotted keys (`countdown.widgets.0.label`) — rejected: indices shift on reorder/remove, so a saved field can target a different widget; merging is order-dependent.
+- Saving the whole config blob on every field edit — rejected: racy across concurrent admin edits and rewrites untouched keys.
+- Custom list-editor API endpoints for every list — rejected: `countdown.widgets` proves the pattern where it *is* warranted (one atomic key from the dedicated `/admin/countdown` page), without inventing a second config write path elsewhere.
+
+**Implications:**
+- New admin-editable lists default to keyed records; reach for a single atomic array key only when a dedicated page owns the whole list and saves it at once.
+- Consumers iterate `Object.values(...)` ordered by an explicit `orderIndex`, never by object key order.
+- This is why `landingStats`/`leaderboard.factors` are objects while `countdown.widgets` is an array — the shape follows the write pattern, not preference.
+
+---
+
+## Platform-Name Copy Resolves From `config.name` With a `{{name}}` Token + Enforced Infrastructure Allowlist
+
+**Decision:** Display copy never contains a literal platform name. It resolves from `config.name` at render time, or — where a constant cannot read config at module scope (fallback blog/mock bodies, static defaults) — carries the `PLATFORM_NAME_TOKEN` (`{{name}}`) and is filled via `fillPlatformName` from `lib/platform-copy.ts`. Infrastructure identifiers that are *not* display copy (config `name`/`fromName`/`fromEmail`, Better Auth `cookiePrefix`, payment references, demo emails, origin fallbacks, storage keys, the anonymous-mail domain) sit on an explicit allowlist, and `__tests__/platform-name-compliance.test.ts` fails the build on any `Crelab|CreLab|Crellab` outside that allowlist.
+**Date:** 2026-10-01
+**Made by:** Implementer (execute-feature F9 compliance run)
+**Supersedes:** None (enforces the existing "Config-Driven Over Hardcoded" principle for the platform name specifically)
+**Superseded by:** None
+
+**Reason:**
+The platform was renamed ("Crellab") but hardcoded name instances kept reappearing across landing, About, How It Works, blog fallback, mock data, email/payment copy — each one a silent divergence from `config.name` that an admin rename would not fix. A one-off grep cleans today's instances; a compliance test with an explicit allowlist keeps it enforced rather than aspirational, while the allowlist prevents the legitimate non-display identifiers (a cookie prefix or payment ref must not change when an operator renames the platform) from being "fixed" into breakage.
+
+**Alternatives Considered:**
+- A one-time search-and-replace with no guard — rejected: the drift returned within a few sprints last time.
+- Failing on *any* occurrence — rejected: would forbid `cookiePrefix`, payment refs and `fromEmail`, which must stay stable across a rename.
+- Resolving only in React components — rejected: metadata, fallback content and mock data are module-scope and have no config access; the token bridges them.
+
+**Implications:**
+- Any new hardcoded name instance fails `npm test` until it either resolves from config, uses the `{{name}}` token, or is deliberately added to the reviewed allowlist with a reason.
+- A future platform rename is now a single `config.name` edit (plus email sender config) rather than a code sweep.
+
+---
+
+## Webinar Registration Dedupe: Unique Index + Upsert, Not a Pre-Read Check
+
+**Decision:** Webinar registration is idempotent at the database: `webinar_registrations` carries a unique `(webinar_id, lower(email))` constraint plus a partial unique `(webinar_id, user_id)` where `user_id` is set, and `WebinarService.register` writes with an upsert that treats the conflict as "already registered". No "does this email exist?" read runs before the write.
+**Date:** 2026-10-01
+**Made by:** Implementer (execute-feature F8)
+**Supersedes:** None (extends the project's idempotency posture — webhook `DuplicateWebhookError`, referral cookie claim — to form submissions)
+**Superseded by:** None
+
+**Reason:**
+A pre-read check is a classic race: two concurrent submits both read "not registered" and both insert, either double-seating the registration or blowing up on the constraint with a 500 the user cannot interpret. The unique index is the only authoritative arbiter, so the conflict is handled where the truth lives — the second submit resolves to the existing row and returns the same "you're registered" state.
+
+**Alternatives Considered:**
+- SELECT-then-INSERT with an application-level check — rejected: TOCTOU race under concurrent submits (exactly what a "Reserve my seat" double-click produces).
+- Advisory locks / serializable transactions per registration — rejected: heavier than a unique constraint for a two-row write with no secondary effects.
+- Dropping the constraint and de-duplicating in a cron — rejected: leaves the duplicate visible to users and admins until the job runs.
+
+**Implications:**
+- `maxRegistrantsPerWebinar` capacity checks must be evaluated with the conflict path in mind (a losing upsert must not consume capacity twice).
+- The same pattern applies to any future "one row per actor per entity" form: unique index first, upsert second, never a guarding read.
+- Guest registrations key on `lower(email)`; signed-in users key on `user_id` — both constraints are part of the `0007` migration (currently **unapplied** — residual risk until it runs on Supabase).
+
+---
 
 ## Portfolio Source Provenance (DIRECT/DRIVE) Is Portfolio-Context UI Only
 
@@ -457,3 +549,137 @@ new inbox, so the code was out of sync with the intended behaviour.
   complete the change (which they typed, so this is expected).
 - `emailChanged` remains registered as a wired template but is not yet fired on a
   successful change — no dedicated Better Auth hook; candidate for a follow-up.
+
+---
+
+**Decision:** All Drizzle migrations are journal-driven and idempotent; destructive DB
+scripts always back up first; seed rollback is seed-scoped by default.
+**Date:** 2026-10-07
+**Made by:** Implementer (per execute-feature directive: migration + script close-out)
+**Supersedes:** The hand-applied standalone-SQL migration practice and the unscoped
+`seed-rollback.ts` full-table deletes.
+**Superseded by:** None
+
+**Reason:**
+The journal was stale at 0002 while schema.ts had 6+ tables of drift; standalone SQL files
+were invisible to any migrate runner (0007 sat unapplied for a week). Worse, the rollback
+script''s unscoped DELETEs wiped critical non-seed data on a deseed. Backup-before-
+destructive is now enforced structurally, not by convention.
+
+**Alternatives Considered:**
+- Keep hand-applying SQL on Supabase � rejected: untracked, unrepeatable, caused this drift.
+- `drizzle-kit push` as the workflow � rejected: no history/audit trail; kept as a
+  prototyping escape hatch (`db:push`) only.
+- Scoped rollback keyed on the `_seed_version` marker timestamp � rejected: marker only
+  proves seeding happened, not which rows are seed; explicit seed-id allowlists are exact.
+
+**Implications:**
+- `npm run db:migrate` is the single apply path; `db:generate` after every schema.ts change.
+- `db:baseline` is one-time-only for pre-journal DBs; never run it on a fresh DB.
+- `backups/` is gitignored; operators must confirm `db:backup` works on their machine
+  (needs `pg_dump` on PATH) before any destructive op.
+
+---
+
+## 2026-10-08 — Public UI naming + team social links + explore tile motion
+
+**Decision:** Public-facing copy says "Direct Upload(s)" / "direct storage", never
+"Cloudinary" (vendor name is an implementation detail). Admin-internal surfaces, API
+codes, and code comments may keep the precise term.
+
+**Decision:** Team social links use a fixed platform catalogue (X, LinkedIn, GitHub,
+Dribbble, Instagram, YouTube, Facebook, TikTok, Website, Other-with-custom-text) with
+per-platform icons on `/team` and a generic link icon fallback. Legacy free-typed values
+(e.g. "Twitter") are normalised at read time (`lib/social-platforms.ts`), never migrated,
+so pre-change rows keep their icons.
+
+**Decision:** No `layout`/exit animations inside CSS-columns masonry grids (ExploreGrid,
+PortfolioGallery). Mount-only fade with capped stagger; video overlays mount only while
+in view. Rationale: layout animations re-run on every infinite-scroll append and read as
+glitchy jumping; uncapped stagger left far-down tiles at opacity-0 while scrolling.
+
+**Superseded by:** None
+
+**Reason:** User-reported polish issues (blank/glitchy tiles, blank display-name input,
+vendor name in UI tabs) plus SEO gaps on client-rendered routes.
+
+---
+
+## Leaderboard Lists Zero-Score Members (Ranked Last, Not Hidden)
+
+**Decision:** Every registered member appears on the public leaderboard, including members whose weighted score is 0. Zero-score rows rank below all positive scores via the existing deterministic `userId` tie-break.
+**Date:** 2026-10-08
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** The former "rows with a score of 0 are not listed" rule in `scoreLeaderboard`.
+**Superseded by:** None
+
+**Reason:**
+An empty-looking board punishes new members and makes the growth loop (referrals → leaderboard) look dead on arrival. Ranking newcomers last keeps the board populated from day one while preserving the incentive order.
+
+**Alternatives Considered:**
+- Providers-only candidate set — rejected: referrals are open to all roles (clients connect too), and the directive says "users".
+- Hiding zeros behind a toggle — rejected: extra UI for a state that resolves itself once members gain activity.
+
+**Implications:**
+`getBoard()` selects all users (fine at MVP scale; revisit with keyset/counted pagination if membership grows past low-thousands). Privacy unchanged: display name + avatar only.
+
+---
+
+## Uploads Auto-Attach to the Uploader's Portfolio (Best-Effort, Idempotent)
+
+**Decision:** Every successful direct upload (`/api/media/upload`, `/api/media/confirm`, per-file in `/api/media/batch-upload`) best-effort creates a visible `DIRECT` portfolio item for the uploader via `PortfolioService.attachUploadToProvider()` — skipped (returns `null`) when the uploader owns no provider profile, and never allowed to fail the already-recorded upload. Re-attaching the same URL returns the existing row (the `addItem` duplicate check), so neither portfolios nor the explore content view can show the same asset twice. `POST /api/portfolio/items` exposes the same attach for library assets (`mediaAssetId`) and raw links (`url` + `mimeType`, ownership-checked).
+**Date:** 2026-10-08
+**Made by:** Agent (execute-feature)
+**Supersedes:** None (fills the gap where uploads only reached `media_assets` and sat Unlinked/Orphan).
+**Superseded by:** None
+
+**Reason:**
+Uploads that never reach `portfolio_items` are invisible everywhere users look (provider portfolios, explore content view, dashboard gallery) while still consuming Cloudinary storage and tripping the orphan cleaner — the worst of both worlds.
+
+**Alternatives Considered:**
+- Explicit "Add to portfolio" button only (no auto-attach) — rejected: leaves the reported empty-portfolio bug in place for every existing flow; the POST endpoint covers the manual case instead.
+- Backfilling pre-existing orphans automatically — rejected: ambiguous ownership intent; admins reconcile those deliberately via `/admin/media` (`reconcileAsset`).
+
+**Implications:**
+Admin uploads (no provider profile) still land orphan-by-design until reconciled. Pasted Drive/public links attached via POST keep `source: DIRECT` — source provenance stays portfolio-context UI only per the 2026-09-23 decision.
+
+---
+
+## Leaderboard Pagination: Short-TTL User-Agnostic Board Cache + Batched Candidates
+
+**Decision:** `getBoard()` keeps scoring every registered member (keep-zeros rule unchanged) but no longer re-runs the full collect + full member load on every page turn: the neutral ranking is cached 30s keyed by the enabled-factor signature (`BOARD_CACHE_TTL_MS`, `buildBoardCacheSignature`), candidates load in 1000-row chunks, the API sends `Cache-Control: public, s-maxage=30, stale-while-revalidate=60`, and the client caches pages + prefetches next. Identity (`isCurrentUser`, `currentUserRank`/`currentUserScore`) is derived per request from the ranking, never stored in it.
+**Date:** 2026-10-08
+**Made by:** Agent (execute-feature — residual-risk directive, pagination flagged for UI/UX optimisation)
+**Supersedes:** The "revisit with keyset/counted pagination if membership grows past low-thousands" implication of the 2026-10-08 keep-zeros decision (still true at very large scale — a precomputed-scores migration remains the eventual path — but page turns are now slice operations, not rescores, up to that point).
+**Superseded by:** None
+
+**Reason:**
+Ranking is global (score DESC over all members), so DB-level keyset pagination cannot page it without precomputed scores. The cache converts the repeated cost (factor aggregates + full member load per click) into a one-per-30s cost while keeping ranks fresh enough for a growth board; batching bounds the single-transfer size.
+
+**Alternatives Considered:**
+- DB keyset pagination over members — rejected: rank order is computed in memory from weighted factor values, so a keyset over `user.id` cannot produce rank pages.
+- Precomputed score column + background recompute — rejected for now: schema + job machinery for a scale threshold not yet reached; the TTL cache is the proportional step.
+- Storing `isCurrentUser` in the cached rows — rejected: leaks one member's flag to whoever hits the cache next; identity is stamped per request instead.
+
+**Implications:**
+`?refresh=true` bypasses the server cache; `clearBoardCache()` exists for tests/admin flows. New `LeaderboardPage` fields (`currentUserRank`, `currentUserScore`, `cached`) are additive — old clients ignore them.
+
+---
+
+## Pre-Existing Orphans: Explicit One-Click Backfill (Never Automatic)
+
+**Decision:** Pre-existing orphan `media_assets` rows are rescued by an explicit admin action — `MediaAssetService.backfillOrphans()` + `POST /api/admin/media/backfill` + the "Backfill orphans" button (with dry-run preview) on `/admin/media` — never by an automatic job. Owner-matched rows attach as visible DIRECT portfolio items (idempotent by URL); provider-less/ownerless rows are counted as skipped and stay on the manual `reconcileAsset` path.
+**Date:** 2026-10-08
+**Made by:** Agent (execute-feature — residual-risk directive)
+**Supersedes:** The "admins reconcile those deliberately via `/admin/media`" implication stands — backfill IS that deliberate action, now bulk instead of one-by-one.
+**Superseded by:** None
+
+**Reason:**
+Automatic backfill would guess intent for rows whose owner has no provider (admin uploads, deleted providers). Owner→provider matching is unambiguous only when the provider exists, and the admin explicitly pressing the button is the deliberation the original decision required.
+
+**Alternatives Considered:**
+- Fully automatic backfill on upload/cron — rejected: ambiguous ownership intent for provider-less rows; silent portfolio writes.
+- Leaving one-by-one reconcile as the only path — rejected: that was the logged residual risk; bulk rescue with a dry-run preview keeps deliberation while removing the toil.
+
+**Implications:**
+New uploads already auto-attach, so backfill volume decays to zero over time. `limit` caps at 1000 per run; audit-logged as `media.backfill` / `media.backfill.dry_run`.

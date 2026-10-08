@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: Session 2026-09-23
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,27 +11,26 @@
 
 ## Last Run
 
-**Date:** 2026-09-23
-**Run by:** execute-feature (Session 2026-09-23)
+**Date:** 2026-10-08
+**Run by:** execute-feature (residual-risks: leaderboard pagination + orphan backfill) + update-ai-system deep sync
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 255 | 3 | 0 |
+| Unit (vitest) | 407 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | Lint (next lint) | — | 0 errors (pre-existing warnings only) | — |
-| Production build | 1 | 0 | 0 |
+| Production build | — | not re-run this session (no app-shell change; last green 2026-10-08 session) | — |
 
-**Overall Status:** ✅ Typecheck clean, lint no new warnings, production build passes (95 static pages). 255/258 tests pass — 3 failures are pre-existing and unrelated (see Active Failures).
+**Overall Status:** ✅ All 407/407 tests pass. Typecheck clean. Lint 0 errors. +5 new leaderboard cache/context tests; +3 new media backfill tests (see History).
 
 ---
 
 ## Active Failures
 
-Pre-existing, unrelated to recent changes (open since ≥2026-09-22):
-- `__tests__/media.test.ts:72` — expects `"too large"`, current message is `"File is 101.0 MB — exceeds the 100 MB per-file limit…"`
-- `__tests__/services/BlogPostService.test.ts:89` — adminList mock returns 7 rows vs expected 1
-- `__tests__/services/BlogPostService.test.ts:98` — same mock length issue on ordering-fallback test
+None. Previously-active failures (resolved 2026-10-08, non-breaking):
+- `__tests__/media.test.ts:72` — resolved in code: `lib/media.ts` oversize message now reads `"File too large: …"` (keeps the detailed per-file-limit wording, restores the `"too large"` substring the test and downstream `raw.includes("too large")` branches match on).
+- `__tests__/services/BlogPostService.test.ts:89,98` — resolved in test suite: `adminList()` intentionally merges DB rows with fallback posts (`mergeUnique(rows, fallbackPosts)` so the admin view never goes empty); expectations updated to `getFallbackPosts().length + 1` with the DB row first.
 
 ---
 
@@ -39,7 +38,10 @@ Pre-existing, unrelated to recent changes (open since ≥2026-09-22):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
-| 2026-09-23 | 255 | 3 | Seed rollback + BookingSidebarDisplay/BookingSidebar package-row wrap + Navbar Home removal + explore source tag removal (`AssetLightbox` `showSource` prop). 3 failures pre-existing (media message + BlogPostService mocks ×2) |
+| 2026-10-08 | 407 | 0 | execute-feature: leaderboard pagination optimisation (30s board cache, batched candidates, current-user rank; +5 tests) + orphan backfill service/API/admin UI (+3 tests). tsc 0 errors, lint 0 errors |
+| 2026-10-08 | 399 | 0 | execute-feature: leaderboard keeps zero-score rows (+2 tests, 1 expectation updated); explore portfolio mock fallback; upload→portfolio auto-attach + POST /api/portfolio/items. tsc 0 errors, lint 0 errors |
+| 2026-10-08 | 398 | 0 | verify-work: resolved the 3 long-standing failures non-breaking (media message restores "too large" substring; BlogPostService expectations reflect merge-with-fallback). tsc 0 errors, lint 0 errors |
+| 2026-10-08 | 395 | 3 | Auth cleanup + Explore tiles + Team + SEO session (7 fixes; 6 new social-platform tests). 3 failures pre-existing (media message + BlogPostService mocks ×2) |
 | 2026-08-20 | 258 | 0 | Wallet page + Paystack tightening: paystack metadata/callback_url, verify endpoint, payment-status page, wallet idempotent credit. New `__tests__/paystack.test.ts` (6 tests) |
 | 2026-08-18 | 218 | 0 | Email template fallback + Resend sender recommendations: `lib/email-templates.ts` resolveEmailTemplates/resolveEmailTemplate/resolveEmailConfig (hardcoded defaults apply when not saved in DB), PlatformConfigService merges emailConfig, EmailService.send defensive fallback, verify-email + admin email routes use resolver. Sender switched from no-reply root domain to subdomain (`hello@mail.crellab.com`) with RESEND_FROM_EMAIL/RESEND_FROM_NAME env overrides + admin hint. New tests: email-templates (+6), EmailService (+4: 3 sender + 1 hardcoded-fallback) |
 | 2026-08-13 | 193 | 0 | Collapsible admin sidebar (AdminShell), ClDataTable + ClPagination across admin pages, email h1 #E8FF47 + editable template name, {{name}} preview fix, blog sections builder (ContentBlocksEditor/ContentBlocks), appOrigin trailing-slash hardening. New: `__tests__/lib/email-blocks.test.ts` (6 tests) |

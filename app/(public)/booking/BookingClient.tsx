@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ClButton, ClCard, ClInput, ClBackButton } from "@/components/ui";
 import { useToast } from "@/lib/toast";
+import { usePlatformConfig } from "@/lib/config-context";
 import { Calendar, Clock, Shield, User, ArrowLeft } from "lucide-react";
 import type { IProvider, IServicePackage } from "@/types";
 import Link from "next/link";
@@ -24,6 +25,7 @@ const tierLabels: Record<string, string> = {
 export function BookingClient({ provider, package: selectedPackage, currentUserId }: BookingClientProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { name: platformName } = usePlatformConfig();
   const [serviceDate, setServiceDate] = useState("");
   const [scopeNotes, setScopeNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -237,7 +239,7 @@ export function BookingClient({ provider, package: selectedPackage, currentUserI
         </form>
 
         <div className="mt-8 text-center text-[12px] text-[var(--color-text-tertiary)]">
-          <p>Protected by Crelab Escrow — funds released only when you&apos;re satisfied.</p>
+          <p>Protected by {platformName} Escrow — funds released only when you&apos;re satisfied.</p>
         </div>
       </div>
 

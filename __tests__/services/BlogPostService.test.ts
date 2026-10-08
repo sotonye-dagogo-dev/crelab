@@ -70,7 +70,7 @@ const blogRow = {
   heroImageUrl: null,
   category: "pricing",
   tags: [],
-  author: "Crelab Editorial",
+  author: "Crellab Editorial",
   publishedAt: "2026-08-01T00:00:00Z",
   published: true,
   spotlightProviderSlug: null,
@@ -86,7 +86,8 @@ describe("services/BlogPostService — adminList resilience", () => {
   it("returns mapped DB rows when the normal query succeeds", async () => {
     mockDb.setRows([blogRow]);
     const posts = await BlogPostService.adminList();
-    expect(posts).toHaveLength(1);
+    // adminList merges DB rows with fallback posts so the view never goes empty
+    expect(posts).toHaveLength(getFallbackPosts().length + 1);
     expect(posts[0].title).toBe("A Real Post");
     expect(posts[0].slug.current).toBe("a-real-post");
   });
@@ -95,7 +96,7 @@ describe("services/BlogPostService — adminList resilience", () => {
     mockDb.setRows([blogRow]);
     mockDb.setOrderByFails(1);
     const posts = await BlogPostService.adminList();
-    expect(posts).toHaveLength(1);
+    expect(posts).toHaveLength(getFallbackPosts().length + 1);
     expect(posts[0].title).toBe("A Real Post");
   });
 

@@ -55,7 +55,7 @@ describe("services/AuditService", () => {
         id: "log-1",
         userId: "admin-1",
         actorName: "Ada",
-        actorEmail: "ada@crelab.com",
+        actorEmail: "ada@crellab.com",
         action: "config.update",
         entity: "feeRate",
         entityId: null,

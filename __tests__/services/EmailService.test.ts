@@ -114,7 +114,7 @@ describe("services/EmailService — send without Resend key (preview fallback)",
         packageName: "Brand Video",
         bookingDate: "2026-09-01",
         amount: "₦250,000",
-        bookingUrl: "https://crelab.ng/bookings/1",
+        bookingUrl: "https://crellab.ng/bookings/1",
       },
       DEFAULT_CONFIG,
     );
@@ -127,9 +127,9 @@ describe("services/EmailService — send without Resend key (preview fallback)",
 
   it("uses NEXT_PUBLIC_APP_URL for the welcome explore link", async () => {
     delete process.env.RESEND_API_KEY;
-    process.env.NEXT_PUBLIC_APP_URL = "https://crelab.example";
+    process.env.NEXT_PUBLIC_APP_URL = "https://crellab.example";
     const result = await EmailService.sendWelcome("a@example.com", "Zara");
-    expect(result.preview).toContain("https://crelab.example/explore");
+    expect(result.preview).toContain("https://crellab.example/explore");
   });
 
   it("returns sent:false + reason for an unknown template key", async () => {
@@ -154,13 +154,13 @@ describe("services/EmailService — send without Resend key (preview fallback)",
     const result = await EmailService.send(
       "a@example.com",
       "verifyEmail",
-      { userName: "Ada", verifyUrl: "https://crelab.ng/verify" },
+      { userName: "Ada", verifyUrl: "https://crellab.ng/verify" },
       config,
     );
     expect(result.sent).toBe(false);
     expect(result.reason).toBe("resend_not_configured");
     expect(result.preview).toContain("Verify your email");
-    expect(result.preview).toContain("https://crelab.ng/verify");
+    expect(result.preview).toContain("https://crellab.ng/verify");
   });
 
   it("returns sent:false + reason without preview when the template is disabled", async () => {

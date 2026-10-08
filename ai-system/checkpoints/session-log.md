@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: Session 2026-09-23 — seed rollback + package panel wrap + nav home removal + explore source tag removal
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: execute-feature (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-verified-against-code: 2026-10-01
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -1177,3 +1177,254 @@ Residual test failures to address separately: `__tests__/media.test.ts:72` (size
 
 **Next Task:**
 Same residuals as Session 2026-09-22: `media.test.ts:72` + `BlogPostService.test.ts:89,98`. Re-seed with `npm run db:seed` when test data is needed. Phase 2 backlog unchanged.
+
+## Session 2026-09-30 — Execute Feature: Founding-100 Badge + Referrals/Leaderboard + Countdown Widget + Error-Boundary Bug Reporting
+
+**Directive:** execute-feature.md. Four additions, all non-breaking, config-driven and admin-manageable: (1) track the first 100 users with a UI badge without touching the user schema — derive from the existing registration timestamp so existing users are counted, not skipped; (2) a referral system with unique invite links, points for direct referrals and for referrals-of-referrals, plus a public leaderboard page powered by referrals but extensible to other factors; (3) a reusable countdown widget (admin-editable content, timeline, icon) usable as a widget on the landing and explore pages with decent animations; (4) advance the bug-report system so an error boundary intercepts errors, pops up an encouragement to report, carries the sanitised error (console logs + stack) into the bug-report form and the admin bug-reports page, while the user can keep using the platform.
+
+**Planning pass (this entry — trace for the task-queue mutation):**
+1. Read `planning/task-queue.md`, `system-architecture.md`, `design-system.md`, `repair-system.md`, `project-context.md`, `memory/project-decisions.md`, `standards/engineering-principles.md`.
+2. Architecture impact: **YES** — two new tables, three new services, four new API routes, two new public/auth pages, one new admin page, two new error boundaries. `plan-feature.md` logic therefore ran, and explicit go/no-go sign-off was requested before any implementation.
+3. Appended a **Current Sprint — Growth & Reliability (2026-09-30)** table to `planning/task-queue.md` with 6 tasks ([M]/[L]).
+4. Wrote `checkpoints/in-progress.md` with the full decomposition, data flow, risks and self-check.
+
+**Self-check (Step 2):**
+- Scope: consistent with `project-context.md` — guest browse preserved (leaderboard public, `/referrals` gated), NDPR-safe (leaderboard renders only already-public profile fields: display name + avatar — no emails, no ids in URLs), no new external integrations, no money handling.
+- Conflicts: none. Respects `Guest Browse, Gate Booking`, `PlatformConfigService: Config Context + DB Override + Cache`, `Centralised AuditService` (config writes already audit), and `In-App Notification Centre = Phase 2` (untouched).
+- Principles: §1/§3 config + hardcoded fallbacks; §2 metadata-driven leaderboard factors; §4 extend `Cl*` catalog rather than fork primitives; §11 one route per screen; §12 ACID on the two-table referral write; §13 catalog; §15 lucide icons only (countdown icon is an allowlist); §16 iterate config arrays; §21 paginated leaderboard; §23 audit via the existing config PATCH.
+
+**Files Added (planning):**
+- `ai-system/checkpoints/in-progress.md` — plan
+- `ai-system/planning/task-queue.md` — new sprint table
+- `ai-system/checkpoints/session-log.md` — this entry
+
+**Build Status:** planning only — no code changed yet.
+
+**Amendment A (same session, resume-session):** scope expanded by directive — "do not overwrite or forget what has been planned, but rather accommodate these as well so we can have a bulk sprint". Added five workstreams to `checkpoints/in-progress.md` (Amendment A) and five matching rows to `planning/task-queue.md`: F5 real derived landing stats (`PlatformStatsService` + `landingStats` config), F6 platform-wide back-to-top button, F7 activity-based leaderboard factors (portfolio / bookings / ratings alongside referrals, transparent factor panel, private data stays private), F8 webinar public page with guest + member registration and admin management, F9 platform-name compliance run with a repeatable source-scan test. Drift check classified as **minor** (checkpoint files committed as `520584f`, no implementation started) → checkpoint corrected, no `update-ai-system` required. Both plan and amendment stand together; nothing from the original plan was dropped.
+
+**Build Status (post-amendment):** planning only — no code changed yet.
+
+---
+
+## Session 2026-10-01 — Growth & Reliability Sprint F1–F9 (Implemented + QA Gate + Doc Close)
+
+**Directive:** execute-feature.md end-to-end on the "Growth & Reliability (2026-09-30)" sprint planned in the Session 2026-09-30 entry and expanded by Amendment A — resume the session, implement F1–F9, run the QA gate, then execute Step 5 (documentation & close): session-log, dev-history, project-decisions, `update-ai-system.md` deep sync (architecture impact = YES), final `sync-context.md`, and clear `in-progress.md`.
+
+**Resume / drift check (resume-session, 2026-10-01):** no commits since `520584f`. `drizzle/schema.ts` already held `referral_codes`, `referral_events`, `webinars`, `webinar_registrations` and `bug_reports.error_context` although the prior checkpoint said "implementation not started"; migration `drizzle/migrations/0007_referrals_and_error_context.sql` was missing and was written in this session (journal deliberately untouched past `0002` — repo convention is manual application on Supabase). Classification: **minor drift** → checkpoint corrected, implementation proceeded from there.
+
+**Completed:**
+
+1. **F1 Founding-100 badge** — `services/EarlyMemberService.ts` (rank = `ROW_NUMBER() OVER (ORDER BY created_at, id)`, `unstable_cache` tag `early-members`; no schema change, seeded users counted by design), `components/shared/EarlyMemberBadge.tsx` (Navbar desktop/mobile + profile header + `/referrals`), `GET /api/early-access`, `firstHundred` config + admin fields.
+2. **F2 Referral system** — `referral_codes` + `referral_events`; `services/ReferralService.ts` writes degree-1 and degree-2 events in one ACID transaction; idempotent cookie claim (`lib/referral-cookie.ts` `crelab_ref`, `components/shared/ReferralCapture.tsx` `?ref=` capture mounted in the root layout, claim hook on `/register` for password + Google); `GET /api/referrals/me`, `POST /api/referrals/claim`, authed `/referrals` (share link, copy, stats, degree breakdown, explainer).
+3. **F2/F7 Public leaderboard** — `services/LeaderboardService.ts` pluggable `LeaderboardFactor` registry with four factors: `referrals` (`SUM(points)`), `portfolio` (visible item count), `bookings` (count only — no amounts/counterparties/dates), `ratings` (`AVG(rating) × ln(1 + count)`); `leaderboard.factors.*` config supplies enabled/label/description/weight/showRawValue; `GET /api/leaderboard`; public `/leaderboard` (podium + paginated table) with the "How scoring works" transparency panel. Privacy: display name + avatar only.
+4. **F3 Countdown widget** — `lib/countdown.ts` + `lib/countdown-icons.ts` (curated lucide allowlist), `components/shared/CountdownWidget.tsx` (framer-motion digit roll + staggered entrance, `prefers-reduced-motion` gate, mount-gated tick = hydration-safe) + `CountdownSlot.tsx` (filters by enabled/area, ordered by `orderIndex`, renders nothing when empty); slots in `LandingContent` (after hero) and above the explore filter bar; `/admin/countdown` editor (add/remove/reorder, datetime-local, icon select, areas, live preview) saving the single atomic key `countdown.widgets`.
+5. **F4 Error-boundary bug reporting** — `lib/error-log-buffer.ts` (60-entry console ring buffer, idempotent install) + `lib/sanitize-error.ts` (redacts emails/bearer/JWT/session tokens/cookies/data URIs, truncates message/stack/logs, 8 KB cap); `components/error/ErrorReportDialog.tsx` (report / keep browsing) + `GlobalErrorCatcher.tsx` (`window.onerror` + `unhandledrejection`, non-blocking); `app/error.tsx` (Continue via `reset()` + Reload) and `app/global-error.tsx`; `/bug-report` reads the stash from `sessionStorage` `crelab-error-context` (`?e=1` flag), shows the attached-details panel with detach, sends `errorContext`; `POST /api/bug-report` validates then **re-sanitises** and stores `error_context`; admin triage block on `/admin/bug-reports`.
+6. **F5 Landing stats** — `services/PlatformStatsService.ts` cached aggregates (tag `platform-stats`, 300s) with a null → `fallbackValue` degradation path (never a blank/`NaN`/fake "0 creators"); `landingStats.items.{id}` keyed-record config; `app/page.tsx` + `app/(public)/home/page.tsx` pass resolved stats into `LandingContent`, which now iterates config instead of the hardcoded 1.2k/5k/4.9 figures.
+7. **F6 Back-to-top** — `components/shared/ScrollToTopButton.tsx` (scroll-threshold gate, framer-motion entrance, reduced-motion gate, focus ring, `aria-label`) mounted once in `app/layout.tsx`; explore's inline FAB removed (duplicate gone).
+8. **F8 Webinars** — `webinars` + `webinar_registrations` (unique `(webinar_id, lower(email))` + partial unique `(webinar_id, user_id)`); `services/WebinarService.ts` (upcoming/past paginated lists, registration by unique-index **upsert** — no pre-read race, admin CRUD); `GET /api/webinars`, `POST /api/webinars/[id]/register` (guest + auth, zod, explicit marketing-consent column), `/api/admin/webinars` + `[id]` (AuditService); public `/webinars` (upcoming registration for guests + members, past recordings + `EmailTemplateBlock[]` content, guest success prompt → `/register?returnTo=/webinars`); `/admin/webinars` (ClDataTable + modal editor, status/publish toggle, registration counts, confirm delete); wired `webinarRegistration` confirmation email via `services/EmailService.ts` / `lib/email-templates.ts`; flag-gated Navbar/Footer links.
+9. **F9 Platform-name compliance** — `lib/platform-copy.ts` (`PLATFORM_NAME_TOKEN`, `fillPlatformName`); all display-copy instances resolve from `config.name` ("Crellab") with `{{name}}` tokens for module-scope fallbacks (landing copy, page metadata, About/How-It-Works defaults, `MockDataService`, `lib/blog-fallback.ts`, `BookingClient`, `AdminSidebar`, `TopUpModal`, blog-post placeholder, `lib/currency.ts` comment); explicit infrastructure allowlist (config `name`/`fromName`/`fromEmail`, `lib/auth.ts` `cookiePrefix`, anonymous-mail domain, origin fallbacks, `DEFAULT_FROM_EMAIL`, payment refs, demo emails, `STORAGE_KEY`); `__tests__/platform-name-compliance.test.ts` fails on any `Crelab|CreLab|Crellab` outside the allowlist.
+10. **Shared foundation** — 8 config keys (`firstHundred`, `referral`, `leaderboard`, `countdown`, `bugReport`, `landingStats`, `scrollToTop`, `webinars`) + `features.referralsEnabled`/`features.webinarsEnabled` in `config/platform.config.ts`, types in `types/index.ts`, new "Growth" section in `app/admin/config/page.tsx`, Navbar/Footer flag-gated Leaderboard/Webinars links, AdminSidebar countdown/webinars entries, three root-layout mounts (`ReferralCapture`, `GlobalErrorCatcher`, `ScrollToTopButton`).
+11. **Tests** — new suites: `__tests__/lib/early-member.test.ts`, `__tests__/lib/countdown.test.ts`, `__tests__/lib/error-log-buffer.test.ts`, `__tests__/lib/sanitize-error.test.ts`, `__tests__/services/ReferralService.test.ts`, `__tests__/services/LeaderboardService.test.ts`, `__tests__/services/WebinarService.test.ts`, `__tests__/platform-name-compliance.test.ts`.
+12. **QA gate (Step 4):** `npx tsc --noEmit` → **0 errors**; `npm run lint` → **0 errors**; `npm run build` → **exit 0** (routes present: `/leaderboard`, `/referrals`, `/webinars`, `/admin/countdown`, `/admin/webinars`, `/bug-report`, `/api/webinars`); `npx vitest run` → **389 passed / 392 total** — the 3 failures are PRE-EXISTING at HEAD and unrelated: `__tests__/media.test.ts` (file-size limit case) and `__tests__/services/BlogPostService.test.ts` (2 adminList resilience cases), confirmed by comparing against the HEAD/stashed baseline.
+13. **Step 5 doc close (this entry):** `checkpoints/session-log.md` (this entry), `summaries/dev-history.md` (Sprint 2026-10-01), `memory/project-decisions.md` (+4 decisions: leaderboard factor registry incl. the `ratings` formula, keyed-record config lists, platform-name token + allowlist, webinar unique-index upsert), `memory/lessons-learned.md` (+1: error-boundary → form handoff via sessionStorage), `planning/project-plan.md` (sprint marked complete), `update-ai-system.md` deep sync (`system-architecture.md` — diagram/module/config/recent-changes; `index/repo-map.md` — new routes/services/lib/components/tests; `index/dependency-graph.md` — growth-service + error-reporting + countdown nodes, zod drift fixed), `sync-context.md` final pass, `checkpoints/in-progress.md` cleared to a closed stub. `design-system.md` deliberately untouched (out of scope for this close).
+
+**Files Added (implementation):**
+- Services: `services/EarlyMemberService.ts`, `services/ReferralService.ts`, `services/LeaderboardService.ts`, `services/PlatformStatsService.ts`, `services/WebinarService.ts`
+- Lib: `lib/referral-cookie.ts`, `lib/countdown.ts`, `lib/countdown-icons.ts`, `lib/error-log-buffer.ts`, `lib/sanitize-error.ts`, `lib/platform-copy.ts`, `lib/landing-stats.ts`, `lib/webinars.ts`
+- Components: `components/shared/EarlyMemberBadge.tsx`, `ReferralCapture.tsx`, `CountdownWidget.tsx`, `CountdownSlot.tsx`, `ScrollToTopButton.tsx`; `components/error/ErrorReportDialog.tsx`, `GlobalErrorCatcher.tsx`
+- Routes/pages: `app/(auth)/referrals/`, `app/(public)/leaderboard/`, `app/(public)/webinars/`, `app/admin/countdown/`, `app/admin/webinars/`, `app/error.tsx`, `app/global-error.tsx`; APIs `app/api/early-access/`, `app/api/leaderboard/`, `app/api/referrals/{me,claim}/`, `app/api/webinars/` (+`[id]/register`), `app/api/admin/webinars/` (+`[id]`)
+- DB: `drizzle/migrations/0007_referrals_and_error_context.sql` (**not applied** — manual Supabase step)
+- Tests: the 8 suites listed above
+
+**Files Modified (implementation):** `drizzle/schema.ts` (4 new tables + `bug_reports.error_context`), `config/platform.config.ts` (8 keys + 2 flags), `types/index.ts`, `app/admin/config/page.tsx` (Growth section), `app/layout.tsx` (3 mounts), `components/shared/Navbar.tsx` + `Footer.tsx` (flag-gated links), `components/admin/AdminSidebar.tsx`, `app/(auth)/register/page.tsx` (claim hook), `app/(public)/bug-report/page.tsx`, `app/api/bug-report/route.ts`, `app/admin/bug-reports/page.tsx`, `components/landing/LandingContent.tsx`, `app/page.tsx`, `app/(public)/home/page.tsx`, `app/(public)/explore/page.tsx` (slot + FAB removal), `services/EmailService.ts` + `lib/email-templates.ts` (`webinarRegistration`), plus the F9 name-compliance sweep across `app/`, `components/`, `lib/`, `services/`.
+
+**Compliance:**
+- Planning pass (Session 2026-09-30) + Amendment A (resume) documented in `in-progress.md`; go/no-go = GO; self-check against `project-context.md` + `project-decisions.md` clean.
+- Implementation per `agents/implementer.md`; design tokens/`Cl*` per `design-system.md` (no new primitive); `repair-system.md` pitfalls avoided (no `new Headers()` in `getSession`, no `eq()` on truncated slugs, integer money only, mount-gated hydration).
+- Chains: `update-ai-system.md` invoked at Step 5 (architecture impact = YES — new tables, services, routes, pages, two error boundaries) **and** `sync-context.md` run one final time afterwards; both recorded here. No `task-queue.md` mutation in this close (rows were already `[x]` and `last-synced`/`last-verified-against-code` were already 2026-10-01 — not duplicated).
+
+**Build Status:** ✅ `npx tsc --noEmit` 0 errors · `npm run lint` 0 errors · `npm run build` exit 0 (`/leaderboard`, `/referrals`, `/webinars`, `/admin/countdown`, `/admin/webinars`, `/bug-report`, `/api/webinars`) · `npx vitest run` 389/392 (3 pre-existing failures at HEAD: `media.test.ts` file-size case + 2 `BlogPostService.test.ts` adminList cases).
+
+**Next Task:** Apply `drizzle/migrations/0007_referrals_and_error_context.sql` manually on Supabase (journal stays untouched past `0002`; until applied, referral/webinar code fails at runtime against a live DB), then commit the working tree — nothing from this sprint has been committed yet. Re-run the QA gate after the commit. Phase 2 backlog unchanged (messaging, in-app notification centre, reviews, pricing guidance, identity verification).
+
+**Notes / Blockers:**
+- Residual risk (open): migration `0007` **not applied**; RLS policy files (`0002_rls`, `0003_wallet_rls`) remain unapplied from Session 30 — unchanged posture (service-role connection).
+- Working tree holds every F1–F9 change uncommitted (code + tests + migration + docs).
+
+
+
+---
+
+## Session 2026-10-07 � DB Migration & Script Close-Out (execute-feature)
+
+**Directive:** Close out the previous session''s open tasks: generate and apply the
+migrations; add package.json scripts for easy DB processes including a DB backup script
+to be used before destructive actions (a deseed previously wiped critical non-seed data,
+so backup-before-destructive is now mandatory practice).
+
+**Completed:**
+
+1. **Generated the missing migration** � `npx drizzle-kit generate` produced
+   `drizzle/migrations/0003_close-out-schema-drift.sql` (journal entry added automatically),
+   covering all drift since snapshot 0002: `about_page`, `how_it_works_page`, `media_assets`,
+   `blog_posts`, `referral_codes`, `referral_events`, `webinars`, `webinar_registrations`,
+   `bug_reports` columns (`reporter_*`, `screenshot_urls`, `error_context`) + 3 new enums.
+   Hardened to fully idempotent (`IF NOT EXISTS` / `DO � EXCEPTION WHEN duplicate_object`),
+   so it applies cleanly on both fresh DBs and the live DB where 0004/0005/0006 objects were
+   hand-applied in Session 2026-08-19.
+2. **Fixed the journal/file mismatch** � renamed `0001_initial.sql` ? `0000_initial.sql`
+   to match the `0000_initial` journal tag (the migrator resolves files by tag and refused
+   to run without it).
+3. **New `scripts/db/migrate.ts`** (`npm run db:migrate`) � journal-driven drizzle migrator.
+4. **New `scripts/db/baseline.ts`** (`npm run db:baseline -- <tag>`) � one-time marker for
+   DBs built pre-journal (records hashes in `drizzle.__drizzle_migrations` without running
+   SQL, using drizzle''s own sha256 scheme). Live DB baselined through `0002_breezy_tinkerer`.
+5. **New `scripts/db/backup.ts`** (`npm run db:backup`) � `pg_dump` custom-format snapshot
+   into `backups/` (gitignored) with restore command printed; clear error when `pg_dump` is
+   absent. `backups/` added to `.gitignore`.
+6. **Seed rollback made safe (the data-loss root cause)** � `scripts/seed-rollback.ts` now
+   deletes ONLY seed-scoped rows (seed `@crelab.test` users, `prov-*`/`bkg-*`/seed slugs/ids)
+   by default. Full-table wipe survives only behind `--all` (deprecated `--force` alias),
+   which takes a `pg_dump` backup first unless `--no-backup`.
+7. **package.json DB scripts** � `db:generate`, `db:migrate`, `db:baseline`, `db:push`,
+   `db:studio`, `db:backup`, `predb:seed:rollback` (auto-backup guard), `db:reset`
+   (backup ? rollback ? migrate ? seed).
+8. **Applied to the live DB** � `db:baseline` (0000�0002 marked) + `db:migrate` (0003 applied,
+   `? Migrations applied`). Verified: all 6 new tables present, 4 migrations tracked.
+   This closes the 2026-10-01 open item (unapplied 0007 content is subsumed by 0003).
+
+**QA gate:** `npx tsc --noEmit` clean; `npx vitest run` 389/392 � the same 3 pre-existing
+failures at HEAD (media file-size + 2 BlogPostService adminList), no regressions.
+
+**Files Modified/Created:**
+- Created: `drizzle/migrations/0003_close-out-schema-drift.sql`,
+  `drizzle/migrations/meta/0003_snapshot.json`, `scripts/db/migrate.ts`,
+  `scripts/db/baseline.ts`, `scripts/db/backup.ts`
+- Renamed: `drizzle/migrations/0001_initial.sql` ? `0000_initial.sql`
+- Edited: `drizzle/migrations/meta/_journal.json` (via generate), `package.json`,
+  `scripts/seed-rollback.ts`, `.gitignore`, ai-system docs (this log, dev-history,
+  task-queue, project-decisions, in-progress cleared)
+
+**Build Status:** ? Typecheck clean, 389/392 tests (3 pre-existing failures, unchanged).
+
+**Next Task:** Phase 2 backlog � in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- No architecture impact (tooling + migrations only) � no `update-ai-system.md` deep sync
+  required per the Step 5 condition; `sync-context` freshness updated inline.
+- `pg_dump` is not installed on this Windows machine � `db:backup` prints install guidance;
+  verify a backup run on a machine with PostgreSQL tools before the next destructive op.
+- Legacy standalone files (`0002_rls.sql`, `0003_explore.sql`, `0003_wallet_rls.sql`,
+  `0004�0007`) remain in the folder as history; journal-driven flow supersedes them.
+  RLS policies still unapplied (known residual risk, `uuid = text` mismatch � service-role
+  connection bypasses RLS, unchanged).
+
+## Session 2026-10-08 — Execute Feature: Auth Cleanup + Explore Tiles + Team Management + SEO
+
+**Directive:** (1) drop phone from signup, (2) fix blank/glitchy explore tiles on scroll,
+(3) sanitise "Cloudinary" from public UI, (4) profile display-name backfill,
+(5) team admin direct avatar upload + social-link select with icons (backward compat),
+(6) per-page SEO titles/metadata.
+
+**Completed:**
+1. **Phone removed from auth UI** — `app/(auth)/login/page.tsx`: phone tab toggle + OTP
+   panel commented out (not deleted — restorable when phone auth ships); email-only sign-in.
+   Register page already had no phone block (verified).
+2. **Explore tile scroll/blank fix** — `ExploreVideoCard`: removed `key={id-carouselIndex}`
+   img remount (blanked tile each 3.5s tick), carousel timer no longer resets on scroll
+   (`isInView` dropped from deps), video overlay mounts only when in view (`autoPlay`,
+   `preload="metadata"`) with thumbnail kept underneath so tiles never blank; `loading=lazy`.
+   `ExploreGrid` + `PortfolioGallery`: removed `AnimatePresence popLayout` + `layout` (caused
+   masonry jumping on every infinite-scroll append); mount-only fade, stagger capped at 0.3s
+   (far-down tiles previously sat at opacity-0 with long delays = "nothing visible").
+3. **Cloudinary sanitised (public UI/config)** — profile media tab "Cloudinary Uploads" →
+   "Direct Uploads"; delete-confirm copy → "direct storage"; admin config label
+   "Cloudinary Direct Uploads" → "Direct Uploads". Admin-internal + code/API strings untouched.
+4. **Profile display name** — `app/(auth)/profile/page.tsx`: `useEffect` backfills the input
+   from `user.name` once auth resolves (pristine-only via `nameTouched`, no edit clobber).
+5. **Team management** — new `lib/social-platforms.ts` (10-option catalogue + legacy
+   normalisation: Twitter→X etc., unknown values kept verbatim as custom); new
+   `components/team/TeamSocialIcon.tsx` (brand SVGs for X/LinkedIn/GitHub/Instagram/
+   YouTube/Facebook, lucide generics for Dribbble/TikTok/Website/Other). `TeamMemberModal`:
+   avatar via `ImageUploadField` (direct upload + paste fallback), platform `<select>` +
+   conditional custom-text input, plus open/member sync effect (fixes stale edit state).
+   Public `/team` page renders icons via `TeamSocialIcon`. Seed/API shapes unchanged.
+6. **SEO** — 13 new route `layout.tsx` files with `generateMetadata` (config-driven titles,
+   descriptions, canonical paths, keywords; `noindex` on private auth routes, indexed on
+   explore/bug-report); root layout gains site keywords.
+7. **Tests** — new `__tests__/lib/social-platforms.test.ts` (6 tests, pass).
+
+**QA gate:** `tsc --noEmit` clean; `next build` green; `vitest` 395/398 — the same 3
+pre-existing failures at clean HEAD (media file-size wording + 2 BlogPostService adminList,
+verified via `git stash`), no regressions.
+
+**Files Modified/Created:** see git status (10 modified, 15 new layouts/components/lib/test).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- No architecture impact (no schema/API changes) — no `update-ai-system.md` deep sync
+  per the Step 5 condition; freshness updated inline (this log, dev-history, task-queue).
+- lucide-react no longer ships brand icons (verified `undefined` at runtime) — hence inline
+  brand SVGs in `TeamSocialIcon`; revisit if a brand-icon dep is adopted.
+
+## Session 2026-10-08 — Verify-Work Test-Green + update-ai-system Deep Sync
+
+**Directive:** `verify-work.md` with directive "simply get all tests passing (non-breaking, resolve what needs to be resolved in code or in test suites)" then execute `update-ai-system.md`.
+
+**Completed:**
+1. **Test-green (non-breaking)** — `npx vitest run` was 395/398 with 3 failures open since ≥2026-09-22:
+   - `__tests__/media.test.ts:72` (expected `"too large"`): fixed in code — `lib/media.ts` oversize reason now `"File too large: X.X MB — exceeds the N MB per-file limit …"`. Keeps the detailed per-file wording; restores the `"too large"` substring that the test plus `app/api/media/*` (`raw.includes("too large")`) and `MediaUpload.tsx` (`/Drive|too large|MB each|compress/i`) branch on.
+   - `__tests__/services/BlogPostService.test.ts:89,98` (expected length 1, got 7): fixed in test suite — `adminList()` intentionally returns `mergeUnique(dbRows, fallbackPosts)`; expectations now `getFallbackPosts().length + 1` with the DB row first. No production change.
+2. **QA gate:** `vitest` 398/398 (33 files), `tsc --noEmit` exit 0, `next lint` 0 errors (pre-existing unused-var warnings only). Build not re-run (no app-code surface change beyond a copy string).
+3. **Deep sync (`update-ai-system.md`)** — reconciled drift from the 2026-10-08 auth-cleanup session (which had skipped the deep sync): `repo-map.md` + `dependency-graph.md` now index `lib/social-platforms.ts`, `components/team/TeamSocialIcon.tsx`, and the 13 per-route SEO `layout.tsx` files; `system-architecture.md` Recent Changes, `project-plan.md` Completed, and `task-queue.md` Completed gain both 2026-10-08 sessions; `dev-history.md` gains this entry; `lessons-learned.md` gains the stale-expectation-vs-contract lesson; `test-results.md` now 398/398 with zero active failures; freshness metadata updated everywhere touched.
+
+**Files Modified/Created:** `lib/media.ts`, `__tests__/services/BlogPostService.test.ts` + 7 ai-system docs (no app surface change).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+## Session 2026-10-08 — Leaderboard Zero-Scores + Explore Content Parity + Upload→Portfolio Attach (execute-feature)
+
+**Directive:** leaderboard should still list users at zero points; `/explore` providers view shows providers with uploaded content but content view is empty (impossible) — ensure content shows and provider portfolios are not empty; close with `update-ai-system.md`.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/deps changes); scope/project-decisions checks pass. Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Root causes found:**
+1. `LeaderboardService.scoreLeaderboard()` dropped `score <= 0` rows AND `getBoard()` only unioned positive-raw userIds — zero-activity members could never appear.
+2. `GET /api/explore` serves mock providers when `NEXT_PUBLIC_MOCK_DATA=true` but `GET /api/explore/portfolio` had no mock fallback (DB miss → `[]`) — providers view showed mock providers with `portfolioCount > 0` while content view was empty.
+3. `/api/media/upload|confirm|batch-upload` only `recordUpload()` into `media_assets` — nothing ever created `portfolio_items` rows, so portfolios/explore-content stayed empty and uploads sat Unlinked/Orphan.
+
+**Completed:**
+1. Leaderboard keeps zeros (all members scored, zeros rank last; dead code removed).
+2. Explore portfolio mock fallback mirroring `/api/explore` + error logging on the DB path.
+3. `PortfolioService.attachUploadToProvider()` (idempotent, provider-owners only) wired best-effort into all three upload endpoints; new `POST /api/portfolio/items` (idempotent manual attach, ownership-checked); `/profile/media` invalidates `my-portfolio`; public profile empty-portfolio block.
+4. QA gate: `vitest` 399/399, `tsc` clean, `lint` 0 errors.
+5. Deep sync (`update-ai-system.md`): dev-history, task-queue, project-decisions (2 entries), system-architecture, dependency-graph, lessons-learned, test-results (399/399); in-progress.md cleared.
+
+**Files Modified/Created:** `services/LeaderboardService.ts`, `services/PortfolioService.ts`, `app/api/explore/portfolio/route.ts`, `app/api/media/upload/route.ts`, `app/api/media/confirm/route.ts`, `app/api/media/batch-upload/route.ts`, `app/api/portfolio/items/route.ts`, `app/(auth)/profile/media/page.tsx`, `app/(public)/profile/[slug]/page.tsx`, `__tests__/services/LeaderboardService.test.ts` + 8 ai-system docs (no new files; no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- Existing orphan `media_assets` rows (uploaded before this session) do NOT auto-backfill — admins attach them via the existing `/admin/media` reconcile flow (`MediaAssetService.reconcileAsset`). New uploads flow through automatically.
+- `POST /api/portfolio/items` defaults unknown mimeTypes to `application/octet-stream`; Drive URLs pasted as raw links keep `source: DIRECT` (provenance rule unchanged: source tags stay portfolio-context UI only).
+
+## Session 2026-10-08 — Residual Risks: Leaderboard Pagination + Orphan Backfill (execute-feature)
+
+**Directive:** Address the logged residual risks, particularly the pagination issue for UI/UX optimisation: (1) pre-existing orphans don't auto-backfill, (2) `getBoard()` selects all users (revisit pagination past low-thousands membership). Close with `update-ai-system.md`.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/deps changes; additive fields only); scope/project-decisions checks pass (keep-zeros rule preserved; backfill stays an explicit admin action, never automatic). Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Leaderboard pagination optimisation** — `services/LeaderboardService.ts`: user-agnostic ranking cached 30s (`BOARD_CACHE_TTL_MS`, `buildBoardCacheSignature` keyed by factor set/weights/raw-visibility, `clearBoardCache()`); `loadAllCandidates()` loads users in `CANDIDATE_BATCH_SIZE` (1000) chunks (stable `id` order) + one narrow providers query; new pure `applyCurrentUserContext()` stamps `isCurrentUser` + `currentUserRank`/`currentUserScore` per request so the shared cache never leaks identity. `app/api/leaderboard/route.ts`: `Cache-Control: public, s-maxage=30, stale-while-revalidate=60` + `?refresh=true` bypass. `LeaderboardClient.tsx`: per-page client cache (instant revisit + background revalidate), next-page prefetch, "You are ranked #N of M" banner with jump-to-rank, Refresh bypasses both caches.
+2. **Orphan backfill** — `MediaAssetService.backfillOrphans({limit, dryRun})` + pure `partitionBackfillCandidates()` (grace-age ignored: early attach is the point); owner-matched orphans attach as visible DIRECT items via `PortfolioService.addItem` (idempotent by URL; one-way edge, no import cycle); provider-less/ownerless rows counted as skipped, never guessed. New `POST /api/admin/media/backfill` (ADMIN, audit-logged `media.backfill`/`media.backfill.dry_run`) + "Backfill orphans" button with dry-run preview dialog on `/admin/media`. Per-asset `reconcileAsset` unchanged for ambiguous rows.
+3. **QA gate:** `vitest` 407/407 (33 files; +5 leaderboard, +3 backfill), `tsc --noEmit` exit 0, `next lint` 0 errors (pre-existing warnings only). One self-found type error fixed in-session (`source: "DIRECT"` literal → `PortfolioItemSource.DIRECT` enum member).
+4. **Deep sync (`update-ai-system.md`):** dev-history, task-queue, project-plan, project-decisions (2 entries), system-architecture, dependency-graph, repo-map, lessons-learned, test-results (407/407); in-progress.md cleared.
+
+**Files Modified/Created:** `services/LeaderboardService.ts`, `services/MediaAssetService.ts`, `app/api/leaderboard/route.ts`, `app/(public)/leaderboard/LeaderboardClient.tsx`, `app/api/admin/media/backfill/route.ts` (new), `app/admin/media/page.tsx`, `__tests__/services/LeaderboardService.test.ts`, `__tests__/services/MediaAssetService.test.ts` + 10 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- Both prior residual risks now resolved: orphans are one-click rescuable (bulk, deliberate); `getBoard()` page turns are slice operations over a 30s cache. Remaining long-tail items unchanged: RLS policies still unapplied (pre-existing); precomputed-scores migration remains the eventual path at very large membership.
+- `node_modules` was absent at session start; `npm install --legacy-peer-deps` run (no dependency changes).

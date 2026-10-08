@@ -282,6 +282,17 @@ function ProfileContent({
             />
           )}
 
+          {portfolio.length === 0 && (
+            <div className="mt-6 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-center">
+              <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">
+                No work published yet
+              </p>
+              <p className="text-[13px] text-[var(--color-text-secondary)] mt-1">
+                {provider.displayName} hasn&apos;t added any portfolio pieces.
+              </p>
+            </div>
+          )}
+
           <ProfileClient
             packages={packages}
             providerId={provider.id}

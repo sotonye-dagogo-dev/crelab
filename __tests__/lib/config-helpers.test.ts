@@ -121,7 +121,7 @@ describe("lib/email-blocks", () => {
   it("substituteSampleVars fills known variables and leaves unknown intact", () => {
     const out = substituteSampleVars("Hi {{userName}}, visit {{exploreUrl}} and {{unknownVar}}");
     expect(out).toContain("Ada Okafor");
-    expect(out).toContain("https://crelab.example/explore");
+    expect(out).toContain("https://crellab.example/explore");
     expect(out).toContain("{{unknownVar}}");
   });
 });

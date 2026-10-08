@@ -1,9 +1,88 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: seed-rollback + panel-wrap + nav-home + explore-source-tag (Session 2026-09-23)
-> - last-verified-against-code: 2026-09-23
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-verified-against-code: 2026-10-08
 
+
+## Session 2026-10-08 — Residual Risks: Leaderboard Pagination + Orphan Backfill
+
+### What
+Directive: address the logged residual risks, particularly the pagination issue for UI/UX optimisation. Two workstreams, both non-breaking and backward compatible.
+
+### Verification
+`npx vitest run` → 33 files, **407 passed / 0 failed** (+5 leaderboard cache/context tests, +3 backfill tests). `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only).
+
+### Key Changes
+- **Leaderboard pagination optimisation** (`services/LeaderboardService.ts`, `app/api/leaderboard/route.ts`, `app/(public)/leaderboard/LeaderboardClient.tsx`) — neutral ranking cached 30s (`BOARD_CACHE_TTL_MS`, `buildBoardCacheSignature`, `clearBoardCache`); candidates in `CANDIDATE_BATCH_SIZE` (1000) chunks; `applyCurrentUserContext()` stamps `isCurrentUser` + `currentUserRank`/`currentUserScore` per request (additive `LeaderboardPage` fields); API sends CDN `s-maxage=30` + `?refresh=true` bypass; client per-page cache + next-page prefetch + "You are ranked #N of M" banner with jump-to-rank; Refresh bypasses both caches.
+- **Orphan backfill** (`services/MediaAssetService.ts`, `app/api/admin/media/backfill/route.ts`, `app/admin/media/page.tsx`) — `backfillOrphans({limit, dryRun})` + pure `partitionBackfillCandidates()`; owner-matched orphans attach as visible DIRECT portfolio items (idempotent, via `PortfolioService.addItem`); provider-less/ownerless rows counted as skipped; explicit admin action only (audit-logged), with dry-run preview dialog. Manual `reconcileAsset` unchanged for ambiguous rows.
+- **Docs deep sync** — this entry + `session-log.md`, `task-queue.md` Completed, `project-plan.md` Completed, `project-decisions.md` (2 entries), `system-architecture.md` (module rows, media flow, Recent Changes), `dependency-graph.md` (cache + backfill edges), `repo-map.md` (backfill route), `lessons-learned.md`, `test-results.md` (407/407); freshness metadata updated everywhere touched.
+
+
+## Session 2026-10-08 — Leaderboard Zero-Scores + Explore Content Parity + Upload→Portfolio Attach
+
+### What
+Directive: keep zero-point users on the leaderboard; fix the impossible state where `/explore` providers view shows providers with uploaded content but content view is empty; ensure provider portfolios are not empty. Three root causes, all fixed non-breaking.
+
+### Verification
+`npx vitest run` → 33 files, **399 passed / 0 failed** (+2 new leaderboard tests, 1 expectation updated). `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only).
+
+### Key Changes
+- **Leaderboard keeps zeros** (`services/LeaderboardService.ts`) — `scoreLeaderboard()` no longer `continue`s past `score <= 0`; `getBoard()` loads all members (`loadAllCandidates()`) instead of unioning only positive-raw userIds; dead `loadCandidates(ids)` removed, `inArray` import dropped. Tests: "drops users with no activity" → "keeps users with no activity at score 0" + new "ranks zero-score members below every positive score".
+- **Explore content mock parity** (`app/api/explore/portfolio/route.ts`) — mock fallback mirroring `GET /api/explore` (mock providers × mock portfolio items enriched to gallery shape; `hasMore: false`); DB-error path now logs instead of failing silently.
+- **Upload→portfolio attach** — `PortfolioService.attachUploadToProvider()` (idempotent, provider-owners only, admin uploads stay orphan → reconcile flow unchanged); wired best-effort into `/api/media/upload`, `/api/media/confirm`, `/api/media/batch-upload`; new `POST /api/portfolio/items` (mediaAssetId or url+mimeType, ownership-checked, idempotent); `/profile/media` invalidates `my-portfolio` + honest toast; public profile renders "No work published yet" when the portfolio is empty.
+- **Docs deep sync** — this entry + `session-log.md`, `task-queue.md` Completed, `project-decisions.md` (2 entries), `system-architecture.md` (service rows, media-upload flow, Recent Changes), `dependency-graph.md` (portfolio-items POST, attach edges, explore mock edge), `lessons-learned.md`, `test-results.md` (399/399); freshness metadata updated everywhere touched.
+
+
+## Session 2026-10-08 — Verify-Work Test-Green + AI-System Deep Sync
+
+### What
+Directive: get all tests passing (non-breaking) then run `update-ai-system.md`. Resolved the 3 failures that had been open since ≥2026-09-22, reaching **398/398** with `tsc` clean and lint 0 errors, then performed the deep sync (this file, `test-results.md`, `repo-map.md`, `dependency-graph.md`, `system-architecture.md`, `project-plan.md`, `lessons-learned.md`, freshness metadata).
+
+### Verification
+`npx vitest run` → 33 files, 398 passed / 0 failed. `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only).
+
+### Key Changes
+- **`lib/media.ts`** — oversize-file reason now reads `"File too large: X.X MB — exceeds the N MB per-file limit …"` (was `"File is X.X MB — …"`). Keeps the detailed per-file wording; restores the `"too large"` substring that `__tests__/media.test.ts:72` and downstream `raw.includes("too large")` branches (`app/api/media/*`, `components/profile/MediaUpload.tsx` Drive-suggestion regex) match on. Non-breaking: user-facing copy only, same shape.
+- **`__tests__/services/BlogPostService.test.ts`** — the two `adminList` resilience cases now expect `getFallbackPosts().length + 1` (was `1`). `adminList()` intentionally returns `mergeUnique(dbRows, fallbackPosts)` so the admin view never goes empty; the old expectation predated the merge. No production code changed.
+- **Docs deep sync** — `repo-map.md`/`dependency-graph.md` now cover `lib/social-platforms.ts`, `components/team/TeamSocialIcon.tsx`, and the 13 per-route SEO `layout.tsx` files shipped 2026-10-08 but never indexed; `system-architecture.md` Recent Changes + `project-plan.md` Completed gain the 2026-10-08 auth-cleanup sprint; `test-results.md` reflects 398/398.
+
+
+## Session 2026-10-08 — Auth Cleanup + Explore Tiles + Team Management + SEO
+
+### What
+Seven-item polish directive: phone removed from auth UI (login phone tab commented out, register already clean); explore tiles de-glitched (no img remount on carousel tick, scroll-stable timer, mount-on-view video with thumbnail underneath, no layout animations in masonry, capped stagger); "Cloudinary" sanitised from public UI/config ("Direct Uploads"); profile display-name backfilled after auth resolves; team admin gains direct avatar upload + platform select with custom option and icon rendering (backward compatible via `lib/social-platforms.ts` normalisation); 13 route layouts add config-driven per-page SEO titles/metadata.
+
+### Verification
+`tsc` clean, `next build` green, 395/398 tests (3 pre-existing failures verified identical on clean HEAD via `git stash`), 6 new social-platform tests pass.
+
+
+## Sprint 2026-10-01 — Growth & Reliability (F1–F9): Founding-100 + Referrals/Leaderboard + Countdown + Error Reporting + Stats/Back-to-Top/Webinars/Name Compliance
+
+### What
+Executed the bulk "Growth & Reliability (2026-09-30)" sprint end-to-end (planned 2026-09-30, resumed 2026-10-01 via `resume-session.md`, drift check = **minor**: `drizzle/schema.ts` already held the new tables although the checkpoint said "implementation not started", and the missing migration `0007` was written in this session). Nine workstreams shipped: F1 Founding-100 badge, F2 referral system + F2/F7 public leaderboard, F3 countdown widget, F4 error-boundary bug reporting, F5 derived landing stats, F6 platform-wide back-to-top, F8 webinars, F9 platform-name compliance — plus the shared config/type/nav/layout foundation.
+
+### Why
+- Growth loops (referrals + leaderboard + Founding-100 scarcity) and retention surfaces (countdown, webinars, real landing stats) were the highest-leverage items on the roadmap's growth track.
+- Bug reporting only worked as a form; users never saw an encouragement when an error actually fired, and engineers got no stack/console context.
+- Hardcoded "Crelab/CreLab" display copy had drifted from the config-driven rule (`config.name` = "Crellab") with nothing enforcing it.
+- Bulk-sprint directive: the 2026-09-30 plan (F1–F4 + docs/tests) was expanded by Amendment A (F5–F9) rather than replacing it.
+
+### Key Changes
+- **F1 Founding-100** — `services/EarlyMemberService.ts` (rank = `ROW_NUMBER() OVER (ORDER BY created_at, id)`, `unstable_cache` tag `early-members`), `components/shared/EarlyMemberBadge.tsx` (Navbar desktop/mobile + profile), `GET /api/early-access`, `firstHundred` config. No schema change; seeded users intentionally counted.
+- **F2 Referrals** — `referral_codes` + `referral_events` (migration `0007_referrals_and_error_context.sql`); `services/ReferralService.ts` writes degree-1 and degree-2 events in one ACID transaction with an idempotent cookie claim; `lib/referral-cookie.ts` + `components/shared/ReferralCapture.tsx` capture `?ref=` in the root layout; claim hook on `/register` (password + Google); `GET /api/referrals/me`, `POST /api/referrals/claim`, authed `/referrals`.
+- **F2/F7 Leaderboard** — `services/LeaderboardService.ts` pluggable `LeaderboardFactor` registry with four factors — `referrals` (`SUM(points)`), `portfolio` (visible count), `bookings` (count only — no amounts/counterparties/dates), `ratings` (`AVG(rating) × ln(1 + count)`); `leaderboard.factors.*` config supplies enabled/label/description/weight/showRawValue; `GET /api/leaderboard`; public `/leaderboard` (podium + paginated table) with a "How scoring works" transparency panel. Privacy: display name + avatar only.
+- **F3 Countdown** — `lib/countdown.ts` + `lib/countdown-icons.ts` (curated lucide allowlist), `components/shared/CountdownWidget.tsx` + `CountdownSlot.tsx` (framer-motion digit roll, `prefers-reduced-motion` gate, mount-gated tick → hydration-safe), landing + explore slots, `/admin/countdown` editor saving the single atomic key `countdown.widgets`.
+- **F4 Error-boundary bug reporting** — `lib/error-log-buffer.ts` (console ring buffer) + `lib/sanitize-error.ts` (redacts emails/bearer/JWT/session tokens/cookies/data URIs; truncates; 8 KB cap); `components/error/ErrorReportDialog.tsx` + `GlobalErrorCatcher.tsx` (`window.onerror` + `unhandledrejection`, non-blocking); `app/error.tsx` (Continue via `reset()`) + `app/global-error.tsx`; `/bug-report` reads the stashed payload from `sessionStorage` (`crelab-error-context`) with attach/detach; `POST /api/bug-report` validates then **re-sanitises** and stores `error_context`; admin triage block on `/admin/bug-reports`.
+- **F5 Landing stats** — `services/PlatformStatsService.ts` cached aggregates (tag `platform-stats`, 300s) with a null → `fallbackValue` degradation path; `landingStats.items.{id}` keyed-record config; `LandingContent` iterates config instead of the hardcoded 1.2k / 5k / 4.9 figures.
+- **F6 Back-to-top** — `components/shared/ScrollToTopButton.tsx` mounted once in `app/layout.tsx` (`scrollToTop` config: enabled/thresholdPx/label); explore's inline FAB removed.
+- **F8 Webinars** — `webinars` + `webinar_registrations` tables (unique `(webinar_id, lower(email))`, partial unique `(webinar_id, user_id)`); `services/WebinarService.ts` registers via unique-index **upsert** (concurrent double submits collapse to one row); `GET /api/webinars`, `POST /api/webinars/[id]/register` (guest + auth, zod, explicit marketing-consent column), admin CRUD `/api/admin/webinars` (+`[id]`, AuditService) and `/admin/webinars`; public `/webinars` (upcoming registration, past recordings + `EmailTemplateBlock[]` content); wired `webinarRegistration` confirmation email via `services/EmailService.ts` / `lib/email-templates.ts`.
+- **F9 Platform-name compliance** — `lib/platform-copy.ts` (`PLATFORM_NAME_TOKEN`, `fillPlatformName`); all display-copy instances resolve from `config.name` ("Crellab") with `{{name}}` tokens for module-scope constants; explicit infrastructure allowlist (config name/from*, cookie prefix, payment refs, demo emails, storage key, origin fallbacks); `__tests__/platform-name-compliance.test.ts` fails on any `Crelab|CreLab|Crellab` outside the allowlist.
+- **Shared foundation** — 8 config keys (`firstHundred`, `referral`, `leaderboard`, `countdown`, `bugReport`, `landingStats`, `scrollToTop`, `webinars`) + `features.referralsEnabled`/`features.webinarsEnabled` in `config/platform.config.ts`, types in `types/index.ts`, "Growth" section in `app/admin/config/page.tsx`, flag-gated Navbar/Footer Leaderboard/Webinars links, AdminSidebar countdown/webinars entries, three layout mounts.
+- **Docs close (this session)** — `session-log.md`, `dev-history.md` (this entry), `project-decisions.md` (+4 decisions), `update-ai-system.md` deep sync (`system-architecture.md`, `index/repo-map.md`, `index/dependency-graph.md`, `planning/project-plan.md`, `memory/lessons-learned.md`), final `sync-context.md`, `checkpoints/in-progress.md` cleared.
+
+### Status
+Pass — `npx tsc --noEmit` → **0 errors**; `npm run lint` → **0 errors**; `npm run build` → **exit 0** (routes present: `/leaderboard`, `/referrals`, `/webinars`, `/admin/countdown`, `/admin/webinars`, `/bug-report`, `/api/webinars`); `npx vitest run` → **389 passed / 392 total**, the 3 failures are PRE-EXISTING at HEAD and unrelated: `__tests__/media.test.ts` (file-size limit case) and `__tests__/services/BlogPostService.test.ts` (2 adminList resilience cases) — confirmed against the HEAD/stashed baseline. **Residual risk:** `drizzle/migrations/0007_referrals_and_error_context.sql` is written but **not applied** (journal untouched past `0002`); until applied on Supabase, referral/webinar code fails at runtime against a live DB. Nothing committed — the working tree holds all changes uncommitted.
 
 ## Sprint 2026-09-23 — Seed Rollback + Book Panel Wrap + Nav Home Removal + Explore Source Tag
 
@@ -577,3 +656,22 @@ posts, bug reports, dispute resolution) was invisible to history.
 
 ### Status
 Pass — typecheck clean, 233 tests pass, lint has no new warnings, production build passes.
+
+---
+
+## 2026-10-07 � DB Migration & Script Close-Out
+
+Directive: generate + apply pending migrations; easy DB npm scripts incl. mandatory
+pre-destructive backup (prior deseed wiped live data).
+
+- `drizzle/migrations/0003_close-out-schema-drift.sql` (idempotent): about/how-it-works
+  pages, media_assets, blog_posts, referrals, webinars, bug-report columns + enums.
+  Journal rename fix (`0001_initial.sql` ? `0000_initial.sql`).
+- New runners: `scripts/db/migrate.ts`, `scripts/db/baseline.ts`, `scripts/db/backup.ts`
+  (pg_dump ? gitignored `backups/`).
+- `scripts/seed-rollback.ts`: seed-scoped deletes by default; `--all` full wipe takes a
+  backup first (fixes the live-data-loss bug).
+- package.json: `db:generate/migrate/baseline/push/studio/backup/reset`,
+  `predb:seed:rollback` auto-backup.
+- Applied live: baselined 0000�0002, migrated 0003 (6 tables verified, 4 tracked).
+  QA: tsc clean, 389/392 tests (3 pre-existing failures unchanged).

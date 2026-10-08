@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>How It Works Page — CreLab Design Reference</title>
+  <title>How It Works Page — Crellab Design Reference</title>
   <style>
     :root {
       --color-bg: #0A0A0A;
@@ -46,45 +47,289 @@
       --color-info: #2563EB;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--font-body); background: var(--color-bg); color: var(--color-text-primary); line-height: 1.6; }
-    .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
-    h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(32px, 5vw, 48px); letter-spacing: -0.02em; margin-bottom: 16px; }
-    h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 32px 0 12px; }
-    h3 { font-family: var(--font-display); font-weight: 600; font-size: 16px; margin: 16px 0 8px; color: var(--color-text-primary); }
-    p { color: var(--color-text-secondary); font-size: 15px; margin-bottom: 12px; }
-    .subtitle { color: var(--color-text-secondary); font-size: 18px; max-width: 680px; margin: 0 auto 40px; text-align: center; }
-    .hero { text-align: center; margin-bottom: 48px; }
-    .section { margin-bottom: 48px; }
-    .step { display: flex; gap: 16px; margin-bottom: 20px; padding: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; }
-    .step-number { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: var(--color-accent); color: var(--color-text-inverse); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; font-family: var(--font-display); }
-    .step-content h4 { font-family: var(--font-display); font-size: 15px; margin-bottom: 4px; }
-    .step-content p { font-size: 13px; color: var(--color-text-secondary); margin: 0; }
-    .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-    .section-header h2 { margin: 0; }
-    .subtitle-text { color: var(--color-text-secondary); font-size: 14px; font-weight: 400; }
-    .sandbox-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
-    .sandbox-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; transition: all 0.2s; }
-    .sandbox-card:hover { border-color: var(--color-border-mid); transform: translateY(-2px); }
-    .sandbox-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; margin-bottom: 8px; }
-    .sandbox-desc { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px; }
-    .sandbox-type { display: inline-block; padding: 4px 10px; background: var(--color-accent-muted); color: var(--color-accent); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border-radius: 4px; }
-    .faq-item { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; margin-bottom: 12px; }
-    .faq-question { font-family: var(--font-display); font-weight: 600; font-size: 15px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-    .faq-answer { color: var(--color-text-secondary); font-size: 14px; line-height: 1.7; }
-    .faq-category { font-size: 11px; color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; }
-    .theme-toggle { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; gap: 8px; background: var(--color-surface); border: 1px solid var(--color-border); padding: 8px; border-radius: 8px; }
-    .theme-btn { padding: 8px 16px; border: none; background: transparent; color: var(--color-text-secondary); cursor: pointer; font-size: 13px; font-weight: 500; border-radius: 4px; transition: all 0.2s; }
-    .theme-btn.active { background: var(--color-accent); color: var(--color-text-inverse); }
-    .theme-btn:hover:not(.active) { color: var(--color-text-primary); }
-    .config-badge { display: inline-block; padding: 4px 10px; background: var(--color-accent-muted); color: var(--color-accent); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border-radius: 4px; margin-bottom: 16px; }
-    .cta-group { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-top: 32px; }
-    .btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 24px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; transition: all 0.2s; }
-    .btn-primary { background: var(--color-accent); color: var(--color-text-inverse); }
-    .btn-primary:hover { background: var(--color-accent-dim); }
-    .divider { height: 1px; background: var(--color-border); margin: 32px 0; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(32px, 5vw, 48px);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 22px;
+      margin: 32px 0 12px;
+    }
+
+    h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 16px;
+      margin: 16px 0 8px;
+      color: var(--color-text-primary);
+    }
+
+    p {
+      color: var(--color-text-secondary);
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      color: var(--color-text-secondary);
+      font-size: 18px;
+      max-width: 680px;
+      margin: 0 auto 40px;
+      text-align: center;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 16px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      font-family: var(--font-display);
+    }
+
+    .step-content h4 {
+      font-family: var(--font-display);
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .step-content p {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .section-header h2 {
+      margin: 0;
+    }
+
+    .subtitle-text {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .sandbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .sandbox-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .sandbox-card:hover {
+      border-color: var(--color-border-mid);
+      transform: translateY(-2px);
+    }
+
+    .sandbox-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .sandbox-desc {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .sandbox-type {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--color-accent-muted);
+      color: var(--color-accent);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-radius: 4px;
+    }
+
+    .faq-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+
+    .faq-question {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .faq-answer {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .faq-category {
+      font-size: 11px;
+      color: var(--color-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      gap: 8px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .theme-btn {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .theme-btn.active {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+
+    .theme-btn:hover:not(.active) {
+      color: var(--color-text-primary);
+    }
+
+    .config-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--color-accent-muted);
+      color: var(--color-accent);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+
+    .cta-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 32px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 40px;
+      padding: 0 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+
+    .btn-primary:hover {
+      background: var(--color-accent-dim);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--color-border);
+      margin: 32px 0;
+    }
   </style>
 </head>
+
 <body>
   <div class="theme-toggle">
     <button class="theme-btn active" data-theme="dark">Dark</button>
@@ -94,10 +339,11 @@
 
   <div class="container">
     <span class="config-badge">Config-Driven · Admin Manageable · Includes Sandboxes & FAQ</span>
-    
+
     <div class="hero">
       <h1>How It Works</h1>
-      <p class="subtitle">Everything you need to know to get started — whether you're a creator looking for work or a brand searching for talent.</p>
+      <p class="subtitle">Everything you need to know to get started — whether you're a creator looking for work or a
+        brand searching for talent.</p>
     </div>
 
     <!-- For Creators Section -->
@@ -110,28 +356,32 @@
         <div class="step-number">1</div>
         <div class="step-content">
           <h4>Create Your Profile</h4>
-          <p>Showcase your work, set your rates, and define your niche. Add portfolio items from your device or sync from Google Drive.</p>
+          <p>Showcase your work, set your rates, and define your niche. Add portfolio items from your device or sync
+            from Google Drive.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">2</div>
         <div class="step-content">
           <h4>Get Discovered</h4>
-          <p>Brands browse our Explore feed and search for creators like you. Your profile appears in relevant searches based on your category, location, and tags.</p>
+          <p>Brands browse our Explore feed and search for creators like you. Your profile appears in relevant searches
+            based on your category, location, and tags.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">3</div>
         <div class="step-content">
           <h4>Receive Booking Requests</h4>
-          <p>Clients send booking requests with project details. You can accept, decline, or negotiate scope and timeline.</p>
+          <p>Clients send booking requests with project details. You can accept, decline, or negotiate scope and
+            timeline.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">4</div>
         <div class="step-content">
           <h4>Deliver & Get Paid</h4>
-          <p>Work is protected by escrow. Funds are held securely and released automatically after completion (or when you mark milestones as done).</p>
+          <p>Work is protected by escrow. Funds are held securely and released automatically after completion (or when
+            you mark milestones as done).</p>
         </div>
       </div>
     </div>
@@ -148,28 +398,32 @@
         <div class="step-number">1</div>
         <div class="step-content">
           <h4>Browse & Search</h4>
-          <p>Explore creators by category, location, experience level, and budget. Watch video portfolios to evaluate style and quality.</p>
+          <p>Explore creators by category, location, experience level, and budget. Watch video portfolios to evaluate
+            style and quality.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">2</div>
         <div class="step-content">
           <h4>Book with Confidence</h4>
-          <p>Select a package, set a date, and pay securely. Your payment is held in escrow until the work is delivered to your satisfaction.</p>
+          <p>Select a package, set a date, and pay securely. Your payment is held in escrow until the work is delivered
+            to your satisfaction.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">3</div>
         <div class="step-content">
           <h4>Collaborate Seamlessly</h4>
-          <p>Communicate directly with your creator, share briefs, and track progress. Milestone payments keep larger projects on track.</p>
+          <p>Communicate directly with your creator, share briefs, and track progress. Milestone payments keep larger
+            projects on track.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">4</div>
         <div class="step-content">
           <h4>Review & Release</h4>
-          <p>Review deliverables, request revisions if needed, and release payment. Leave a review to help the community.</p>
+          <p>Review deliverables, request revisions if needed, and release payment. Leave a review to help the
+            community.</p>
         </div>
       </div>
     </div>
@@ -186,7 +440,8 @@
         <div class="step-number">1</div>
         <div class="step-content">
           <h4>Payment Held in Escrow</h4>
-          <p>When you book, funds are securely held by our payment partner (Paystack) — not released to the creator until you're happy.</p>
+          <p>When you book, funds are securely held by our payment partner (Paystack) — not released to the creator
+            until you're happy.</p>
         </div>
       </div>
       <div class="step">
@@ -200,14 +455,16 @@
         <div class="step-number">3</div>
         <div class="step-content">
           <h4>Dispute Resolution</h4>
-          <p>If something goes wrong, our admin team mediates. We review evidence from both sides and make a fair decision.</p>
+          <p>If something goes wrong, our admin team mediates. We review evidence from both sides and make a fair
+            decision.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">4</div>
         <div class="step-content">
           <h4>Milestone Payments</h4>
-          <p>For larger projects, split payments into milestones. Each milestone is funded upfront and released upon approval.</p>
+          <p>For larger projects, split payments into milestones. Each milestone is funded upfront and released upon
+            approval.</p>
         </div>
       </div>
     </div>
@@ -217,7 +474,8 @@
     <!-- Sandboxes Section -->
     <div class="section">
       <h2>Interactive Sandboxes</h2>
-      <p style="color: var(--color-text-secondary); margin-bottom: 16px;">Visual experimenting and simulation for easier understanding</p>
+      <p style="color: var(--color-text-secondary); margin-bottom: 16px;">Visual experimenting and simulation for easier
+        understanding</p>
       <div class="sandbox-grid">
         <div class="sandbox-card">
           <div class="sandbox-title">Booking Flow Simulator</div>
@@ -247,42 +505,51 @@
     <!-- FAQ Section -->
     <div class="section">
       <h2>Frequently Asked Questions</h2>
-      <p style="color: var(--color-text-secondary); margin-bottom: 16px;">Quick answers to common questions — improving SEO and reducing support load</p>
-      
+      <p style="color: var(--color-text-secondary); margin-bottom: 16px;">Quick answers to common questions — improving
+        SEO and reducing support load</p>
+
       <div class="faq-item">
         <div class="faq-category">Payments</div>
         <div class="faq-question">How do I get paid as a creator?</div>
-        <div class="faq-answer">Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your CreLab wallet. You can withdraw to your bank account anytime.</div>
+        <div class="faq-answer">Payments are held in escrow via Paystack. Once the client approves your work (or after 5
+          days with no dispute), funds are automatically released to your Crellab wallet. You can withdraw to your bank
+          account anytime.</div>
       </div>
-      
+
       <div class="faq-item">
         <div class="faq-category">Payments</div>
         <div class="faq-question">What's the platform fee?</div>
-        <div class="faq-answer">CreLab charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.</div>
+        <div class="faq-answer">Crellab charges a 5% platform fee on each booking. This covers payment processing,
+          escrow protection, platform maintenance, and support.</div>
       </div>
-      
+
       <div class="faq-item">
         <div class="faq-category">Bookings</div>
         <div class="faq-question">Can I cancel a booking?</div>
-        <div class="faq-answer">Yes. Full refunds are available within 48 hours of booking. After that, a 50% cancellation fee applies to protect the creator's time.</div>
+        <div class="faq-answer">Yes. Full refunds are available within 48 hours of booking. After that, a 50%
+          cancellation fee applies to protect the creator's time.</div>
       </div>
-      
+
       <div class="faq-item">
         <div class="faq-category">Creators</div>
         <div class="faq-question">How do I build my portfolio?</div>
-        <div class="faq-answer">Upload videos and images directly, or connect Google Drive to sync your existing portfolio. Portfolio items appear on your public profile and in the Explore feed.</div>
+        <div class="faq-answer">Upload videos and images directly, or connect Google Drive to sync your existing
+          portfolio. Portfolio items appear on your public profile and in the Explore feed.</div>
       </div>
-      
+
       <div class="faq-item">
         <div class="faq-category">Clients</div>
         <div class="faq-question">What types of creators can I hire?</div>
-        <div class="faq-answer">We support Content Creators (UGC, lifestyle, brand content) and Cinematographers/Videographers (events, commercials, narrative, documentary). Each has tailored profile fields.</div>
+        <div class="faq-answer">We support Content Creators (UGC, lifestyle, brand content) and
+          Cinematographers/Videographers (events, commercials, narrative, documentary). Each has tailored profile
+          fields.</div>
       </div>
-      
+
       <div class="faq-item">
         <div class="faq-category">Security</div>
         <div class="faq-question">Is my data secure?</div>
-        <div class="faq-answer">Yes. We use bank-grade encryption, row-level database security, and comply with NDPR 2023. Payment data is handled by Paystack (PCI DSS Level 1 certified).</div>
+        <div class="faq-answer">Yes. We use bank-grade encryption, row-level database security, and comply with NDPR
+          2023. Payment data is handled by Paystack (PCI DSS Level 1 certified).</div>
       </div>
     </div>
   </div>
@@ -290,7 +557,7 @@
   <script>
     const html = document.documentElement;
     const buttons = document.querySelectorAll('.theme-btn');
-    
+
     function applyTheme(theme) {
       if (theme === 'system') {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -301,14 +568,14 @@
       localStorage.setItem('app-theme', theme);
       buttons.forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
     }
-    
+
     const saved = localStorage.getItem('app-theme') || 'system';
     applyTheme(saved);
-    
+
     buttons.forEach(btn => {
       btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
     });
-    
+
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
       const saved = localStorage.getItem('app-theme');
       if (saved === 'system' || !saved) applyTheme('system');
@@ -323,4 +590,5 @@
     });
   </script>
 </body>
+
 </html>

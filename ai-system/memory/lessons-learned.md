@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 34)
-> - last-verified-against-code: 2026-08-28
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -30,6 +30,22 @@
 ---
 
 ## Lessons
+
+## Stale Test Expectations vs Intentional Merge Behaviour — Fix the Test, Not the Code
+
+**Context:** Two `BlogPostService.adminList` resilience tests expected exactly 1 row while the service returned 7 (1 DB row merged with 6 fallback posts via `mergeUnique`). The tests had been failing since ≥2026-09-22.
+
+**What We Learned:**
+1. When a test expectation contradicts documented, intentional service behaviour ("merged with fallback posts so the view never goes empty"), the test is stale — updating the expectation to `getFallbackPosts().length + 1` is the non-breaking fix; changing the service to return only DB rows would silently empty the admin view.
+2. Conversely, when production code branches on a message substring (`raw.includes("too large")` in `app/api/media/*`, `/Drive|too large|MB each|compress/i` in `MediaUpload.tsx`), the message wording is a de-facto contract — rephrase user-facing copy without dropping the matched substring (`"File too large: …"` keeps both the new detail and the old match).
+3. Rule of thumb for "resolve in code or in test suites": if the code behaviour is the spec, fix the test; if the test asserts a contract other code depends on, fix the code to honour it.
+
+**Apply When:** Triaging long-standing test failures — check whether the failure is stale-expectation or broken-contract before touching either side.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
 
 ## Cursor Pagination with Composite Keys
 
@@ -599,6 +615,57 @@
 4. SEO metadata generated via existing `lib/seo.ts` `buildSeoMetadata` helper.
 
 **Apply When:** Adding any static/landing page that needs admin content management.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Error Boundary → Form Handoff: sessionStorage, Not Query Strings
+
+**Context:** The error-reporting flow (F4) needs to carry what the boundary captured — message, stack, the last 60 console lines, URL, timestamp — from `GlobalErrorCatcher`/`app/error.tsx` into the `/bug-report` form so the submission includes real diagnostics.
+
+**What We Learned:**
+1. Never put a stack trace (or any captured payload) in a query string: URLs are length-limited in practice (browsers/proxies truncate around ~2k–8k), stacks plus console logs blow past that, and the payload ends up in server logs, Referer headers and browser history — a leak as well as a truncation bug.
+2. `sessionStorage` is the right handoff medium: it survives the client-side navigation to `/bug-report`, dies with the tab (no cross-page persistence), and needs no server round trip. Stash under one namespaced key (`crelab-error-context`) and read it once on mount.
+3. The payload must be sanitised **twice**: at capture time (so the stash never holds a raw token/email) and again server-side on `POST /api/bug-report` (the stash is client-writable — never trust it).
+4. Make the attachment explicit and detachable in the UI: show an "attached details" panel with the captured message, and let the user remove it before submitting. Users who are asked to report an error will otherwise paste whatever they fear is sensitive.
+5. Buffer the console *before* the failure: a ring buffer installed at layout mount (`lib/error-log-buffer.ts`, idempotent install) is the only way to have the lines leading up to the crash.
+
+**Apply When:** Wiring any error/exception flow into a form, or moving any large/sensitive payload between routes — think storage lifetime + sanitisation at both ends, not URL parameters.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Mock-Mode Endpoints Must Fail Over Together (Explore Providers vs Content)
+
+**Context:** `/explore` providers view showed providers with uploaded content while content view was empty — reported as "can't be right", and it wasn't: `GET /api/explore` had a `MockDataService` fallback but `GET /api/explore/portfolio` did not, so with an empty/unreachable DB the providers view rendered mock providers (`portfolioCount > 0`) and the gallery rendered `[]`.
+
+**What We Learned:**
+1. Paired views (providers/content toggle fed by two endpoints) must share the same availability story — if one endpoint falls back to mock data, its sibling must too, or the UI presents an impossible state.
+2. Swallowed DB errors (`catch { return [] }`) made the gap invisible in logs; at minimum log (`console.error`) so the next "empty but shouldn't be" report has a trail.
+3. The deeper gap was real, not just mock: uploads only wrote `media_assets`, never `portfolio_items` — any asset pipeline that ends in a registry table needs a second look at which read surfaces actually consume that table (portfolios, explore content, dashboard gallery all read `portfolio_items.visible = true`).
+
+**Apply When:** Adding a mock/demo fallback to one endpoint of a paired-view set, or adding any write path whose rows are consumed by multiple read surfaces — trace every reader before calling the write "done".
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Cache the Ranking, Not the Page — Keep Shared Caches Identity-Free
+
+**Context:** `getBoard()` re-ran every factor aggregate and reloaded every member on each page turn; the logged risk was "selects all users — revisit pagination past low-thousands". True keyset pagination is impossible here because rank order is computed in memory from weighted values, not stored in the DB.
+
+**What We Learned:**
+1. When ranking is global, the proportional optimisation is a short-TTL cache of the full neutral ranking (page turns become slices) rather than DB pagination that cannot express rank order.
+2. Never store per-member identity (`isCurrentUser`) in a shared cache entry — compute the neutral ranking once, then stamp identity per request from it. The bug this prevents (one member's "You" badge leaking to the next cache hitter) is silent and NDPR-adjacent.
+3. Key the cache by the config that shapes it (factor set + weights + raw visibility), not just by time — otherwise an admin weight change appears to do nothing for the TTL window.
+4. For the orphan-backfill sibling risk: "explicit bulk admin action with dry-run" resolves toil without violating a "deliberate, never automatic" decision — automation level is a dial, not a binary.
+
+**Apply When:** Any globally-ranked board (leaderboard, search relevance) outgrows per-request full recompute, or any "reconcile deliberately" workflow becomes one-by-one toil — add bulk with preview, keep the human press.
 
 **Supersedes:** None
 **Superseded by:** None

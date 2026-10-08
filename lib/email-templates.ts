@@ -52,6 +52,11 @@ export const WIRED_EMAIL_TEMPLATES: Record<
     label: "Bug Report — Resolved",
     trigger: "Sent when an admin marks a bug report as Resolved or Closed.",
   },
+  webinarRegistration: {
+    label: "Webinar Registration",
+    trigger:
+      "Sent when a registrant reserves a seat for an upcoming webinar (guest or signed-in).",
+  },
 };
 
 export function isWiredEmailTemplate(key: string): boolean {

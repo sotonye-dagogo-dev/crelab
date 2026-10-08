@@ -18,6 +18,7 @@ import type {
   IHowItWorksPage,
 } from "@/types";
 import { BookingStatus, EscrowState, ExperienceLevel, PaymentMode, PortfolioItemSource, UserRole } from "@/types";
+import { DEFAULT_CONFIG } from "@/config/platform.config";
 
 export class MockDataService {
   static isEnabled(): boolean {
@@ -28,7 +29,7 @@ export class MockDataService {
     return {
       id: "mock-user-1",
       name: "Demo Creator",
-      email: "demo@crelab.test",
+      email: "demo@crellab.test",
       emailVerified: true,
       image: null,
       phone: "+234 800 000 0000",
@@ -43,7 +44,7 @@ export class MockDataService {
       user: {
         id: "mock-user-1",
         name: "Demo Creator",
-        email: "demo@crelab.test",
+        email: "demo@crellab.test",
         emailVerified: true,
         image: null,
         phone: "+234 800 000 0000",
@@ -145,7 +146,7 @@ export class MockDataService {
         id: "mock-6",
         name: "Zainab Ibrahim",
         role: "Growth & Marketing",
-        bio: "Driving adoption and telling the CreLab story across Africa.",
+        bio: `Driving adoption and telling the ${DEFAULT_CONFIG.name} story across Africa.`,
         avatarUrl: null,
         socialLinks: [
           { platform: "LinkedIn", url: "https://linkedin.com" },
@@ -837,7 +838,7 @@ export class MockDataService {
     if (!this.isEnabled()) return null as any;
     return {
       id: "about-1",
-      heroTitle: "About Crellab",
+      heroTitle: `About ${DEFAULT_CONFIG.name}`,
       heroSubtitle: "We're building the future of creative hiring in Africa — connecting brands with talented creators, cinematographers, and videographers.",
       sections: [
         {
@@ -863,8 +864,8 @@ export class MockDataService {
         { label: "Report a Bug", href: "/bug-report" },
         { label: "Contact Us", href: "#contact" },
       ],
-      metaTitle: "About Crellab - Connecting African Creatives with Opportunity",
-      metaDescription: "Learn about Crellab's mission to connect brands with talented African creators, cinematographers, and videographers. Built for African creativity.",
+      metaTitle: `About ${DEFAULT_CONFIG.name} - Connecting African Creatives with Opportunity`,
+      metaDescription: `Learn about ${DEFAULT_CONFIG.name}'s mission to connect brands with talented African creators, cinematographers, and videographers. Built for African creativity.`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -940,12 +941,12 @@ export class MockDataService {
       faqs: [
         {
           question: "How do I get paid as a creator?",
-          answer: "Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your Crellab wallet. You can withdraw to your bank account anytime.",
+          answer: `Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your ${DEFAULT_CONFIG.name} wallet. You can withdraw to your bank account anytime.`,
           category: "payments",
         },
         {
           question: "What's the platform fee?",
-          answer: "Crellab charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.",
+          answer: `${DEFAULT_CONFIG.name} charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.`,
           category: "payments",
         },
         {
@@ -969,8 +970,8 @@ export class MockDataService {
           category: "security",
         },
       ],
-      metaTitle: "How It Works - Crellab",
-      metaDescription: "Learn how Crellab works for creators and clients. Booking flow, escrow protection, milestone payments, and more.",
+      metaTitle: `How It Works - ${DEFAULT_CONFIG.name}`,
+      metaDescription: `Learn how ${DEFAULT_CONFIG.name} works for creators and clients. Booking flow, escrow protection, milestone payments, and more.`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

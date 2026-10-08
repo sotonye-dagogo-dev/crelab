@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-09-23)
-> - last-verified-against-code: 2026-09-23
-> - last-synced: 2026-09-23 (session-log entry — Session 2026-09-23, seed rollback + package panel wrap + nav home removal + explore source tag removal)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-verified-against-code: 2026-10-08
+> - last-synced: 2026-10-08 (residual-risks pagination + backfill: 407/407, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -60,6 +60,24 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 ---
 
+## Current Sprint — Growth & Reliability (2026-09-30)
+
+| Size | Task | Status |
+|------|------|--------|
+| [M] | Founding-100 badge: `EarlyMemberService` rank-over-`user.createdAt` (no schema change), `firstHundred` config, `/api/early-access`, `EarlyMemberBadge` in navbar + profile | [x] |
+| [L] | Referral system: `referral_codes` + `referral_events` migration, `ReferralService` (cookie claim, degree-1 + degree-2 ACID write), `?ref=` capture, `/register` claim hook, `/api/referrals/*`, `/referrals` page | [x] |
+| [M] | Leaderboard: `LeaderboardService` pluggable factor registry (referrals first), `leaderboard` config, `/api/leaderboard`, public `/leaderboard` page, nav/footer links | [x] |
+| [M] | Countdown widget: `countdown` config + icon allowlist, `CountdownWidget`/`CountdownSlot` with framer-motion, landing + explore slots, `/admin/countdown` editor | [x] |
+| [L] | Error-boundary bug reporting: `app/error.tsx` + `global-error.tsx`, global catcher, sanitised console/stack capture, popup → `/bug-report` with `errorContext`, `bug_reports.error_context` column, admin triage block, `bugReport` config | [x] |
+| [S] | Platform docs + tests: How It Works referral section/FAQs, explainer copy, new test suite for the four features | [x] |
+| [M] | Landing stats derived from the platform: `PlatformStatsService` aggregates + metadata-driven `landingStats` config replacing the hardcoded 1.2k/5k/4.9 figures | [x] |
+| [S] | Platform-wide dynamic back-to-top button (`ScrollToTopButton` + `scrollToTop` config), replacing the explore page's inline FAB | [x] |
+| [M] | Leaderboard activity factors: portfolio-items, bookings and ratings factors added to the pluggable factor registry + public "How scoring works" transparency panel | [x] |
+| [L] | Webinars: `webinars` + `webinar_registrations` tables, `WebinarService`, public `/webinars` (upcoming registration for guests + members, past recordings/content), `/admin/webinars`, wired confirmation email, nav/footer links | [x] |
+| [M] | Platform-name compliance run: `lib/platform-copy.ts`, all display-copy instances moved to `config.name`/`{{name}}`, infrastructure allowlist, `__tests__/platform-name-compliance.test.ts` guard | [x] |
+
+---
+
 ## Backlog
 
 | Size | Task |
@@ -79,6 +97,11 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Residual risks (pagination + orphan backfill): leaderboard 30s user-agnostic board cache + batched candidate load + per-request current-user rank/score + CDN cache headers + client page cache/prefetch/Your-rank banner; `MediaAssetService.backfillOrphans` (owner-matched one-click rescue, dry-run) + `POST /api/admin/media/backfill` + admin Backfill UI. 407/407 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |
+| Leaderboard zero-scores + Explore content parity + Upload→portfolio attach: `scoreLeaderboard` keeps 0-score rows + `getBoard` scores all members; `/api/explore/portfolio` mock fallback mirroring `/api/explore`; `PortfolioService.attachUploadToProvider` wired best-effort into upload/confirm/batch-upload + new idempotent `POST /api/portfolio/items`; profile empty-portfolio state. 399/399 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |
+| Verify-work test-green: 3 long-standing failures resolved non-breaking — `lib/media.ts` oversize message restores "too large" substring (keeps per-file detail); `BlogPostService.test.ts` adminList expectations reflect DB+fallback merge. 398/398 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |
+| Auth cleanup + Explore tiles + Team + SEO: phone removed from auth UI; explore tiles de-glitched; "Cloudinary" → "Direct Uploads"; profile display-name backfill; team avatar direct-upload + platform select (`lib/social-platforms.ts`, `TeamSocialIcon.tsx`); 13 per-route SEO layouts; 6 new social-platform tests | 2026-10-08 |
+| DB migration & script close-out: idempotent `0003_close-out-schema-drift` generated + applied live (baselined 0000–0002); `db:{generate,migrate,baseline,push,studio,backup,reset}` + `predb:seed:rollback` auto-backup scripts; `seed-rollback.ts` seed-scoped by default (`--all` full wipe backs up first) — fixes the live-data-loss bug; closes the 2026-10-01 unapplied-0007 open item | 2026-10-07 |
 | Seed rollback + Book panel package wrap + nav Home removal + explore source tag removal: `npm run db:seed:rollback` (marker 2026-07-21-v1, all seed rows purged); `BookingSidebarDisplay` package rows rebuilt as native wrapping buttons (`min-w-0 break-words`, price `whitespace-nowrap` — ClButton's hardcoded nowrap/fixed height caused the overflow/overlap) + `BookingSidebar` hardened; Home link dropped from `Navbar` `navLinks` (logo + footer keep `/`); explore content-view source badge removed from `ExploreVideoCard` gallery mode (+ dead code/imports) and `AssetLightbox` gained additive `showSource` prop (default true; explore passes false). Typecheck + lint + build green, 255/258 tests (3 pre-existing). | 2026-09-23 |
 | Public pages + Portfolio gallery + Media upload hardening: About page (`/about`) with mission/vision/values + quick links; How It Works page (`/how-it-works`) with creator/client/escrow guides, 4 interactive sandboxes (Booking Flow Simulator, Escrow Timeline Explorer, Pricing Calculator, Search & Discovery Simulator), SEO-friendly FAQ; Portfolio Gallery view on Explore (`/explore` toggle) showing individual work samples with source tags; Admin pages for About (`/admin/about-page`) and How It Works (`/admin/how-it-works-page`) with live preview; Media upload hardening — 10-min timeout, actionable error messages with Google Drive fallback, extended formats (MKV, 3GP, FLV, MPEG, GIF, AVIF, HEIC), extension+MIME validation. 256/258 tests pass, typecheck + lint clean. | 2026-08-28 |
 | Wallet + Paystack tightening (alpha feedback): bank-transfer top-up tab removed from UI; TopUp/Withdraw modals migrated from full-height `ClSheet` to universal `ClModal` (dismissible, max-height) with honest `toast` error feedback; `initTransaction` now sends `metadata` (`purpose: WALLET_TOPUP`, userId) + `callback_url` → `/wallet/payment-status` (previously no metadata → webhook could never route/credit wallet top-ups); new `verifyTransaction()` + `GET /api/wallet/topup/verify` (idempotent credit, ownership check); new `/wallet/payment-status` result page; WalletClient refreshes balance on mount + `?topup=` banners; webhook treats `DuplicateWebhookError` as 200. 6 new paystack tests. 258 tests pass, build green. Residual risk logged: DIRECT-mode booking "Add Payment" still routes through wallet top-up (no `/api/bookings/*/pay` yet) | 2026-08-20 |

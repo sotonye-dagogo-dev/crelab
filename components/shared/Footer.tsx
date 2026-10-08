@@ -69,6 +69,20 @@ export async function Footer() {
               className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
               Report a Bug
             </Link>
+            {config.features?.referralsEnabled !== false && (
+              <Link
+                href="/leaderboard"
+                className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+                Leaderboard
+              </Link>
+            )}
+            {config.features?.webinarsEnabled !== false && (
+              <Link
+                href="/webinars"
+                className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+                Webinars
+              </Link>
+            )}
           </div>
           <div>
             <h4 className="mb-3 font-[family-name:var(--font-display)] text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)]">

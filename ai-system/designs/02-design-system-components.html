@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Component Library — CreLab</title>
+  <title>Component Library — Crellab</title>
   <style>
     :root {
       --color-bg: #0A0A0A;
@@ -45,7 +46,11 @@
       --color-error: #DC2626;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       background: var(--color-bg);
@@ -56,81 +61,155 @@
 
     /* ── Navbar ── */
     .navbar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
       height: 64px;
       background: var(--color-surface);
       border-bottom: 1px solid var(--color-border);
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 0 24px;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
     }
+
     .navbar-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-family: var(--font-display); font-weight: 800; font-size: 1.25rem;
-      color: var(--color-text-primary); text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--color-text-primary);
+      text-decoration: none;
     }
+
     .navbar-logo-mark {
-      width: 12px; height: 12px; background: var(--color-accent);
-      transform: rotate(45deg); flex-shrink: 0;
+      width: 12px;
+      height: 12px;
+      background: var(--color-accent);
+      transform: rotate(45deg);
+      flex-shrink: 0;
     }
+
     .navbar-links {
-      display: flex; align-items: center; gap: 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
       list-style: none;
     }
+
     .navbar-links a {
-      color: var(--color-text-secondary); text-decoration: none;
-      font-size: 0.875rem; font-weight: 500;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
       transition: color 0.15s var(--ease-out);
     }
-    .navbar-links a:hover { color: var(--color-text-primary); }
+
+    .navbar-links a:hover {
+      color: var(--color-text-primary);
+    }
+
     .navbar-actions {
-      display: flex; align-items: center; gap: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     /* ── Theme Toggler (tabbed) ── */
     .theme-toggler {
-      display: flex; gap: 2px;
+      display: flex;
+      gap: 2px;
       background: var(--color-surface-raised);
       border: 1px solid var(--color-border);
-      border-radius: 8px; padding: 2px;
+      border-radius: 8px;
+      padding: 2px;
     }
+
     .theme-toggler button {
-      padding: 4px 10px; border-radius: 6px;
-      border: none; cursor: pointer; font-size: 0.75rem; font-weight: 600;
-      background: transparent; color: var(--color-text-tertiary);
-      transition: all 0.15s var(--ease-out); line-height: 1;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: transparent;
+      color: var(--color-text-tertiary);
+      transition: all 0.15s var(--ease-out);
+      line-height: 1;
     }
+
     .theme-toggler button.active {
-      background: var(--color-accent); color: var(--color-text-inverse);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
     }
+
     .theme-toggler button:not(.active):hover {
       color: var(--color-text-primary);
     }
 
     /* ── Buttons ── */
     .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      gap: 8px; height: 40px; padding: 0 16px; border-radius: 8px;
-      font-family: var(--font-body); font-size: 0.875rem; font-weight: 600;
-      border: 1px solid transparent; cursor: pointer;
-      text-decoration: none; white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
       transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
     }
-    .btn-primary { background: var(--color-accent); color: var(--color-text-inverse); }
-    .btn-primary:hover { background: var(--color-accent-dim); }
+
+    .btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
+    }
+
+    .btn-primary:hover {
+      background: var(--color-accent-dim);
+    }
+
     .btn-outlined {
-      background: transparent; color: var(--color-text-primary);
+      background: transparent;
+      color: var(--color-text-primary);
       border-color: var(--color-border-mid);
     }
-    .btn-outlined:hover { border-color: var(--color-accent); color: var(--color-accent); }
-    .btn-ghost { background: transparent; color: var(--color-text-secondary); }
-    .btn-ghost:hover { color: var(--color-text-primary); }
+
+    .btn-outlined:hover {
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+    }
+
+    .btn-ghost:hover {
+      color: var(--color-text-primary);
+    }
+
     .btn-accent-outlined {
-      background: transparent; color: var(--color-accent);
+      background: transparent;
+      color: var(--color-accent);
       border-color: var(--color-accent);
     }
-    .btn-accent-outlined:hover { background: var(--color-accent-muted); }
+
+    .btn-accent-outlined:hover {
+      background: var(--color-accent-muted);
+    }
 
     /* ── Footer ── */
     .footer {
@@ -139,80 +218,143 @@
       padding: 32px 24px 24px;
       margin-top: auto;
     }
+
     .footer-inner {
-      max-width: 1200px; margin: 0 auto;
-      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
       gap: 32px;
     }
+
     @media (max-width: 768px) {
-      .footer-inner { grid-template-columns: 1fr 1fr; }
+      .footer-inner {
+        grid-template-columns: 1fr 1fr;
+      }
     }
+
     @media (max-width: 480px) {
-      .footer-inner { grid-template-columns: 1fr; }
+      .footer-inner {
+        grid-template-columns: 1fr;
+      }
     }
+
     .footer-col h4 {
-      font-family: var(--font-display); font-size: 0.75rem;
-      font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.08em; color: var(--color-text-tertiary);
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
       margin-bottom: 12px;
     }
+
     .footer-col a {
-      display: block; color: var(--color-text-secondary);
-      text-decoration: none; font-size: 0.8125rem;
-      padding: 4px 0; transition: color 0.15s var(--ease-out);
+      display: block;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: 0.8125rem;
+      padding: 4px 0;
+      transition: color 0.15s var(--ease-out);
     }
-    .footer-col a:hover { color: var(--color-text-primary); }
+
+    .footer-col a:hover {
+      color: var(--color-text-primary);
+    }
+
     .footer-bottom {
-      max-width: 1200px; margin: 24px auto 0;
-      padding-top: 16px; border-top: 1px solid var(--color-border);
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 0.75rem; color: var(--color-text-tertiary);
+      max-width: 1200px;
+      margin: 24px auto 0;
+      padding-top: 16px;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--color-text-tertiary);
     }
+
     .footer-dev-credit a {
-      color: var(--color-accent); text-decoration: none;
+      color: var(--color-accent);
+      text-decoration: none;
     }
-    .footer-dev-credit a:hover { text-decoration: underline; }
+
+    .footer-dev-credit a:hover {
+      text-decoration: underline;
+    }
 
     /* ── Component showcase ── */
     .page-wrap {
-      max-width: 1200px; margin: 0 auto; padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
     }
+
     .section-title {
-      font-family: var(--font-display); font-weight: 700; font-size: 1.25rem;
-      margin-bottom: 16px; margin-top: 48px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      margin-top: 48px;
     }
-    .section-title:first-child { margin-top: 0; }
+
+    .section-title:first-child {
+      margin-top: 0;
+    }
+
     .component-row {
-      display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
       margin-bottom: 32px;
     }
+
     .component-preview {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 12px; padding: 24px; margin-bottom: 32px;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
     }
+
     .component-preview .navbar {
-      position: relative; border-radius: 8px;
+      position: relative;
+      border-radius: 8px;
     }
 
     .theme-toggle-fixed {
-      position: fixed; top: 16px; right: 16px; z-index: 100;
-      display: flex; gap: 4px;
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 100;
+      display: flex;
+      gap: 4px;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 8px; padding: 4px;
+      border-radius: 8px;
+      padding: 4px;
     }
+
     .theme-toggle-fixed button {
-      padding: 6px 12px; border-radius: 6px;
-      border: none; cursor: pointer; font-size: 0.75rem; font-weight: 600;
-      background: transparent; color: var(--color-text-tertiary);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: transparent;
+      color: var(--color-text-tertiary);
       transition: all 0.15s;
     }
+
     .theme-toggle-fixed button.active {
-      background: var(--color-accent); color: var(--color-text-inverse);
+      background: var(--color-accent);
+      color: var(--color-text-inverse);
     }
   </style>
 </head>
+
 <body>
   <div class="theme-toggle-fixed" id="themeToggle">
     <button data-theme="system" class="active">System</button>
@@ -222,7 +364,7 @@
 
   <div class="page-wrap" style="padding-top: 80px;">
     <h1 style="font-family: var(--font-display); font-weight: 800; font-size: 1.75rem; margin-bottom: 0.5rem;">
-      Component Library — CreLab
+      Component Library — Crellab
     </h1>
     <p style="color: var(--color-text-secondary); margin-bottom: 2rem;">
       Navbar, footer, theme toggler, buttons, and other UI primitives.
@@ -234,7 +376,7 @@
       <nav class="navbar">
         <a href="#" class="navbar-logo">
           <span class="navbar-logo-mark"></span>
-          CreLab
+          Crellab
         </a>
         <ul class="navbar-links">
           <li><a href="#">Explore</a></li>
@@ -284,9 +426,10 @@
       <footer class="footer">
         <div class="footer-inner">
           <div class="footer-col">
-            <h4>CreLab</h4>
+            <h4>Crellab</h4>
             <p style="font-size: 0.8125rem; color: var(--color-text-secondary); line-height: 1.6;">
-              A dark, cinematic marketplace where video is the first thing you see and quality speaks louder than follower count.
+              A dark, cinematic marketplace where video is the first thing you see and quality speaks louder than
+              follower count.
             </p>
           </div>
           <div class="footer-col">
@@ -311,7 +454,7 @@
           </div>
         </div>
         <div class="footer-bottom">
-          <span>&copy; 2026 CreLab. All rights reserved.</span>
+          <span>&copy; 2026 Crellab. All rights reserved.</span>
           <span class="footer-dev-credit">
             built by <a href="https://sotonye-dagogo.is-a.dev" target="_blank" rel="noopener noreferrer">S.D.</a>
           </span>
@@ -349,4 +492,5 @@
     });
   </script>
 </body>
+
 </html>

@@ -37,7 +37,7 @@ export interface UseAuthReturn {
 const MOCK_USER: AuthUser = {
   id: "mock-user-1",
   name: "Demo Creator",
-  email: "demo@crelab.test",
+  email: "demo@crellab.test",
   emailVerified: true,
   image: null,
   phone: "+234 800 000 0000",
