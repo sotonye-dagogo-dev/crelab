@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   bookings,
@@ -181,8 +181,10 @@ export function resolveEnabledFactors(
  * - `rawValues` is attached only for factors with `showRawValue` — the
  *   referrals factor ships `showRawValue: false`, so its unscaled point total
  *   never leaves the server.
- * - Ranking is score DESC with a deterministic `userId` tie-break; rows with a
- *   score of 0 (no activity in any enabled factor) are not listed.
+ * - Ranking is score DESC with a deterministic `userId` tie-break. Members
+ *   with a score of 0 (no activity yet in any enabled factor) are still
+ *   listed, ranked below every positive score — the board never looks empty
+ *   just because most members are new.
  */
 export function scoreLeaderboard(
   candidates: LeaderboardCandidate[],
@@ -206,7 +208,6 @@ export function scoreLeaderboard(
     }
 
     score = round2(score);
-    if (score <= 0) continue;
 
     rows.push({
       rank: 0,
@@ -352,34 +353,17 @@ async function resolveConfig(): Promise<IPlatformConfig> {
   }
 }
 
-/** Union of users with a positive raw value in at least one enabled factor. */
-function candidateIds(rawByFactor: Record<string, Record<string, number>>): string[] {
-  const ids = new Set<string>();
-  for (const values of Object.values(rawByFactor)) {
-    for (const [userId, raw] of Object.entries(values)) {
-      if (Number(raw) > 0) ids.add(userId);
-    }
-  }
-  return [...ids];
-}
-
-/** Public profile fields only: display name + avatar (provider first). */
-async function loadCandidates(ids: string[]): Promise<LeaderboardCandidate[]> {
-  if (ids.length === 0) return [];
-
+/** Every registered member is a candidate — including members whose score is
+ *  still 0. The board ranks newcomers below positive scores instead of hiding
+ *  them, so it stays populated from day one. */
+async function loadAllCandidates(): Promise<LeaderboardCandidate[]> {
   const [userRows, providerRows] = await Promise.all([
-    db
-      .select({ id: user.id, name: user.name, image: user.image })
-      .from(user)
-      .where(inArray(user.id, ids)),
-    db
-      .select({
-        userId: providers.userId,
-        displayName: providers.displayName,
-        avatarUrl: providers.avatarUrl,
-      })
-      .from(providers)
-      .where(inArray(providers.userId, ids)),
+    db.select({ id: user.id, name: user.name, image: user.image }).from(user),
+    db.select({
+      userId: providers.userId,
+      displayName: providers.displayName,
+      avatarUrl: providers.avatarUrl,
+    }).from(providers),
   ]);
 
   const providerByUser = new Map(providerRows.map((row) => [row.userId, row]));
@@ -396,8 +380,9 @@ async function loadCandidates(ids: string[]): Promise<LeaderboardCandidate[]> {
 export class LeaderboardService {
   /**
    * Paginated, weighted leaderboard. Each enabled factor collects its own raw
-   * values (a failing factor contributes 0 instead of failing the page), rows
-   * are scored and ranked, then sliced into the requested page.
+   * values (a failing factor contributes 0 instead of failing the page), every
+   * registered member is scored (0 when they have no activity yet) and ranked,
+   * then the ranking is sliced into the requested page.
    */
   static async getBoard(
     opts: { page?: number; pageSize?: number; currentUserId?: string | null } = {},
@@ -441,7 +426,7 @@ export class LeaderboardService {
       rawByFactor[factor.key] = collected[index];
     });
 
-    const candidates = await loadCandidates(candidateIds(rawByFactor));
+    const candidates = await loadAllCandidates();
     const ranked = scoreLeaderboard(candidates, rawByFactor, factors, {
       currentUserId: opts.currentUserId ?? null,
     });

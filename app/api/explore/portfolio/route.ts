@@ -55,6 +55,39 @@ export async function GET(req: NextRequest) {
     const limit = parsed.data.limit ?? 24;
     const take = limit + 1;
 
+    // Mock fallback mirrors GET /api/explore: when mock data is enabled the
+    // providers view serves mock providers, so the content view must serve the
+    // matching mock portfolio items — otherwise providers appear to have
+    // content while the gallery is impossibly empty.
+    const { MockDataService } = await import("@/services/MockDataService");
+    if (MockDataService.isEnabled()) {
+      const cards = MockDataService.getExploreProviders();
+      const data: PortfolioGalleryItem[] = [];
+      for (const card of cards) {
+        for (const item of MockDataService.getMockPortfolioItems(card.id)) {
+          data.push({
+            ...item,
+            providerId: card.id,
+            providerName: card.displayName,
+            providerSlug: card.slug,
+            providerAvatarUrl: card.avatarUrl,
+            providerCategorySlug: card.categorySlug,
+            providerCategoryLabel: card.categoryLabel,
+            providerLocation: card.location,
+            providerVerified: card.verified,
+            providerFeatured: card.featured,
+          });
+        }
+      }
+      return NextResponse.json({
+        success: true,
+        data: data.slice(0, limit),
+        cursor: null,
+        hasMore: false,
+        error: null,
+      });
+    }
+
     const conditions: ReturnType<typeof sql>[] = [
       sql`${portfolioItems.visible} = true`,
       sql`${providers.active} = true`,
@@ -217,6 +250,7 @@ export async function GET(req: NextRequest) {
       error: null,
     });
   } catch (err) {
+    console.error("[GET /api/explore/portfolio] error", err);
     return NextResponse.json(
       {
         success: false,

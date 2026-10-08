@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -79,10 +79,11 @@ Explore Page — Gallery View (app/(public)/explore/page.tsx + app/page.tsx home
   → TanStack Query (useInfiniteQuery for both views; enabled toggled by viewMode)
 
 Portfolio Items API (app/api/portfolio/items/route.ts)
-  → services/PortfolioService (getAllByProvider)
+  → services/PortfolioService (getAllByProvider; POST attach via addItem, idempotent)
+  → services/MediaAssetService (POST resolves mediaAssetId → library asset)
   → lib/auth.ts (auth helpers)
   → drizzle/schema.ts (providers, portfolio_items)
-  → types/index.ts (IPortfolioItem)
+  → types/index.ts (IPortfolioItem, PortfolioItemSource)
 
 Portfolio Reorder API (app/api/portfolio/reorder/route.ts)
   → services/PortfolioService (reorder)
@@ -99,6 +100,7 @@ Explore Portfolio API (app/api/explore/portfolio/route.ts)
   → drizzle/schema.ts (providers, portfolio_items, service_packages, reviews, bookings)
   → drizzle-orm (and, desc, asc, like, sql)
   → lib/slug.ts (buildProviderSlug)
+  → services/MockDataService (mock fallback mirroring /api/explore when NEXT_PUBLIC_MOCK_DATA=true)
   → types/index.ts (IPortfolioItem + extended gallery fields)
   → consumed by app/(public)/explore/page.tsx (gallery view)
 
@@ -150,7 +152,11 @@ MediaAssetService (registry-driven media asset lifecycle)
   → lib/cloudinary.ts (deleteAsset, publicId extraction — signed admin ops via fetch to Cloudinary Admin API)
   → PlatformConfigService (mediaUpload.cleanupEnabled + cleanupOrphanAfterHours)
   → types/index.ts (IMediaAsset)
-  → consumed by app/api/media/upload (records on upload), app/api/media/assets (+ [id] delete, [id]/replace), app/api/admin/media (+ [id]), app/api/cron/media-cleanup
+  → consumed by app/api/media/upload (records on upload), app/api/media/confirm (direct-upload registration), app/api/media/batch-upload, app/api/media/assets (+ [id] delete, [id]/replace), app/api/admin/media (+ [id]), app/api/cron/media-cleanup
+
+Portfolio attach on upload (services/PortfolioService.attachUploadToProvider)
+  → drizzle/schema.ts (providers lookup by userId → addItem, idempotent by URL/driveFileId)
+  → consumed (best-effort, never fails the upload) by app/api/media/upload + app/api/media/confirm + app/api/media/batch-upload
 
 Cloudinary flows
   → lib/cloudinary.ts — raw fetch → https://api.cloudinary.com/v1_1/{cloudName}/{image,upload,video}/upload + Admin API (delete by public_id). Reads env at call time: CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET/UPLOAD_PRESET with NEXT_PUBLIC_CLOUDINARY_* fallbacks. No SDK dependency.

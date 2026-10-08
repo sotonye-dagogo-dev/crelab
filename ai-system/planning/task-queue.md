@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-08
-> - last-synced: 2026-10-08 (verify-work test-green + deep sync: 398/398, docs reconciled)
+> - last-synced: 2026-10-08 (leaderboard-zero + explore-content + portfolio-attach: 399/399, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -97,6 +97,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Leaderboard zero-scores + Explore content parity + Upload→portfolio attach: `scoreLeaderboard` keeps 0-score rows + `getBoard` scores all members; `/api/explore/portfolio` mock fallback mirroring `/api/explore`; `PortfolioService.attachUploadToProvider` wired best-effort into upload/confirm/batch-upload + new idempotent `POST /api/portfolio/items`; profile empty-portfolio state. 399/399 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |
 | Verify-work test-green: 3 long-standing failures resolved non-breaking — `lib/media.ts` oversize message restores "too large" substring (keeps per-file detail); `BlogPostService.test.ts` adminList expectations reflect DB+fallback merge. 398/398 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |
 | Auth cleanup + Explore tiles + Team + SEO: phone removed from auth UI; explore tiles de-glitched; "Cloudinary" → "Direct Uploads"; profile display-name backfill; team avatar direct-upload + platform select (`lib/social-platforms.ts`, `TeamSocialIcon.tsx`); 13 per-route SEO layouts; 6 new social-platform tests | 2026-10-08 |
 | DB migration & script close-out: idempotent `0003_close-out-schema-drift` generated + applied live (baselined 0000–0002); `db:{generate,migrate,baseline,push,studio,backup,reset}` + `predb:seed:rollback` auto-backup scripts; `seed-rollback.ts` seed-scoped by default (`--all` full wipe backs up first) — fixes the live-data-loss bug; closes the 2026-10-01 unapplied-0007 open item | 2026-10-07 |

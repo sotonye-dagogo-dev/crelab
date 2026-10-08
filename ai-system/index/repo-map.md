@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 

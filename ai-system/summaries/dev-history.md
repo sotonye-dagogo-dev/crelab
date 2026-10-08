@@ -1,8 +1,23 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Leaderboard Zero-Scores + Explore Content Parity + Upload→Portfolio Attach
+
+### What
+Directive: keep zero-point users on the leaderboard; fix the impossible state where `/explore` providers view shows providers with uploaded content but content view is empty; ensure provider portfolios are not empty. Three root causes, all fixed non-breaking.
+
+### Verification
+`npx vitest run` → 33 files, **399 passed / 0 failed** (+2 new leaderboard tests, 1 expectation updated). `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only).
+
+### Key Changes
+- **Leaderboard keeps zeros** (`services/LeaderboardService.ts`) — `scoreLeaderboard()` no longer `continue`s past `score <= 0`; `getBoard()` loads all members (`loadAllCandidates()`) instead of unioning only positive-raw userIds; dead `loadCandidates(ids)` removed, `inArray` import dropped. Tests: "drops users with no activity" → "keeps users with no activity at score 0" + new "ranks zero-score members below every positive score".
+- **Explore content mock parity** (`app/api/explore/portfolio/route.ts`) — mock fallback mirroring `GET /api/explore` (mock providers × mock portfolio items enriched to gallery shape; `hasMore: false`); DB-error path now logs instead of failing silently.
+- **Upload→portfolio attach** — `PortfolioService.attachUploadToProvider()` (idempotent, provider-owners only, admin uploads stay orphan → reconcile flow unchanged); wired best-effort into `/api/media/upload`, `/api/media/confirm`, `/api/media/batch-upload`; new `POST /api/portfolio/items` (mediaAssetId or url+mimeType, ownership-checked, idempotent); `/profile/media` invalidates `my-portfolio` + honest toast; public profile renders "No work published yet" when the portfolio is empty.
+- **Docs deep sync** — this entry + `session-log.md`, `task-queue.md` Completed, `project-decisions.md` (2 entries), `system-architecture.md` (service rows, media-upload flow, Recent Changes), `dependency-graph.md` (portfolio-items POST, attach edges, explore mock edge), `lessons-learned.md`, `test-results.md` (399/399); freshness metadata updated everywhere touched.
 
 
 ## Session 2026-10-08 — Verify-Work Test-Green + AI-System Deep Sync

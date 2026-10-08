@@ -183,9 +183,25 @@ describe("LeaderboardService — scoreLeaderboard (weighted scoring + ranking)",
     expect(rows.map((r) => r.rank)).toEqual([1, 2, 3]);
   });
 
-  it("drops users with no activity in any enabled factor", () => {
+  it("keeps users with no activity in any enabled factor at score 0", () => {
     const rows = scoreLeaderboard(candidates, {}, factors);
-    expect(rows).toEqual([]);
+    expect(rows).toHaveLength(candidates.length);
+    for (const row of rows) {
+      expect(row.score).toBe(0);
+      expect(row.breakdown).toEqual({ referrals: 0, portfolio: 0 });
+    }
+    expect(rows.map((r) => r.rank)).toEqual([1, 2, 3]);
+  });
+
+  it("ranks zero-score members below every positive score", () => {
+    const rows = scoreLeaderboard(
+      [...candidates, { userId: "u-new", displayName: "New", avatarUrl: null }],
+      rawByFactor,
+      factors,
+    );
+    expect(rows.map((r) => r.userId)).toEqual(["u-alice", "u-bob", "u-carol", "u-new"]);
+    expect(rows[3].score).toBe(0);
+    expect(rows[3].rank).toBe(4);
   });
 
   it("breaks score ties deterministically on userId", () => {
