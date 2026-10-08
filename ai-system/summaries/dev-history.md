@@ -1,8 +1,22 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — Auth cleanup + Explore tiles + Team + SEO)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Verify-Work Test-Green + AI-System Deep Sync
+
+### What
+Directive: get all tests passing (non-breaking) then run `update-ai-system.md`. Resolved the 3 failures that had been open since ≥2026-09-22, reaching **398/398** with `tsc` clean and lint 0 errors, then performed the deep sync (this file, `test-results.md`, `repo-map.md`, `dependency-graph.md`, `system-architecture.md`, `project-plan.md`, `lessons-learned.md`, freshness metadata).
+
+### Verification
+`npx vitest run` → 33 files, 398 passed / 0 failed. `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only).
+
+### Key Changes
+- **`lib/media.ts`** — oversize-file reason now reads `"File too large: X.X MB — exceeds the N MB per-file limit …"` (was `"File is X.X MB — …"`). Keeps the detailed per-file wording; restores the `"too large"` substring that `__tests__/media.test.ts:72` and downstream `raw.includes("too large")` branches (`app/api/media/*`, `components/profile/MediaUpload.tsx` Drive-suggestion regex) match on. Non-breaking: user-facing copy only, same shape.
+- **`__tests__/services/BlogPostService.test.ts`** — the two `adminList` resilience cases now expect `getFallbackPosts().length + 1` (was `1`). `adminList()` intentionally returns `mergeUnique(dbRows, fallbackPosts)` so the admin view never goes empty; the old expectation predated the merge. No production code changed.
+- **Docs deep sync** — `repo-map.md`/`dependency-graph.md` now cover `lib/social-platforms.ts`, `components/team/TeamSocialIcon.tsx`, and the 13 per-route SEO `layout.tsx` files shipped 2026-10-08 but never indexed; `system-architecture.md` Recent Changes + `project-plan.md` Completed gain the 2026-10-08 auth-cleanup sprint; `test-results.md` reflects 398/398.
 
 
 ## Session 2026-10-08 — Auth Cleanup + Explore Tiles + Team Management + SEO

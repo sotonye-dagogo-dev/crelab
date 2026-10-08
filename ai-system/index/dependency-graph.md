@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-01 — Growth & Reliability sprint F1–F9)
-> - last-verified-against-code: 2026-10-01
+> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -125,8 +125,16 @@ BlogPostService (blog post CRUD + content-source merge)
   → consumed by app/api/admin/blog-posts (+ [id]) + app/(public)/blog/page.tsx + app/(public)/blog/[slug]/page.tsx + app/sitemap.ts + components/blog/BlogCard.tsx
 
 Blog post image helper (lib/blog-hero.ts)
-  → leaf module — getPostHeroUrl(heroImage): resolves plain URL or Sanity `image-` ref to an absolute URL
-  → consumed by components/blog/BlogCard.tsx + app/(public)/blog/[slug]/page.tsx
+   → leaf module — getPostHeroUrl(heroImage): resolves plain URL or Sanity `image-` ref to an absolute URL
+   → consumed by components/blog/BlogCard.tsx + app/(public)/blog/[slug]/page.tsx
+
+Social platforms catalogue (lib/social-platforms.ts)
+   → leaf module — SOCIAL_PLATFORM_OPTIONS + normalizeSocialPlatform(platform): legacy/alias spellings (case-insensitive) → canonical SocialPlatformKind; unknown → "other" with the raw value kept as customLabel (nothing lost)
+   → consumed by components/team/TeamSocialIcon.tsx (brand SVG per kind, lucide fallback for dribbble/tiktok/website/other) + components/admin/TeamMemberModal.tsx (platform select with custom-typing option + direct avatar upload)
+
+Per-route SEO layouts (13× app/**/layout.tsx)
+   → lib/seo.ts buildSeoMetadata(config, { title, path }) — config-driven per-page title/metadata; pattern: thin server layout exporting generateMetadata + passing through children
+   → covers (auth) bookings/dashboard/forgot-password/login/profile(+media/setup)/register/wallet(+payment-status) and (public) bug-report/explore/verify-email
 
 Admin blog posts
   → app/api/admin/blog-posts/route.ts (GET list / POST create) + [id]/route.ts (PATCH update / DELETE) → BlogPostService

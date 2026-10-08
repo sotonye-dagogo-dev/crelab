@@ -43,7 +43,7 @@ export function isMediaFileAllowed(
   if (file.size > maxBytes) {
     return {
       ok: false,
-      reason: `File is ${(file.size / 1024 / 1024).toFixed(1)} MB — exceeds the ${config.maxFileSizeMb} MB per-file limit (each file is judged individually). Compress the file or use Google Drive for larger files.`,
+      reason: `File too large: ${(file.size / 1024 / 1024).toFixed(1)} MB — exceeds the ${config.maxFileSizeMb} MB per-file limit (each file is judged individually). Compress the file or use Google Drive for larger files.`,
     };
   }
 

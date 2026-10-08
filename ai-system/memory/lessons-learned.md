@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-01)
-> - last-verified-against-code: 2026-10-01
+> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -30,6 +30,22 @@
 ---
 
 ## Lessons
+
+## Stale Test Expectations vs Intentional Merge Behaviour — Fix the Test, Not the Code
+
+**Context:** Two `BlogPostService.adminList` resilience tests expected exactly 1 row while the service returned 7 (1 DB row merged with 6 fallback posts via `mergeUnique`). The tests had been failing since ≥2026-09-22.
+
+**What We Learned:**
+1. When a test expectation contradicts documented, intentional service behaviour ("merged with fallback posts so the view never goes empty"), the test is stale — updating the expectation to `getFallbackPosts().length + 1` is the non-breaking fix; changing the service to return only DB rows would silently empty the admin view.
+2. Conversely, when production code branches on a message substring (`raw.includes("too large")` in `app/api/media/*`, `/Drive|too large|MB each|compress/i` in `MediaUpload.tsx`), the message wording is a de-facto contract — rephrase user-facing copy without dropping the matched substring (`"File too large: …"` keeps both the new detail and the old match).
+3. Rule of thumb for "resolve in code or in test suites": if the code behaviour is the spec, fix the test; if the test asserts a contract other code depends on, fix the code to honour it.
+
+**Apply When:** Triaging long-standing test failures — check whether the failure is stale-expectation or broken-contract before touching either side.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
 
 ## Cursor Pagination with Composite Keys
 
