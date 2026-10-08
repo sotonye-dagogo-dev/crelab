@@ -1470,3 +1470,24 @@ verified via `git stash`), no regressions.
 
 **Notes / Blockers:**
 - None. `node_modules` was absent at session start; `npm install --no-audit --no-fund` run (no dependency changes).
+
+## Session 2026-10-08 — Cover-Visible-Everywhere (execute-feature)
+
+**Directive:** basically any uploaded content from the user should be visible in the content views on the explore page and on their portfolio pages, even if it's cover video or photo (not user display picture). Provider tiles on explore cycle thumbnails and assets open on the admin dashboard, yet the explore content view and provider portfolios report no content.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/migration/route changes; additive pure helpers + best-effort merges); scope/project-decisions checks pass (backfill stays explicit admin action; upload attach stays best-effort/idempotent; source-provenance stays portfolio-context-only). Root causes found: (1) cover-only providers have zero `portfolio_items` rows so the content query + portfolio page are empty while the tile still previews `coverVideoUrl`; (2) `reconcileAsset(cover)` persisted only the profile field, never a portfolio row; (3) setup orphan-rescue attached the avatar too; (4) backfill cover-repair assumed `video/mp4`.
+
+**Completed:**
+1. **Pure helpers** (`lib/portfolio.ts`, `__tests__/lib/portfolio.test.ts` new, 8 tests) — `isImageCoverUrl` / `coverMimeType` (extension + Cloudinary `/video|image/upload/` segment) / `buildCoverFallbackItem` (deterministic `cover-<providerId>`, `orderIndex: -1`, photo covers self-thumbnail) / `withCoverFallback` (blank/already-present → no-op; avatar never an input).
+2. **Write path** (`services/MediaAssetService.ts`, `app/api/profile/setup/route.ts`) — reconcile-to-cover also adds the visible DIRECT portfolio item (idempotent, advisory — cover set never fails); setup orphan rescue skips `avatarUrl` and the just-attached cover; cover attach (setup + backfill repair) handles photo covers with correct mime/thumbnail via the shared helpers.
+3. **Read path** (`app/(public)/profile/[slug]/page.tsx`, `app/api/explore/portfolio/route.ts`, `services/ExploreService.ts`) — portfolio page + explore gallery (first-page fill, filter-aware, synthetic `cover-<providerId>` ids) merge a missing cover so cover-only providers show content immediately; `portfolioCount` counts a lone cover as 1; tile carousel falls back to a cover-derived thumbnail when no portfolio thumbnails exist. Avatar is never synthesized anywhere.
+4. **QA gate:** `npm run test -- --run` → 34 files, **418 passed / 0 failed**; `npx tsc --noEmit` → exit 0 (one `PortfolioItemSource` enum fix in the new helper); `npm run lint` → 0 errors (pre-existing warnings only).
+5. **Doc sync (`update-ai-system.md`):** session-log (this entry), dev-history, project-decisions (cover-vs-avatar), system-architecture (cover flow), dependency-graph + repo-map (`lib/portfolio` helpers), test-results (418/418), ai-context bullet; in-progress.md cleared.
+
+**Files Modified/Created:** `lib/portfolio.ts`, `services/MediaAssetService.ts`, `services/ExploreService.ts`, `app/api/profile/setup/route.ts`, `app/api/explore/portfolio/route.ts`, `app/(public)/profile/[slug]/page.tsx`, `__tests__/lib/portfolio.test.ts` (new), `__tests__/services/MediaAssetService.test.ts` + 8 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- Read-path cover fill on the explore gallery applies to the first page only (cursor pages serve real rows); covers beyond the first-page fill materialise as real rows via setup/reconcile/backfill, so the fill converges to zero over time. Same pattern as the pre-existing mock-parity fill.
+- Pre-existing cover-only providers heal on read immediately AND persistently via the existing admin Backfill (now photo-aware).

@@ -175,9 +175,9 @@ Auth (Better Auth)
   → user.changeEmail (enabled + sendChangeEmailConfirmation via sendTransactionalEmail)
   → emailAndPassword.sendResetPassword → sendTransactionalEmail("passwordReset") (uses {{resetUrl}} var)
 
-lib/portfolio.ts (sanitized labels + dedup)
-   → types/index.ts (IPortfolioItem)
-   → consumed by PortfolioService, app/(public)/profile/[slug]/page.tsx, app/api/explore/portfolio, components/profile/PortfolioGrid, DrivePortfolioSection, shared/ExploreVideoCard
+lib/portfolio.ts (sanitized labels + dedup + cover fallback)
+   → types/index.ts (IPortfolioItem, PortfolioItemSource)
+   → consumed by PortfolioService, app/(public)/profile/[slug]/page.tsx, app/api/explore/portfolio, app/api/profile/setup, services/MediaAssetService (reconcile/backfill cover attach), services/ExploreService (cover mime/thumb), components/profile/PortfolioGrid, DrivePortfolioSection, shared/ExploreVideoCard
 
 Lib Module
   → Third-party SDKs (Paystack, Cloudinary, Google Drive, postgres, Supabase)

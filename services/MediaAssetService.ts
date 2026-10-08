@@ -397,8 +397,33 @@ export class MediaAssetService {
       await db.update(providers).set({ avatarUrl: asset.url }).where(eq(providers.id, opts.providerId));
       return { reconciled: true, targetId: opts.providerId };
     }
-    // cover
+    // cover — the display picture (avatar) must never surface as content, but
+    // the cover (video OR photo) must: persist it on the profile AND ensure a
+    // matching visible portfolio item exists (idempotent by URL) so the
+    // explore content view and the public portfolio show it without a second
+    // admin step. Best-effort on the portfolio half — the cover itself is set.
     await db.update(providers).set({ coverVideoUrl: asset.url }).where(eq(providers.id, opts.providerId));
+    try {
+      const existing = await db
+        .select({ url: portfolioItems.url })
+        .from(portfolioItems)
+        .where(eq(portfolioItems.providerId, opts.providerId));
+      const normCover = asset.url.trim().toLowerCase();
+      if (!existing.some((it) => it.url.trim().toLowerCase() === normCover)) {
+        const { coverMimeType, isImageCoverUrl } = await import("@/lib/portfolio");
+        const isImage = isImageCoverUrl(asset.url);
+        await PortfolioService.addItem({
+          providerId: opts.providerId,
+          source: PortfolioItemSource.DIRECT,
+          url: asset.url,
+          thumbnailUrl: asset.thumbnailUrl ?? (isImage ? asset.url : undefined),
+          title: opts.title ?? "Cover",
+          mimeType: asset.mimeType ?? coverMimeType(asset.url),
+        });
+      }
+    } catch {
+      // Cover is set; portfolio surfacing stays advisory (backfill/read fallback covers it).
+    }
     return { reconciled: true, targetId: opts.providerId };
   }
 
@@ -509,11 +534,17 @@ export class MediaAssetService {
             continue;
           }
           const { generateVideoThumbnail } = await import("@/lib/cloudinary");
+          const { coverMimeType, isImageCoverUrl } = await import("@/lib/portfolio");
+          const isImage = isImageCoverUrl(coverUrl);
           let thumbnailUrl: string | undefined;
-          try {
-            thumbnailUrl = generateVideoThumbnail(coverUrl) || undefined;
-          } catch {
-            thumbnailUrl = undefined;
+          if (isImage) {
+            thumbnailUrl = coverUrl;
+          } else {
+            try {
+              thumbnailUrl = generateVideoThumbnail(coverUrl) || undefined;
+            } catch {
+              thumbnailUrl = undefined;
+            }
           }
           await PortfolioService.addItem({
             providerId: prow.id,
@@ -521,7 +552,7 @@ export class MediaAssetService {
             url: coverUrl,
             thumbnailUrl,
             title: "Cover video",
-            mimeType: "video/mp4",
+            mimeType: coverMimeType(coverUrl),
           });
           result.attached++;
         } catch (err) {

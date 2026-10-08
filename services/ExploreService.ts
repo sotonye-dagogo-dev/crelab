@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { providers, servicePackages, portfolioItems, reviews, bookings } from "@/drizzle/schema";
 import { eq, and, sql, desc, asc } from "drizzle-orm";
 import { buildProviderSlug } from "@/lib/slug";
-import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
+import { fixLegacyVideoThumbnailUrl, generateVideoThumbnail } from "@/lib/cloudinary";
 import type { IExploreCard, IExploreFilters } from "@/types";
 
 const DEFAULT_LIMIT = 20;
@@ -130,7 +130,13 @@ export class ExploreService {
         SELECT COUNT(*) FROM ${portfolioItems} pi_cnt
         WHERE pi_cnt.provider_id = ${providers.id}
           AND pi_cnt.visible = true
-      )`.as("portfolio_count"),
+      ) + CASE
+        WHEN ${providers.coverVideoUrl} IS NOT NULL AND NOT EXISTS (
+          SELECT 1 FROM ${portfolioItems} pi_cov
+          WHERE pi_cov.provider_id = ${providers.id}
+            AND pi_cov.visible = true
+        ) THEN 1 ELSE 0
+      END`.as("portfolio_count"),
     };
 
     if (filters.cursor) {
@@ -190,6 +196,30 @@ export class ExploreService {
       } catch {
         // thumbnails are best-effort; empty map means fallback to avatar
       }
+    }
+
+    // Cover fallback for the tile carousel: a cover (video OR photo) must be
+    // cycled as content when the provider has no portfolio thumbnails yet —
+    // otherwise the tile looks empty while the hero/cover exists. The display
+    // picture (avatarUrl) is handled separately by the card's ordered
+    // preference and is never injected here.
+    for (const r of slice) {
+      if ((thumbMap.get(r.id) ?? []).length > 0) continue;
+      const cover = (r as unknown as { coverVideoUrl?: string | null }).coverVideoUrl;
+      if (!cover || !cover.trim()) continue;
+      const c = cover.trim();
+      let candidate: string | null = null;
+      if (/\.(jpe?g|png|webp|gif|avif|heic)(\?.*)?$/i.test(c)) {
+        candidate = c;
+      } else {
+        try {
+          candidate = generateVideoThumbnail(c);
+        } catch {
+          candidate = null;
+        }
+      }
+      candidate = candidate ? fixLegacyVideoThumbnailUrl(candidate) : null;
+      if (candidate) thumbMap.set(r.id, [candidate]);
     }
 
     const data: IExploreCard[] = slice.map((row) => ({

@@ -59,18 +59,25 @@ async function getProvider(slug: string) {
 
 async function getPortfolioItems(providerId: string) {
   try {
-    const rows = await db
-      .select()
-      .from(portfolioItems)
-      .where(
-        and(
-          eq(portfolioItems.providerId, providerId),
-          eq(portfolioItems.visible, true),
-        ),
-      )
-      .orderBy(asc(portfolioItems.orderIndex));
+    const [itemRows, providerRows] = await Promise.all([
+      db
+        .select()
+        .from(portfolioItems)
+        .where(
+          and(
+            eq(portfolioItems.providerId, providerId),
+            eq(portfolioItems.visible, true),
+          ),
+        )
+        .orderBy(asc(portfolioItems.orderIndex)),
+      db
+        .select({ coverVideoUrl: providers.coverVideoUrl })
+        .from(providers)
+        .where(eq(providers.id, providerId))
+        .limit(1),
+    ]);
 
-    const mapped = rows.map(
+    const mapped = itemRows.map(
       (row) =>
         ({
           ...row,
@@ -79,11 +86,30 @@ async function getPortfolioItems(providerId: string) {
         }) as IPortfolioItem,
     );
     // Deduplicate redundant renders of same asset (same url/driveFileId) — keeps first, preserves order
-    const { dedupePortfolioItems } = await import("@/lib/portfolio");
-    const { fixLegacyVideoThumbnailUrl } = await import("@/lib/cloudinary");
+    const { dedupePortfolioItems, withCoverFallback, isImageCoverUrl } = await import("@/lib/portfolio");
+    const { fixLegacyVideoThumbnailUrl, generateVideoThumbnail } = await import("@/lib/cloudinary");
     const deduped = dedupePortfolioItems(mapped);
-    // Normalize legacy thumbnail URLs so video thumbs never 400
-    return deduped.map((it) => ({ ...it, thumbnailUrl: fixLegacyVideoThumbnailUrl(it.thumbnailUrl) }));
+    // Cover fallback: a cover (video OR photo) uploaded at onboarding or via
+    // reconcile must surface as portfolio content even when no portfolio row
+    // exists yet (the write path now persists it, this heals pre-existing
+    // cover-only providers on read). The display picture is never included.
+    const coverUrl = providerRows[0]?.coverVideoUrl ?? null;
+    let merged = deduped.map((it) => ({ ...it, thumbnailUrl: fixLegacyVideoThumbnailUrl(it.thumbnailUrl) }));
+    if (coverUrl?.trim()) {
+      const cover = coverUrl.trim();
+      let coverThumb: string | null = null;
+      if (isImageCoverUrl(cover)) {
+        coverThumb = cover;
+      } else {
+        try {
+          coverThumb = generateVideoThumbnail(cover);
+        } catch {
+          coverThumb = null;
+        }
+      }
+      merged = withCoverFallback(merged, providerId, cover, fixLegacyVideoThumbnailUrl(coverThumb));
+    }
+    return merged;
   } catch {
     return MockDataService.getMockPortfolioItems(providerId);
   }
