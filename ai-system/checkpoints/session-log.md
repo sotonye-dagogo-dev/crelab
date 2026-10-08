@@ -1640,3 +1640,25 @@ verified via `git stash`), no regressions.
 **Notes / Blockers:**
 - `node_modules` was absent at session start; `npm ci --no-audit --no-fund` run (no dependency changes). Raw `npx tsc --noEmit` before install showed spurious missing-module errors — always use `npm run typecheck` (same command, but only meaningful with deps installed).
 - None. No residual risk: single-slot render verified (exactly one `<CountdownSlot>` in `LandingContent`); design-system tokens untouched.
+
+## Session 2026-10-08 — Profile Avatar, Media Upload Toggle, Bug-Report Emails + Lossless Email Builder (execute-feature)
+
+**Directive:** (1) avatar/display-picture editing on user profile (direct upload or link, like everywhere else); (2) media-page upload component hides on any click except the input itself, blocking the link/drive tab — fix; (3) bug-report flow emails must exist, be wired, and editable among other templates; (4) email builder (+ similar components) must parse HTML ↔ visual blocks instead of losing content on toggle. Then `update-ai-system.md`.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (additive PATCH endpoint, pure UI fixes, lib parser + config blocks, no schema/migration); scope/project-decisions checks pass.
+
+**Completed:**
+1. **Profile avatar editing** — `app/(auth)/profile/page.tsx`: avatar button with hover edit affordance + inline editor using shared `MediaUpload` (accept image, single-file, upload-or-link); saves via `authClient.updateUser({image})` and best-effort `PATCH /api/profile` provider `avatarUrl` sync (404-tolerant when no provider profile). New additive `PATCH /api/profile` in `app/api/profile/route.ts` (avatarUrl string|null, 404 when no provider row — non-breaking).
+2. **Media upload click-to-hide** — `app/(auth)/profile/media/page.tsx`: toggle moved off the `ClCard` onto the header row only; expanded content stops propagation, so tab switches / dropzone clicks no longer collapse the panel. `components/profile/MediaUpload.tsx`: tab switcher now renders whenever direct upload is available (was gated on `multiple`), so single-file usages (avatar) also offer upload-or-link.
+3. **Bug-report emails editable** — verified wired end-to-end already (`WIRED_EMAIL_TEMPLATES` + `DEFAULT_CONFIG` templates + `EmailService.sendBugReport*` + `POST /api/bug-report` ack + `PATCH/POST /api/admin/bug-reports` status emails + `PlatformConfigService.get` default-merge so old DB configs still surface them); added faithful `blocks[]` to all three bug templates in `config/platform.config.ts` so they open directly in the visual builder.
+4. **Lossless HTML ↔ visual** — `lib/email-blocks.ts`: new `htmlToBlocks()` (regex, no DOM dep, server+client safe; headings/paragraphs/lists/buttons/images/dividers; bare `{{var}}` gaps like `{{adminNotesBlock}}` become paragraphs — never dropped). `app/admin/email-templates/page.tsx`: selecting a block-less template parses its HTML; entering Visual re-parses hand-edited HTML (`htmlDirty` flag, no more `setBlocks(null)` wipe or destructive confirm); empty-state + variable list updated (added packageName/webinarTitle/startsAt/joinUrl/reportTitle/statusLabel/adminNotesBlock). Only HTML↔visual parallel in the codebase — blog/webinar builders are blocks-only, no change needed.
+5. **QA gate (static — no node_modules in this environment, CI runs the suite):** `npx tsc --noEmit` unusable locally (missing deps — pre-existing infra state, same as prior sessions before install); new `__tests__/lib/email-blocks.test.ts` cases cover exact round-trip `blocksToHtml→htmlToBlocks`, all-default-templates variable preservation, bare `{{adminNotesBlock}}` retention, and empty-input guards. Changed-file review: hooks order intact, PATCH handler repaired + verified, JSX structure verified.
+6. **Doc sync (update-ai-system):** session-log (this entry), dev-history (entry), in-progress.md cleared.
+
+**Files Modified/Created:** `app/(auth)/profile/page.tsx`, `app/api/profile/route.ts`, `app/(auth)/profile/media/page.tsx`, `components/profile/MediaUpload.tsx`, `lib/email-blocks.ts`, `app/admin/email-templates/page.tsx`, `config/platform.config.ts`, `__tests__/lib/email-blocks.test.ts` + 3 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` absent; no install attempted (network/time) — `npm ci` + `npm test` + `npm run typecheck` + `npm run build` must pass in CI before merge.
+- Residual: `authClient.updateUser({image})` depends on Better Auth user schema carrying `image` (default field — present via `hooks/useAuth.ts` `AuthUser.image`).
