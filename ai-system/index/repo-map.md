@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — referral surfaces + team hiring config)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -66,7 +66,7 @@ crelab/
 │   │   └── webinars/       # Webinar manager (CRUD, status/publish toggle, registration counts)
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
-  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send, /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all)
+  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send (test + broadcast + recipientIds batch), /admin/email/recipients (batch picker source: search/role/consent/limit/offset), /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all)
 │       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission (re-sanitises + stores error_context)
 │       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)

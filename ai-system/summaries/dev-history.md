@@ -1,8 +1,24 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — referral surfaces + team hiring config)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Email Batch Send (selectable recipients)
+
+### What
+Directive: add batch email send alongside single-user test send and all-subscribers broadcast — admin-selectable recipients with checkboxes, select-all, clear, undo, invert, and quick filters (first 100, only creators, only brands, only subscribers) + search.
+
+### Verification
+`vitest` → 38 files, **442 passed / 0 failed** (+11 new). `tsc --noEmit` → clean. `next lint` → 0 errors. `next build` → green.
+
+### Key Changes
+- **Pure helpers (`lib/email-batch.ts`):** `MAX_BATCH_RECIPIENTS = 500`, `normalizeRecipientIds` (trim/dedupe/cap), `filterRecipients` (role/consent/search/limit), `invertSelection`, `buildBatchResultMessage`.
+- **Recipients endpoint (`GET /api/admin/email/recipients`, ADMIN):** search/role/consent/limit/offset with MARKETING-consent join + `hasMarketingConsent` flag + total; marketing-only path chunks consent ids to respect the 500-parameter bound.
+- **Batch send (`POST /api/admin/email/send` + `recipientIds`):** dedupe/cap, wired-key guard (same as test/broadcast), per-recipient `sendTemplate`, unresolvable ids → skipped, audit `email.batch`. Existing `to` / `segment:"marketing"` paths untouched.
+- **Picker UI (`EmailBatchSendDialog`, ClModal/ClButton only):** debounced search, role + consent selects, four quick filters, checkbox list with select-visible toggle, select-all-visible / invert / clear / 10-deep undo, showing-X-of-Y, live send count. "Send to Selected…" button on `/admin/email-templates` (non-wired only).
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`), `system-architecture.md` (email flow + Recent Changes), `index/repo-map.md`, `index/dependency-graph.md`, `memory/project-decisions.md` (batch-send decision); `in-progress.md` cleared. Deep `update-ai-system.md` invoked inline: no architecture impact (additive only, no schema/migration), no `[L]`/`[XL]` origin.
 
 
 ## Session 2026-10-08 — Referral Discovery Links + Auth-Agnostic Claim + Config-Driven Team Hiring Block

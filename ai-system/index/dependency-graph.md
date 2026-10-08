@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — referral surfaces + team hiring config)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -201,9 +201,10 @@ Newsletter
   → app/admin/blog-templates/page.tsx (edits blogConfig with live preview)
 
 Admin email send
-  → app/api/admin/email/send/route.ts (test-send + broadcast to MARKETING-consented users) → EmailService
-  → wired templates (lib/email-templates.ts isWiredEmailTemplate) rejected — preview/simulate only
-  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs + editable template name via EmailTemplateBlocksEditor → ContentBlocksEditor; wired badge/Simulate/banner)
+  → app/api/admin/email/send/route.ts (test-send + broadcast to MARKETING-consented users + recipientIds batch send, audit `email.batch`) → EmailService
+  → wired templates (lib/email-templates.ts isWiredEmailTemplate) rejected on all three paths — preview/simulate only
+  → app/api/admin/email/recipients/route.ts (ADMIN picker source: search/role/consent/limit/offset + hasMarketingConsent flag) + lib/email-batch.ts (pure normalize/filter/invert/cap-500 helpers)
+  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs + editable template name via EmailTemplateBlocksEditor → ContentBlocksEditor; wired badge/Simulate/banner; Send Test / Send to Selected… via EmailBatchSendDialog / Send to Subscribers)
 
 Admin user management
   → app/api/admin/users/route.ts (GET search/list) + app/api/admin/users/[id]/route.ts (PATCH role/emailVerified, DELETE with self-guard)

@@ -6,6 +6,7 @@ import { inArray } from "drizzle-orm";
 import { ConsentType } from "@/types";
 import { AuditService } from "@/services/AuditService";
 import { emailNotSentLabel } from "@/services/EmailService";
+import { MAX_BATCH_RECIPIENTS, buildBatchResultMessage, normalizeRecipientIds } from "@/lib/email-batch";
 import { isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-templates";
 
 /**
@@ -13,6 +14,8 @@ import { isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-template
  *  - { templateKey, to }            → test send to a single address
  *  - { templateKey, segment:"marketing" } → broadcast a template to every user
  *     who granted MARKETING consent during signup (config-gated + template-gated)
+ *  - { templateKey, recipientIds: string[] } → batch send to an explicit
+ *     admin-selected recipient set (max 500, deduped)
  *
  * Wired (code-triggered) templates can never be sent or broadcast from here —
  * their delivery is owned by the code paths that fire them.
@@ -20,7 +23,7 @@ import { isWiredEmailTemplate, resolveEmailTemplate } from "@/lib/email-template
 export async function POST(req: NextRequest) {
   try {
     const session = await requireRole("ADMIN");
-    const { templateKey, to, segment } = await req.json();
+    const { templateKey, to, segment, recipientIds } = await req.json();
 
     if (!templateKey) {
       return NextResponse.json(
@@ -91,6 +94,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, sent: true, preview: result.preview });
     }
 
+    // Batch send to an explicit admin-selected recipient set.
+    if (recipientIds !== undefined) {
+      const ids = normalizeRecipientIds(recipientIds);
+      if (ids.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "Select at least one recipient for a batch send" },
+          { status: 400 },
+        );
+      }
+      if (Array.isArray(recipientIds) && recipientIds.length > MAX_BATCH_RECIPIENTS) {
+        return NextResponse.json(
+          { success: false, error: `Batch sends are limited to ${MAX_BATCH_RECIPIENTS} recipients at a time` },
+          { status: 400 },
+        );
+      }
+
+      const targets = await db
+        .select({ id: user.id, name: user.name, email: user.email })
+        .from(user)
+        .where(inArray(user.id, ids));
+
+      let sent = 0;
+      let skipped = 0;
+      for (const u of targets) {
+        const result = await EmailService.sendTemplate(u.email, templateKey, { userName: u.name }, config);
+        if (result.sent) sent++;
+        else skipped++;
+      }
+      // Ids that no longer resolve to a user count as skipped.
+      skipped += ids.length - targets.length;
+
+      await AuditService.log({
+        userId: session.user.id,
+        action: "email.batch",
+        entity: "emailTemplate",
+        entityId: templateKey,
+        newValue: { sent, skipped, total: ids.length },
+      });
+
+      return NextResponse.json({
+        success: true,
+        sent,
+        skipped,
+        total: ids.length,
+        message: buildBatchResultMessage(sent, skipped, ids.length),
+      });
+    }
+
     // Broadcast to marketing-consented users.
     if (segment === "marketing") {
       const granted = await db
@@ -146,7 +197,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: "Provide either `to` for a test send or `segment: \"marketing\"` for a broadcast" },
+      { success: false, error: "Provide `to` for a test send, `segment: \"marketing\"` for a broadcast, or `recipientIds` for a batch send" },
       { status: 400 },
     );
   } catch (err) {

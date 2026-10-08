@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — referral surfaces + team hiring config)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -135,7 +135,7 @@ Data Stores
    -> preview + Simulate ONLY (useEmailSimulation) — badge + Zap icon + trigger banner in the admin
    -> /api/admin/email/send rejects wired keys for test-send AND broadcast (content/timing owned by code, not the operator)
    -> passwordReset fired by Better Auth emailAndPassword.sendResetPassword -> sendTransactionalEmail ({{resetUrl}} var)
-4. Admin-created (non-wired) templates: test-send + "Send to Subscribers" broadcast to MARKETING-consented users -> POST /api/admin/email/send -> EmailService
+4. Admin-created (non-wired) templates: test-send + "Send to Subscribers" broadcast to MARKETING-consented users + "Send to Selected…" batch send to an explicit admin-picked set -> POST /api/admin/email/send -> EmailService. Batch recipients come from GET /api/admin/email/recipients (search/role/consent/limit/offset + hasMarketingConsent flag); picker logic (normalize/filter/invert/cap 500) lives in pure `lib/email-batch.ts`; batch sends are audit-logged as `email.batch`. Wired-key guard applies identically to all three paths.
 ```
 
 ### Blog Content Sections Flow
@@ -338,6 +338,12 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-08 — Email Batch Send (selectable recipients)
+- **Batch send** — `POST /api/admin/email/send` gains a `{ templateKey, recipientIds: string[] }` branch alongside single `to` and `segment:"marketing"`: ids normalised (trim/dedupe/cap 500 via pure `lib/email-batch.ts`), wired-key guard identical to the other paths, per-recipient `EmailService.sendTemplate`, unresolvable ids counted as skipped, audit-logged as `email.batch`.
+- **Recipient picker source** — new `GET /api/admin/email/recipients` (ADMIN): `search` (name/email ilike), `role` (CLIENT/PROVIDER/ADMIN/ALL), `consent` (all/marketing via MARKETING-consent join, chunked `inArray` to respect the 500-parameter bound), `limit` 1–500 (default 100) + `offset`; returns id/name/email/role/hasMarketingConsent/createdAt + total.
+- **Picker UI** — new `components/admin/EmailBatchSendDialog.tsx` (ClModal + ClButton only, no custom overlays): debounced search, role/consent selects, First-100 / Only-creators / Only-brands / Only-subscribers quick filters, checkbox list with select-visible toggle, Select-all-visible / Invert / Clear / 10-deep Undo, showing-X-of-Y, live send count. "Send to Selected…" button on `/admin/email-templates` (non-wired templates only).
+- **QA:** `vitest` 442/442 (38 files; +11 new `email-batch` tests), `tsc --noEmit` clean, `next lint` 0 errors, `next build` green.
 
 ### 2026-10-08 — Referral discovery links + auth-agnostic claim + config-driven team hiring block
 - **Referral discovery** — `/referrals` was reachable only by direct URL. It is now linked (all flag-gated on `features.referralsEnabled` + `referral.enabled`) from the Navbar, the Footer Platform section, an "Invite & earn" card on `/profile`, a shared `ReferralBanner` on both provider and client dashboards (`app/(auth)/dashboard/components/ReferralBanner.tsx`), and an invite CTA on `/leaderboard` (the referrals page already linked back to the leaderboard).

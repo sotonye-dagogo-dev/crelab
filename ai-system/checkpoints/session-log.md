@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — referral surfaces + team hiring config)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,28 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-08 — Email Batch Send (selectable recipients) (execute-feature)
+
+**Directive:** extend email functionality beyond single-user test send and all-subscribers broadcast with a batch send where recipients are selectable (checkboxes, select-all, clear, undo, invert, quick filters like first 100 / only creators / only brands / only subscribers + search).
+
+**Planning pass (Step 1):** read task-queue, system-architecture, project-decisions, project-context + full email-send code map; no architecture impact (additive lib + additive GET route + additive POST branch + additive dialog component, no schema/migration/state-machine change); scope/project-decisions checks pass (admin email is Phase 1 in-scope; wired-template guard extends to batch unchanged). Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Pure helpers** — new `lib/email-batch.ts`: `MAX_BATCH_RECIPIENTS = 500`, `normalizeRecipientIds` (trim/dedupe/cap), `filterRecipients` (role/consent/search/limit), `invertSelection`, `buildBatchResultMessage`.
+2. **Recipients endpoint** — new `GET /api/admin/email/recipients` (ADMIN): `search` (name/email ilike), `role` (CLIENT/PROVIDER/ADMIN/ALL), `consent` (all/marketing via MARKETING consent join, chunked `inArray`), `limit` 1–500 (default 100), `offset`; returns id/name/email/role/hasMarketingConsent/createdAt + total.
+3. **Batch send** — `POST /api/admin/email/send` accepts `{ templateKey, recipientIds: string[] }`: normalises (dedupe/cap 500, empty → 400), rejects wired keys (same guard as test/broadcast), per-recipient `sendTemplate`, unresolvable ids count as skipped, audit-logged as `email.batch`, returns sent/skipped/total + message. Existing `to` / `segment:"marketing"` paths untouched.
+4. **Picker UI** — new `components/admin/EmailBatchSendDialog.tsx` (ClModal + ClButton only): search (debounced), role select (All/Only creators/Only brands/Only admins), consent select (Everyone/Subscribers only), quick filters (First 100 / Only creators / Only brands / Only subscribers), checkbox list with header select-visible toggle, Select all (visible count) / Invert select / Clear / Undo select (10-deep stack), showing X of Y total, live recipient count on Send. Wired into `app/admin/email-templates/page.tsx` as "Send to Selected…" (non-wired templates only; dialog replaces the inline test/broadcast panel via `sendDialog === "batch"`).
+5. **QA gate:** `vitest` → 38 files, **442 passed / 0 failed** (+11 new: `__tests__/lib/email-batch.test.ts`); `tsc --noEmit` clean (one typed-row fix in the recipients route); `next lint` 0 errors (pre-existing wallet-route warnings only + one fixed exhaustive-deps warning in the new dialog); `next build` green.
+6. **Doc sync (update-ai-system deep sync inline):** dev-history (entry), task-queue Completed + `last-synced`, system-architecture (email flow + Recent Changes), index/repo-map + dependency-graph, memory/project-decisions (batch-send decision); in-progress.md cleared.
+
+**Files Modified/Created:** `lib/email-batch.ts` (new), `app/api/admin/email/recipients/route.ts` (new), `app/api/admin/email/send/route.ts` (batch branch), `components/admin/EmailBatchSendDialog.tsx` (new), `app/admin/email-templates/page.tsx` (Send to Selected wiring), `__tests__/lib/email-batch.test.ts` (new) + 7 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` was absent at session start; `npm install --no-audit --no-fund` run (no dependency changes).
+- Residual risks: none. Batch is capped at 500/recipients call and 500/send; unresolvable ids are reported as skipped, never fail the batch; wired templates stay preview/simulate-only across all three send paths.
 
 ## Session 2026-10-08 — Referral Discovery Links + Auth-Agnostic Claim + Config-Driven Team Hiring Block (execute-feature)
 
