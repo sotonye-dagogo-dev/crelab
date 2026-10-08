@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-updated-by: execute-feature (Session 2026-10-08 — public-pages team/webinars re-verification)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -41,7 +41,8 @@ Service Layer (services/)
     |-- EarlyMemberService      -- Founding-100 rank via ROW_NUMBER() over user.createdAt (cached, no schema change)
     |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim
     |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking over ALL members (zero-score rows kept, ranked last) + 30s user-agnostic board cache + batched candidate load + per-request current-user rank
-    |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert)
+     |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert)
+     |-- TeamService             -- Public team listing (active-only, display order) + socialLinks normalisation (array | legacy JSON-string | null)
     |-- PlatformStatsService    -- Cached landing aggregates with null → fallbackValue degradation
     |
     v
@@ -336,6 +337,11 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-08 — Public-Pages Team/Webinars Re-verification (team empty-state fix)
+- **Root cause of the empty `/team` page** — the page ran its `team_members` query inline in a server component with no `force-dynamic` flag, so Next statically prerendered the build-time (empty) result and admin additions never appeared until the next deploy. The `catch` fallback (`MockDataService.getTeamMembers()`) returns `[]` unless mock mode is on, so production showed the "Coming Soon" empty state even with rows in the table.
+- **Fix** — new `services/TeamService.ts` (`listPublic` active-only + `normalizeSocialLinks` handling legacy `JSON.stringify`-stored rows + `serializeTeamMember`); `/team` now reads via the service with `export const dynamic = "force-dynamic"` and logs DB errors; new public `GET /api/team` (same read path, mock fallback only in mock mode). `force-dynamic` also added to `/about`, `/how-it-works`, `/home`, and `/` (all do direct-DB reads in server components — same stale-prerender hazard; about/how-it-works were masked by their hardcoded fallbacks). `scripts/seed.ts` now stores `socialLinks` as native jsonb arrays. Webinars/blog/leaderboard/explore re-verified with no change needed (already `force-dynamic` or client-fetched; `WebinarService.listPublic` correctly gates `active=true` + derived phase).
+- **QA:** `vitest` 424/424 (35 files; +6 TeamService tests), `tsc --noEmit` exit 0, `next lint` 0 errors, `next build` green with `/`, `/home`, `/about`, `/how-it-works`, `/team`, `/blog`, `/leaderboard`, `/webinars`, `/api/team` all `ƒ` (dynamic).
 
 ### 2026-10-08 — Cover-Visible-Everywhere (content views + portfolios)
 - **Covers surface as content, avatars never do** — `lib/portfolio.ts` gains pure `isImageCoverUrl` / `coverMimeType` / `buildCoverFallbackItem` (deterministic `cover-<providerId>`, `orderIndex: -1`) / `withCoverFallback` (blank/already-present → no-op). Write path: `reconcileAsset(cover)` also ensures the visible DIRECT portfolio item (advisory); `/api/profile/setup` orphan-rescue skips `avatarUrl`; setup + backfill cover-repair are photo-aware (correct image mime, self-thumbnail). Read path: public portfolio page + `GET /api/explore/portfolio` (filter-aware first-page fill) merge a missing cover; `ExploreService` counts a lone cover in `portfolioCount` and falls back to a cover-derived tile thumbnail. No schema/migration/route changes.

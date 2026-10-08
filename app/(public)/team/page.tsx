@@ -1,12 +1,16 @@
-import { db } from "@/lib/db";
-import { teamMembers } from "@/drizzle/schema";
-import { asc, eq } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { TeamService } from "@/services/TeamService";
 import { MockDataService } from "@/services/MockDataService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import type { Metadata } from "next";
+import type { ITeamMember } from "@/types";
 import { ClEmptyState } from "@/components/ui";
 import { TeamSocialIcon } from "@/components/team/TeamSocialIcon";
+
+// The member list is admin-managed at runtime — never statically prerender it
+// (a build-time prerender freezes the empty table and later additions never
+// appear until the next deploy).
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   let config;
@@ -25,19 +29,12 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function TeamPage() {
 
-  let members: (typeof teamMembers.$inferSelect)[];
+  let members: ITeamMember[];
   try {
-    members = await db
-      .select()
-      .from(teamMembers)
-      .where(eq(teamMembers.active, true))
-      .orderBy(asc(teamMembers.orderIndex), asc(teamMembers.createdAt));
-  } catch {
-    members = MockDataService.getTeamMembers().map((m) => ({
-      ...m,
-      createdAt: new Date(m.createdAt),
-      updatedAt: new Date(m.updatedAt),
-    })) as (typeof teamMembers.$inferSelect)[];
+    members = await TeamService.listPublic();
+  } catch (err) {
+    console.error("[TeamPage] failed to load team members", err);
+    members = MockDataService.getTeamMembers();
   }
 
   return (
@@ -56,7 +53,7 @@ export default async function TeamPage() {
         {members.length > 0 ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-16">
-              {members.map((member: typeof teamMembers.$inferSelect) => (
+              {members.map((member: ITeamMember) => (
                 <div
                   key={member.id}
                   className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 flex flex-col items-center text-center gap-4 transition-colors duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-[var(--color-border-mid)] hover:-translate-y-0.5"
