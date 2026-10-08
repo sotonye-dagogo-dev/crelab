@@ -1318,3 +1318,52 @@ failures at HEAD (media file-size + 2 BlogPostService adminList), no regressions
   `0004�0007`) remain in the folder as history; journal-driven flow supersedes them.
   RLS policies still unapplied (known residual risk, `uuid = text` mismatch � service-role
   connection bypasses RLS, unchanged).
+
+## Session 2026-10-08 — Execute Feature: Auth Cleanup + Explore Tiles + Team Management + SEO
+
+**Directive:** (1) drop phone from signup, (2) fix blank/glitchy explore tiles on scroll,
+(3) sanitise "Cloudinary" from public UI, (4) profile display-name backfill,
+(5) team admin direct avatar upload + social-link select with icons (backward compat),
+(6) per-page SEO titles/metadata.
+
+**Completed:**
+1. **Phone removed from auth UI** — `app/(auth)/login/page.tsx`: phone tab toggle + OTP
+   panel commented out (not deleted — restorable when phone auth ships); email-only sign-in.
+   Register page already had no phone block (verified).
+2. **Explore tile scroll/blank fix** — `ExploreVideoCard`: removed `key={id-carouselIndex}`
+   img remount (blanked tile each 3.5s tick), carousel timer no longer resets on scroll
+   (`isInView` dropped from deps), video overlay mounts only when in view (`autoPlay`,
+   `preload="metadata"`) with thumbnail kept underneath so tiles never blank; `loading=lazy`.
+   `ExploreGrid` + `PortfolioGallery`: removed `AnimatePresence popLayout` + `layout` (caused
+   masonry jumping on every infinite-scroll append); mount-only fade, stagger capped at 0.3s
+   (far-down tiles previously sat at opacity-0 with long delays = "nothing visible").
+3. **Cloudinary sanitised (public UI/config)** — profile media tab "Cloudinary Uploads" →
+   "Direct Uploads"; delete-confirm copy → "direct storage"; admin config label
+   "Cloudinary Direct Uploads" → "Direct Uploads". Admin-internal + code/API strings untouched.
+4. **Profile display name** — `app/(auth)/profile/page.tsx`: `useEffect` backfills the input
+   from `user.name` once auth resolves (pristine-only via `nameTouched`, no edit clobber).
+5. **Team management** — new `lib/social-platforms.ts` (10-option catalogue + legacy
+   normalisation: Twitter→X etc., unknown values kept verbatim as custom); new
+   `components/team/TeamSocialIcon.tsx` (brand SVGs for X/LinkedIn/GitHub/Instagram/
+   YouTube/Facebook, lucide generics for Dribbble/TikTok/Website/Other). `TeamMemberModal`:
+   avatar via `ImageUploadField` (direct upload + paste fallback), platform `<select>` +
+   conditional custom-text input, plus open/member sync effect (fixes stale edit state).
+   Public `/team` page renders icons via `TeamSocialIcon`. Seed/API shapes unchanged.
+6. **SEO** — 13 new route `layout.tsx` files with `generateMetadata` (config-driven titles,
+   descriptions, canonical paths, keywords; `noindex` on private auth routes, indexed on
+   explore/bug-report); root layout gains site keywords.
+7. **Tests** — new `__tests__/lib/social-platforms.test.ts` (6 tests, pass).
+
+**QA gate:** `tsc --noEmit` clean; `next build` green; `vitest` 395/398 — the same 3
+pre-existing failures at clean HEAD (media file-size wording + 2 BlogPostService adminList,
+verified via `git stash`), no regressions.
+
+**Files Modified/Created:** see git status (10 modified, 15 new layouts/components/lib/test).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- No architecture impact (no schema/API changes) — no `update-ai-system.md` deep sync
+  per the Step 5 condition; freshness updated inline (this log, dev-history, task-queue).
+- lucide-react no longer ships brand icons (verified `undefined` at runtime) — hence inline
+  brand SVGs in `TeamSocialIcon`; revisit if a brand-icon dep is adopted.

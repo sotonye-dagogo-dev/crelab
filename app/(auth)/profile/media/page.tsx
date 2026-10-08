@@ -225,7 +225,7 @@ export default function ProfileMediaPage() {
               : "border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
           }`}
         >
-          Cloudinary Uploads ({assets.length})
+          Direct Uploads ({assets.length})
         </button>
         <button
           onClick={() => setActiveTab("portfolio")}
@@ -327,7 +327,7 @@ export default function ProfileMediaPage() {
       )}
 
       {activeTab === "uploads" ? (
-        // Cloudinary Uploads Tab
+        // Direct Uploads Tab
         <>
           <div className="mb-4">
             <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px]">
@@ -566,7 +566,7 @@ export default function ProfileMediaPage() {
       <ClConfirmDialog
         open={assetToDelete !== null}
         title="Delete media asset"
-        message={`Permanently remove "${assetToDelete?.publicId}" from Cloudinary and clear it from any profile or portfolio that references it. This cannot be undone.`}
+        message={`Permanently remove "${assetToDelete?.publicId}" from direct storage and clear it from any profile or portfolio that references it. This cannot be undone.`}
         confirmLabel="Delete asset"
         loading={deleting}
         onConfirm={deleteAsset}

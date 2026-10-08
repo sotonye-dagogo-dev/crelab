@@ -21,6 +21,14 @@ export default function ProfilePage() {
   const [name, setName] = useState(user?.name ?? "");
   const [nameSaving, setNameSaving] = useState(false);
 
+  // useAuth resolves async — backfill the input once the user loads (and if
+  // the session name changes elsewhere) so it never looks blank. Don't clobber
+  // in-progress edits: only sync when the field is still pristine/empty.
+  const [nameTouched, setNameTouched] = useState(false);
+  useEffect(() => {
+    if (user?.name && !nameTouched) setName(user.name);
+  }, [user?.name, nameTouched]);
+
   const [verifySending, setVerifySending] = useState(false);
   const [verifySent, setVerifySent] = useState(false);
 
@@ -191,7 +199,7 @@ export default function ProfilePage() {
                   Display name
                 </label>
                 <div className="flex items-center gap-3">
-                  <ClInput className="flex-1" value={name} onChange={(e) => setName(e.target.value)} />
+                  <ClInput className="flex-1" value={name} onChange={(e) => { setNameTouched(true); setName(e.target.value); }} />
                   <ClButton variant="primary" size="default" onClick={handleSaveName} loading={nameSaving}>
                     Save name
                   </ClButton>

@@ -33,7 +33,7 @@ const configFields = [
   { key: "emailConfig.fromName", label: "Email From Name", type: "text" as const, section: "Email" },
   { key: "emailConfig.fromEmail", label: "Email From Address", type: "text" as const, section: "Email", hint: "Resend recommends a real address on a subdomain (e.g. hello@mail.yourdomain.com), not a \"no-reply\" address — recipients need a reply path to build trust and report spam. The subdomain must be verified in Resend." },
   { key: "mediaUpload.enabled", label: "Media Uploads", type: "toggle" as const, section: "Media" },
-  { key: "mediaUpload.cloudinaryEnabled", label: "Cloudinary Direct Uploads", type: "toggle" as const, section: "Media" },
+  { key: "mediaUpload.cloudinaryEnabled", label: "Direct Uploads", type: "toggle" as const, section: "Media" },
   { key: "mediaUpload.maxFileSizeMb", label: "Max Upload Size", type: "number" as const, section: "Media", unit: "MB" },
   { key: "mediaUpload.cleanupEnabled", label: "Orphan Cleanup Job", type: "toggle" as const, section: "Media" },
   { key: "mediaUpload.cleanupOrphanAfterHours", label: "Delete Orphans After", type: "number" as const, section: "Media", unit: "hours" },

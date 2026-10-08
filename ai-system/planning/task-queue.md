@@ -3,7 +3,7 @@
 > **Metadata**
 > - last-updated-by: update-ai-system (Session 2026-10-01)
 > - last-verified-against-code: 2026-10-01
-> - last-synced: 2026-10-07 (session-log entry — Session 2026-10-07, DB migration & script close-out executed)
+> - last-synced: 2026-10-08 (session-log entry — Session 2026-10-08, auth cleanup + explore tiles + team + SEO executed)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.

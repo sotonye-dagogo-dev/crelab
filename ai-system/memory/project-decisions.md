@@ -578,3 +578,27 @@ destructive is now enforced structurally, not by convention.
 - `db:baseline` is one-time-only for pre-journal DBs; never run it on a fresh DB.
 - `backups/` is gitignored; operators must confirm `db:backup` works on their machine
   (needs `pg_dump` on PATH) before any destructive op.
+
+---
+
+## 2026-10-08 — Public UI naming + team social links + explore tile motion
+
+**Decision:** Public-facing copy says "Direct Upload(s)" / "direct storage", never
+"Cloudinary" (vendor name is an implementation detail). Admin-internal surfaces, API
+codes, and code comments may keep the precise term.
+
+**Decision:** Team social links use a fixed platform catalogue (X, LinkedIn, GitHub,
+Dribbble, Instagram, YouTube, Facebook, TikTok, Website, Other-with-custom-text) with
+per-platform icons on `/team` and a generic link icon fallback. Legacy free-typed values
+(e.g. "Twitter") are normalised at read time (`lib/social-platforms.ts`), never migrated,
+so pre-change rows keep their icons.
+
+**Decision:** No `layout`/exit animations inside CSS-columns masonry grids (ExploreGrid,
+PortfolioGallery). Mount-only fade with capped stagger; video overlays mount only while
+in view. Rationale: layout animations re-run on every infinite-scroll append and read as
+glitchy jumping; uncapped stagger left far-down tiles at opacity-0 while scrolling.
+
+**Superseded by:** None
+
+**Reason:** User-reported polish issues (blank/glitchy tiles, blank display-name input,
+vendor name in UI tabs) plus SEO gaps on client-rendered routes.
