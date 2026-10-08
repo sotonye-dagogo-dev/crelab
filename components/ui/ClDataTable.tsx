@@ -34,6 +34,7 @@ export function ClDataTable<T>({
   emptyState,
   className = "",
   headerRowClassName = "",
+  tableClassName = "min-w-[520px] lg:min-w-[720px]",
 }: {
   columns: ClColumn<T>[];
   rows: T[];
@@ -43,6 +44,8 @@ export function ClDataTable<T>({
   emptyState?: React.ReactNode;
   className?: string;
   headerRowClassName?: string;
+  /** Override the table's min-width (e.g. narrow 3-column tables that must fit 360px screens without scrolling) */
+  tableClassName?: string;
 }) {
   const [page, setPage] = useState(1);
   const totalPages = pageSize ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
@@ -62,7 +65,7 @@ export function ClDataTable<T>({
     <div className={className}>
       <div className="rounded-[12px] bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[720px]">
+          <table className={`w-full border-collapse ${tableClassName}`}>
             <thead>
               <tr className={`bg-[var(--color-surface-raised)] ${headerRowClassName}`}>
                 {columns.map((col) => (

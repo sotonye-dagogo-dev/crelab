@@ -1428,3 +1428,45 @@ verified via `git stash`), no regressions.
 **Notes / Blockers:**
 - Both prior residual risks now resolved: orphans are one-click rescuable (bulk, deliberate); `getBoard()` page turns are slice operations over a 30s cache. Remaining long-tail items unchanged: RLS policies still unapplied (pre-existing); precomputed-scores migration remains the eventual path at very large membership.
 - `node_modules` was absent at session start; `npm install --legacy-peer-deps` run (no dependency changes).
+
+## Session 2026-10-08 — Countdown / Leaderboard / Provider Tiles / Content View (execute-feature)
+
+**Directive:** (1) countdown widget text centrally aligned + CTA links support full https:// URLs; (2) leaderboard username cell too long on mobile, pushes score far; (3) provider-view tile click routes to provider page + provider name gets a readable (opaque) background; (4) explore content view empty while provider tiles cycle content — uploaded videos only serve as cover, missing from content view and portfolios.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/deps changes; all additive/best-effort); scope/project-decisions checks pass (leaderboard keep-zeros preserved; backfill stays explicit admin action; upload attach stays best-effort/idempotent). Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Countdown widget** (`components/shared/CountdownWidget.tsx`, `app/admin/countdown/page.tsx`) — text centrally aligned (container `items-center text-center`, header stacked + centered, timer `justify-center`, CTA `self-center`); CTA supports full URLs (external `https?://`/`//` renders `<a target="_blank" rel="noopener noreferrer">`, relative paths keep Next `Link`); admin CTA placeholder + hint document the behaviour.
+2. **Leaderboard mobile** (`app/(public)/leaderboard/LeaderboardClient.tsx`, `components/ui/ClDataTable.tsx`) — member cell constrained (`max-w-[148px] sm:max-w-[320px]`, inner name `block truncate min-w-0 flex-1`) so long names truncate instead of pushing Score off-screen; Score column fixed `w-[92px]` right-aligned nowrap; shared table `min-w` lowered to `520px` below `lg` (was 720px) to reduce mobile scroll.
+3. **Provider tiles** (`components/explore/ExploreVideoCard.tsx`) — tile click already routes via the outer `Link` to `/profile/[slug]` (verified, kept); provider name now sits on an opaque pill (`bg-[rgba(0,0,0,0.55)] backdrop-blur border-white/10 text-white truncate`) so it stays readable over any cover image in any theme.
+4. **Content view / portfolios** (`app/api/profile/setup/route.ts`, `services/MediaAssetService.ts`, `__tests__/services/MediaAssetService.test.ts`) — root cause: onboarding uploads happen BEFORE the provider row exists, so the upload-time auto-attach silently skips and the cover video only ever serves as hero cover. Fix: profile-setup now best-effort attaches the cover video as a visible DIRECT portfolio item (Cloudinary-derived thumbnail) + rescues the owner's recent orphans (≤20, idempotent, never fails setup); `backfillOrphans` gains a cover-repair pass (missing cover → DIRECT item, dryRun-aware) so pre-existing cover-only providers heal via the existing admin Backfill flow. Gallery tiles already play via lightbox + keep the provider link (unchanged).
+5. **QA gate:** `vitest` 408/408 (33 files; +1 cover-repair dry-run test, backfill dry-run mocks extended for the cover scan), `tsc --noEmit` exit 0, `next lint` 0 errors (pre-existing warnings only).
+6. **Doc close:** session-log (this entry), dev-history, task-queue Completed, in-progress.md cleared.
+
+**Files Modified/Created:** `components/shared/CountdownWidget.tsx`, `app/admin/countdown/page.tsx`, `app/(public)/leaderboard/LeaderboardClient.tsx`, `components/ui/ClDataTable.tsx`, `components/explore/ExploreVideoCard.tsx`, `app/api/profile/setup/route.ts`, `services/MediaAssetService.ts`, `__tests__/services/MediaAssetService.test.ts` + 4 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- Pre-existing cover-only providers do NOT heal automatically — admins run the existing `/admin/media` Backfill (dry-run preview included); new signups attach at setup time.
+- `node_modules` was absent at session start; `npm ci` run (no dependency changes).
+
+## Session 2026-10-08 — Nav / Footer / Leaderboard Polish (execute-feature)
+
+**Directive:** (1) mobile nav menu scrollable (link list can be long); (2) footer links less redundant (some repeated across sections); (3) leaderboard Score easily visible, name column bounded with truncation/scroll handling. Then `update-ai-system.md`.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/deps/routes changes; additive optional prop only); scope/project-decisions checks pass (public UX polish, design-token compliant). Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Mobile nav scroll** (`components/shared/Navbar.tsx`) — overlay gains `overflow-y-auto overscroll-contain`; content wrapped in `min-h-full … py-24` centering container with the link list in its own `<nav aria-label="Mobile">` scroll region; link sizes step down on small screens (`1.35rem` → `1.5rem` at `sm`) with `shrink-0` so 8+ links + auth CTAs + theme toggler never clip on short viewports.
+2. **Footer dedup** (`components/shared/Footer.tsx`) — columns reorganised to zero duplication: Platform (Explore/Leaderboard/Webinars/Blog) · Company (Home/About/How It Works/Team) · Support & Legal (Report a Bug/Privacy/Terms, renamed from Legal). Every footer link now appears exactly once; flag-gated Leaderboard/Webinars behaviour preserved.
+3. **Leaderboard score visibility** (`components/ui/ClDataTable.tsx`, `app/(public)/leaderboard/LeaderboardClient.tsx`) — `ClDataTable` gains an additive optional `tableClassName` prop (default keeps existing `min-w-[520px] lg:min-w-[720px]`); leaderboard passes `min-w-0 lg:min-w-[720px]` so the 3 mobile-visible columns (rank/member/score) fit a 360px viewport with no horizontal scroll — Score never leaves the screen. Member cell widened to viewport-relative `max-w-[38vw] sm:max-w-[320px]` (was fixed 148px) with `title` tooltip on truncated names (+ podium names); Score cell adds `tabular-nums`; rank column narrows to `w-[44px] sm:w-[56px]`.
+4. **QA gate:** `npx vitest run` → 33 files, **408 passed / 0 failed**; `npx tsc --noEmit` → exit 0; `npm run lint` → 0 errors (pre-existing unused-var warnings only); `npm run build` → success.
+5. **Doc sync (`update-ai-system.md`):** session-log (this entry), dev-history, task-queue Completed, dependency-graph `ClDataTable` line, freshness headers; in-progress.md cleared.
+
+**Files Modified/Created:** `components/shared/Navbar.tsx`, `components/shared/Footer.tsx`, `components/ui/ClDataTable.tsx`, `app/(public)/leaderboard/LeaderboardClient.tsx` + 4 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- None. `node_modules` was absent at session start; `npm install --no-audit --no-fund` run (no dependency changes).

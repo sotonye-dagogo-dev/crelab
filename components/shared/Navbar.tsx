@@ -137,13 +137,16 @@ export function Navbar() {
         </button>
       </div>
 
-      {/* Mobile full-screen overlay */}
+      {/* Mobile full-screen overlay — scrollable so a long link list + auth
+          CTAs never clip on short screens. Outer locks scroll position while
+          open (body overflow hidden); inner region scrolls instead. */}
       <div
-        className={`fixed inset-0 z-[60] flex flex-col items-center justify-center gap-8 bg-[var(--color-bg)] transition-opacity duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-[var(--color-bg)] transition-opacity duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           mobileOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         }`}>
+        <div className="min-h-full w-full flex flex-col items-center justify-center gap-6 sm:gap-8 px-6 py-24">
         <div className="absolute top-6 left-6 flex items-center gap-3">
           <ClLogo variant="icon" showName iconWidth={32} iconHeight={32} />
         </div>
@@ -155,11 +158,14 @@ export function Navbar() {
           ✕
         </button>
 
+        <nav
+          aria-label="Mobile"
+          className="flex w-full min-h-0 flex-col items-center gap-5 sm:gap-7 overflow-y-auto">
         {visibleLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className={`font-[family-name:var(--font-display)] text-[1.5rem] font-bold no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            className={`font-[family-name:var(--font-display)] text-[1.35rem] sm:text-[1.5rem] font-bold no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] shrink-0 ${
               pathname === link.href
                 ? "text-[var(--color-accent)]"
                 : "text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)]"
@@ -167,6 +173,7 @@ export function Navbar() {
             {link.label}
           </Link>
         ))}
+        </nav>
 
         {isAuthenticated ? (
           <>
@@ -179,7 +186,7 @@ export function Navbar() {
             )}
             <Link
               href="/profile"
-              className="font-[family-name:var(--font-display)] text-[1.5rem] font-bold no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)]">
+              className="font-[family-name:var(--font-display)] text-[1.35rem] sm:text-[1.5rem] font-bold no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] text-[var(--color-text-primary)] hover:text-[var(--color-text-secondary)] shrink-0">
               Profile
             </Link>
             <Link
@@ -203,6 +210,7 @@ export function Navbar() {
           </>
         )}
         <ThemeToggler displayMode="icon" />
+        </div>
       </div>
     </header>
   );

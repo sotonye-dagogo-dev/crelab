@@ -136,7 +136,7 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
       {
         key: "rank",
         header: "#",
-        width: "w-[56px]",
+        width: "w-[44px] sm:w-[56px]",
         cell: (row) => (
           <span className="font-[family-name:var(--font-display)] font-bold text-[13px] text-[var(--color-text-secondary)]">
             {row.rank}
@@ -146,8 +146,12 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
       {
         key: "member",
         header: "Member",
+        // Bounded viewport-relative width on narrow screens so a long display
+        // name truncates (with a hover/tap tooltip) instead of pushing the
+        // Score column off-screen. Score stays visible without scrolling.
+        cellClassName: "max-w-[38vw] min-w-0 sm:max-w-[320px]",
         cell: (row) => (
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 max-w-full">
             {row.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -160,7 +164,9 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
                 <UserRound size={14} strokeWidth={2} />
               </span>
             )}
-            <span className="truncate font-semibold text-[var(--color-text-primary)]">
+            <span
+              title={row.displayName}
+              className="block truncate min-w-0 flex-1 font-semibold text-[var(--color-text-primary)]">
               {row.displayName}
             </span>
             {row.isCurrentUser && (
@@ -174,8 +180,11 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
       {
         key: "score",
         header: "Score",
+        width: "w-[84px] sm:w-[92px]",
+        headerClassName: "text-right",
+        cellClassName: "whitespace-nowrap text-right",
         cell: (row) => (
-          <span className="font-bold text-[var(--color-text-primary)]">{formatNumber(row.score)}</span>
+          <span className="font-bold tabular-nums text-[var(--color-text-primary)]">{formatNumber(row.score)}</span>
         ),
       },
       ...factorColumns,
@@ -269,7 +278,9 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
                         <UserRound size={index === 0 ? 22 : 18} strokeWidth={2} />
                       </span>
                     )}
-                    <span className="font-semibold text-[14px] text-[var(--color-text-primary)] truncate max-w-full">
+                    <span
+                      title={row.displayName}
+                      className="font-semibold text-[14px] text-[var(--color-text-primary)] truncate max-w-full">
                       {row.displayName}
                     </span>
                     <span className="text-[12px] text-[var(--color-text-tertiary)]">
@@ -289,6 +300,10 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
               columns={columns}
               rows={rows}
               rowKey={(row) => row.userId}
+              // Only rank/member/score render below lg, so the table fits a
+              // 360px viewport with no horizontal scroll — Score never leaves
+              // the screen. Wider factor columns return at lg via min-w.
+              tableClassName="min-w-0 lg:min-w-[720px]"
               emptyState={
                 <ClEmptyState
                   title="No activity yet"

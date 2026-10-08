@@ -1,8 +1,39 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-updated-by: execute-feature (Session 2026-10-08 — nav/footer/leaderboard polish)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Nav / Footer / Leaderboard Polish
+
+### What
+Directive: mobile nav scrollable; footer links de-duplicated; leaderboard Score always visible with bounded/truncating name column.
+
+### Verification
+`npx vitest run` → 33 files, **408 passed / 0 failed**. `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only). `npm run build` → success.
+
+### Key Changes
+- **Mobile nav** (`Navbar.tsx`) — overlay scrollable (`overflow-y-auto overscroll-contain`, dedicated `<nav>` scroll region, smaller link size on short screens) so long link lists never clip.
+- **Footer** (`Footer.tsx`) — zero-duplication columns: Platform (Explore/Leaderboard/Webinars/Blog), Company (Home/About/How It Works/Team), Support & Legal (Report a Bug/Privacy/Terms); every link appears exactly once.
+- **Leaderboard** (`LeaderboardClient.tsx`, `ClDataTable.tsx`) — new additive `tableClassName` prop; leaderboard table `min-w-0` below `lg` (Score visible on 360px screens, no scroll); member cell `max-w-[38vw]` + `title` tooltips; Score `tabular-nums`.
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` Completed, dependency-graph line, `in-progress.md` cleared.
+
+
+## Session 2026-10-08 — Countdown / Leaderboard / Provider Tiles / Content View
+
+### What
+Directive: centrally-aligned countdown text + full-URL CTAs; leaderboard username overflow on mobile; provider tile routing + readable name background; explore content view empty while provider tiles cycle content (uploads stuck as cover-only).
+
+### Verification
+`npx vitest run` → 33 files, **408 passed / 0 failed** (+1 cover-repair dry-run test). `npx tsc --noEmit` → exit 0. `npm run lint` → 0 errors (pre-existing unused-var warnings only).
+
+### Key Changes
+- **Countdown** (`CountdownWidget.tsx`, `/admin/countdown`) — centered layout; external CTAs open in a new tab, relative paths stay in-app.
+- **Leaderboard** (`LeaderboardClient.tsx`, `ClDataTable.tsx`) — member cell truncates on mobile (`max-w-[148px]`), Score pinned right (`w-[92px]` nowrap); table `min-w` 720px → 520px below `lg`.
+- **Provider tiles** (`ExploreVideoCard.tsx`) — routing already via outer `Link` (verified); name moved onto an opaque pill for readability over any image/theme.
+- **Content/portfolios** (`/api/profile/setup`, `MediaAssetService.backfillOrphans`) — setup-time cover attach + orphan rescue (onboarding uploads predate the provider row); backfill cover-repair pass heals pre-existing cover-only providers via the admin Backfill flow (dry-run aware, idempotent).
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` Completed, `in-progress.md` cleared.
 
 
 ## Session 2026-10-08 — Residual Risks: Leaderboard Pagination + Orphan Backfill
