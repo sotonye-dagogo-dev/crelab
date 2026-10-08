@@ -3,6 +3,7 @@ import { StatCard } from "./StatCard";
 import { PipelineKanban } from "./PipelineKanban";
 import { PaymentHistory } from "./PaymentHistory";
 import { DiscoverCreators } from "./DiscoverCreators";
+import { ReferralBanner } from "./ReferralBanner";
 import type { IClientDashboard } from "@/types";
 
 export function ClientDashboard({ data }: { data: IClientDashboard }) {
@@ -41,6 +42,8 @@ export function ClientDashboard({ data }: { data: IClientDashboard }) {
             ))}
           </div>
         )}
+
+        <ReferralBanner />
 
         <div className="mb-6 overflow-hidden rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)]">
           <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">

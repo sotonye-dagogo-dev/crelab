@@ -19,3 +19,15 @@ export function normalizeReferralCode(raw: string | null | undefined): string | 
   if (!/^[A-Za-z0-9_-]{4,64}$/.test(trimmed)) return null;
   return trimmed;
 }
+
+/**
+ * Pure carrier resolution for the claim endpoint: the `crellab_ref` cookie is
+ * the primary carrier, a JSON `{ code }` body is the fallback (e.g. when the
+ * cookie never landed). Returns the first well-formed code, or null.
+ */
+export function resolveClaimCode(
+  cookieCode: string | null | undefined,
+  bodyCode: string | null | undefined,
+): string | null {
+  return normalizeReferralCode(cookieCode) ?? normalizeReferralCode(bodyCode);
+}

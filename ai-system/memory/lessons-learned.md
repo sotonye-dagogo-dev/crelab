@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-updated-by: execute-feature (Session 2026-10-08 — referral surfaces + team hiring config)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -30,6 +30,22 @@
 ---
 
 ## Lessons
+
+## Compliance Guardrails Catch Real Defaults Bugs — Read the Failure Literally
+
+**Context:** Adding a `mailto:hello@crellab.com` default for the new `teamPage.hiringCtaHref` tripped `platform-name-compliance.test.ts`, which scans `app/components/lib/services/hooks/types/config` for hardcoded platform names outside an explicit allowlist. The failure also flagged the new `ReferralClaimOnAuth.tsx` doc comment mentioning the `crellab_ref` cookie.
+
+**What We Learned:**
+1. The guardrail was right about the default: a hardcoded `…@crellab.com` sender inside a *default* bakes one deployment's identity into every deployment. The non-evasive fix is a name-free default that still works — here, the live `/about` route (which already carries contact links) instead of string-concatenation tricks that dodge the scanner but keep the coupling.
+2. Doc comments that name infrastructure identifiers (`crellab_ref`, `crellab-error-context`) need an explicit allowlist entry in the test file, following the `ReferralCapture.tsx` precedent — the allowlist doubles as the reviewed inventory of infra names.
+3. New pure helpers (`resolveClaimCode`) plus default-shape tests (`team-page-config`) are the cheapest way to cover config-driven UI: they pin the fallback contract without rendering server components.
+
+**Apply When:** Adding any config default containing a domain, brand name, or contact address; adding any component that references an infrastructure identifier in code or comments.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
 
 ## Stale Test Expectations vs Intentional Merge Behaviour — Fix the Test, Not the Code
 

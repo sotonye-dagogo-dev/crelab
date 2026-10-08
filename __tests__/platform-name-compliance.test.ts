@@ -104,6 +104,11 @@ const ALLOWLIST: AllowlistEntry[] = [
     reason: "Doc comment referencing the referral cookie name",
   },
   {
+    file: "components/shared/ReferralClaimOnAuth.tsx",
+    allowed: ["crellab_ref"],
+    reason: "Doc comment referencing the referral cookie name",
+  },
+  {
     file: "lib/sanitize-error.ts",
     allowed: ["crellab-error-context"],
     reason: "localStorage key for the error-context payload",

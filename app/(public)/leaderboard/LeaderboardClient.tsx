@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Info, Medal, Trophy, UserRound } from "lucide-react";
+import { Info, Medal, Trophy, UserPlus, UserRound } from "lucide-react";
 import {
   ClBadge,
   ClButton,
@@ -212,6 +213,16 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
             {leaderboard?.subtitle ||
               "The most active creators and connectors on the platform, ranked by weighted score."}
           </p>
+          {config.referral?.enabled !== false && (
+            <div className="mt-4">
+              <Link
+                href="/referrals"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[var(--color-accent-dim)]"
+              >
+                <UserPlus size={15} strokeWidth={2} /> Invite friends & climb the board
+              </Link>
+            </div>
+          )}
           {typeof data?.currentUserRank === "number" && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-[8px] border border-[var(--color-accent)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] text-[var(--color-text-primary)]">
               <Medal size={14} strokeWidth={2} className="text-[var(--color-accent)]" />

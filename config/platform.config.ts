@@ -541,4 +541,11 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     text: "Built for African creativity, by S.D.",
     url: "https://sotonye-dagogo.is-a.dev",
   },
+  teamPage: {
+    hiringEnabled: true,
+    hiringTitle: "Want to be part of the team?",
+    hiringSubtitle: "We are always looking for talented people who share our vision.",
+    hiringCtaLabel: "View Open Positions",
+    hiringCtaHref: "/about",
+  },
 };
