@@ -357,16 +357,7 @@ export default function AdminEmailTemplatesPage() {
                   <div className="rounded-[10px] border border-[var(--color-accent)]/30 bg-[var(--color-accent-muted)]/60 px-4 py-3">
                     <div className="flex items-start gap-2.5">
                       <Zap size={14} strokeWidth={2} className="text-[var(--color-accent)] mt-0.5 shrink-0" />
-                {sendDialog === "batch" && activeTemplate && !isWiredEmailTemplate(activeTemplate) && (
-                  <EmailBatchSendDialog
-                    open
-                    templateKey={activeTemplate}
-                    onClose={() => setSendDialog(null)}
-                    onSent={(message) => toast(message, "success")}
-                  />
-                )}
-
-                <div>
+                      <div>
                         <div className="text-[12px] font-semibold text-[var(--color-text-primary)]">
                           Wired to code — triggered automatically
                         </div>
@@ -377,6 +368,15 @@ export default function AdminEmailTemplatesPage() {
                       </div>
                     </div>
                   </div>
+                )}
+
+                {sendDialog === "batch" && activeTemplate && !isWiredEmailTemplate(activeTemplate) && (
+                  <EmailBatchSendDialog
+                    open
+                    templateKey={activeTemplate}
+                    onClose={() => setSendDialog(null)}
+                    onSent={(message) => toast(message, "success")}
+                  />
                 )}
 
                 {sendDialog && sendDialog !== "batch" && (
