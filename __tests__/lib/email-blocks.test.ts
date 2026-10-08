@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { blocksToHtml, SAMPLE_EMAIL_VARS, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
+import { blocksToHtml, htmlToBlocks, SAMPLE_EMAIL_VARS, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import type { EmailTemplateBlock } from "@/types";
 
@@ -95,5 +95,61 @@ describe("lib/email-blocks — default template config colours", () => {
       const h1 = tpl.bodyHtml.match(/<h1[^>]*>/)?.[0] ?? "";
       expect(h1).toContain("color:#E8FF47");
     }
+  });
+});
+
+describe("lib/email-blocks — htmlToBlocks (visual ↔ HTML without loss)", () => {
+  it("parses headings, paragraphs, buttons, images, lists and dividers", () => {
+    const blocks: EmailTemplateBlock[] = [
+      { type: "image", url: "{{logoUrl}}", alt: "brand" },
+      { type: "heading", text: "Report received" },
+      { type: "paragraph", text: "Hi {{userName}}," },
+      { type: "list", items: ["a", "b"] },
+      { type: "button", text: "Go", url: "{{exploreUrl}}" },
+      { type: "divider" },
+    ];
+    const parsed = htmlToBlocks(blocksToHtml(blocks));
+    expect(parsed).toEqual(blocks);
+  });
+
+  it("round-trips every default template without losing text or variables", () => {
+    const templates = DEFAULT_CONFIG.emailConfig!.templates;
+    for (const [key, tpl] of Object.entries(templates)) {
+      const parsed = htmlToBlocks(tpl.bodyHtml);
+      expect(parsed.length, `${key} parses to blocks`).toBeGreaterThan(0);
+      // Every {{variable}} token in the source must survive the parse.
+      const vars = [...tpl.bodyHtml.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[0]);
+      const rejoined = parsed
+        .map((b) =>
+          b.type === "heading" || b.type === "paragraph"
+            ? b.text
+            : b.type === "list"
+              ? b.items.join(" ")
+              : b.type === "button"
+                ? `${b.text} ${b.url}`
+                : b.type === "image"
+                  ? `${b.url} ${b.alt}`
+                  : "",
+        )
+        .join(" ");
+      for (const v of new Set(vars)) {
+        expect(rejoined, `${key} keeps ${v}`).toContain(v);
+      }
+    }
+  });
+
+  it("keeps bare {{adminNotesBlock}} tokens between elements (bug-report flow)", () => {
+    const tpl = DEFAULT_CONFIG.emailConfig!.templates.bugReportUnderReview;
+    const parsed = htmlToBlocks(tpl.bodyHtml);
+    const texts = parsed
+      .filter((b) => b.type === "paragraph")
+      .map((b) => (b as { text: string }).text);
+    expect(texts.some((t) => t.includes("{{adminNotesBlock}}"))).toBe(true);
+  });
+
+  it("returns [] for empty input and skips empty fragments", () => {
+    expect(htmlToBlocks("")).toEqual([]);
+    expect(htmlToBlocks("   ")).toEqual([]);
+    expect(htmlToBlocks("<div></div><p>   </p>")).toEqual([]);
   });
 });

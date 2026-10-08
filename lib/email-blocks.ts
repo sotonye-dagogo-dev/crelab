@@ -62,6 +62,96 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function unescapeHtml(value: string): string {
+  return value
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** Strip tags, turn <br> into newlines, collapse whitespace, unescape entities. */
+function htmlToText(inner: string): string {
+  const withBreaks = inner
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n");
+  const stripped = withBreaks.replace(/<[^>]*>/g, "");
+  return unescapeHtml(stripped)
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n")
+    .trim();
+}
+
+function attr(tag: string, name: string): string {
+  const m = tag.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, "i"));
+  return m ? unescapeHtml(m[1]) : "";
+}
+
+/**
+ * Parses email HTML back into visual-builder blocks — the inverse of
+ * `blocksToHtml()`. Regex-based (no DOM dependency) so it runs identically on
+ * the server and the client. Unknown/empty fragments are skipped, bare
+ * `{{variable}}` text between elements becomes a paragraph so template tokens
+ * (e.g. `{{adminNotesBlock}}`) are never lost when toggling Visual ↔ HTML.
+ */
+export function htmlToBlocks(html: string): EmailTemplateBlock[] {
+  if (!html || !html.trim()) return [];
+  const blocks: EmailTemplateBlock[] = [];
+  const push = (b: EmailTemplateBlock) => {
+    if (blocks.length < 60) blocks.push(b);
+  };
+  // Matches, in alternation order: button-wrapper divs, headings, paragraphs,
+  // lists, standalone links, images, dividers/hr. Global scan preserves order.
+  const re =
+    /<div[^>]*text-align\s*:\s*center[^>]*>\s*<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>\s*<\/div>|<h[12][^>]*>([\s\S]*?)<\/h[12]>|<p[^>]*>([\s\S]*?)<\/p>|<(ul|ol)[^>]*>([\s\S]*?)<\/(ul|ol)>|<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>|<img[^>]*>|<hr[^>]*\/?>|<div[^>]*height\s*:\s*1px[^>]*>(?:[\s\S]*?)<\/div>|<div[^>]*height\s*:\s*1px[^>]*\/?>/gi;
+
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  const flushGap = (gap: string) => {
+    const text = htmlToText(gap);
+    if (text) push({ type: "paragraph", text });
+  };
+
+  while ((m = re.exec(html)) !== null) {
+    if (m.index > lastIndex) flushGap(html.slice(lastIndex, m.index));
+    lastIndex = re.lastIndex;
+    const [full, btnHref, btnText, heading, para, listTag, listInner, , linkHref, linkText] = m;
+    if (btnHref !== undefined) {
+      const text = htmlToText(btnText ?? "") || "View";
+      push({ type: "button", text, url: unescapeHtml(btnHref) });
+    } else if (heading !== undefined) {
+      const text = htmlToText(heading);
+      if (text) push({ type: "heading", text });
+    } else if (para !== undefined) {
+      const text = htmlToText(para);
+      if (text) push({ type: "paragraph", text });
+    } else if (listTag !== undefined) {
+      const items: string[] = [];
+      const liRe = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+      let li: RegExpExecArray | null;
+      while ((li = liRe.exec(listInner ?? "")) !== null) {
+        const text = htmlToText(li[1]);
+        if (text) items.push(text);
+      }
+      if (items.length) push({ type: "list", items });
+    } else if (linkHref !== undefined) {
+      const text = htmlToText(linkText ?? "") || unescapeHtml(linkHref);
+      push({ type: "button", text, url: unescapeHtml(linkHref) });
+    } else if (/^<img/i.test(full)) {
+      const url = attr(full, "src");
+      if (url) push({ type: "image", url, alt: attr(full, "alt") });
+    } else {
+      // <hr> or 1px divider div
+      push({ type: "divider" });
+    }
+  }
+  if (lastIndex < html.length) flushGap(html.slice(lastIndex));
+  // Drop a trailing divider-only artefact from wrapper closes; keep content.
+  return blocks;
+}
+
 /** Sample variable values used for live previews in the template editor. */
 export const SAMPLE_EMAIL_VARS: Record<string, string> = {
   // `name` is the platform name (used throughout templates as the brand). It is
