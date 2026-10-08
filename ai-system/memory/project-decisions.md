@@ -1,7 +1,7 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
 > - last-verified-against-code: 2026-10-01
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -567,10 +567,10 @@ script''s unscoped DELETEs wiped critical non-seed data on a deseed. Backup-befo
 destructive is now enforced structurally, not by convention.
 
 **Alternatives Considered:**
-- Keep hand-applying SQL on Supabase � rejected: untracked, unrepeatable, caused this drift.
-- `drizzle-kit push` as the workflow � rejected: no history/audit trail; kept as a
+- Keep hand-applying SQL on Supabase � rejected: untracked, unrepeatable, caused this drift.
+- `drizzle-kit push` as the workflow � rejected: no history/audit trail; kept as a
   prototyping escape hatch (`db:push`) only.
-- Scoped rollback keyed on the `_seed_version` marker timestamp � rejected: marker only
+- Scoped rollback keyed on the `_seed_version` marker timestamp � rejected: marker only
   proves seeding happened, not which rows are seed; explicit seed-id allowlists are exact.
 
 **Implications:**
@@ -642,3 +642,44 @@ Uploads that never reach `portfolio_items` are invisible everywhere users look (
 
 **Implications:**
 Admin uploads (no provider profile) still land orphan-by-design until reconciled. Pasted Drive/public links attached via POST keep `source: DIRECT` — source provenance stays portfolio-context UI only per the 2026-09-23 decision.
+
+---
+
+## Leaderboard Pagination: Short-TTL User-Agnostic Board Cache + Batched Candidates
+
+**Decision:** `getBoard()` keeps scoring every registered member (keep-zeros rule unchanged) but no longer re-runs the full collect + full member load on every page turn: the neutral ranking is cached 30s keyed by the enabled-factor signature (`BOARD_CACHE_TTL_MS`, `buildBoardCacheSignature`), candidates load in 1000-row chunks, the API sends `Cache-Control: public, s-maxage=30, stale-while-revalidate=60`, and the client caches pages + prefetches next. Identity (`isCurrentUser`, `currentUserRank`/`currentUserScore`) is derived per request from the ranking, never stored in it.
+**Date:** 2026-10-08
+**Made by:** Agent (execute-feature — residual-risk directive, pagination flagged for UI/UX optimisation)
+**Supersedes:** The "revisit with keyset/counted pagination if membership grows past low-thousands" implication of the 2026-10-08 keep-zeros decision (still true at very large scale — a precomputed-scores migration remains the eventual path — but page turns are now slice operations, not rescores, up to that point).
+**Superseded by:** None
+
+**Reason:**
+Ranking is global (score DESC over all members), so DB-level keyset pagination cannot page it without precomputed scores. The cache converts the repeated cost (factor aggregates + full member load per click) into a one-per-30s cost while keeping ranks fresh enough for a growth board; batching bounds the single-transfer size.
+
+**Alternatives Considered:**
+- DB keyset pagination over members — rejected: rank order is computed in memory from weighted factor values, so a keyset over `user.id` cannot produce rank pages.
+- Precomputed score column + background recompute — rejected for now: schema + job machinery for a scale threshold not yet reached; the TTL cache is the proportional step.
+- Storing `isCurrentUser` in the cached rows — rejected: leaks one member's flag to whoever hits the cache next; identity is stamped per request instead.
+
+**Implications:**
+`?refresh=true` bypasses the server cache; `clearBoardCache()` exists for tests/admin flows. New `LeaderboardPage` fields (`currentUserRank`, `currentUserScore`, `cached`) are additive — old clients ignore them.
+
+---
+
+## Pre-Existing Orphans: Explicit One-Click Backfill (Never Automatic)
+
+**Decision:** Pre-existing orphan `media_assets` rows are rescued by an explicit admin action — `MediaAssetService.backfillOrphans()` + `POST /api/admin/media/backfill` + the "Backfill orphans" button (with dry-run preview) on `/admin/media` — never by an automatic job. Owner-matched rows attach as visible DIRECT portfolio items (idempotent by URL); provider-less/ownerless rows are counted as skipped and stay on the manual `reconcileAsset` path.
+**Date:** 2026-10-08
+**Made by:** Agent (execute-feature — residual-risk directive)
+**Supersedes:** The "admins reconcile those deliberately via `/admin/media`" implication stands — backfill IS that deliberate action, now bulk instead of one-by-one.
+**Superseded by:** None
+
+**Reason:**
+Automatic backfill would guess intent for rows whose owner has no provider (admin uploads, deleted providers). Owner→provider matching is unambiguous only when the provider exists, and the admin explicitly pressing the button is the deliberation the original decision required.
+
+**Alternatives Considered:**
+- Fully automatic backfill on upload/cron — rejected: ambiguous ownership intent for provider-less rows; silent portfolio writes.
+- Leaving one-by-one reconcile as the only path — rejected: that was the logged residual risk; bulk rescue with a dry-run preview keeps deliberation while removing the toil.
+
+**Implications:**
+New uploads already auto-attach, so backfill volume decays to zero over time. `limit` caps at 1000 per run; audit-logged as `media.backfill` / `media.backfill.dry_run`.

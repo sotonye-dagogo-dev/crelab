@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
+> - last-updated-by: execute-feature (Session 2026-10-08 — residual-risks: pagination + backfill)
 > - last-verified-against-code: 2026-10-01
 > - staleness-policy: append-only — never modify past entries
 
@@ -1408,3 +1408,23 @@ verified via `git stash`), no regressions.
 **Notes / Blockers:**
 - Existing orphan `media_assets` rows (uploaded before this session) do NOT auto-backfill — admins attach them via the existing `/admin/media` reconcile flow (`MediaAssetService.reconcileAsset`). New uploads flow through automatically.
 - `POST /api/portfolio/items` defaults unknown mimeTypes to `application/octet-stream`; Drive URLs pasted as raw links keep `source: DIRECT` (provenance rule unchanged: source tags stay portfolio-context UI only).
+
+## Session 2026-10-08 — Residual Risks: Leaderboard Pagination + Orphan Backfill (execute-feature)
+
+**Directive:** Address the logged residual risks, particularly the pagination issue for UI/UX optimisation: (1) pre-existing orphans don't auto-backfill, (2) `getBoard()` selects all users (revisit pagination past low-thousands membership). Close with `update-ai-system.md`.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/deps changes; additive fields only); scope/project-decisions checks pass (keep-zeros rule preserved; backfill stays an explicit admin action, never automatic). Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Leaderboard pagination optimisation** — `services/LeaderboardService.ts`: user-agnostic ranking cached 30s (`BOARD_CACHE_TTL_MS`, `buildBoardCacheSignature` keyed by factor set/weights/raw-visibility, `clearBoardCache()`); `loadAllCandidates()` loads users in `CANDIDATE_BATCH_SIZE` (1000) chunks (stable `id` order) + one narrow providers query; new pure `applyCurrentUserContext()` stamps `isCurrentUser` + `currentUserRank`/`currentUserScore` per request so the shared cache never leaks identity. `app/api/leaderboard/route.ts`: `Cache-Control: public, s-maxage=30, stale-while-revalidate=60` + `?refresh=true` bypass. `LeaderboardClient.tsx`: per-page client cache (instant revisit + background revalidate), next-page prefetch, "You are ranked #N of M" banner with jump-to-rank, Refresh bypasses both caches.
+2. **Orphan backfill** — `MediaAssetService.backfillOrphans({limit, dryRun})` + pure `partitionBackfillCandidates()` (grace-age ignored: early attach is the point); owner-matched orphans attach as visible DIRECT items via `PortfolioService.addItem` (idempotent by URL; one-way edge, no import cycle); provider-less/ownerless rows counted as skipped, never guessed. New `POST /api/admin/media/backfill` (ADMIN, audit-logged `media.backfill`/`media.backfill.dry_run`) + "Backfill orphans" button with dry-run preview dialog on `/admin/media`. Per-asset `reconcileAsset` unchanged for ambiguous rows.
+3. **QA gate:** `vitest` 407/407 (33 files; +5 leaderboard, +3 backfill), `tsc --noEmit` exit 0, `next lint` 0 errors (pre-existing warnings only). One self-found type error fixed in-session (`source: "DIRECT"` literal → `PortfolioItemSource.DIRECT` enum member).
+4. **Deep sync (`update-ai-system.md`):** dev-history, task-queue, project-plan, project-decisions (2 entries), system-architecture, dependency-graph, repo-map, lessons-learned, test-results (407/407); in-progress.md cleared.
+
+**Files Modified/Created:** `services/LeaderboardService.ts`, `services/MediaAssetService.ts`, `app/api/leaderboard/route.ts`, `app/(public)/leaderboard/LeaderboardClient.tsx`, `app/api/admin/media/backfill/route.ts` (new), `app/admin/media/page.tsx`, `__tests__/services/LeaderboardService.test.ts`, `__tests__/services/MediaAssetService.test.ts` + 10 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- Both prior residual risks now resolved: orphans are one-click rescuable (bulk, deliberate); `getBoard()` page turns are slice operations over a 30s cache. Remaining long-tail items unchanged: RLS policies still unapplied (pre-existing); precomputed-scores migration remains the eventual path at very large membership.
+- `node_modules` was absent at session start; `npm install --legacy-peer-deps` run (no dependency changes).

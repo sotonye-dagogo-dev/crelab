@@ -36,6 +36,16 @@ interface MediaStatus {
   cleanupEnabled: boolean;
 }
 
+interface BackfillResult {
+  candidates: number;
+  attached: number;
+  wouldAttach: number;
+  skippedNoProvider: number;
+  skippedNoOwner: number;
+  skippedAlreadyAttached: number;
+  errors: string[];
+}
+
 type StatusFilter = "all" | "inuse" | "grace" | "orphan";
 
 function isEligibleOrphan(asset: IMediaAsset, thresholdHours: number): boolean {
@@ -69,6 +79,9 @@ export default function AdminMediaPage() {
   const [dryRunResult, setDryRunResult] = useState<CleanupResult | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadUrl, setUploadUrl] = useState("");
+  const [backfillOpen, setBackfillOpen] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<BackfillResult | null>(null);
+  const [runningBackfill, setRunningBackfill] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "video" | "image">("all");
@@ -201,6 +214,42 @@ export default function AdminMediaPage() {
       toast(err instanceof Error ? err.message : "Cleanup failed", "error");
     } finally {
       setRunningCleanup(false);
+    }
+  };
+
+  const runBackfill = async (dryRun: boolean) => {
+    setRunningBackfill(true);
+    try {
+      const res = await fetch("/api/admin/media/backfill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dryRun }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Backfill failed");
+      const r = json.data as BackfillResult;
+      if (dryRun) {
+        setBackfillResult(r);
+        setBackfillOpen(true);
+        toast(
+          `Dry run: ${r.wouldAttach} of ${r.candidates} unlinked asset(s) would attach to their owner's portfolio`,
+          "info",
+        );
+      } else {
+        toast(
+          r.attached === 0
+            ? "Backfill: nothing to attach — remaining orphans need manual reconcile"
+            : `Backfill: ${r.attached} asset(s) attached to provider portfolios`,
+          r.errors.length ? "error" : "success",
+        );
+        queryClient.invalidateQueries({ queryKey: ["admin-media"] });
+        setBackfillOpen(false);
+        setBackfillResult(null);
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Backfill failed", "error");
+    } finally {
+      setRunningBackfill(false);
     }
   };
 
@@ -414,7 +463,7 @@ export default function AdminMediaPage() {
             Media Assets
           </h2>
           <div className="text-[13px] text-[var(--color-text-secondary)] mt-0.5">
-            Cloudinary uploads tracked by the platform. Unlinked uploads enter a {thresholdHours}h grace period before they become eligible for orphan cleanup.
+            Cloudinary uploads tracked by the platform. Unlinked uploads enter a {thresholdHours}h grace period before they become eligible for orphan cleanup. Use Backfill orphans to attach pre-existing unlinked uploads to their owner&apos;s portfolio in one click — leftovers still need manual Reconcile.
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
             <ClBadge variant="default">{counts.total} total</ClBadge>
@@ -424,6 +473,10 @@ export default function AdminMediaPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ClButton variant="outlined" size="default" onClick={() => runBackfill(true)} loading={runningBackfill}>
+            <Link2 size={15} strokeWidth={1.8} />
+            Backfill orphans
+          </ClButton>
           <ClButton variant="outlined" size="default" onClick={() => runCleanup(true)} loading={runningCleanup}>
             <Eye size={15} strokeWidth={1.8} />
             Dry run
@@ -572,6 +625,25 @@ export default function AdminMediaPage() {
             <div className="flex justify-end gap-2 mt-4">
               <ClButton variant="ghost" onClick={() => setDryRunOpen(false)}>Close</ClButton>
               <ClButton variant="accent-outlined" loading={runningCleanup} onClick={() => runCleanup(false)}>Run for real</ClButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {backfillOpen && backfillResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[12px] p-5 max-w-[480px] w-full">
+            <h3 className="font-bold text-[16px] text-[var(--color-text-primary)]">Backfill preview</h3>
+            <p className="text-[13px] text-[var(--color-text-secondary)] mt-1">
+              {backfillResult.wouldAttach} of {backfillResult.candidates} unlinked asset(s) would attach to
+              their owner&apos;s portfolio. {backfillResult.skippedNoProvider} have no provider profile,{" "}
+              {backfillResult.skippedNoOwner} have no owner, {backfillResult.skippedAlreadyAttached} already
+              attached.
+            </p>
+            {backfillResult.errors.length > 0 && <p className="text-[12px] text-[var(--color-error)] mt-2">{backfillResult.errors.join("; ")}</p>}
+            <div className="flex justify-end gap-2 mt-4">
+              <ClButton variant="ghost" onClick={() => setBackfillOpen(false)}>Close</ClButton>
+              <ClButton variant="primary" loading={runningBackfill} onClick={() => runBackfill(false)}>Attach now</ClButton>
             </div>
           </div>
         </div>

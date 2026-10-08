@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
+  BOARD_CACHE_TTL_MS,
   LEADERBOARD_RUNTIME_FACTORS,
+  applyCurrentUserContext,
+  buildBoardCacheSignature,
+  clearBoardCache,
   normalizePageSize,
   paginateRows,
   ratingFactorValue,
@@ -298,5 +302,66 @@ describe("LeaderboardService — pagination", () => {
     expect(empty.rows).toEqual([]);
     expect(empty.total).toBe(0);
     expect(empty.totalPages).toBe(1);
+  });
+});
+
+describe("LeaderboardService — board cache + current-user context (pagination optimisation)", () => {
+  const factors = [
+    { key: "referrals", weight: 1, showRawValue: false },
+    { key: "portfolio", weight: 0.5, showRawValue: true },
+  ];
+  const rawByFactor = {
+    referrals: { "u-alice": 100, "u-bob": 50 },
+    portfolio: { "u-alice": 4 },
+  };
+  const ranked = scoreLeaderboard(candidates, rawByFactor, factors);
+
+  it("exposes a positive cache TTL and a cache-clearing helper", () => {
+    expect(BOARD_CACHE_TTL_MS).toBeGreaterThan(0);
+    expect(() => clearBoardCache()).not.toThrow();
+  });
+
+  it("builds a signature that changes with weight, factors or raw visibility", () => {
+    const base = buildBoardCacheSignature(factors);
+    expect(buildBoardCacheSignature(factors)).toBe(base);
+    expect(
+      buildBoardCacheSignature([
+        { key: "referrals", weight: 2, showRawValue: false },
+        { key: "portfolio", weight: 0.5, showRawValue: true },
+      ]),
+    ).not.toBe(base);
+    expect(buildBoardCacheSignature([{ key: "referrals", weight: 1, showRawValue: false }])).not.toBe(
+      base,
+    );
+    expect(
+      buildBoardCacheSignature([
+        { key: "referrals", weight: 1, showRawValue: true },
+        { key: "portfolio", weight: 0.5, showRawValue: true },
+      ]),
+    ).not.toBe(base);
+  });
+
+  it("finds the signed-in member's rank in the full board, not just the page slice", () => {
+    const page2 = paginateRows(ranked, 2, 2);
+    // Bob is rank 2 overall but sits on page 1 — the context still reports him.
+    const ctx = applyCurrentUserContext(ranked, page2.rows, "u-bob");
+    expect(ctx.currentUserRank).toBe(2);
+    expect(ctx.currentUserScore).toBe(50);
+    // Rows on other pages are not falsely flagged.
+    expect(ctx.rows.every((r) => r.isCurrentUser === false)).toBe(true);
+  });
+
+  it("flags the row on the member's own page", () => {
+    const page1 = paginateRows(ranked, 1, 2);
+    const ctx = applyCurrentUserContext(ranked, page1.rows, "u-bob");
+    expect(ctx.rows.find((r) => r.userId === "u-bob")?.isCurrentUser).toBe(true);
+    expect(ctx.rows.find((r) => r.userId === "u-alice")?.isCurrentUser).toBe(false);
+  });
+
+  it("returns null rank/score for anonymous or unknown members", () => {
+    const page1 = paginateRows(ranked, 1, 2);
+    expect(applyCurrentUserContext(ranked, page1.rows, null).currentUserRank).toBeNull();
+    expect(applyCurrentUserContext(ranked, page1.rows, "u-ghost").currentUserRank).toBeNull();
+    expect(applyCurrentUserContext(ranked, page1.rows, "u-ghost").currentUserScore).toBeNull();
   });
 });

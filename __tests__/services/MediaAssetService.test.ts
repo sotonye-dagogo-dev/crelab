@@ -40,6 +40,7 @@ import {
   MediaAssetService,
   publicIdFromUrl,
   collectReferencedPublicIds,
+  partitionBackfillCandidates,
   resolveDeletableAssets,
 } from "@/services/MediaAssetService";
 
@@ -220,5 +221,71 @@ describe("services/MediaAssetService — cleanupOrphans", () => {
     expect(result.deleted).toBe(1);
     expect(result.skippedBinary).toBe(1);
     expect(cloudinaryMock.deleteAsset).not.toHaveBeenCalled();
+  });
+});
+
+describe("services/MediaAssetService — partitionBackfillCandidates", () => {
+  it("keeps unreferenced owned ACTIVE rows as candidates regardless of age", () => {
+    const rows = [
+      assetRow({ id: "c1", publicId: "orphan-1", ownerId: "user-1" }),
+      assetRow({ id: "c2", publicId: "recent-orphan", ownerId: "user-2", createdAt: new Date() }),
+    ];
+    const { candidates, referenced, ownerless } = partitionBackfillCandidates(rows, new Set());
+    expect(candidates.map((r) => r.id)).toEqual(["c1", "c2"]);
+    expect(referenced).toBe(0);
+    expect(ownerless).toBe(0);
+  });
+
+  it("excludes referenced, ownerless and non-ACTIVE rows", () => {
+    const rows = [
+      assetRow({ id: "used", publicId: "used", ownerId: "user-1" }),
+      assetRow({ id: "no-owner", publicId: "loose", ownerId: null }),
+      assetRow({ id: "deleted", publicId: "gone", ownerId: "user-1", status: "DELETED" }),
+    ];
+    const { candidates, referenced, ownerless } = partitionBackfillCandidates(
+      rows,
+      new Set(["used", "gone"]),
+    );
+    expect(candidates).toEqual([]);
+    expect(referenced).toBe(2);
+    expect(ownerless).toBe(1);
+  });
+});
+
+describe("services/MediaAssetService — backfillOrphans (dry run)", () => {
+  it("counts attachable, provider-less and already-attached orphans without writing", async () => {
+    dbMock.select
+      // ACTIVE assets
+      .mockReturnValueOnce(
+        q([
+          assetRow({ id: "a1", publicId: "orphan-1", ownerId: "user-1", url: "https://cdn.example/a1.mp4" }),
+          assetRow({ id: "a2", publicId: "orphan-2", ownerId: "user-9", url: "https://cdn.example/a2.mp4" }),
+          assetRow({ id: "a3", publicId: "orphan-3", ownerId: "user-1", url: "https://cdn.example/a3.mp4" }),
+        ]),
+      )
+      // loadReferencedPublicIds: providers, portfolio, blog, team
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      // a1: owner user-1 has a provider; portfolio does not contain the url
+      .mockReturnValueOnce(q([{ id: "prov-1" }]))
+      .mockReturnValueOnce(q([]))
+      // a2: owner user-9 has no provider
+      .mockReturnValueOnce(q([]))
+      // a3: same provider; portfolio already contains the url
+      .mockReturnValueOnce(q([{ id: "prov-1" }]))
+      .mockReturnValueOnce(q([{ id: "item-1", url: "https://cdn.example/a3.mp4" }]));
+    dbMock.insert.mockReturnValue(q([]));
+
+    const result = await MediaAssetService.backfillOrphans({ dryRun: true });
+
+    expect(result.candidates).toBe(3);
+    expect(result.wouldAttach).toBe(1);
+    expect(result.attached).toBe(0);
+    expect(result.skippedNoProvider).toBe(1);
+    expect(result.skippedAlreadyAttached).toBe(1);
+    expect(result.errors).toEqual([]);
+    expect(dbMock.insert).not.toHaveBeenCalled();
   });
 });

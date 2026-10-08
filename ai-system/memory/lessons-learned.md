@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -649,6 +649,23 @@
 3. The deeper gap was real, not just mock: uploads only wrote `media_assets`, never `portfolio_items` — any asset pipeline that ends in a registry table needs a second look at which read surfaces actually consume that table (portfolios, explore content, dashboard gallery all read `portfolio_items.visible = true`).
 
 **Apply When:** Adding a mock/demo fallback to one endpoint of a paired-view set, or adding any write path whose rows are consumed by multiple read surfaces — trace every reader before calling the write "done".
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Cache the Ranking, Not the Page — Keep Shared Caches Identity-Free
+
+**Context:** `getBoard()` re-ran every factor aggregate and reloaded every member on each page turn; the logged risk was "selects all users — revisit pagination past low-thousands". True keyset pagination is impossible here because rank order is computed in memory from weighted values, not stored in the DB.
+
+**What We Learned:**
+1. When ranking is global, the proportional optimisation is a short-TTL cache of the full neutral ranking (page turns become slices) rather than DB pagination that cannot express rank order.
+2. Never store per-member identity (`isCurrentUser`) in a shared cache entry — compute the neutral ranking once, then stamp identity per request from it. The bug this prevents (one member's "You" badge leaking to the next cache hitter) is silent and NDPR-adjacent.
+3. Key the cache by the config that shapes it (factor set + weights + raw visibility), not just by time — otherwise an admin weight change appears to do nothing for the TTL window.
+4. For the orphan-backfill sibling risk: "explicit bulk admin action with dry-run" resolves toil without violating a "deliberate, never automatic" decision — automation level is a dial, not a binary.
+
+**Apply When:** Any globally-ranked board (leaderboard, search relevance) outgrows per-request full recompute, or any "reconcile deliberately" workflow becomes one-by-one toil — add bulk with preview, keep the human press.
 
 **Supersedes:** None
 **Superseded by:** None
