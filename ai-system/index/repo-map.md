@@ -139,7 +139,7 @@ crelab/
 │   ├── currency.ts         # Money helpers: nairaToKobo, formatNaira, formatKobo
 │   ├── error-log-buffer.ts # Console ring buffer (last 60 entries) captured for error reports
 │   ├── landing-stats.ts    # Ordered stat items + format helpers (compact/rating/count) with fallbackValue
-│   ├── portfolio.ts        # dedupePortfolioItems, formatAssetLabel (sanitized provider# + date), isVideoItem, assetSerialKey
+│   ├── portfolio.ts        # dedupePortfolioItems, formatAssetLabel (sanitized provider# + date), isVideoItem, assetSerialKey + cover fallback (isImageCoverUrl, coverMimeType, buildCoverFallbackItem, withCoverFallback — covers surface as content, avatars never)
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
 │   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS/previewVarsFor (platform name + resolved logoUrl; relative URLs resolved via lib/url)

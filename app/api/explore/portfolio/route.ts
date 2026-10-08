@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { providers, portfolioItems, servicePackages, reviews, bookings } from "@/drizzle/schema";
 import { eq, and, sql, desc, asc, like } from "drizzle-orm";
 import { buildProviderSlug } from "@/lib/slug";
-import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
+import { fixLegacyVideoThumbnailUrl, generateVideoThumbnail } from "@/lib/cloudinary";
 import type { IPortfolioItem } from "@/types";
 
 const explorePortfolioQuerySchema = z.object({
@@ -231,6 +231,86 @@ export async function GET(req: NextRequest) {
       if (seenUrls.has(norm)) continue;
       seenUrls.add(norm);
       data.push(it);
+    }
+
+    // Cover fallback (first page only): a cover (video OR photo) must surface
+    // as gallery content even when no portfolio row exists yet — otherwise the
+    // providers view cycles content while this view is impossibly empty. The
+    // display picture (avatar) is never synthesized. Covers already present as
+    // items (or already seen above) are skipped; synthetic ids are stable
+    // (`cover-<providerId>`) so they never duplicate real rows.
+    if (!parsed.data.cursor && data.length < limit) {
+      try {
+        const { withCoverFallback, isImageCoverUrl } = await import("@/lib/portfolio");
+        const coverConditions: ReturnType<typeof sql>[] = [
+          sql`${providers.active} = true`,
+          sql`${providers.coverVideoUrl} IS NOT NULL`,
+        ];
+        if (parsed.data.category) {
+          coverConditions.push(sql`${providers.categorySlug} = ${parsed.data.category}`);
+        }
+        if (parsed.data.location) {
+          coverConditions.push(sql`${providers.location} ILIKE ${`%${parsed.data.location}%`}`);
+        }
+        if (parsed.data.q) {
+          coverConditions.push(
+            sql`${providers.displayName} ILIKE ${`%${parsed.data.q}%`}`,
+          );
+        }
+        const coverRows = await db
+          .select({
+            providerId: providers.id,
+            providerDisplayName: providers.displayName,
+            providerCategorySlug: providers.categorySlug,
+            providerLocation: providers.location,
+            providerAvatarUrl: providers.avatarUrl,
+            providerVerified: providers.verified,
+            providerFeatured: providers.featured,
+            coverUrl: providers.coverVideoUrl,
+            providerCreatedAt: providers.createdAt,
+          })
+          .from(providers)
+          .where(and(...coverConditions))
+          .orderBy(desc(providers.createdAt))
+          .limit(100);
+        for (const cov of coverRows) {
+          if (data.length >= limit) break;
+          const coverUrl = cov.coverUrl;
+          if (!coverUrl || !coverUrl.trim()) continue;
+          if (seenUrls.has(coverUrl.trim().toLowerCase())) continue;
+          const merged = withCoverFallback(
+            [],
+            cov.providerId,
+            coverUrl,
+            isImageCoverUrl(coverUrl)
+              ? fixLegacyVideoThumbnailUrl(coverUrl)
+              : (() => {
+                  try {
+                    return fixLegacyVideoThumbnailUrl(generateVideoThumbnail(coverUrl));
+                  } catch {
+                    return null;
+                  }
+                })(),
+          );
+          const synth = merged[0];
+          if (!synth) continue;
+          seenUrls.add(synth.url.trim().toLowerCase());
+          data.push({
+            ...synth,
+            providerId: cov.providerId,
+            providerName: cov.providerDisplayName,
+            providerSlug: buildProviderSlug(cov.providerDisplayName, cov.providerId),
+            providerAvatarUrl: cov.providerAvatarUrl,
+            providerCategorySlug: cov.providerCategorySlug,
+            providerCategoryLabel: cov.providerCategorySlug === "content-creator" ? "Content Creator" : "Cinematographer / Videographer",
+            providerLocation: cov.providerLocation,
+            providerVerified: cov.providerVerified,
+            providerFeatured: cov.providerFeatured,
+          });
+        }
+      } catch {
+        // Cover fill is best-effort — real portfolio rows already collected win.
+      }
     }
 
     const nextCursor = hasMore

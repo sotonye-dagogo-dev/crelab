@@ -315,4 +315,52 @@ describe("services/MediaAssetService — backfillOrphans (dry run)", () => {
     expect(result.errors).toEqual([]);
     expect(dbMock.insert).not.toHaveBeenCalled();
   });
+
+  it("repairs photo covers in dry run without writing", async () => {
+    dbMock.select
+      // ACTIVE assets: none
+      .mockReturnValueOnce(q([]))
+      // loadReferencedPublicIds: providers, portfolio, blog, team
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      // cover repair scan: one provider with a photo cover, portfolio has no match
+      .mockReturnValueOnce(
+        q([{ id: "prov-10", coverVideoUrl: "https://cdn.example/cover.jpg" }]),
+      )
+      .mockReturnValueOnce(q([]));
+    dbMock.insert.mockReturnValue(q([]));
+
+    const result = await MediaAssetService.backfillOrphans({ dryRun: true });
+
+    expect(result.candidates).toBe(0);
+    expect(result.wouldAttach).toBe(1);
+    expect(result.attached).toBe(0);
+    expect(result.errors).toEqual([]);
+    expect(dbMock.insert).not.toHaveBeenCalled();
+  });
+
+  it("skips cover repair when the cover is already a portfolio item", async () => {
+    dbMock.select
+      // ACTIVE assets: none
+      .mockReturnValueOnce(q([]))
+      // loadReferencedPublicIds: providers, portfolio, blog, team
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      // cover repair scan: provider whose cover already matches a portfolio url
+      .mockReturnValueOnce(
+        q([{ id: "prov-11", coverVideoUrl: "https://cdn.example/cover.mp4" }]),
+      )
+      .mockReturnValueOnce(q([{ url: "https://cdn.example/cover.mp4" }]));
+    dbMock.insert.mockReturnValue(q([]));
+
+    const result = await MediaAssetService.backfillOrphans({ dryRun: true });
+
+    expect(result.wouldAttach).toBe(0);
+    expect(result.skippedAlreadyAttached).toBe(1);
+    expect(dbMock.insert).not.toHaveBeenCalled();
+  });
 });

@@ -683,3 +683,24 @@ Automatic backfill would guess intent for rows whose owner has no provider (admi
 
 **Implications:**
 New uploads already auto-attach, so backfill volume decays to zero over time. `limit` caps at 1000 per run; audit-logged as `media.backfill` / `media.backfill.dry_run`.
+
+---
+
+## Covers Surface as Content Everywhere; Avatars Never Do
+
+**Decision:** Any uploaded cover (video OR photo — the single `providers.coverVideoUrl` field, which may hold an image URL) must be visible as a portfolio/content item in the explore content view and on provider portfolio pages, in addition to its hero role. The display picture (`providers.avatarUrl` / `user.image`) must NEVER surface as portfolio/content. Concretely: write paths persist the cover as a visible `DIRECT` portfolio item (setup attach, reconcile-to-cover, backfill cover-repair — all idempotent by URL, photo-aware mime/thumbnail); read paths merge a missing cover as a synthetic `cover-<providerId>` item (public portfolio page, explore gallery first-page fill, explore `portfolioCount`/tile thumbnails) so pre-existing cover-only providers heal without admin action.
+**Date:** 2026-10-08
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** None (extends the upload→portfolio-attach and backfill decisions to covers; backfill stays explicit admin action for orphans, read-fallback is automatic)
+**Superseded by:** None
+
+**Reason:**
+Users uploaded videos/photos that only ever served as the hero cover: provider tiles previewed them (`coverVideoUrl`) and the admin dashboard could open them, yet the content view and portfolios — both driven strictly by `portfolio_items` rows — reported empty. The cover lived in a different table than the content lists, so every content surface needed the cover merged in.
+
+**Alternatives Considered:**
+- Relying on Backfill alone for pre-existing covers — rejected: leaves the reported empty-state visible until an admin acts; read fallback heals instantly while backfill persists.
+- Auto-attaching the avatar as well — rejected per directive: the display picture is identity, not work, and would pollute content views.
+- SQL UNION of covers into the gallery query — rejected: cursor pagination over a mixed set; first-page application-level fill converges as covers materialise into real rows.
+
+**Implications:**
+`lib/portfolio.ts` owns the pure helpers (`withCoverFallback` etc.); any new content surface (search, category feeds) must apply the same merge and must only ever pass `coverVideoUrl`, never `avatarUrl`. Synthetic ids are stable (`cover-<providerId>`) so keys/dedupe stay consistent.
