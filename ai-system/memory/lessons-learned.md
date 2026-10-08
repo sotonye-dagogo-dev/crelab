@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -633,6 +633,22 @@
 5. Buffer the console *before* the failure: a ring buffer installed at layout mount (`lib/error-log-buffer.ts`, idempotent install) is the only way to have the lines leading up to the crash.
 
 **Apply When:** Wiring any error/exception flow into a form, or moving any large/sensitive payload between routes — think storage lifetime + sanitisation at both ends, not URL parameters.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Mock-Mode Endpoints Must Fail Over Together (Explore Providers vs Content)
+
+**Context:** `/explore` providers view showed providers with uploaded content while content view was empty — reported as "can't be right", and it wasn't: `GET /api/explore` had a `MockDataService` fallback but `GET /api/explore/portfolio` did not, so with an empty/unreachable DB the providers view rendered mock providers (`portfolioCount > 0`) and the gallery rendered `[]`.
+
+**What We Learned:**
+1. Paired views (providers/content toggle fed by two endpoints) must share the same availability story — if one endpoint falls back to mock data, its sibling must too, or the UI presents an impossible state.
+2. Swallowed DB errors (`catch { return [] }`) made the gap invisible in logs; at minimum log (`console.error`) so the next "empty but shouldn't be" report has a trail.
+3. The deeper gap was real, not just mock: uploads only wrote `media_assets`, never `portfolio_items` — any asset pipeline that ends in a registry table needs a second look at which read surfaces actually consume that table (portfolios, explore content, dashboard gallery all read `portfolio_items.visible = true`).
+
+**Apply When:** Adding a mock/demo fallback to one endpoint of a paired-view set, or adding any write path whose rows are consumed by multiple read surfaces — trace every reader before calling the write "done".
 
 **Supersedes:** None
 **Superseded by:** None

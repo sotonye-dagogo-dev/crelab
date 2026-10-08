@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -26,7 +26,7 @@ Next.js App Router (app/)
 Service Layer (services/)
     |-- BookingService          -- Booking lifecycle (REQUESTED -> RELEASED/REFUNDED, now stores paymentMode + validates milestone config)
     |-- EscrowService           -- Escrow state machine (PENDING -> HELD -> IN_PROGRESS -> RELEASED/DISPUTED, now uses real client email + BOOKING_PAYMENT metadata)
-    |-- PortfolioService        -- Portfolio CRUD, reorder, hide/show
+    |-- PortfolioService        -- Portfolio CRUD, reorder, hide/show + attachUploadToProvider (best-effort portfolio attach on every media upload/confirm, idempotent)
     |-- DriveService            -- Google Drive folder sync, validate, ingest
     |-- PaymentService          -- Paystack integration, subaccount split
     |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
@@ -40,7 +40,7 @@ Service Layer (services/)
     |-- BlogPostService         -- Blog post CRUD + DB→Sanity→fallback merge (admin/DB posts win, dedup by slug)
     |-- EarlyMemberService      -- Founding-100 rank via ROW_NUMBER() over user.createdAt (cached, no schema change)
     |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim
-    |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking
+    |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking over ALL members (zero-score rows kept, ranked last)
     |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert)
     |-- PlatformStatsService    -- Cached landing aggregates with null → fallbackValue degradation
     |
@@ -191,6 +191,7 @@ Data Stores
    -> Upload tab shown; file POSTed to /api/media/upload (auth + config + env + type/size validation)
    -> uploadFile() uploads via unsigned preset -> { url, thumbnailUrl, mimeType, resourceType, publicId }
    -> MediaAssetService records the asset in media_assets (deletes the Cloudinary binary if the record insert fails)
+   -> PortfolioService.attachUploadToProvider() best-effort attaches the asset to the uploader's provider portfolio as a visible DIRECT item (idempotent by URL; no provider profile — e.g. admin uploads — means no attach, asset stays orphan until reconciled). Same attach runs in /api/media/confirm (direct browser uploads) and per-file in /api/media/batch-upload. Manual attach of library assets via POST /api/portfolio/items (mediaAssetId or raw url+mimeType, idempotent).
 3. Cloudinary unavailable: upload tab hidden, paste-link tab offered ("Direct upload is temporarily unavailable")
 4. Pasted URLs (Drive link or any public link) validated with isValidMediaUrl()
 5. Cover video / avatar URLs stored via onboarding state -> /api/profile/setup -> providers.coverVideoUrl / avatarUrl
@@ -334,6 +335,12 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-08 — Leaderboard Zero-Scores + Explore Content Parity + Upload→Portfolio Attach
+- **Leaderboard keeps zero-score members** — `services/LeaderboardService.ts`: `scoreLeaderboard()` no longer drops `score <= 0` rows (newcomers rank below positive scores by the deterministic `userId` tie-break) and `getBoard()` scores **all** registered members via `loadAllCandidates()` instead of unioning only users with positive factor raws. Board stays populated from day one.
+- **Explore content view mock parity** — `app/api/explore/portfolio/route.ts` now serves `MockDataService` gallery items (mock providers × `getMockPortfolioItems`, enriched with provider name/slug/avatar/category/location/verified/featured) when `NEXT_PUBLIC_MOCK_DATA=true`, mirroring `GET /api/explore`. Previously providers view showed mock providers with `portfolioCount > 0` while content view returned `[]` — the impossible empty state. DB errors are now logged (`console.error`) instead of failing silently.
+- **Uploads attach to portfolios** — new `PortfolioService.attachUploadToProvider(ownerUserId, asset)` (provider lookup + idempotent `addItem`, `null` when the uploader owns no provider); called best-effort (never fails the upload) from `/api/media/upload`, `/api/media/confirm`, and per-file in `/api/media/batch-upload`. Uploads previously landed only in `media_assets` as unlinked rows, so portfolios and the explore content view stayed empty. New `POST /api/portfolio/items` (provider/admin, `mediaAssetId` or raw `url`+`mimeType`, idempotent, ownership-checked) for manual library→portfolio attaches. `/profile/media` invalidates `my-portfolio` after upload; public profile shows an honest "No work published yet" block instead of a silent gap when the portfolio is empty.
+- **QA:** `vitest` 399/399 (33 files; +2 leaderboard zero-score tests, 1 expectation updated), `tsc --noEmit` exit 0, `next lint` 0 errors.
 
 ### 2026-10-08 — Verify-Work Test-Green (non-breaking)
 - **`lib/media.ts`** — oversize-file reason restored to `"File too large: …"` (keeps per-file-limit detail). The `"too large"` substring is a de-facto contract: `__tests__/media.test.ts` asserts it and `app/api/media/*` + `MediaUpload.tsx` branch on it.

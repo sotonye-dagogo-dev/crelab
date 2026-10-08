@@ -282,8 +282,9 @@ export default function ProfileMediaPage() {
                 onChange={(url) => {
                   setNewMediaUrl(url);
                   if (url) {
-                    toast("Media uploaded to your library", "success");
+                    toast("Media uploaded — added to your library and portfolio", "success");
                     queryClient.invalidateQueries({ queryKey: ["my-media"] });
+                    queryClient.invalidateQueries({ queryKey: ["my-portfolio"] });
                     setShowAddMedia(false);
                     setNewMediaUrl("");
                   }

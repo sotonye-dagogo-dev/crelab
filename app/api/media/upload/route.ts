@@ -4,6 +4,7 @@ import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { uploadFile, CloudinaryNotConfiguredError, deleteAssetsByUrl } from "@/lib/cloudinary";
 import { MediaAssetService } from "@/services/MediaAssetService";
+import { PortfolioService } from "@/services/PortfolioService";
 import { isMediaFileAllowed } from "@/lib/media";
 
 export const runtime = "nodejs";
@@ -116,6 +117,19 @@ export async function POST(req: Request) {
     } catch {
       await deleteAssetsByUrl([result.url]).catch(() => {});
       return NextResponse.json({ success: false, error: "Uploaded to Cloudinary but could not register the asset. The upload was cleaned up — please try again.", code: "REGISTER_FAILED" }, { status: 500 });
+    }
+
+    // Best-effort: surface the upload in the uploader's portfolio (and therefore
+    // the explore content view). Never fails the upload itself.
+    try {
+      await PortfolioService.attachUploadToProvider(session.user.id, {
+        url: result.url,
+        thumbnailUrl: result.thumbnailUrl,
+        mimeType: result.mimeType,
+        title: file.name,
+      });
+    } catch {
+      // Portfolio attach is advisory — the asset is safely in the library.
     }
 
     return NextResponse.json({ success: true, data: { ...result, assetId } });

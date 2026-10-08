@@ -1,7 +1,7 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-01 — Growth & Reliability F1–F9)
+> - last-updated-by: execute-feature (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-01
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -602,3 +602,43 @@ glitchy jumping; uncapped stagger left far-down tiles at opacity-0 while scrolli
 
 **Reason:** User-reported polish issues (blank/glitchy tiles, blank display-name input,
 vendor name in UI tabs) plus SEO gaps on client-rendered routes.
+
+---
+
+## Leaderboard Lists Zero-Score Members (Ranked Last, Not Hidden)
+
+**Decision:** Every registered member appears on the public leaderboard, including members whose weighted score is 0. Zero-score rows rank below all positive scores via the existing deterministic `userId` tie-break.
+**Date:** 2026-10-08
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** The former "rows with a score of 0 are not listed" rule in `scoreLeaderboard`.
+**Superseded by:** None
+
+**Reason:**
+An empty-looking board punishes new members and makes the growth loop (referrals → leaderboard) look dead on arrival. Ranking newcomers last keeps the board populated from day one while preserving the incentive order.
+
+**Alternatives Considered:**
+- Providers-only candidate set — rejected: referrals are open to all roles (clients connect too), and the directive says "users".
+- Hiding zeros behind a toggle — rejected: extra UI for a state that resolves itself once members gain activity.
+
+**Implications:**
+`getBoard()` selects all users (fine at MVP scale; revisit with keyset/counted pagination if membership grows past low-thousands). Privacy unchanged: display name + avatar only.
+
+---
+
+## Uploads Auto-Attach to the Uploader's Portfolio (Best-Effort, Idempotent)
+
+**Decision:** Every successful direct upload (`/api/media/upload`, `/api/media/confirm`, per-file in `/api/media/batch-upload`) best-effort creates a visible `DIRECT` portfolio item for the uploader via `PortfolioService.attachUploadToProvider()` — skipped (returns `null`) when the uploader owns no provider profile, and never allowed to fail the already-recorded upload. Re-attaching the same URL returns the existing row (the `addItem` duplicate check), so neither portfolios nor the explore content view can show the same asset twice. `POST /api/portfolio/items` exposes the same attach for library assets (`mediaAssetId`) and raw links (`url` + `mimeType`, ownership-checked).
+**Date:** 2026-10-08
+**Made by:** Agent (execute-feature)
+**Supersedes:** None (fills the gap where uploads only reached `media_assets` and sat Unlinked/Orphan).
+**Superseded by:** None
+
+**Reason:**
+Uploads that never reach `portfolio_items` are invisible everywhere users look (provider portfolios, explore content view, dashboard gallery) while still consuming Cloudinary storage and tripping the orphan cleaner — the worst of both worlds.
+
+**Alternatives Considered:**
+- Explicit "Add to portfolio" button only (no auto-attach) — rejected: leaves the reported empty-portfolio bug in place for every existing flow; the POST endpoint covers the manual case instead.
+- Backfilling pre-existing orphans automatically — rejected: ambiguous ownership intent; admins reconcile those deliberately via `/admin/media` (`reconcileAsset`).
+
+**Implications:**
+Admin uploads (no provider profile) still land orphan-by-design until reconciled. Pasted Drive/public links attached via POST keep `source: DIRECT` — source provenance stays portfolio-context UI only per the 2026-09-23 decision.

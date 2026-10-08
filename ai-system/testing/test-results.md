@@ -1,7 +1,7 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: overwritten on every test run — always current
 
@@ -12,17 +12,17 @@
 ## Last Run
 
 **Date:** 2026-10-08
-**Run by:** verify-work (directive: get all tests passing, non-breaking) + update-ai-system deep sync
+**Run by:** execute-feature (leaderboard-zero + explore-content + portfolio-attach) + update-ai-system deep sync
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 398 | 0 | 0 |
+| Unit (vitest) | 399 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | Lint (next lint) | — | 0 errors (pre-existing warnings only) | — |
-| Production build | — | not re-run this session (last green 2026-10-08 session) | — |
+| Production build | — | not re-run this session (no app-shell change; last green 2026-10-08 session) | — |
 
-**Overall Status:** ✅ All 398/398 tests pass. Typecheck clean. Lint 0 errors. The 3 formerly-active failures are resolved (see History).
+**Overall Status:** ✅ All 399/399 tests pass. Typecheck clean. Lint 0 errors. +2 new leaderboard zero-score tests; 1 leaderboard expectation updated to the keep-zeros rule (see History).
 
 ---
 
@@ -38,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-08 | 399 | 0 | execute-feature: leaderboard keeps zero-score rows (+2 tests, 1 expectation updated); explore portfolio mock fallback; upload→portfolio auto-attach + POST /api/portfolio/items. tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 398 | 0 | verify-work: resolved the 3 long-standing failures non-breaking (media message restores "too large" substring; BlogPostService expectations reflect merge-with-fallback). tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 395 | 3 | Auth cleanup + Explore tiles + Team + SEO session (7 fixes; 6 new social-platform tests). 3 failures pre-existing (media message + BlogPostService mocks ×2) |
 | 2026-08-20 | 258 | 0 | Wallet page + Paystack tightening: paystack metadata/callback_url, verify endpoint, payment-status page, wallet idempotent credit. New `__tests__/paystack.test.ts` (6 tests) |

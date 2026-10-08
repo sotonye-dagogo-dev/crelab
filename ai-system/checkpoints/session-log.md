@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-01 — Growth & Reliability F1–F9 close)
+> - last-updated-by: execute-feature (Session 2026-10-08 — leaderboard-zero + explore-content + portfolio-attach)
 > - last-verified-against-code: 2026-10-01
 > - staleness-policy: append-only — never modify past entries
 
@@ -1382,3 +1382,29 @@ verified via `git stash`), no regressions.
 **Files Modified/Created:** `lib/media.ts`, `__tests__/services/BlogPostService.test.ts` + 7 ai-system docs (no app surface change).
 
 **Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+## Session 2026-10-08 — Leaderboard Zero-Scores + Explore Content Parity + Upload→Portfolio Attach (execute-feature)
+
+**Directive:** leaderboard should still list users at zero points; `/explore` providers view shows providers with uploaded content but content view is empty (impossible) — ensure content shows and provider portfolios are not empty; close with `update-ai-system.md`.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/deps changes); scope/project-decisions checks pass. Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Root causes found:**
+1. `LeaderboardService.scoreLeaderboard()` dropped `score <= 0` rows AND `getBoard()` only unioned positive-raw userIds — zero-activity members could never appear.
+2. `GET /api/explore` serves mock providers when `NEXT_PUBLIC_MOCK_DATA=true` but `GET /api/explore/portfolio` had no mock fallback (DB miss → `[]`) — providers view showed mock providers with `portfolioCount > 0` while content view was empty.
+3. `/api/media/upload|confirm|batch-upload` only `recordUpload()` into `media_assets` — nothing ever created `portfolio_items` rows, so portfolios/explore-content stayed empty and uploads sat Unlinked/Orphan.
+
+**Completed:**
+1. Leaderboard keeps zeros (all members scored, zeros rank last; dead code removed).
+2. Explore portfolio mock fallback mirroring `/api/explore` + error logging on the DB path.
+3. `PortfolioService.attachUploadToProvider()` (idempotent, provider-owners only) wired best-effort into all three upload endpoints; new `POST /api/portfolio/items` (idempotent manual attach, ownership-checked); `/profile/media` invalidates `my-portfolio`; public profile empty-portfolio block.
+4. QA gate: `vitest` 399/399, `tsc` clean, `lint` 0 errors.
+5. Deep sync (`update-ai-system.md`): dev-history, task-queue, project-decisions (2 entries), system-architecture, dependency-graph, lessons-learned, test-results (399/399); in-progress.md cleared.
+
+**Files Modified/Created:** `services/LeaderboardService.ts`, `services/PortfolioService.ts`, `app/api/explore/portfolio/route.ts`, `app/api/media/upload/route.ts`, `app/api/media/confirm/route.ts`, `app/api/media/batch-upload/route.ts`, `app/api/portfolio/items/route.ts`, `app/(auth)/profile/media/page.tsx`, `app/(public)/profile/[slug]/page.tsx`, `__tests__/services/LeaderboardService.test.ts` + 8 ai-system docs (no new files; no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- Existing orphan `media_assets` rows (uploaded before this session) do NOT auto-backfill — admins attach them via the existing `/admin/media` reconcile flow (`MediaAssetService.reconcileAsset`). New uploads flow through automatically.
+- `POST /api/portfolio/items` defaults unknown mimeTypes to `application/octet-stream`; Drive URLs pasted as raw links keep `source: DIRECT` (provenance rule unchanged: source tags stay portfolio-context UI only).

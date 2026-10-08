@@ -4,6 +4,7 @@ import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { parseCloudinaryUrl, deleteAssetsByUrl, getResourceType } from "@/lib/cloudinary";
 import { MediaAssetService } from "@/services/MediaAssetService";
+import { PortfolioService } from "@/services/PortfolioService";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -89,6 +90,17 @@ export async function POST(req: Request) {
         mimeType: mimeType || `${resourceType}/unknown`,
         ownerId: session.user.id,
       });
+      // Best-effort: surface the upload in the uploader's portfolio (and
+      // therefore the explore content view). Never fails the registration.
+      try {
+        await PortfolioService.attachUploadToProvider(session.user.id, {
+          url: asset.url,
+          thumbnailUrl: asset.thumbnailUrl,
+          mimeType: asset.mimeType ?? `${resourceType}/unknown`,
+        });
+      } catch {
+        // Portfolio attach is advisory — the asset is safely in the library.
+      }
       return NextResponse.json({ success: true, data: asset });
     } catch (err) {
       // Registration failed — clean up the orphan on Cloudinary (best-effort)
