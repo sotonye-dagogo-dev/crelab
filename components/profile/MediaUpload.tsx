@@ -613,7 +613,7 @@ export function MediaUpload({
       ) : (
         // Upload interface
         <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-          {canUpload && multiple && (
+          {canUpload && (
             <div className="flex gap-1 mb-3">
               <button
                 type="button"

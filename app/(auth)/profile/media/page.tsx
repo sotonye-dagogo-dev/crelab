@@ -242,18 +242,21 @@ export default function ProfileMediaPage() {
       {/* Add-new media card */}
       {activeTab === "uploads" && (
         <ClCard
-          className="p-5 mb-6 cursor-pointer transition-colors hover:border-[var(--color-border-mid)] hover:bg-[var(--color-surface-raised)]"
-          onClick={() => setShowAddMedia((v) => !v)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setShowAddMedia((v) => !v);
-            }
-          }}
+          className="p-5 mb-6 transition-colors hover:border-[var(--color-border-mid)]"
         >
-          <div className="flex items-center justify-between mb-3">
+          <div
+            className="flex items-center justify-between mb-3 cursor-pointer"
+            onClick={() => setShowAddMedia((v) => !v)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowAddMedia((v) => !v);
+              }
+            }}
+            aria-expanded={showAddMedia}
+          >
             <div className="flex items-center gap-2">
               <PlusCircle size={17} strokeWidth={1.8} color="var(--color-accent)" />
               <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px]">
@@ -273,7 +276,11 @@ export default function ProfileMediaPage() {
           </div>
 
           {showAddMedia && (
-            <div className="flex flex-col gap-4">
+            <div
+              className="flex flex-col gap-4"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <MediaUpload
                 label="Upload a file"
                 accept="both"

@@ -8,7 +8,8 @@ import { useToast } from "@/lib/toast";
 import { usePlatformConfig } from "@/lib/config-context";
 import { ClButton, ClCard, ClInput, ClBadge, ClBackButton } from "@/components/ui";
 import { EarlyMemberBadge } from "@/components/shared/EarlyMemberBadge";
-import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight, LogOut, UserPlus } from "lucide-react";
+import { MediaUpload } from "@/components/profile/MediaUpload";
+import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight, LogOut, UserPlus, Pencil } from "lucide-react";
 
 const authClient = createAuthClient();
 
@@ -33,6 +34,22 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user?.name && !nameTouched) setName(user.name);
   }, [user?.name, nameTouched]);
+
+  // Avatar / display-picture editing (direct upload or paste-a-link, same
+  // MediaUpload pipeline used across setup/media/admin). `avatar` mirrors the
+  // auth-level picture; `avatarDraft` is the in-editor value so cancelling
+  // never clobbers the saved picture.
+  const [avatar, setAvatar] = useState(user?.image ?? "");
+  const [avatarDraft, setAvatarDraft] = useState(user?.image ?? "");
+  const [avatarTouched, setAvatarTouched] = useState(false);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  useEffect(() => {
+    if (!avatarTouched) {
+      setAvatar(user?.image ?? "");
+      setAvatarDraft(user?.image ?? "");
+    }
+  }, [user?.image, avatarTouched]);
 
   const [verifySending, setVerifySending] = useState(false);
   const [verifySent, setVerifySent] = useState(false);
@@ -94,6 +111,36 @@ export default function ProfilePage() {
       toast(err instanceof Error ? err.message : "Failed to update name", "error");
     } finally {
       setNameSaving(false);
+    }
+  };
+
+  const handleSaveAvatar = async () => {
+    const url = avatarDraft.trim();
+    setAvatarSaving(true);
+    try {
+      const res = await authClient.updateUser({ image: url || null });
+      if (res.error) throw new Error(res.error.message ?? "Failed to update display picture");
+      // Best-effort: keep the creator profile's avatarUrl in sync when the
+      // user has one (404 = no provider profile, auth avatar only — not an error).
+      try {
+        await fetch("/api/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatarUrl: url || null }),
+        });
+      } catch {
+        // Provider sync is advisory — the auth avatar already saved.
+      }
+      setAvatar(url);
+      setAvatarTouched(true);
+      setShowAvatarEditor(false);
+      toast(url ? "Display picture updated" : "Display picture removed", "success");
+      await refresh();
+      router.refresh();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to update display picture", "error");
+    } finally {
+      setAvatarSaving(false);
     }
   };
 
@@ -166,13 +213,22 @@ export default function ProfilePage() {
 
         <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div className="flex items-center gap-4 min-w-0">
-            <div className="w-16 h-16 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[22px] font-bold text-[var(--color-text-secondary)] overflow-hidden">
-              {user.image ? (
-                <img src={user.image} alt="" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => setShowAvatarEditor((v) => !v)}
+              aria-label="Edit display picture"
+              title="Edit display picture"
+              className="relative w-16 h-16 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[22px] font-bold text-[var(--color-text-secondary)] overflow-hidden cursor-pointer group shrink-0"
+            >
+              {avatar ? (
+                <img src={avatar} alt="" className="w-full h-full object-cover" />
               ) : (
                 user.name?.[0]?.toUpperCase() ?? "?"
               )}
-            </div>
+              <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Pencil size={16} strokeWidth={2} className="text-white" />
+              </span>
+            </button>
             <div className="min-w-0">
               <h1 className="font-[family-name:var(--font-display)] font-bold text-[24px] tracking-[-0.01em] text-[var(--color-text-primary)] truncate">
                 {user.name}
@@ -200,6 +256,37 @@ export default function ProfilePage() {
               <h2 className="font-[family-name:var(--font-display)] font-bold text-[17px]">Account details</h2>
             </div>
             <div className="flex flex-col gap-4">
+              {showAvatarEditor && (
+                <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                  <MediaUpload
+                    label="Display picture"
+                    hint="Upload a photo or paste an image link — used across your profile, portfolio tiles and leaderboard."
+                    accept="image"
+                    multiple={false}
+                    maxFiles={1}
+                    value={avatarDraft}
+                    onChange={(url) => {
+                      setAvatarTouched(true);
+                      setAvatarDraft(url);
+                    }}
+                  />
+                  <div className="flex items-center gap-2 mt-3">
+                    <ClButton variant="primary" size="default" onClick={handleSaveAvatar} loading={avatarSaving}>
+                      Save picture
+                    </ClButton>
+                    <ClButton
+                      variant="ghost"
+                      size="default"
+                      onClick={() => {
+                        setAvatarDraft(avatar);
+                        setShowAvatarEditor(false);
+                      }}
+                    >
+                      Cancel
+                    </ClButton>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
                   Display name

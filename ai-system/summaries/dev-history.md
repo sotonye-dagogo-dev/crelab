@@ -814,3 +814,15 @@ pre-destructive backup (prior deseed wiped live data).
   `predb:seed:rollback` auto-backup.
 - Applied live: baselined 0000�0002, migrated 0003 (6 tables verified, 4 tracked).
   QA: tsc clean, 389/392 tests (3 pre-existing failures unchanged).
+
+---
+
+## 2026-10-08 — Profile Avatar Editing, Media Toggle Fix, Bug-Report Templates + Lossless Email Builder
+
+Directive: avatar editing on profile (upload or link) · media-page upload panel collapsing on inner clicks · bug-report emails present/wired/editable · HTML ↔ visual parsing without loss · then update-ai-system.
+
+- **Profile avatar** (`app/(auth)/profile/page.tsx` + new `PATCH /api/profile`): hover-to-edit avatar button, inline `MediaUpload` (image, single, upload-or-link), persists via Better Auth `updateUser({image})` + advisory provider `avatarUrl` sync.
+- **Media panel** (`profile/media/page.tsx`, `MediaUpload.tsx`): toggle scoped to header row + propagation stop on content; tab switcher no longer gated on `multiple`, so single-file fields also offer the link tab.
+- **Bug-report emails**: confirmed wired (ack on submit, under-review/resolved on status change incl. bulk); added stored `blocks[]` to all three templates so they open in the visual builder; default-merge in `PlatformConfigService` keeps them visible for pre-existing DB configs.
+- **Builder** (`lib/email-blocks.ts` + `admin/email-templates/page.tsx`): new `htmlToBlocks()` inverse parser; Visual↔HTML toggling re-parses instead of wiping (`htmlDirty`, no destructive confirm); tests added for round-trip, variable preservation, `{{adminNotesBlock}}` retention.
+- QA: static review only (no node_modules locally) — CI must run vitest/typecheck/build. No migrations.

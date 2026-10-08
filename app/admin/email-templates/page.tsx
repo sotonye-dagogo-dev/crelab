@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClCard, ClModal } from "@/components/ui";
 import { EmailTemplateBlocksEditor } from "@/components/admin/EmailTemplateBlocksEditor";
 import { useToast } from "@/lib/toast";
-import { blocksToHtml, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
+import { blocksToHtml, htmlToBlocks, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
 import { useEmailSimulation } from "@/components/shared/EmailSimulation";
 import { EmailBatchSendDialog } from "@/components/admin/EmailBatchSendDialog";
 import { isWiredEmailTemplate, WIRED_EMAIL_TEMPLATES } from "@/lib/email-templates";
@@ -48,6 +48,10 @@ export default function AdminEmailTemplatesPage() {
   const [editEnabled, setEditEnabled] = useState(true);
   const [htmlBody, setHtmlBody] = useState("");
   const [blocks, setBlocks] = useState<EmailTemplateBlock[] | null>(null);
+  // True once the raw HTML has been hand-edited after the last blocks sync.
+  // Entering the Visual tab re-parses the HTML (instead of discarding it), so
+  // toggling Visual ↔ HTML never loses content either way.
+  const [htmlDirty, setHtmlDirty] = useState(false);
   const [editorTab, setEditorTab] = useState<EditorTab>("visual");
   const [showNewTemplate, setShowNewTemplate] = useState(false);
   const [newKey, setNewKey] = useState("");
@@ -122,30 +126,57 @@ export default function AdminEmailTemplatesPage() {
       setEditName(tpl.name ?? "");
       setEditSubject(tpl.subject);
       setHtmlBody(tpl.bodyHtml);
-      setBlocks(tpl.blocks ? [...tpl.blocks] : null);
+      // Prefer saved blocks; otherwise parse the stored HTML so every template
+      // (including wired ones like the bug-report flow that predate the visual
+      // builder) opens with faithful, editable blocks instead of a blank slate.
+      const initial =
+        tpl.blocks?.length ? [...tpl.blocks] : htmlToBlocks(tpl.bodyHtml);
+      setBlocks(initial.length ? initial : null);
       setEditEnabled(tpl.enabled);
-      setEditorTab(tpl.blocks?.length ? "visual" : "preview");
+      setHtmlDirty(false);
+      setEditorTab(initial.length ? "visual" : "preview");
       setSendDialog(null);
     }
   };
 
+  const handleEnterVisual = () => {
+    // Re-parse hand-edited HTML (or block-less templates) on entry so the
+    // visual editor always reflects the current HTML — never a wipe.
+    if ((!blocks?.length || htmlDirty) && htmlBody.trim()) {
+      const parsed = htmlToBlocks(htmlBody);
+      if (parsed.length) {
+        setBlocks(parsed);
+        setHtmlDirty(false);
+        setEditorTab("visual");
+        return;
+      }
+    }
+    setEditorTab("visual");
+  };
+
   const handleStartVisualEditing = () => {
     if (!activeTemplate) return;
-    if (
-      htmlBody &&
-      !window.confirm("Starting visual editing replaces the current HTML body with blocks. Continue?")
-    ) {
-      return;
-    }
-    const next = defaultBlocksFor(activeTemplate);
+    // Non-destructive: parse the current HTML into blocks. Only fall back to
+    // generic starter blocks when there is nothing parseable at all.
+    const parsed = htmlBody.trim() ? htmlToBlocks(htmlBody) : [];
+    const next = parsed.length ? parsed : defaultBlocksFor(activeTemplate);
     setBlocks(next);
     setHtmlBody(blocksToHtml(next));
+    setHtmlDirty(false);
     setEditorTab("visual");
   };
 
   const handleBlocksChange = (next: EmailTemplateBlock[]) => {
     setBlocks(next);
     setHtmlBody(blocksToHtml(next));
+    setHtmlDirty(false);
+  };
+
+  const handleHtmlChange = (value: string) => {
+    // Keep the existing blocks around (marked stale) so switching back to
+    // Visual re-parses this HTML instead of dropping it.
+    setHtmlBody(value);
+    setHtmlDirty(true);
   };
 
   const handleSaveTemplate = async () => {
@@ -450,7 +481,7 @@ export default function AdminEmailTemplatesPage() {
                 </div>
 
                 <div className="flex items-center gap-1 border-b border-[var(--color-border)] pb-3">
-                  <button className={tabButton(editorTab === "visual")} onClick={() => setEditorTab("visual")}>
+                  <button className={tabButton(editorTab === "visual")} onClick={handleEnterVisual}>
                     Visual
                   </button>
                   <button className={tabButton(editorTab === "html")} onClick={() => setEditorTab("html")}>
@@ -467,7 +498,9 @@ export default function AdminEmailTemplatesPage() {
                   ) : (
                     <div className="rounded-[8px] border border-dashed border-[var(--color-border-mid)] p-8 text-center">
                       <div className="text-[13px] text-[var(--color-text-secondary)] mb-3">
-                        This template is written in raw HTML. Switch to visual blocks — no HTML knowledge needed.
+                        {htmlDirty || htmlBody.trim()
+                          ? "This HTML couldn't be parsed into blocks automatically — start from visual blocks (your current HTML is kept until you save)."
+                          : "This template is written in raw HTML. Switch to visual blocks — no HTML knowledge needed."}
                       </div>
                       <ClButton variant="primary" size="default" onClick={handleStartVisualEditing}>
                         Start visual editing
@@ -481,11 +514,13 @@ export default function AdminEmailTemplatesPage() {
                     <textarea
                       className="h-[320px] px-3 py-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[13px] font-[family-name:var(--font-mono)] text-[var(--color-text-primary)] outline-none w-full resize-y focus:border-[var(--color-accent)]"
                       value={htmlBody}
-                      onChange={(e) => {
-                        setHtmlBody(e.target.value);
-                        setBlocks(null);
-                      }}
+                      onChange={(e) => handleHtmlChange(e.target.value)}
                     />
+                    {htmlDirty && (
+                      <p className="mt-2 text-[12px] text-[var(--color-text-tertiary)]">
+                        HTML edited — switching back to Visual will parse this HTML into blocks (nothing is lost).
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -498,7 +533,7 @@ export default function AdminEmailTemplatesPage() {
                 <div className="text-[11px] text-[var(--color-text-tertiary)] border-t border-[var(--color-border)] pt-3">
                   <span className="font-semibold">Available variables:</span>{" "}
                   <code className="font-[family-name:var(--font-mono)] text-[var(--color-accent)]">
-                    {`{{name}}`}, {`{{userName}}`}, {`{{providerName}}`}, {`{{amount}}`}, {`{{bookingDate}}`}, {`{{exploreUrl}}`}, {`{{bookingUrl}}`}, {`{{verifyUrl}}`}, {`{{resetUrl}}`}, {`{{logoUrl}}`}
+                    {`{{name}}`}, {`{{userName}}`}, {`{{providerName}}`}, {`{{packageName}}`}, {`{{amount}}`}, {`{{bookingDate}}`}, {`{{exploreUrl}}`}, {`{{bookingUrl}}`}, {`{{verifyUrl}}`}, {`{{resetUrl}}`}, {`{{webinarTitle}}`}, {`{{startsAt}}`}, {`{{joinUrl}}`}, {`{{reportTitle}}`}, {`{{statusLabel}}`}, {`{{adminNotesBlock}}`}, {`{{logoUrl}}`}
                   </code>
                 </div>
               </div>

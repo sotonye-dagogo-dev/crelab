@@ -502,6 +502,21 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">We'll follow up once we have an update. If you have more details or a screenshot to add, just reply to this email.</p>
 <p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Thanks for helping us improve.</p>
 </div>`,
+        blocks: [
+          { type: "image", url: "{{logoUrl}}", alt: "{{name}}" },
+          { type: "heading", text: "We're on it" },
+          { type: "paragraph", text: "Hi {{userName}}," },
+          {
+            type: "paragraph",
+            text: "Thanks for reporting {{reportTitle}}. Our team has started reviewing it (status: Under Review).",
+          },
+          { type: "paragraph", text: "{{adminNotesBlock}}" },
+          {
+            type: "paragraph",
+            text: "We'll follow up once we have an update. If you have more details or a screenshot to add, just reply to this email.",
+          },
+          { type: "paragraph", text: "{{name}} — Thanks for helping us improve." },
+        ],
         enabled: true,
       },
       bugReportResolved: {
@@ -518,6 +533,24 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">If the issue persists, please reply to this email or submit a new report. Thanks for helping us make {{name}} better.</p>
 <p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
 </div>`,
+        blocks: [
+          { type: "image", url: "{{logoUrl}}", alt: "{{name}}" },
+          { type: "heading", text: "Resolved ✓" },
+          { type: "paragraph", text: "Hi {{userName}}," },
+          {
+            type: "paragraph",
+            text: "Good news — your report {{reportTitle}} has been marked as {{statusLabel}}.",
+          },
+          { type: "paragraph", text: "{{adminNotesBlock}}" },
+          {
+            type: "paragraph",
+            text: "If the issue persists, please reply to this email or submit a new report. Thanks for helping us make {{name}} better.",
+          },
+          {
+            type: "paragraph",
+            text: "{{name}} — Get hired for your creativity, not your follower count.",
+          },
+        ],
         enabled: true,
       },
       bugReportReceived: {
@@ -532,6 +565,16 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 <p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Thanks for flagging <strong style="color:#F2F2F2;">{{reportTitle}}</strong> — we've logged it and our team will take a look. We'll email you when it's under review and again when it's resolved.</p>
 <p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Thanks for helping us improve.</p>
 </div>`,
+        blocks: [
+          { type: "image", url: "{{logoUrl}}", alt: "{{name}}" },
+          { type: "heading", text: "Report received" },
+          { type: "paragraph", text: "Hi {{userName}}," },
+          {
+            type: "paragraph",
+            text: "Thanks for flagging {{reportTitle}} — we've logged it and our team will take a look. We'll email you when it's under review and again when it's resolved.",
+          },
+          { type: "paragraph", text: "{{name}} — Thanks for helping us improve." },
+        ],
         enabled: true,
       },
       webinarRegistration: {
