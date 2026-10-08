@@ -7,6 +7,7 @@ import { EmailTemplateBlocksEditor } from "@/components/admin/EmailTemplateBlock
 import { useToast } from "@/lib/toast";
 import { blocksToHtml, substituteSampleVars, previewVarsFor } from "@/lib/email-blocks";
 import { useEmailSimulation } from "@/components/shared/EmailSimulation";
+import { EmailBatchSendDialog } from "@/components/admin/EmailBatchSendDialog";
 import { isWiredEmailTemplate, WIRED_EMAIL_TEMPLATES } from "@/lib/email-templates";
 import { Plus, Zap, MousePointerClick } from "lucide-react";
 import type { IEmailConfig, EmailTemplateBlock } from "@/types";
@@ -51,7 +52,7 @@ export default function AdminEmailTemplatesPage() {
   const [showNewTemplate, setShowNewTemplate] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [newSubject, setNewSubject] = useState("");
-  const [sendDialog, setSendDialog] = useState<"test" | "marketing" | null>(null);
+  const [sendDialog, setSendDialog] = useState<"test" | "marketing" | "batch" | null>(null);
   const [testTo, setTestTo] = useState("");
 
   const { data, isLoading } = useQuery({
@@ -91,7 +92,7 @@ export default function AdminEmailTemplatesPage() {
   });
 
   const sendMutation = useMutation({
-    mutationFn: async (payload: { templateKey: string; to?: string; segment?: "marketing" }) => {
+    mutationFn: async (payload: { templateKey: string; to?: string; segment?: "marketing"; recipientIds?: string[] }) => {
       const res = await fetch("/api/admin/email/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -338,6 +339,9 @@ export default function AdminEmailTemplatesPage() {
                         <ClButton variant="outlined" size="default" onClick={() => setSendDialog("test")} loading={sendMutation.isPending && sendDialog === "test"}>
                           Send Test
                         </ClButton>
+                        <ClButton variant="outlined" size="default" onClick={() => setSendDialog("batch")} loading={sendMutation.isPending && sendDialog === "batch"}>
+                          Send to Selected…
+                        </ClButton>
                         <ClButton variant="outlined" size="default" onClick={() => setSendDialog("marketing")} loading={sendMutation.isPending && sendDialog === "marketing"}>
                           Send to Subscribers
                         </ClButton>
@@ -353,7 +357,16 @@ export default function AdminEmailTemplatesPage() {
                   <div className="rounded-[10px] border border-[var(--color-accent)]/30 bg-[var(--color-accent-muted)]/60 px-4 py-3">
                     <div className="flex items-start gap-2.5">
                       <Zap size={14} strokeWidth={2} className="text-[var(--color-accent)] mt-0.5 shrink-0" />
-                      <div>
+                {sendDialog === "batch" && activeTemplate && !isWiredEmailTemplate(activeTemplate) && (
+                  <EmailBatchSendDialog
+                    open
+                    templateKey={activeTemplate}
+                    onClose={() => setSendDialog(null)}
+                    onSent={(message) => toast(message, "success")}
+                  />
+                )}
+
+                <div>
                         <div className="text-[12px] font-semibold text-[var(--color-text-primary)]">
                           Wired to code — triggered automatically
                         </div>
@@ -366,7 +379,7 @@ export default function AdminEmailTemplatesPage() {
                   </div>
                 )}
 
-                {sendDialog && (
+                {sendDialog && sendDialog !== "batch" && (
                   <div className="rounded-[12px] border border-[var(--color-border-mid)] p-4">
                     {sendDialog === "test" ? (
                       <div className="flex items-end gap-3">
