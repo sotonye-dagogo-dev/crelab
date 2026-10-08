@@ -89,6 +89,8 @@ export function CountdownWidget({
     seconds: parts ? padUnit(parts.seconds) : "00",
   };
   const showCta = Boolean(widget.ctaLabel && widget.ctaHref);
+  const ctaHref = (widget.ctaHref ?? "").trim();
+  const isExternalCta = /^(https?:\/\/|\/\/)/i.test(ctaHref);
   const endsAtMs = Date.parse(widget.endsAt);
   const timerLabel =
     now !== null && !Number.isNaN(endsAtMs)
@@ -100,18 +102,18 @@ export function CountdownWidget({
       initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: entranceDelay, ease: DIGIT_EASE }}
-      className={`relative flex flex-col gap-4 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 md:p-6 ${className}`}
+      className={`relative flex flex-col items-center gap-4 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-center md:p-6 ${className}`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col items-center gap-3 text-center">
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-[var(--color-accent-muted)] border border-[var(--color-accent)]/20 text-[var(--color-accent)]">
           <Icon size={18} strokeWidth={2} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <h3 className="font-[family-name:var(--font-display)] font-semibold text-[15px] leading-snug text-[var(--color-text-primary)]">
+          <h3 className="font-[family-name:var(--font-display)] font-semibold text-[15px] leading-snug text-[var(--color-text-primary)] text-center">
             {widget.title}
           </h3>
           {widget.description && (
-            <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-secondary)] text-center">
               {widget.description}
             </p>
           )}
@@ -121,7 +123,7 @@ export function CountdownWidget({
       <div
         role="timer"
         aria-label={timerLabel}
-        className="flex flex-wrap items-end gap-1.5"
+        className="flex flex-wrap items-end justify-center gap-1.5 text-center"
       >
         {UNITS.map((unit, index) => (
           <div key={unit.key} className="flex items-end gap-1.5">
@@ -145,14 +147,24 @@ export function CountdownWidget({
         ))}
       </div>
 
-      {showCta && (
-        <Link
-          href={widget.ctaHref as string}
-          className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-[var(--color-accent)] hover:underline underline-offset-4"
-        >
-          {widget.ctaLabel} <ArrowRight size={14} strokeWidth={2} />
-        </Link>
-      )}
+      {showCta &&
+        (isExternalCta ? (
+          <a
+            href={ctaHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-fit items-center justify-center gap-1.5 self-center text-center text-[13px] font-semibold text-[var(--color-accent)] hover:underline underline-offset-4"
+          >
+            {widget.ctaLabel} <ArrowRight size={14} strokeWidth={2} />
+          </a>
+        ) : (
+          <Link
+            href={ctaHref}
+            className="inline-flex w-fit items-center justify-center gap-1.5 self-center text-center text-[13px] font-semibold text-[var(--color-accent)] hover:underline underline-offset-4"
+          >
+            {widget.ctaLabel} <ArrowRight size={14} strokeWidth={2} />
+          </Link>
+        ))}
     </motion.div>
   );
 }

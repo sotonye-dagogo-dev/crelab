@@ -480,6 +480,62 @@ export class MediaAssetService {
       }
     }
 
+    // Repair cover-only providers (pre-existing data): a cover video saved at
+    // onboarding — before the provider row existed — never became a portfolio
+    // item, so the portfolio and the explore content view stay empty while the
+    // hero still plays the cover. Attach any missing cover as a visible DIRECT
+    // item (idempotent by URL; already-attached covers are counted, not
+    // duplicated). Respects dryRun like the orphan pass above.
+    try {
+      const coverRows = await db
+        .select({ id: providers.id, coverVideoUrl: providers.coverVideoUrl })
+        .from(providers)
+        .where(isNotNull(providers.coverVideoUrl));
+      for (const prow of coverRows) {
+        try {
+          const coverUrl = prow.coverVideoUrl;
+          if (!coverUrl || !coverUrl.trim()) continue;
+          const normCover = coverUrl.trim().toLowerCase();
+          const existing = await db
+            .select({ url: portfolioItems.url })
+            .from(portfolioItems)
+            .where(eq(portfolioItems.providerId, prow.id));
+          if (existing.some((it) => it.url.trim().toLowerCase() === normCover)) {
+            result.skippedAlreadyAttached++;
+            continue;
+          }
+          if (dryRun) {
+            result.wouldAttach++;
+            continue;
+          }
+          const { generateVideoThumbnail } = await import("@/lib/cloudinary");
+          let thumbnailUrl: string | undefined;
+          try {
+            thumbnailUrl = generateVideoThumbnail(coverUrl) || undefined;
+          } catch {
+            thumbnailUrl = undefined;
+          }
+          await PortfolioService.addItem({
+            providerId: prow.id,
+            source: PortfolioItemSource.DIRECT,
+            url: coverUrl,
+            thumbnailUrl,
+            title: "Cover video",
+            mimeType: "video/mp4",
+          });
+          result.attached++;
+        } catch (err) {
+          result.errors.push(
+            `Cover for provider ${prow.id}: ${err instanceof Error ? err.message : "Unknown error"}`,
+          );
+        }
+      }
+    } catch (err) {
+      result.errors.push(
+        `Cover repair scan: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
+    }
+
     return result;
   }
 

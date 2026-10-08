@@ -331,13 +331,14 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
             View Profile →
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col gap-[2px]">
+          <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col gap-[2px] items-start">
             <div className="flex items-center gap-2 self-start mb-2">
               <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-[family-name:var(--font-body)] text-[11px] font-medium whitespace-nowrap">
                 {categoryLabel}
               </span>
             </div>
-            <span className="font-[family-name:var(--font-display)] text-[14px] font-medium text-[var(--color-text-primary)] leading-[1.2]">
+            {/* Opaque pill so the name stays readable over any cover image in any theme */}
+            <span className="inline-block w-fit max-w-full truncate rounded-[6px] border border-white/10 bg-[rgba(0,0,0,0.55)] px-2 py-0.5 font-[family-name:var(--font-display)] text-[14px] font-medium text-white leading-[1.2] backdrop-blur-[4px]">
               {displayName}
             </span>
             <div className="flex items-center gap-2">

@@ -366,8 +366,11 @@ export default function AdminCountdownPage() {
                 <ClInput
                   value={widget.ctaHref ?? ""}
                   onChange={(e) => updateWidget(widget.id, { ctaHref: e.target.value })}
-                  placeholder="/explore"
+                  placeholder="/explore or https://…"
                 />
+                <p className="mt-1 text-[11px] text-[var(--color-text-tertiary)]">
+                  Relative paths stay in-app; full https:// URLs open in a new tab.
+                </p>
               </div>
               <div>
                 <FieldLabel>Areas</FieldLabel>

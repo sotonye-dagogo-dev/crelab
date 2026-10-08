@@ -275,7 +275,9 @@ describe("services/MediaAssetService — backfillOrphans (dry run)", () => {
       .mockReturnValueOnce(q([]))
       // a3: same provider; portfolio already contains the url
       .mockReturnValueOnce(q([{ id: "prov-1" }]))
-      .mockReturnValueOnce(q([{ id: "item-1", url: "https://cdn.example/a3.mp4" }]));
+      .mockReturnValueOnce(q([{ id: "item-1", url: "https://cdn.example/a3.mp4" }]))
+      // cover repair scan: no providers with a cover video
+      .mockReturnValueOnce(q([]));
     dbMock.insert.mockReturnValue(q([]));
 
     const result = await MediaAssetService.backfillOrphans({ dryRun: true });
@@ -285,6 +287,31 @@ describe("services/MediaAssetService — backfillOrphans (dry run)", () => {
     expect(result.attached).toBe(0);
     expect(result.skippedNoProvider).toBe(1);
     expect(result.skippedAlreadyAttached).toBe(1);
+    expect(result.errors).toEqual([]);
+    expect(dbMock.insert).not.toHaveBeenCalled();
+  });
+
+  it("repairs cover-only providers in dry run without writing", async () => {
+    dbMock.select
+      // ACTIVE assets: none
+      .mockReturnValueOnce(q([]))
+      // loadReferencedPublicIds: providers, portfolio, blog, team
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      .mockReturnValueOnce(q([]))
+      // cover repair scan: one provider with a cover, portfolio has no match
+      .mockReturnValueOnce(
+        q([{ id: "prov-9", coverVideoUrl: "https://cdn.example/cover.mp4" }]),
+      )
+      .mockReturnValueOnce(q([]));
+    dbMock.insert.mockReturnValue(q([]));
+
+    const result = await MediaAssetService.backfillOrphans({ dryRun: true });
+
+    expect(result.candidates).toBe(0);
+    expect(result.wouldAttach).toBe(1);
+    expect(result.attached).toBe(0);
     expect(result.errors).toEqual([]);
     expect(dbMock.insert).not.toHaveBeenCalled();
   });

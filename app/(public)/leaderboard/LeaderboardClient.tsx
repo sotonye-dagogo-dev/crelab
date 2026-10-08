@@ -146,8 +146,11 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
       {
         key: "member",
         header: "Member",
+        // Constrain the cell on narrow screens so a long display name truncates
+        // instead of pushing the Score column far off-screen.
+        cellClassName: "max-w-[148px] min-w-0 sm:max-w-[320px]",
         cell: (row) => (
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 max-w-full">
             {row.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -160,7 +163,7 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
                 <UserRound size={14} strokeWidth={2} />
               </span>
             )}
-            <span className="truncate font-semibold text-[var(--color-text-primary)]">
+            <span className="block truncate min-w-0 flex-1 font-semibold text-[var(--color-text-primary)]">
               {row.displayName}
             </span>
             {row.isCurrentUser && (
@@ -174,6 +177,9 @@ export function LeaderboardClient({ pageSize }: { pageSize: number }) {
       {
         key: "score",
         header: "Score",
+        width: "w-[92px]",
+        headerClassName: "text-right",
+        cellClassName: "whitespace-nowrap text-right",
         cell: (row) => (
           <span className="font-bold text-[var(--color-text-primary)]">{formatNumber(row.score)}</span>
         ),
