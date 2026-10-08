@@ -1428,3 +1428,25 @@ verified via `git stash`), no regressions.
 **Notes / Blockers:**
 - Both prior residual risks now resolved: orphans are one-click rescuable (bulk, deliberate); `getBoard()` page turns are slice operations over a 30s cache. Remaining long-tail items unchanged: RLS policies still unapplied (pre-existing); precomputed-scores migration remains the eventual path at very large membership.
 - `node_modules` was absent at session start; `npm install --legacy-peer-deps` run (no dependency changes).
+
+## Session 2026-10-08 — Countdown / Leaderboard / Provider Tiles / Content View (execute-feature)
+
+**Directive:** (1) countdown widget text centrally aligned + CTA links support full https:// URLs; (2) leaderboard username cell too long on mobile, pushes score far; (3) provider-view tile click routes to provider page + provider name gets a readable (opaque) background; (4) explore content view empty while provider tiles cycle content — uploaded videos only serve as cover, missing from content view and portfolios.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (no schema/deps changes; all additive/best-effort); scope/project-decisions checks pass (leaderboard keep-zeros preserved; backfill stays explicit admin action; upload attach stays best-effort/idempotent). Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Countdown widget** (`components/shared/CountdownWidget.tsx`, `app/admin/countdown/page.tsx`) — text centrally aligned (container `items-center text-center`, header stacked + centered, timer `justify-center`, CTA `self-center`); CTA supports full URLs (external `https?://`/`//` renders `<a target="_blank" rel="noopener noreferrer">`, relative paths keep Next `Link`); admin CTA placeholder + hint document the behaviour.
+2. **Leaderboard mobile** (`app/(public)/leaderboard/LeaderboardClient.tsx`, `components/ui/ClDataTable.tsx`) — member cell constrained (`max-w-[148px] sm:max-w-[320px]`, inner name `block truncate min-w-0 flex-1`) so long names truncate instead of pushing Score off-screen; Score column fixed `w-[92px]` right-aligned nowrap; shared table `min-w` lowered to `520px` below `lg` (was 720px) to reduce mobile scroll.
+3. **Provider tiles** (`components/explore/ExploreVideoCard.tsx`) — tile click already routes via the outer `Link` to `/profile/[slug]` (verified, kept); provider name now sits on an opaque pill (`bg-[rgba(0,0,0,0.55)] backdrop-blur border-white/10 text-white truncate`) so it stays readable over any cover image in any theme.
+4. **Content view / portfolios** (`app/api/profile/setup/route.ts`, `services/MediaAssetService.ts`, `__tests__/services/MediaAssetService.test.ts`) — root cause: onboarding uploads happen BEFORE the provider row exists, so the upload-time auto-attach silently skips and the cover video only ever serves as hero cover. Fix: profile-setup now best-effort attaches the cover video as a visible DIRECT portfolio item (Cloudinary-derived thumbnail) + rescues the owner's recent orphans (≤20, idempotent, never fails setup); `backfillOrphans` gains a cover-repair pass (missing cover → DIRECT item, dryRun-aware) so pre-existing cover-only providers heal via the existing admin Backfill flow. Gallery tiles already play via lightbox + keep the provider link (unchanged).
+5. **QA gate:** `vitest` 408/408 (33 files; +1 cover-repair dry-run test, backfill dry-run mocks extended for the cover scan), `tsc --noEmit` exit 0, `next lint` 0 errors (pre-existing warnings only).
+6. **Doc close:** session-log (this entry), dev-history, task-queue Completed, in-progress.md cleared.
+
+**Files Modified/Created:** `components/shared/CountdownWidget.tsx`, `app/admin/countdown/page.tsx`, `app/(public)/leaderboard/LeaderboardClient.tsx`, `components/ui/ClDataTable.tsx`, `components/explore/ExploreVideoCard.tsx`, `app/api/profile/setup/route.ts`, `services/MediaAssetService.ts`, `__tests__/services/MediaAssetService.test.ts` + 4 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- Pre-existing cover-only providers do NOT heal automatically — admins run the existing `/admin/media` Backfill (dry-run preview included); new signups attach at setup time.
+- `node_modules` was absent at session start; `npm ci` run (no dependency changes).

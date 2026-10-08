@@ -118,6 +118,56 @@ export async function POST(req: Request) {
       });
     }
 
+    // Best-effort: uploads made during onboarding happen BEFORE the provider
+    // row exists, so the upload-time portfolio auto-attach silently skips
+    // (attachUploadToProvider returns null with no provider profile). Without
+    // this, the cover video only ever serves as the hero cover and never
+    // appears in the portfolio, the explore content view, or provider tiles
+    // that cycle content. Attach now that the provider id exists. Never fails
+    // the setup itself; addItem is idempotent by URL.
+    try {
+      const { PortfolioService } = await import("@/services/PortfolioService");
+      const { PortfolioItemSource } = await import("@/types");
+      if (coverVideoUrl && typeof coverVideoUrl === "string" && coverVideoUrl.trim()) {
+        const coverUrl = coverVideoUrl.trim();
+        const isImage = /\.(jpe?g|png|webp|gif|avif|heic)$/i.test(coverUrl);
+        let thumbnailUrl: string | undefined;
+        if (!isImage) {
+          try {
+            const { generateVideoThumbnail } = await import("@/lib/cloudinary");
+            thumbnailUrl = generateVideoThumbnail(coverUrl) || undefined;
+          } catch {
+            thumbnailUrl = undefined;
+          }
+        }
+        await PortfolioService.addItem({
+          providerId,
+          source: PortfolioItemSource.DIRECT,
+          url: coverUrl,
+          thumbnailUrl,
+          title: "Cover video",
+          mimeType: isImage ? "image/jpeg" : "video/mp4",
+        });
+      }
+      // Rescue any other library uploads the user made while onboarding.
+      const { MediaAssetService } = await import("@/services/MediaAssetService");
+      const orphans = await MediaAssetService.listByOwner(userId).catch(() => []);
+      for (const asset of orphans.slice(0, 20)) {
+        try {
+          await PortfolioService.attachUploadToProvider(userId, {
+            url: asset.url,
+            thumbnailUrl: asset.thumbnailUrl,
+            mimeType: asset.mimeType ?? "application/octet-stream",
+            title: asset.publicId,
+          });
+        } catch {
+          // Per-asset failures stay advisory — the profile already exists.
+        }
+      }
+    } catch {
+      // Portfolio surfacing is advisory — the profile already exists.
+    }
+
     let driveSync: { ok: boolean; message?: string } | null = null;
     if (driveFolderUrl && typeof driveFolderUrl === "string") {
       try {

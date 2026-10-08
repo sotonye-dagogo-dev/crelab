@@ -62,7 +62,7 @@ export function ClDataTable<T>({
     <div className={className}>
       <div className="rounded-[12px] bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[720px]">
+          <table className="w-full border-collapse min-w-[520px] lg:min-w-[720px]">
             <thead>
               <tr className={`bg-[var(--color-surface-raised)] ${headerRowClassName}`}>
                 {columns.map((col) => (
