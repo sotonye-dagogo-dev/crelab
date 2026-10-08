@@ -6,6 +6,7 @@ import { MockDataService } from "@/services/MockDataService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import type { Metadata } from "next";
 import { ClEmptyState } from "@/components/ui";
+import { TeamSocialIcon } from "@/components/team/TeamSocialIcon";
 
 export async function generateMetadata(): Promise<Metadata> {
   let config;
@@ -91,24 +92,11 @@ export default async function TeamPage() {
                     <div className="flex gap-2 mt-auto">
                       {(member.socialLinks as { platform: string; url: string }[]).map(
                         (link, i) => (
-                          <a
+                          <TeamSocialIcon
                             key={i}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-8 h-8 rounded-md border border-[var(--color-border)] flex items-center justify-center text-xs text-[var(--color-text-tertiary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-                            aria-label={link.platform}
-                          >
-                            {link.platform === "Twitter" || link.platform === "X"
-                              ? "X"
-                              : link.platform === "LinkedIn"
-                                ? "in"
-                                : link.platform === "GitHub"
-                                  ? "GH"
-                                  : link.platform === "Dribbble"
-                                    ? "Dr"
-                                    : link.platform.slice(0, 2)}
-                          </a>
+                            platform={link.platform}
+                            url={link.url}
+                          />
                         ),
                       )}
                     </div>

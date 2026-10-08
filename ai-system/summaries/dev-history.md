@@ -1,8 +1,17 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-01 — Growth & Reliability F1–F9 close)
-> - last-verified-against-code: 2026-10-01
+> - last-updated-by: execute-feature (Session 2026-10-08 — Auth cleanup + Explore tiles + Team + SEO)
+> - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Auth Cleanup + Explore Tiles + Team Management + SEO
+
+### What
+Seven-item polish directive: phone removed from auth UI (login phone tab commented out, register already clean); explore tiles de-glitched (no img remount on carousel tick, scroll-stable timer, mount-on-view video with thumbnail underneath, no layout animations in masonry, capped stagger); "Cloudinary" sanitised from public UI/config ("Direct Uploads"); profile display-name backfilled after auth resolves; team admin gains direct avatar upload + platform select with custom option and icon rendering (backward compatible via `lib/social-platforms.ts` normalisation); 13 route layouts add config-driven per-page SEO titles/metadata.
+
+### Verification
+`tsc` clean, `next build` green, 395/398 tests (3 pre-existing failures verified identical on clean HEAD via `git stash`), 6 new social-platform tests pass.
 
 
 ## Sprint 2026-10-01 — Growth & Reliability (F1–F9): Founding-100 + Referrals/Leaderboard + Countdown + Error Reporting + Stats/Back-to-Top/Webinars/Name Compliance
@@ -607,7 +616,7 @@ Pass — typecheck clean, 233 tests pass, lint has no new warnings, production b
 
 ---
 
-## 2026-10-07 � DB Migration & Script Close-Out
+## 2026-10-07 � DB Migration & Script Close-Out
 
 Directive: generate + apply pending migrations; easy DB npm scripts incl. mandatory
 pre-destructive backup (prior deseed wiped live data).
@@ -621,5 +630,5 @@ pre-destructive backup (prior deseed wiped live data).
   backup first (fixes the live-data-loss bug).
 - package.json: `db:generate/migrate/baseline/push/studio/backup/reset`,
   `predb:seed:rollback` auto-backup.
-- Applied live: baselined 0000�0002, migrated 0003 (6 tables verified, 4 tracked).
+- Applied live: baselined 0000�0002, migrated 0003 (6 tables verified, 4 tracked).
   QA: tsc clean, 389/392 tests (3 pre-existing failures unchanged).

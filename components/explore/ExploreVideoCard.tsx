@@ -17,7 +17,6 @@ interface ExploreVideoCardProps {
 }
 
 export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetIndexOneBased }: ExploreVideoCardProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isInView, setIsInView] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
@@ -70,13 +69,15 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
 
   useEffect(() => {
     if (!provider || providerCarouselImages.length <= 1 || prefersReducedMotion) return;
-    // Don't animate when hovering video preview (video takes over)
+    // Don't animate when hovering video preview (video takes over).
+    // NOTE: deps intentionally exclude scroll-driven state (e.g. isInView) so
+    // the timer isn't reset on every scroll — resetting caused visible flicker.
     const id = setInterval(() => {
       setCarouselIndex((i) => (i + 1) % providerCarouselImages.length);
     }, 3500);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider?.id, providerCarouselImages.length, prefersReducedMotion, isInView ? "in" : "out"]);
+  }, [provider?.id, providerCarouselImages.length, prefersReducedMotion]);
 
   useEffect(() => {
     setCarouselIndex(0);
@@ -98,22 +99,14 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
   const handleVideoPlay = useCallback(() => {
     if (prefersReducedMotion || !videoUrl) return;
     if (portfolioItem && !portfolioItem.mimeType.startsWith("video/")) return;
+    // Mount the video overlay; it autoplays once in view. The thumbnail stays
+    // mounted underneath so the tile never goes blank while video loads.
     setShowVideo(true);
-    setTimeout(() => {
-      const video = videoRef.current;
-      if (video) {
-        video.play().catch(() => {});
-      }
-    }, 300);
   }, [prefersReducedMotion, videoUrl, portfolioItem]);
 
   const handleVideoPause = useCallback(() => {
+    // Unmount the video overlay; thumbnail underneath is already visible.
     setShowVideo(false);
-    const video = videoRef.current;
-    if (video) {
-      video.pause();
-      video.currentTime = 0;
-    }
   }, []);
 
   useEffect(() => {
@@ -155,6 +148,8 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
               <img
                 src={thumbnailUrl}
                 alt={displayName}
+                loading="lazy"
+                decoding="async"
                 className={`w-full h-auto object-cover transition-opacity duration-[500ms] ${isLoaded ? "opacity-100" : "opacity-0"}`}
                 onLoad={() => setIsLoaded(true)}
                 onError={(e) => {
@@ -248,13 +243,18 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
       >
         <div className="relative bg-[var(--color-surface-raised)] flex items-center justify-center w-full">
           {thumbnailUrl ? (
+            // NOTE: no key on carousel index — remounting the <img> on every
+            // interval tick blanked the tile while the next image loaded.
+            // Changing src in place keeps the current frame visible until the
+            // next one decodes. Thumbnail stays mounted under the video overlay.
             <img
-              key={provider ? `${provider.id}-${carouselIndex}` : thumbnailUrl}
               src={thumbnailUrl}
               alt={displayName}
+              loading="lazy"
+              decoding="async"
               className={`w-full h-auto object-cover transition-opacity duration-[500ms] ${
-                showVideo ? "opacity-0 absolute inset-0" : "opacity-100"
-              } ${isLoaded ? "" : "opacity-0"}`}
+                isLoaded ? "opacity-100" : "opacity-0"
+              }`}
               onLoad={() => setIsLoaded(true)}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
@@ -311,17 +311,16 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
             </div>
           )}
 
-          {hasVideo && (
+          {hasVideo && showVideo && (
             <video
-              ref={videoRef}
               src={videoUrl}
               muted
               loop
+              autoPlay
               playsInline
+              preload="metadata"
               aria-label={`${displayName} preview video`}
-              className={`w-full h-auto object-cover absolute inset-0 transition-opacity duration-[300ms] ${
-                showVideo ? "opacity-100" : "opacity-0"
-              }`}
+              className="w-full h-auto object-cover absolute inset-0"
               style={{ aspectRatio: "4/5" }}
             />
           )}

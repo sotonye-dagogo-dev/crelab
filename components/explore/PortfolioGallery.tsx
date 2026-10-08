@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ExploreVideoCard } from "./ExploreVideoCard";
 import { ClEmptyState, ClErrorState } from "@/components/ui";
 import type { IPortfolioItem } from "@/types";
@@ -15,7 +15,8 @@ const cardVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      delay: i * 0.03,
+      // Capped so far-down tiles don't sit invisible while scrolling.
+      delay: Math.min(i * 0.03, 0.3),
       ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
     },
   }),
@@ -117,20 +118,18 @@ export function PortfolioGallery({
             </div>
           ))
         ) : (
-          <AnimatePresence mode="popLayout">
-            {items.map((item, i) => (
-              <motion.div
-                key={item.id}
-                custom={i}
-                variants={cardVariants}
-                initial="hidden"
-                animate="visible"
-                layout
-              >
-                <ExploreVideoCard portfolioItem={item} assetIndexOneBased={i + 1} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          // NOTE: no AnimatePresence/layout animations — see ExploreGrid for why.
+          items.map((item, i) => (
+            <motion.div
+              key={item.id}
+              custom={i}
+              variants={cardVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <ExploreVideoCard portfolioItem={item} assetIndexOneBased={i + 1} />
+            </motion.div>
+          ))
         )}
         </div>
       )}

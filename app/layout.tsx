@@ -27,6 +27,14 @@ export async function generateMetadata(): Promise<Metadata> {
       title: config.name,
       description: config.tagline,
       path: "/",
+      keywords: [
+        "creative marketplace",
+        "hire creators",
+        "content creators",
+        "cinematographers",
+        "creative hiring",
+        "escrow payments",
+      ],
     }),
     icons: {
       icon: resolveAbsoluteUrl(config.iconPath),

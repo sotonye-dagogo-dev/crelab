@@ -14,11 +14,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { signIn, signInWithGoogle } = useAuth();
 
-  const [tab, setTab] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -52,6 +49,13 @@ export default function LoginPage() {
       setGoogleLoading(false);
     }
   };
+
+  // Phone OTP is not running, so the phone tab + OTP handlers are commented
+  // out (not displayed) until phone auth ships.
+  /*
+  const [tab, setTab] = useState<"email" | "phone">("email");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
   const handleOtpChange = (index: number, value: string) => {
     if (value && !/^\d$/.test(value)) return;
@@ -90,6 +94,7 @@ export default function LoginPage() {
     );
     next?.focus();
   };
+  */
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[rgba(10,10,10,0.85)] p-4">
@@ -129,6 +134,7 @@ export default function LoginPage() {
           <div className="flex-1 h-px bg-[var(--color-border)]" />
         </div>
 
+        {/* Phone tab hidden — phone OTP is not running.
         <div className="flex gap-2 mb-5">
           <button
             className={`flex-1 h-9 rounded-[8px] text-[13px] font-semibold cursor-pointer transition-colors ${
@@ -151,8 +157,11 @@ export default function LoginPage() {
             Phone
           </button>
         </div>
+        */}
 
+        {/*
         {tab === "email" && (
+        */}
           <form onSubmit={handleEmailLogin} className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <label className="font-semibold text-xs text-[var(--color-text-secondary)] uppercase tracking-[0.06em]">
@@ -204,8 +213,11 @@ export default function LoginPage() {
               </span>
             </button>
           </form>
+        {/*
         )}
+        */}
 
+        {/* Phone panel hidden — phone OTP is not running.
         {tab === "phone" && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
@@ -251,6 +263,7 @@ export default function LoginPage() {
             </button>
           </div>
         )}
+        */}
 
         <p className="text-[13px] text-[var(--color-text-secondary)] text-center mt-4">
           Don&apos;t have an account?{" "}
