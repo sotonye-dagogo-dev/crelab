@@ -261,6 +261,10 @@ WebinarService (services/WebinarService.ts)
   → lib/webinars.ts (server/client-safe copy + status helpers) + PlatformConfigService (webinars config) + EmailService (wired `webinarRegistration` confirmation, non-blocking)
   → consumed by app/api/webinars (GET list) + app/api/webinars/[id]/register (POST, guest + auth, zod) + app/api/admin/webinars (+[id]) + app/(public)/webinars page + app/admin/webinars page + AuditService on admin mutations
 
+TeamService (services/TeamService.ts)
+  → lib/db.ts + drizzle/schema.ts (team_members) — `listPublic()` (active-only, orderIndex + createdAt) + pure `normalizeSocialLinks()` (array | legacy JSON-string | null → array) + `serializeTeamMember()`
+  → consumed by app/(public)/team/page.tsx (server, `force-dynamic`) + app/api/team (GET public list, mock fallback only when mock mode enabled)
+
 Countdown widget
   → lib/countdown.ts (pure math/expiry/area selection) + lib/countdown-icons.ts (curated lucide allowlist)
   → components/shared/CountdownWidget.tsx (framer-motion, prefers-reduced-motion gate, mount-gated tick) + CountdownSlot.tsx (filters config widgets by enabled/area, ordered by orderIndex)
