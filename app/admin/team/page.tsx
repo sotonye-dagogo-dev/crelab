@@ -65,7 +65,7 @@ function TeamPageSettings() {
     "block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]";
 
   return (
-    <ClCard className="mb-6 p-5 sm:p-6">
+    <ClCard className="p-5 sm:p-6">
       <h3 className="font-[family-name:var(--font-display)] font-bold text-[16px] tracking-[-0.01em]">
         Page settings
       </h3>
@@ -395,8 +395,6 @@ export default function AdminTeamPage() {
         </div>
       </div>
 
-      <TeamPageSettings />
-
       <BatchToolbar
         ids={memberIds}
         selectedIds={selectedIds}
@@ -433,6 +431,10 @@ export default function AdminTeamPage() {
           </div>
         }
       />
+
+      <div className="mt-6">
+        <TeamPageSettings />
+      </div>
 
       <TeamMemberModal
         open={modalOpen}
