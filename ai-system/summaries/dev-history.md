@@ -1,8 +1,21 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — public-pages team/webinars re-verification)
+> - last-updated-by: execute-feature (Session 2026-10-08 — countdown-first-on-home)
 > - last-verified-against-code: 2026-10-08
+
+
+## Session 2026-10-08 — Countdown First on Home
+
+### What
+Directive: adjust the positioning of the countdown widget on the home page such that it's the first thing there, like on the explore page.
+
+### Verification
+`npx vitest run` → 35 files, **424 passed / 0 failed**. `npm run typecheck` → exit 0. `npx next lint --file components/landing/LandingContent.tsx` → no warnings or errors. `npm run build` → success.
+
+### Key Changes
+- **`components/landing/LandingContent.tsx`** — `<CountdownSlot area="landing" />` moved from below the hero to the top of the page container (first child), mirroring `app/(public)/explore/page.tsx`. Both `/` and `/home` render `LandingContent`, so one edit fixes both routes. No-op when no countdown is active (`CountdownSlot` returns `null` when disabled or no widgets match), so no empty gap or layout shift.
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`); `in-progress.md` cleared. Deep `update-ai-system.md` not invoked: no architecture impact, `[XS]` origin (per `execute-feature.md` Step 5.5, `sync-context`-level close suffices).
 
 
 ## Session 2026-10-08 — Public-Pages Team/Webinars Re-verification (team empty-state fix)

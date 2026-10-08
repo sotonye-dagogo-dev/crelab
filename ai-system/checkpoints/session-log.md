@@ -1514,3 +1514,23 @@ verified via `git stash`), no regressions.
 **Notes / Blockers:**
 - `node_modules` was absent at session start; `npm install --no-audit --no-fund` run (no dependency changes).
 - If `/team` ever reads empty again with rows present, check (1) the row's `active` flag (public lists filter `active=true`), (2) server logs for `[TeamPage]` / `[GET /api/team]` errors, (3) `GET /api/team` directly — page and API share `TeamService.listPublic`, so a divergence implicates caching, not the query.
+
+## Session 2026-10-08 — Countdown First on Home (execute-feature)
+
+**Directive:** adjust the positioning of the countdown widget on the home page such that it's the first thing there, like on the explore page.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system; no architecture impact (pure JSX reorder in one presentational component, no config/schema/route/logic change); scope/project-decisions checks pass. Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **`components/landing/LandingContent.tsx`** — moved `<CountdownSlot area="landing" />` from below the hero section to the top of the page container (first child), mirroring `app/(public)/explore/page.tsx` where `<CountdownSlot area="explore" />` is the first child. Both `/` and `/home` render `LandingContent`, so both routes are fixed by this single edit.
+2. **No-op safety when inactive** — `CountdownSlot` returns `null` when `countdown.enabled` is false or no widgets match the area/date window, so with no active countdown the home page renders exactly as before (no empty gap, no layout shift).
+3. **QA gate:** `npx vitest run` → 35 files, **424 passed / 0 failed**; `npm run typecheck` → exit 0; `npx next lint --file components/landing/LandingContent.tsx` → no warnings or errors; `npm run build` → success.
+4. **Doc sync (sync-context level):** dev-history (entry), task-queue Completed + `last-synced`, in-progress.md cleared. Full `update-ai-system.md` deep sync NOT invoked: no architecture impact and `[XS]` origin (per `execute-feature.md` Step 5.5).
+
+**Files Modified/Created:** `components/landing/LandingContent.tsx` + 4 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` was absent at session start; `npm ci --no-audit --no-fund` run (no dependency changes). Raw `npx tsc --noEmit` before install showed spurious missing-module errors — always use `npm run typecheck` (same command, but only meaningful with deps installed).
+- None. No residual risk: single-slot render verified (exactly one `<CountdownSlot>` in `LandingContent`); design-system tokens untouched.
