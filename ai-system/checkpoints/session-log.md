@@ -1255,7 +1255,7 @@ Same residuals as Session 2026-09-22: `media.test.ts:72` + `BlogPostService.test
 
 ---
 
-## Session 2026-10-07 — DB Migration & Script Close-Out (execute-feature)
+## Session 2026-10-07 ï¿½ DB Migration & Script Close-Out (execute-feature)
 
 **Directive:** Close out the previous session''s open tasks: generate and apply the
 migrations; add package.json scripts for easy DB processes including a DB backup script
@@ -1264,36 +1264,36 @@ so backup-before-destructive is now mandatory practice).
 
 **Completed:**
 
-1. **Generated the missing migration** — `npx drizzle-kit generate` produced
+1. **Generated the missing migration** ï¿½ `npx drizzle-kit generate` produced
    `drizzle/migrations/0003_close-out-schema-drift.sql` (journal entry added automatically),
    covering all drift since snapshot 0002: `about_page`, `how_it_works_page`, `media_assets`,
    `blog_posts`, `referral_codes`, `referral_events`, `webinars`, `webinar_registrations`,
    `bug_reports` columns (`reporter_*`, `screenshot_urls`, `error_context`) + 3 new enums.
-   Hardened to fully idempotent (`IF NOT EXISTS` / `DO … EXCEPTION WHEN duplicate_object`),
+   Hardened to fully idempotent (`IF NOT EXISTS` / `DO ï¿½ EXCEPTION WHEN duplicate_object`),
    so it applies cleanly on both fresh DBs and the live DB where 0004/0005/0006 objects were
    hand-applied in Session 2026-08-19.
-2. **Fixed the journal/file mismatch** — renamed `0001_initial.sql` ? `0000_initial.sql`
+2. **Fixed the journal/file mismatch** ï¿½ renamed `0001_initial.sql` ? `0000_initial.sql`
    to match the `0000_initial` journal tag (the migrator resolves files by tag and refused
    to run without it).
-3. **New `scripts/db/migrate.ts`** (`npm run db:migrate`) — journal-driven drizzle migrator.
-4. **New `scripts/db/baseline.ts`** (`npm run db:baseline -- <tag>`) — one-time marker for
+3. **New `scripts/db/migrate.ts`** (`npm run db:migrate`) ï¿½ journal-driven drizzle migrator.
+4. **New `scripts/db/baseline.ts`** (`npm run db:baseline -- <tag>`) ï¿½ one-time marker for
    DBs built pre-journal (records hashes in `drizzle.__drizzle_migrations` without running
    SQL, using drizzle''s own sha256 scheme). Live DB baselined through `0002_breezy_tinkerer`.
-5. **New `scripts/db/backup.ts`** (`npm run db:backup`) — `pg_dump` custom-format snapshot
+5. **New `scripts/db/backup.ts`** (`npm run db:backup`) ï¿½ `pg_dump` custom-format snapshot
    into `backups/` (gitignored) with restore command printed; clear error when `pg_dump` is
    absent. `backups/` added to `.gitignore`.
-6. **Seed rollback made safe (the data-loss root cause)** — `scripts/seed-rollback.ts` now
+6. **Seed rollback made safe (the data-loss root cause)** ï¿½ `scripts/seed-rollback.ts` now
    deletes ONLY seed-scoped rows (seed `@crelab.test` users, `prov-*`/`bkg-*`/seed slugs/ids)
    by default. Full-table wipe survives only behind `--all` (deprecated `--force` alias),
    which takes a `pg_dump` backup first unless `--no-backup`.
-7. **package.json DB scripts** — `db:generate`, `db:migrate`, `db:baseline`, `db:push`,
+7. **package.json DB scripts** ï¿½ `db:generate`, `db:migrate`, `db:baseline`, `db:push`,
    `db:studio`, `db:backup`, `predb:seed:rollback` (auto-backup guard), `db:reset`
    (backup ? rollback ? migrate ? seed).
-8. **Applied to the live DB** — `db:baseline` (0000–0002 marked) + `db:migrate` (0003 applied,
+8. **Applied to the live DB** ï¿½ `db:baseline` (0000ï¿½0002 marked) + `db:migrate` (0003 applied,
    `? Migrations applied`). Verified: all 6 new tables present, 4 migrations tracked.
    This closes the 2026-10-01 open item (unapplied 0007 content is subsumed by 0003).
 
-**QA gate:** `npx tsc --noEmit` clean; `npx vitest run` 389/392 — the same 3 pre-existing
+**QA gate:** `npx tsc --noEmit` clean; `npx vitest run` 389/392 ï¿½ the same 3 pre-existing
 failures at HEAD (media file-size + 2 BlogPostService adminList), no regressions.
 
 **Files Modified/Created:**
@@ -1307,16 +1307,16 @@ failures at HEAD (media file-size + 2 BlogPostService adminList), no regressions
 
 **Build Status:** ? Typecheck clean, 389/392 tests (3 pre-existing failures, unchanged).
 
-**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+**Next Task:** Phase 2 backlog ï¿½ in-platform messaging (`[L]`, still open in task-queue).
 
 **Notes / Blockers:**
-- No architecture impact (tooling + migrations only) — no `update-ai-system.md` deep sync
+- No architecture impact (tooling + migrations only) ï¿½ no `update-ai-system.md` deep sync
   required per the Step 5 condition; `sync-context` freshness updated inline.
-- `pg_dump` is not installed on this Windows machine — `db:backup` prints install guidance;
+- `pg_dump` is not installed on this Windows machine ï¿½ `db:backup` prints install guidance;
   verify a backup run on a machine with PostgreSQL tools before the next destructive op.
 - Legacy standalone files (`0002_rls.sql`, `0003_explore.sql`, `0003_wallet_rls.sql`,
-  `0004–0007`) remain in the folder as history; journal-driven flow supersedes them.
-  RLS policies still unapplied (known residual risk, `uuid = text` mismatch — service-role
+  `0004ï¿½0007`) remain in the folder as history; journal-driven flow supersedes them.
+  RLS policies still unapplied (known residual risk, `uuid = text` mismatch ï¿½ service-role
   connection bypasses RLS, unchanged).
 
 ## Session 2026-10-08 â€” Execute Feature: Auth Cleanup + Explore Tiles + Team Management + SEO
@@ -1367,3 +1367,18 @@ verified via `git stash`), no regressions.
   per the Step 5 condition; freshness updated inline (this log, dev-history, task-queue).
 - lucide-react no longer ships brand icons (verified `undefined` at runtime) â€” hence inline
   brand SVGs in `TeamSocialIcon`; revisit if a brand-icon dep is adopted.
+
+## Session 2026-10-08 â€” Verify-Work Test-Green + update-ai-system Deep Sync
+
+**Directive:** `verify-work.md` with directive "simply get all tests passing (non-breaking, resolve what needs to be resolved in code or in test suites)" then execute `update-ai-system.md`.
+
+**Completed:**
+1. **Test-green (non-breaking)** â€” `npx vitest run` was 395/398 with 3 failures open since â‰¥2026-09-22:
+   - `__tests__/media.test.ts:72` (expected `"too large"`): fixed in code â€” `lib/media.ts` oversize reason now `"File too large: X.X MB â€” exceeds the N MB per-file limit â€¦"`. Keeps the detailed per-file wording; restores the `"too large"` substring that the test plus `app/api/media/*` (`raw.includes("too large")`) and `MediaUpload.tsx` (`/Drive|too large|MB each|compress/i`) branch on.
+   - `__tests__/services/BlogPostService.test.ts:89,98` (expected length 1, got 7): fixed in test suite â€” `adminList()` intentionally returns `mergeUnique(dbRows, fallbackPosts)`; expectations now `getFallbackPosts().length + 1` with the DB row first. No production change.
+2. **QA gate:** `vitest` 398/398 (33 files), `tsc --noEmit` exit 0, `next lint` 0 errors (pre-existing unused-var warnings only). Build not re-run (no app-code surface change beyond a copy string).
+3. **Deep sync (`update-ai-system.md`)** â€” reconciled drift from the 2026-10-08 auth-cleanup session (which had skipped the deep sync): `repo-map.md` + `dependency-graph.md` now index `lib/social-platforms.ts`, `components/team/TeamSocialIcon.tsx`, and the 13 per-route SEO `layout.tsx` files; `system-architecture.md` Recent Changes, `project-plan.md` Completed, and `task-queue.md` Completed gain both 2026-10-08 sessions; `dev-history.md` gains this entry; `lessons-learned.md` gains the stale-expectation-vs-contract lesson; `test-results.md` now 398/398 with zero active failures; freshness metadata updated everywhere touched.
+
+**Files Modified/Created:** `lib/media.ts`, `__tests__/services/BlogPostService.test.ts` + 7 ai-system docs (no app surface change).
+
+**Next Task:** Phase 2 backlog â€” in-platform messaging (`[L]`, still open in task-queue).

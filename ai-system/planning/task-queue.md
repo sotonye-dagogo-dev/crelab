@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-01)
-> - last-verified-against-code: 2026-10-01
-> - last-synced: 2026-10-08 (session-log entry — Session 2026-10-08, auth cleanup + explore tiles + team + SEO executed)
+> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-verified-against-code: 2026-10-08
+> - last-synced: 2026-10-08 (verify-work test-green + deep sync: 398/398, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -97,6 +97,8 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Verify-work test-green: 3 long-standing failures resolved non-breaking — `lib/media.ts` oversize message restores "too large" substring (keeps per-file detail); `BlogPostService.test.ts` adminList expectations reflect DB+fallback merge. 398/398 vitest, tsc 0 errors, lint 0 errors + full `update-ai-system.md` deep sync | 2026-10-08 |
+| Auth cleanup + Explore tiles + Team + SEO: phone removed from auth UI; explore tiles de-glitched; "Cloudinary" → "Direct Uploads"; profile display-name backfill; team avatar direct-upload + platform select (`lib/social-platforms.ts`, `TeamSocialIcon.tsx`); 13 per-route SEO layouts; 6 new social-platform tests | 2026-10-08 |
 | DB migration & script close-out: idempotent `0003_close-out-schema-drift` generated + applied live (baselined 0000–0002); `db:{generate,migrate,baseline,push,studio,backup,reset}` + `predb:seed:rollback` auto-backup scripts; `seed-rollback.ts` seed-scoped by default (`--all` full wipe backs up first) — fixes the live-data-loss bug; closes the 2026-10-01 unapplied-0007 open item | 2026-10-07 |
 | Seed rollback + Book panel package wrap + nav Home removal + explore source tag removal: `npm run db:seed:rollback` (marker 2026-07-21-v1, all seed rows purged); `BookingSidebarDisplay` package rows rebuilt as native wrapping buttons (`min-w-0 break-words`, price `whitespace-nowrap` — ClButton's hardcoded nowrap/fixed height caused the overflow/overlap) + `BookingSidebar` hardened; Home link dropped from `Navbar` `navLinks` (logo + footer keep `/`); explore content-view source badge removed from `ExploreVideoCard` gallery mode (+ dead code/imports) and `AssetLightbox` gained additive `showSource` prop (default true; explore passes false). Typecheck + lint + build green, 255/258 tests (3 pre-existing). | 2026-09-23 |
 | Public pages + Portfolio gallery + Media upload hardening: About page (`/about`) with mission/vision/values + quick links; How It Works page (`/how-it-works`) with creator/client/escrow guides, 4 interactive sandboxes (Booking Flow Simulator, Escrow Timeline Explorer, Pricing Calculator, Search & Discovery Simulator), SEO-friendly FAQ; Portfolio Gallery view on Explore (`/explore` toggle) showing individual work samples with source tags; Admin pages for About (`/admin/about-page`) and How It Works (`/admin/how-it-works-page`) with live preview; Media upload hardening — 10-min timeout, actionable error messages with Google Drive fallback, extended formats (MKV, 3GP, FLV, MPEG, GIF, AVIF, HEIC), extension+MIME validation. 256/258 tests pass, typecheck + lint clean. | 2026-08-28 |

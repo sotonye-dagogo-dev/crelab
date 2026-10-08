@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-01 — Growth & Reliability sprint F1–F9)
-> - last-verified-against-code: 2026-10-01
+> - last-updated-by: update-ai-system (Session 2026-10-08 — verify-work test-green + deep sync)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -74,7 +74,7 @@ Data Stores
 | Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore, email + growth (early-member, referral, leaderboard, webinar, platform stats) | `services/` | Lib, Types, Drizzle |
 | Types | Global TS interfaces: entities, API responses, enums, explore types, email template blocks | `types/` | None |
 | Config | Platform config with DB override capability | `config/` | Types |
-| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks, platform-copy, sanitize-error, error-log-buffer, countdown, referral-cookie, landing-stats, webinars | `lib/` | SDK packages |
+| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks, platform-copy, sanitize-error, error-log-buffer, countdown, referral-cookie, landing-stats, webinars, social-platforms | `lib/` | SDK packages |
 | Drizzle | Database schema, migrations, RLS policies | `drizzle/` | Supabase, postgres |
 
 ---
@@ -334,6 +334,17 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-08 — Verify-Work Test-Green (non-breaking)
+- **`lib/media.ts`** — oversize-file reason restored to `"File too large: …"` (keeps per-file-limit detail). The `"too large"` substring is a de-facto contract: `__tests__/media.test.ts` asserts it and `app/api/media/*` + `MediaUpload.tsx` branch on it.
+- **`__tests__/services/BlogPostService.test.ts`** — `adminList` expectations now `getFallbackPosts().length + 1`: the service intentionally merges DB rows over fallback posts, so a length-1 expectation was stale, not a code bug. No production change.
+- **QA:** `vitest` 398/398, `tsc --noEmit` exit 0, `next lint` 0 errors. No architecture drift — docs deep-synced (`repo-map`, `dependency-graph`, `project-plan`, `dev-history`, `lessons-learned`, `test-results`).
+
+### 2026-10-08 — Auth Cleanup + Explore Tiles + Team Management + SEO
+- Phone removed from auth UI (login phone tab commented out; register already clean — phone was never wired to a backend).
+- Explore tiles de-glitched (no img remount on carousel tick, scroll-stable timer, mount-on-view video with thumbnail underneath, no layout animations in masonry, capped stagger); "Cloudinary" sanitised from public UI/config ("Direct Uploads").
+- Profile display-name backfilled after auth resolves; team admin gains direct avatar upload + platform select with custom option and icon rendering (`lib/social-platforms.ts` normalisation, backward compatible; `components/team/TeamSocialIcon.tsx`).
+- 13 per-route `layout.tsx` SEO files (`lib/seo.ts buildSeoMetadata`); 6 new `social-platforms` tests. QA at the time: 395/398 (the 3 failures resolved in the test-green session above).
 
 ### 2026-10-01 — Growth & Reliability Sprint (F1–F9)
 - **F1 Founding-100 badge** — `services/EarlyMemberService.ts` computes registration rank with `ROW_NUMBER() OVER (ORDER BY created_at, id)` (window function, no schema change, `unstable_cache` tag `early-members`); `components/shared/EarlyMemberBadge.tsx` in Navbar + profile; `GET /api/early-access`; `firstHundred` config.
