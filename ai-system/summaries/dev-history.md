@@ -1,9 +1,40 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — countdown-first-on-home)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
 
+
+## Session 2026-10-08 — Email Batch Send (selectable recipients)
+
+### What
+Directive: add batch email send alongside single-user test send and all-subscribers broadcast — admin-selectable recipients with checkboxes, select-all, clear, undo, invert, and quick filters (first 100, only creators, only brands, only subscribers) + search.
+
+### Verification
+`vitest` → 38 files, **442 passed / 0 failed** (+11 new). `tsc --noEmit` → clean. `next lint` → 0 errors. `next build` → green.
+
+### Key Changes
+- **Pure helpers (`lib/email-batch.ts`):** `MAX_BATCH_RECIPIENTS = 500`, `normalizeRecipientIds` (trim/dedupe/cap), `filterRecipients` (role/consent/search/limit), `invertSelection`, `buildBatchResultMessage`.
+- **Recipients endpoint (`GET /api/admin/email/recipients`, ADMIN):** search/role/consent/limit/offset with MARKETING-consent join + `hasMarketingConsent` flag + total; marketing-only path chunks consent ids to respect the 500-parameter bound.
+- **Batch send (`POST /api/admin/email/send` + `recipientIds`):** dedupe/cap, wired-key guard (same as test/broadcast), per-recipient `sendTemplate`, unresolvable ids → skipped, audit `email.batch`. Existing `to` / `segment:"marketing"` paths untouched.
+- **Picker UI (`EmailBatchSendDialog`, ClModal/ClButton only):** debounced search, role + consent selects, four quick filters, checkbox list with select-visible toggle, select-all-visible / invert / clear / 10-deep undo, showing-X-of-Y, live send count. "Send to Selected…" button on `/admin/email-templates` (non-wired only).
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`), `system-architecture.md` (email flow + Recent Changes), `index/repo-map.md`, `index/dependency-graph.md`, `memory/project-decisions.md` (batch-send decision); `in-progress.md` cleared. Deep `update-ai-system.md` invoked inline: no architecture impact (additive only, no schema/migration), no `[L]`/`[XL]` origin.
+
+
+## Session 2026-10-08 — Referral Discovery Links + Auth-Agnostic Claim + Config-Driven Team Hiring Block
+
+### What
+Directive: link the referral page across profile/dashboard/leaderboard/footer; make referral attribution work end-to-end for Google OAuth and email+password alike; make the `/team` open-positions div config-driven and admin-editable from the team management panel.
+
+### Verification
+`vitest` → 37 files, **431 passed / 0 failed** (+7 new). `tsc --noEmit` → clean (one narrowing fix: leaderboard CTA drops the redundant `features.referralsEnabled` check after the flag-off early return). `next lint` → 0 errors (pre-existing wallet-route warnings only). `next build` → green.
+
+### Key Changes
+- **Referral discovery (flag-gated):** Navbar + Footer `Referrals` entries; `/profile` "Invite & earn" card; shared `ReferralBanner` on provider + client dashboards; invite CTA on `/leaderboard`.
+- **Auth-agnostic claim:** new `ReferralClaimOnAuth` root-layout mount retries the idempotent claim once authenticated (covers OAuth-from-login, abandoned register step-2, cross-tab, flaky-network); claim endpoint accepts JSON `{ code }` fallback via pure `resolveClaimCode()` (cookie-first); `/login` fires a non-blocking claim after email sign-in. No change to points/self-referral/ACID logic.
+- **Team hiring block:** new `teamPage` config (`ITeamPageConfig`, defaults with live `/about` CTA instead of dead `#`); `/team` renders it config-driven (hidden when disabled, full URLs supported); `/admin/team` gains a "Page settings" card (PATCH `teamPage.*`).
+- **Compliance:** `platform-name-compliance.test.ts` initially failed on a hardcoded `mailto:…crellab.com` default and the new component's cookie doc comment — fixed by defaulting the CTA to `/about` and adding the allowlist entry (same convention as `ReferralCapture`).
+- **Docs close** — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`), `system-architecture.md` (service row + config table + Recent Changes), `index/repo-map.md`, `index/dependency-graph.md`; `in-progress.md` cleared. Deep `update-ai-system.md` invoked inline: no architecture impact (additive config key + additive components, no schema/migration/route-contract change), no `[L]`/`[XL]` origin.
 
 ## Session 2026-10-08 — Countdown First on Home
 

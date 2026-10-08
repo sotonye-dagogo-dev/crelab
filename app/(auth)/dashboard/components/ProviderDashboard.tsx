@@ -5,6 +5,7 @@ import { PipelineKanban } from "./PipelineKanban";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { PortfolioPerformanceTable } from "./PortfolioPerformanceTable";
 import { PortfolioGalleryGrid } from "./PortfolioGalleryGrid";
+import { ReferralBanner } from "./ReferralBanner";
 import type { IProviderDashboard } from "@/types";
 import { buildProviderSlug } from "@/lib/slug";
 
@@ -40,6 +41,8 @@ export function ProviderDashboard({ data }: { data: IProviderDashboard }) {
         </div>
 
         {data.profile && <CompletenessBar completeness={data.completeness} />}
+
+        <ReferralBanner />
 
         {data.stats.length > 0 && (
           <div className="mb-8 grid grid-cols-4 max-[900px]:grid-cols-2 max-[480px]:grid-cols-1 gap-4">

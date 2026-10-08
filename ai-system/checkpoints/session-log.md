@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — residual-risks: pagination + backfill)
-> - last-verified-against-code: 2026-10-01
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
+> - last-verified-against-code: 2026-10-08
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -10,6 +10,49 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-08 — Email Batch Send (selectable recipients) (execute-feature)
+
+**Directive:** extend email functionality beyond single-user test send and all-subscribers broadcast with a batch send where recipients are selectable (checkboxes, select-all, clear, undo, invert, quick filters like first 100 / only creators / only brands / only subscribers + search).
+
+**Planning pass (Step 1):** read task-queue, system-architecture, project-decisions, project-context + full email-send code map; no architecture impact (additive lib + additive GET route + additive POST branch + additive dialog component, no schema/migration/state-machine change); scope/project-decisions checks pass (admin email is Phase 1 in-scope; wired-template guard extends to batch unchanged). Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Pure helpers** — new `lib/email-batch.ts`: `MAX_BATCH_RECIPIENTS = 500`, `normalizeRecipientIds` (trim/dedupe/cap), `filterRecipients` (role/consent/search/limit), `invertSelection`, `buildBatchResultMessage`.
+2. **Recipients endpoint** — new `GET /api/admin/email/recipients` (ADMIN): `search` (name/email ilike), `role` (CLIENT/PROVIDER/ADMIN/ALL), `consent` (all/marketing via MARKETING consent join, chunked `inArray`), `limit` 1–500 (default 100), `offset`; returns id/name/email/role/hasMarketingConsent/createdAt + total.
+3. **Batch send** — `POST /api/admin/email/send` accepts `{ templateKey, recipientIds: string[] }`: normalises (dedupe/cap 500, empty → 400), rejects wired keys (same guard as test/broadcast), per-recipient `sendTemplate`, unresolvable ids count as skipped, audit-logged as `email.batch`, returns sent/skipped/total + message. Existing `to` / `segment:"marketing"` paths untouched.
+4. **Picker UI** — new `components/admin/EmailBatchSendDialog.tsx` (ClModal + ClButton only): search (debounced), role select (All/Only creators/Only brands/Only admins), consent select (Everyone/Subscribers only), quick filters (First 100 / Only creators / Only brands / Only subscribers), checkbox list with header select-visible toggle, Select all (visible count) / Invert select / Clear / Undo select (10-deep stack), showing X of Y total, live recipient count on Send. Wired into `app/admin/email-templates/page.tsx` as "Send to Selected…" (non-wired templates only; dialog replaces the inline test/broadcast panel via `sendDialog === "batch"`).
+5. **QA gate:** `vitest` → 38 files, **442 passed / 0 failed** (+11 new: `__tests__/lib/email-batch.test.ts`); `tsc --noEmit` clean (one typed-row fix in the recipients route); `next lint` 0 errors (pre-existing wallet-route warnings only + one fixed exhaustive-deps warning in the new dialog); `next build` green.
+6. **Doc sync (update-ai-system deep sync inline):** dev-history (entry), task-queue Completed + `last-synced`, system-architecture (email flow + Recent Changes), index/repo-map + dependency-graph, memory/project-decisions (batch-send decision); in-progress.md cleared.
+
+**Files Modified/Created:** `lib/email-batch.ts` (new), `app/api/admin/email/recipients/route.ts` (new), `app/api/admin/email/send/route.ts` (batch branch), `components/admin/EmailBatchSendDialog.tsx` (new), `app/admin/email-templates/page.tsx` (Send to Selected wiring), `__tests__/lib/email-batch.test.ts` (new) + 7 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` was absent at session start; `npm install --no-audit --no-fund` run (no dependency changes).
+- Residual risks: none. Batch is capped at 500/recipients call and 500/send; unresolvable ids are reported as skipped, never fail the batch; wired templates stay preview/simulate-only across all three send paths.
+
+## Session 2026-10-08 — Referral Discovery Links + Auth-Agnostic Claim + Config-Driven Team Hiring Block (execute-feature)
+
+**Directive:** link the referral page across profile/dashboard/leaderboard/footer; make referral attribution work end-to-end for Google OAuth and email+password alike; make the `/team` open-positions div config-driven and admin-editable from the team management panel.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system + full referral/auth/team code map; no architecture impact (additive config key + additive components, no schema/migration/route-contract change); scope/project-decisions checks pass. Plan written to `checkpoints/in-progress.md` before implementing.
+
+**Completed:**
+1. **Referral discovery (all flag-gated on `features.referralsEnabled` + `referral.enabled`)** — `components/shared/Navbar.tsx` + `Footer.tsx` gain a `Referrals` entry; `app/(auth)/profile/page.tsx` gains an "Invite & earn" card; new `app/(auth)/dashboard/components/ReferralBanner.tsx` renders on both provider and client dashboards; `app/(public)/leaderboard/LeaderboardClient.tsx` gains an invite CTA (redundant `features` check dropped after the flag-off early return — fixes a `tsc` narrowing error).
+2. **Auth-agnostic attribution** — new `components/shared/ReferralClaimOnAuth.tsx` mounted in `app/layout.tsx`: once authenticated, it POSTs the idempotent claim while the `crellab_ref` cookie survives (covers OAuth-from-login, abandoned register step-2, cross-tab links, failed first claim; per-code attempt guard, cookie cleared by the endpoint so no cross-account reuse). `POST /api/referrals/claim` additionally accepts a JSON `{ code }` fallback resolved by pure `resolveClaimCode()` in `lib/referral-cookie.ts` (cookie-first). `app/(auth)/login/page.tsx` fires a non-blocking claim after email sign-in. Points logic, self-referral block, and ACID degree-1/degree-2 writes untouched.
+3. **Team hiring block** — new `ITeamPageConfig` (`types/index.ts`) + `teamPage` defaults (`config/platform.config.ts`, CTA defaults to live `/about` rather than dead `#`); `app/(public)/team/page.tsx` renders the block config-driven (hidden when `hiringEnabled=false`; `https://…`/`mailto:…` CTAs open in a new tab); `app/admin/team/page.tsx` gains a "Page settings" card saving `teamPage.*` dotted keys via `PATCH /api/admin/config`. Backward compatible (defaults apply with no DB override).
+4. **QA gate:** `vitest` → 37 files, **431 passed / 0 failed** (+7 new: `__tests__/lib/referral-cookie.test.ts` for `resolveClaimCode`, `__tests__/lib/team-page-config.test.ts` for defaults; +1 platform-name-compliance allowlist entry for the new component's cookie doc comment — the initial `mailto:…crellab.com` default was caught by the guardrail and replaced with `/about`); `tsc --noEmit` clean; `next lint` 0 errors (pre-existing wallet-route warnings only); `next build` green.
+5. **Doc sync (update-ai-system deep sync inline):** dev-history (entry), task-queue Completed + `last-synced`, system-architecture (service row + config table + Recent Changes), index/repo-map + dependency-graph, memory/lessons-learned (compliance-guardrail lesson); in-progress.md cleared.
+
+**Files Modified/Created:** `types/index.ts`, `config/platform.config.ts`, `lib/referral-cookie.ts`, `components/shared/ReferralClaimOnAuth.tsx` (new), `app/(auth)/dashboard/components/ReferralBanner.tsx` (new), `app/layout.tsx`, `app/api/referrals/claim/route.ts`, `app/(auth)/login/page.tsx`, `app/(auth)/profile/page.tsx`, `app/(auth)/dashboard/components/ProviderDashboard.tsx`, `app/(auth)/dashboard/components/ClientDashboard.tsx`, `app/(public)/leaderboard/LeaderboardClient.tsx`, `app/(public)/team/page.tsx`, `app/admin/team/page.tsx`, `components/shared/Navbar.tsx`, `components/shared/Footer.tsx`, `__tests__/lib/referral-cookie.test.ts` (new), `__tests__/lib/team-page-config.test.ts` (new), `__tests__/platform-name-compliance.test.ts` (allowlist) + 8 ai-system docs (no migrations).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (`[L]`, still open in task-queue).
+
+**Notes / Blockers:**
+- `node_modules` was absent at session start; `npm ci --no-audit --no-fund` run (no dependency changes).
+- Residual risks: none. Claim stays idempotent (unique index on user/invitee/degree/source) so the extra triggers (layout mount + login hook) cannot double-award; cookie is always cleared post-claim.
 
 ## Session 33 — 2026-08-20 (Wallet Page + Paystack Tightening)
 

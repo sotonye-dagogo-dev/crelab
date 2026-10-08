@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -20,7 +20,7 @@ crelab/
 ├── .ai-system/              # AI-assisted development governance
 ├── app/                     # Next.js 15 App Router
 │   ├── globals.css          # Global styles + CSS custom properties
-│   ├── layout.tsx           # Root layout with PlatformConfigProvider + TanStack Query + 3 growth mounts (ReferralCapture, GlobalErrorCatcher, ScrollToTopButton)
+│   ├── layout.tsx           # Root layout with PlatformConfigProvider + TanStack Query + 4 growth mounts (ReferralCapture, ReferralClaimOnAuth, GlobalErrorCatcher, ScrollToTopButton)
 │   ├── error.tsx            # Route-segment error boundary (Continue via reset() + Reload)
 │   ├── global-error.tsx     # Root-layout error boundary
 │   ├── page.tsx             # Landing / Explore (guest hero + filter bar + provider/content view toggle + infinite scroll grids; toggle + grids public, hero guest-only)
@@ -37,7 +37,7 @@ crelab/
 │   │   ├── privacy/        # NDPR-compliant privacy policy
 │   │   ├── profile/[slug]/ # Provider public profile
 │   │   ├── search/         # Search results
-│   │   ├── team/           # Team members page (config-driven)
+│   │   ├── team/           # Team members page (config-driven incl. teamPage hiring block)
 │   │   ├── terms/          # Terms of service
 │   │   ├── verify-email/   # Email verification (verify/resend form + done state) (+ per-route SEO layout.tsx)
 │   │   └── webinars/       # Public webinars (upcoming registration for guests + members, past recordings)
@@ -48,7 +48,7 @@ crelab/
 │   │   ├── login/          # Sign in page (email/password + Google OAuth; phone tab commented out) (+ per-route SEO layout.tsx)
 │   │   ├── profile/        # Profile page, edit/setup + media asset manager (+ per-route SEO layout.tsx incl. media/setup)
 │   │   ├── register/       # Sign up page (multi-step email/password + Google OAuth; referral cookie claim hook; no phone field) (+ per-route SEO layout.tsx)
-│   │   ├── referrals/      # Authenticated referrals page (invite link, stats, degree breakdown)
+│   │   ├── referrals/      # Authenticated referrals page (invite link, stats, degree breakdown; linked from navbar/footer/profile/dashboards/leaderboard)
 │   │   └── wallet/         # Wallet page (balance, topup, withdraw, transactions) + payment-status callback (+ per-route SEO layout.tsx)
 │   ├── admin/               # ADMIN role only
 │   │   ├── page.tsx        # Dashboard
@@ -66,7 +66,7 @@ crelab/
 │   │   └── webinars/       # Webinar manager (CRUD, status/publish toggle, registration counts)
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
-  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send, /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all)
+  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send (test + broadcast + recipientIds batch), /admin/email/recipients (batch picker source: search/role/consent/limit/offset), /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all)
 │       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission (re-sanitises + stores error_context)
 │       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)
@@ -80,7 +80,7 @@ crelab/
 │       ├── newsletter/     # Newsletter subscribe (grants MARKETING consent for signed-in users)
 │       ├── portfolio/      # Portfolio CRUD (+ items list, reorder, individual item PATCH/DELETE)
 │       ├── profile/        # Profile management (setup)
-│       ├── referrals/      # GET /referrals/me + POST /referrals/claim (idempotent cookie claim)
+│       ├── referrals/      # GET /referrals/me + POST /referrals/claim (idempotent cookie claim + JSON {code} fallback)
 │       ├── verify-email/   # Verify-email: /send (sendVerificationEmail) + /welcome (fires welcome once verified)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
 │       ├── webinars/       # GET /webinars + POST /webinars/[id]/register (unique-index upsert)
@@ -150,7 +150,7 @@ crelab/
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
 │   ├── paystack.ts         # Init transaction, verify webhook, split, refund, DVA, transfer
 │   ├── platform-copy.ts    # PLATFORM_NAME_TOKEN ({{name}}) + fillPlatformName — display copy resolves from config.name
-│   ├── referral-cookie.ts  # crelab_ref cookie read/clear helpers for ?ref= capture + claim
+│   ├── referral-cookie.ts  # crelab_ref cookie read/clear + normalizeReferralCode + resolveClaimCode (cookie-first, body fallback) for ?ref= capture + claim
 │   ├── sanitize-error.ts   # Redacts emails/tokens/cookies/data-URIs, truncates message/stack/logs, 8 KB cap
 │   ├── social-platforms.ts # Team social-link catalogue: SOCIAL_PLATFORM_OPTIONS + normalizeSocialPlatform (legacy alias → canonical kind, "other" keeps raw label)
 │   ├── seo.ts              # buildSeoMetadata: config-driven Next.js Metadata (logo og:image, canonical, twitter, noindex) — consumed by root layout + 13 per-route layout.tsx files
@@ -193,7 +193,7 @@ crelab/
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
 | `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor, ImageUploadField |
 | `components/error/` | Error-boundary UX: report/continue popup + global window catcher | ErrorReportDialog, GlobalErrorCatcher |
-| `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, CountdownWidget/Slot, ScrollToTopButton | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, CountdownWidget, ScrollToTopButton |
+| `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth (auth-agnostic claim retry), CountdownWidget/Slot, ScrollToTopButton | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth, CountdownWidget, ScrollToTopButton |
 | `components/team/` | Team page social icons | `TeamSocialIcon.tsx` |
 | `sanity/` | Sanity CMS project config + content schemas | `sanity.config.ts`, `schemas/` |
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService, EarlyMemberService, ReferralService, LeaderboardService, WebinarService, PlatformStatsService, TeamService |

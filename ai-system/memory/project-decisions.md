@@ -1,7 +1,7 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — residual-risks: pagination + backfill)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-01
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -704,3 +704,24 @@ Users uploaded videos/photos that only ever served as the hero cover: provider t
 
 **Implications:**
 `lib/portfolio.ts` owns the pure helpers (`withCoverFallback` etc.); any new content surface (search, category feeds) must apply the same merge and must only ever pass `coverVideoUrl`, never `avatarUrl`. Synthetic ids are stable (`cover-<providerId>`) so keys/dedupe stay consistent.
+
+---
+
+## Email Batch Send: Explicit Recipient IDs, Capped at 500, Wired Guard on Every Path
+
+**Decision:** Batch email send takes an explicit `recipientIds: string[]` selected by the admin in a checkbox picker (search + role/consent filters + select-all/invert/clear/undo + first-100/creators/brands/subscribers quick filters), normalised server-side (trim, dedupe, cap at `MAX_BATCH_RECIPIENTS = 500`). The wired-template guard applies identically to test, broadcast, AND batch paths; batch sends are audit-logged as `email.batch` (distinct from `email.send.test` / `email.broadcast`); unresolvable ids count as skipped, never fail the batch.
+**Date:** 2026-10-08
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** None (extends the wired-template decision to a third send path)
+**Superseded by:** None
+
+**Reason:**
+Test-send (one address) and broadcast (all MARKETING-consented users) left no middle ground — targeting e.g. "creators only" or "the first 100 signups" required either 100 manual sends or blasting the whole segment. An explicit id list keeps the server contract simple (no server-side segment DSL to maintain/audit) while the picker UI provides the segment-like ergonomics via filters; the 500 cap bounds Resend cost and request time per send.
+
+**Alternatives Considered:**
+- Server-side segment DSL (`{ segment: "creators" }`) — rejected: every new segment becomes API surface + audit ambiguity ("who exactly got this?"); explicit ids make the recipient set auditable and replayable.
+- Reusing `POST /api/admin/users` as the picker source — rejected: it lacks the marketing-consent flag the picker needs ("subscribers only"); a dedicated `GET /api/admin/email/recipients` returns the flag + total without changing the users endpoint contract.
+- Allowing wired templates in batch — rejected: same mis-sequencing hazard as test/broadcast (e.g. batching a password-reset); guard is one `isWiredEmailTemplate` check shared by all paths.
+
+**Implications:**
+New send paths must call the same wired guard and log a distinct audit action. Raising the 500 cap requires checking Resend rate limits + route timeout budget first. Picker filter logic that is unit-testable lives in pure `lib/email-batch.ts`, never inline in the dialog.

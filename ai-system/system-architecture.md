@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — public-pages team/webinars re-verification)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -39,7 +39,7 @@ Service Layer (services/)
     |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + password reset)
     |-- BlogPostService         -- Blog post CRUD + DB→Sanity→fallback merge (admin/DB posts win, dedup by slug)
     |-- EarlyMemberService      -- Founding-100 rank via ROW_NUMBER() over user.createdAt (cached, no schema change)
-    |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim
+    |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim (cookie-first + JSON body fallback) + auth-agnostic claim retry (ReferralClaimOnAuth) + discovery links (navbar/footer/profile/dashboards/leaderboard)
     |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking over ALL members (zero-score rows kept, ranked last) + 30s user-agnostic board cache + batched candidate load + per-request current-user rank
      |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert)
      |-- TeamService             -- Public team listing (active-only, display order) + socialLinks normalisation (array | legacy JSON-string | null)
@@ -135,7 +135,7 @@ Data Stores
    -> preview + Simulate ONLY (useEmailSimulation) — badge + Zap icon + trigger banner in the admin
    -> /api/admin/email/send rejects wired keys for test-send AND broadcast (content/timing owned by code, not the operator)
    -> passwordReset fired by Better Auth emailAndPassword.sendResetPassword -> sendTransactionalEmail ({{resetUrl}} var)
-4. Admin-created (non-wired) templates: test-send + "Send to Subscribers" broadcast to MARKETING-consented users -> POST /api/admin/email/send -> EmailService
+4. Admin-created (non-wired) templates: test-send + "Send to Subscribers" broadcast to MARKETING-consented users + "Send to Selected…" batch send to an explicit admin-picked set -> POST /api/admin/email/send -> EmailService. Batch recipients come from GET /api/admin/email/recipients (search/role/consent/limit/offset + hasMarketingConsent flag); picker logic (normalize/filter/invert/cap 500) lives in pure `lib/email-batch.ts`; batch sends are audit-logged as `email.batch`. Wired-key guard applies identically to all three paths.
 ```
 
 ### Blog Content Sections Flow
@@ -259,7 +259,8 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | LANDING_STATS | `landingStats.items.{id}` — keyed record of stat items (key, label, format, orderIndex, enabled, fallbackValue) feeding the landing stats | platform.config.ts | creators/bookings/avgRating enabled; portfolio/members/team disabled |
 | SCROLL_TO_TOP | `scrollToTop` — enabled / thresholdPx / label for the platform-wide `ScrollToTopButton` | platform.config.ts | { enabled: true, thresholdPx: 400 } |
 | WEBINARS | `webinars` — page copy, `maxRegistrantsPerWebinar`, guest prompt + registration CTA + marketing-consent label | platform.config.ts | { maxRegistrantsPerWebinar: 500 } |
-| FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Leaderboard & Webinars links and the referral/webinar surfaces | platform.config.ts | both `true` |
+| TEAM_PAGE | `teamPage` — public `/team` hiring block (hiringEnabled/hiringTitle/hiringSubtitle/hiringCtaLabel/hiringCtaHref, relative or full URL); admin-editable from the `/admin/team` Page-settings card (PATCH `teamPage.*` dotted keys) | platform.config.ts | { hiringEnabled: true, hiringCtaHref: '/about' } |
+| FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Referrals/Leaderboard & Webinars links and the referral/webinar surfaces (referral discovery: navbar, footer, profile card, dashboard `ReferralBanner`, leaderboard CTA) | platform.config.ts | both `true` |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
 
@@ -337,6 +338,18 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-08 — Email Batch Send (selectable recipients)
+- **Batch send** — `POST /api/admin/email/send` gains a `{ templateKey, recipientIds: string[] }` branch alongside single `to` and `segment:"marketing"`: ids normalised (trim/dedupe/cap 500 via pure `lib/email-batch.ts`), wired-key guard identical to the other paths, per-recipient `EmailService.sendTemplate`, unresolvable ids counted as skipped, audit-logged as `email.batch`.
+- **Recipient picker source** — new `GET /api/admin/email/recipients` (ADMIN): `search` (name/email ilike), `role` (CLIENT/PROVIDER/ADMIN/ALL), `consent` (all/marketing via MARKETING-consent join, chunked `inArray` to respect the 500-parameter bound), `limit` 1–500 (default 100) + `offset`; returns id/name/email/role/hasMarketingConsent/createdAt + total.
+- **Picker UI** — new `components/admin/EmailBatchSendDialog.tsx` (ClModal + ClButton only, no custom overlays): debounced search, role/consent selects, First-100 / Only-creators / Only-brands / Only-subscribers quick filters, checkbox list with select-visible toggle, Select-all-visible / Invert / Clear / 10-deep Undo, showing-X-of-Y, live send count. "Send to Selected…" button on `/admin/email-templates` (non-wired templates only).
+- **QA:** `vitest` 442/442 (38 files; +11 new `email-batch` tests), `tsc --noEmit` clean, `next lint` 0 errors, `next build` green.
+
+### 2026-10-08 — Referral discovery links + auth-agnostic claim + config-driven team hiring block
+- **Referral discovery** — `/referrals` was reachable only by direct URL. It is now linked (all flag-gated on `features.referralsEnabled` + `referral.enabled`) from the Navbar, the Footer Platform section, an "Invite & earn" card on `/profile`, a shared `ReferralBanner` on both provider and client dashboards (`app/(auth)/dashboard/components/ReferralBanner.tsx`), and an invite CTA on `/leaderboard` (the referrals page already linked back to the leaderboard).
+- **Auth-agnostic attribution** — the claim previously fired only from the `/register` step-2 submit, so OAuth sign-ins starting at `/login`, abandoned step-2 screens, cross-tab links, or a failed first request lost attribution. New `components/shared/ReferralClaimOnAuth.tsx` (mounted in `app/layout.tsx`) retries the idempotent claim once authenticated while the `crellab_ref` cookie survives; `POST /api/referrals/claim` additionally accepts a JSON `{ code }` fallback resolved by pure `resolveClaimCode()` in `lib/referral-cookie.ts` (cookie-first); `/login` fires a non-blocking claim after email sign-in. Points logic, self-referral block, and ACID degree-1/degree-2 writes are untouched.
+- **Team hiring block** — the hardcoded "Want to be part of the team? … View Open Positions (href=#)" div on `/team` is now driven by the new `teamPage` config (`ITeamPageConfig` in `types/index.ts`, defaults in `config/platform.config.ts`, default CTA `/about` so it never dead-links) and editable from the `/admin/team` "Page settings" card (PATCH `teamPage.*` dotted keys via `PlatformConfigService`). Full URLs (`https://…`, `mailto:…`) open externally; backward compatible (defaults apply when no DB override exists).
+- **QA:** `vitest` 431/431 (37 files; +7 new: `resolveClaimCode` + `teamPage` defaults; +1 platform-name-compliance allowlist entry for the new component's cookie doc comment), `tsc --noEmit` clean, `next lint` 0 errors, `next build` green.
 
 ### 2026-10-08 — Public-Pages Team/Webinars Re-verification (team empty-state fix)
 - **Root cause of the empty `/team` page** — the page ran its `team_members` query inline in a server component with no `force-dynamic` flag, so Next statically prerendered the build-time (empty) result and admin additions never appeared until the next deploy. The `catch` fallback (`MockDataService.getTeamMembers()`) returns `[]` unless mock mode is on, so production showed the "Coming Soon" empty state even with rows in the table.

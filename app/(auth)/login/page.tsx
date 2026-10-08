@@ -26,6 +26,9 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signIn(email, password);
+      // Non-blocking — attributes a pending referral invite (if any) for
+      // returning users signing back in, not just fresh sign-ups. Idempotent.
+      fetch("/api/referrals/claim", { method: "POST" }).catch(() => {});
       router.push("/explore");
     } catch {
       setError("Invalid email or password");

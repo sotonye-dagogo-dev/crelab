@@ -360,6 +360,17 @@ export interface IDevCredit {
   url: string;
 }
 
+/** Public `/team` page hiring/join block — admin-editable from `/admin/team`. */
+export interface ITeamPageConfig {
+  /** Master switch — when false the hiring block is hidden entirely */
+  hiringEnabled: boolean;
+  hiringTitle: string;
+  hiringSubtitle: string;
+  hiringCtaLabel: string;
+  /** Relative path (e.g. `/bug-report`) or full URL (e.g. `https://…`, `mailto:…`) */
+  hiringCtaHref: string;
+}
+
 export interface IMilestonePaymentsConfig {
   enabled: boolean;
   minBookingAmountKobo: number;
@@ -694,6 +705,7 @@ export interface IPlatformConfig {
   blogConfig?: IBlogConfig;
   emailConfig?: IEmailConfig;
   devCredit?: IDevCredit;
+  teamPage?: ITeamPageConfig;
 }
 
 export interface IBlogNewsletterConfig {

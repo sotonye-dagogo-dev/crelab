@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-08 — nav/footer/leaderboard polish)
+> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
 > - last-verified-against-code: 2026-10-08
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -201,9 +201,10 @@ Newsletter
   → app/admin/blog-templates/page.tsx (edits blogConfig with live preview)
 
 Admin email send
-  → app/api/admin/email/send/route.ts (test-send + broadcast to MARKETING-consented users) → EmailService
-  → wired templates (lib/email-templates.ts isWiredEmailTemplate) rejected — preview/simulate only
-  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs + editable template name via EmailTemplateBlocksEditor → ContentBlocksEditor; wired badge/Simulate/banner)
+  → app/api/admin/email/send/route.ts (test-send + broadcast to MARKETING-consented users + recipientIds batch send, audit `email.batch`) → EmailService
+  → wired templates (lib/email-templates.ts isWiredEmailTemplate) rejected on all three paths — preview/simulate only
+  → app/api/admin/email/recipients/route.ts (ADMIN picker source: search/role/consent/limit/offset + hasMarketingConsent flag) + lib/email-batch.ts (pure normalize/filter/invert/cap-500 helpers)
+  → app/admin/email-templates/page.tsx (Visual/HTML/Preview tabs + editable template name via EmailTemplateBlocksEditor → ContentBlocksEditor; wired badge/Simulate/banner; Send Test / Send to Selected… via EmailBatchSendDialog / Send to Subscribers)
 
 Admin user management
   → app/api/admin/users/route.ts (GET search/list) + app/api/admin/users/[id]/route.ts (PATCH role/emailVerified, DELETE with self-guard)
@@ -241,8 +242,9 @@ EarlyMemberService (services/EarlyMemberService.ts)
 
 ReferralService (services/ReferralService.ts)
   → lib/db.ts + drizzle/schema.ts (referral_codes, referral_events) + drizzle-orm tx (ACID degree-1 + degree-2 write in one transaction)
-  → lib/referral-cookie.ts (crelab_ref cookie read/clear) + PlatformConfigService (referral config: directPoints/secondDegreePoints)
-  → consumed by app/api/referrals/me (GET) + app/api/referrals/claim (POST, idempotent) + app/(auth)/register (claim hook after sign-up) + app/(auth)/referrals page + components/shared/ReferralCapture.tsx (?ref= capture, mounted in app/layout.tsx)
+  → lib/referral-cookie.ts (crelab_ref cookie read/clear + resolveClaimCode: cookie-first, JSON {code} body fallback) + PlatformConfigService (referral config: directPoints/secondDegreePoints)
+  → consumed by app/api/referrals/me (GET) + app/api/referrals/claim (POST, idempotent) + app/(auth)/register (claim hook after sign-up) + app/(auth)/login (claim hook after email sign-in) + app/(auth)/referrals page + components/shared/ReferralCapture.tsx (?ref= capture, mounted in app/layout.tsx) + components/shared/ReferralClaimOnAuth.tsx (auth-agnostic claim retry once authenticated — covers OAuth-from-login, abandoned register step-2, cross-tab links, failed first claim; mounted in app/layout.tsx)
+  → discovery links (flag-gated on features.referralsEnabled + referral.enabled): components/shared/Navbar.tsx + Footer.tsx (Referrals entry), app/(auth)/profile (Invite & earn card), app/(auth)/dashboard/components/ReferralBanner.tsx (provider + client dashboards), app/(public)/leaderboard/LeaderboardClient.tsx (invite CTA)
 
 LeaderboardService (services/LeaderboardService.ts)
   → lib/db.ts + drizzle/schema.ts (referral_events, portfolio_items, bookings, reviews) + drizzle-orm aggregate queries
@@ -263,7 +265,8 @@ WebinarService (services/WebinarService.ts)
 
 TeamService (services/TeamService.ts)
   → lib/db.ts + drizzle/schema.ts (team_members) — `listPublic()` (active-only, orderIndex + createdAt) + pure `normalizeSocialLinks()` (array | legacy JSON-string | null → array) + `serializeTeamMember()`
-  → consumed by app/(public)/team/page.tsx (server, `force-dynamic`) + app/api/team (GET public list, mock fallback only when mock mode enabled)
+  → PlatformConfigService (`teamPage` config: hiringEnabled/hiringTitle/hiringSubtitle/hiringCtaLabel/hiringCtaHref — relative or full URL; defaults in config/platform.config.ts)
+  → consumed by app/(public)/team/page.tsx (server, `force-dynamic`; hiring block config-driven, hidden when hiringEnabled=false) + app/api/team (GET public list, mock fallback only when mock mode enabled) + app/admin/team/page.tsx (`TeamPageSettings` card → PATCH /api/admin/config dotted keys `teamPage.*`)
 
 Countdown widget
   → lib/countdown.ts (pure math/expiry/area selection) + lib/countdown-icons.ts (curated lucide allowlist)

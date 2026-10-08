@@ -37,6 +37,14 @@ export default async function TeamPage() {
     members = MockDataService.getTeamMembers();
   }
 
+  let config;
+  try {
+    config = await PlatformConfigService.getCached();
+  } catch {
+    config = DEFAULT_CONFIG;
+  }
+  const hiring = config.teamPage ?? DEFAULT_CONFIG.teamPage;
+
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-[1200px] mx-auto px-6 py-16">
@@ -101,20 +109,26 @@ export default async function TeamPage() {
                 </div>
               ))}
             </div>
-            <div className="text-center py-8 border-t border-[var(--color-border)]">
-              <h2 className="font-[family-name:var(--font-display)] font-bold text-2xl mb-2">
-                Want to be part of the team?
-              </h2>
-              <p className="text-[var(--color-text-secondary)] mb-6">
-                We are always looking for talented people who share our vision.
-              </p>
-              <a
-                href="#"
-                className="inline-flex items-center justify-center h-10 px-4 rounded-md bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-sm no-underline hover:bg-[var(--color-accent-dim)] transition-colors"
-              >
-                View Open Positions
-              </a>
-            </div>
+            {hiring?.hiringEnabled !== false && (
+              <div className="text-center py-8 border-t border-[var(--color-border)]">
+                <h2 className="font-[family-name:var(--font-display)] font-bold text-2xl mb-2">
+                  {hiring?.hiringTitle || "Want to be part of the team?"}
+                </h2>
+                <p className="text-[var(--color-text-secondary)] mb-6">
+                  {hiring?.hiringSubtitle ||
+                    "We are always looking for talented people who share our vision."}
+                </p>
+                <a
+                  href={hiring?.hiringCtaHref || "/about"}
+                  {...(hiring?.hiringCtaHref?.startsWith("http")
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  className="inline-flex items-center justify-center h-10 px-4 rounded-md bg-[var(--color-accent)] text-[var(--color-text-inverse)] font-semibold text-sm no-underline hover:bg-[var(--color-accent-dim)] transition-colors"
+                >
+                  {hiring?.hiringCtaLabel || "View Open Positions"}
+                </a>
+              </div>
+            )}
           </>
         ) : (
           <ClEmptyState

@@ -46,6 +46,13 @@ export async function Footer() {
             </Link>
             {config.features?.referralsEnabled !== false && (
               <Link
+                href="/referrals"
+                className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
+                Referrals
+              </Link>
+            )}
+            {config.features?.referralsEnabled !== false && (
+              <Link
                 href="/leaderboard"
                 className="block py-1 text-[13px] text-[var(--color-text-secondary)] no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-[var(--color-text-primary)]">
                 Leaderboard
