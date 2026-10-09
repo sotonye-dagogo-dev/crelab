@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Play, FileText, Image as ImageIcon } from "lucide-react";
 import { ClDataTable, type ClColumn } from "@/components/ui";

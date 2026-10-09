@@ -523,3 +523,53 @@ Never `eq()` an email column against a normalised value — always match case-in
 
 **Date:** 2026-10-08
 **Status:** Active
+
+---
+
+### `GET /api/webinars` 500 — Raw `Date` Passed as SQL Bind Param
+
+**Symptom:**
+`GET /api/webinars` returns 500. Logs show the `count(*)` query over `webinars` with params `true,ENDED,CANCELLED,120,120,<Date>` failing at param serialization:
+```
+TypeError: The "string" argument must be of type string or an instance of Buffer or ArrayBuffer. Received an instance of Date
+```
+
+**Root Cause:**
+`WebinarService.phaseCondition()` passed a raw JS `Date` (`now`) into `lte()`/`gt()` comparisons against the `effectiveEndSql` fragment. The production query layer stringifies bind params and rejects `Date` instances, so every `listPublic` call (both `upcoming` and `past` sections, fired in parallel by the route) threw.
+
+**Fix Applied:**
+Bind `now` as an ISO string with an explicit cast: `sql`${now.toISOString()}::timestamptz`` and compare `lte/gt(effectiveEndSql, nowParam)`. Insert/update paths (`register`, `create`, `update`) still use `Date` objects via the ORM column setters, which the driver handles — only the raw-SQL comparison needed the string form.
+
+**Prevention:**
+Never pass a raw `Date` into a `sql`-fragment comparison — always bind `date.toISOString()` with an explicit `::timestamptz` cast. ORM column reads/writes (`eq`, `set`, `values`) may keep `Date` objects.
+
+**Files Affected:**
+- `services/WebinarService.ts` (`phaseCondition`)
+
+**Date:** 2026-10-09
+**Status:** Active
+
+---
+
+### `GET /dashboard` 500 — Server Component Passing Column Functions to Client `ClDataTable`
+
+**Symptom:**
+`GET /dashboard` returns 500 with 8 serialization errors — one per `PortfolioPerformanceTable` column (`thumb`, `title`, `type`, `plays`, `clicks`, `conversion`, `actions`, each `cell: function cell`) plus one for the table call itself (`rowKey: function rowKey`):
+```
+Error: Functions cannot be passed directly to Client Components unless you explicitly expose it by marking it with "use server".
+```
+
+**Root Cause:**
+`PortfolioPerformanceTable` was a Server Component (no `"use client"`) defining `columns` with `cell: (row) => …` render functions and passing `rowKey={(row) => row.id}` into `ClDataTable`, which is `"use client"`. Functions cannot cross the server→client boundary (same pattern as the earlier `BookingBottomBar onBook` entry). The chain `DashboardPage (server) → DashboardClient → ProviderDashboard → PortfolioPerformanceTable → ClDataTable (client)` meant the functions were created server-side and serialized — rejected at render.
+
+**Fix Applied:**
+Added `"use client"` to `app/(auth)/dashboard/components/PortfolioPerformanceTable.tsx` so the column/rowKey functions are created client-side. Parent components pass only serializable `rows` data, which is allowed. (Sibling dashboard components render plain JSX from data and needed no change.)
+
+**Prevention:**
+Any component that builds a `ClColumn[]` (with `cell` functions) or passes callbacks (`rowKey`, `onPageChange`) into `ClDataTable`/`ClPagination` must be `"use client"`. Never define table column configs in a Server Component.
+
+**Files Affected:**
+- `app/(auth)/dashboard/components/PortfolioPerformanceTable.tsx`
+
+**Date:** 2026-10-09
+**Status:** Active
