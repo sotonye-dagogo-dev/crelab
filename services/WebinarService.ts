@@ -167,12 +167,16 @@ const effectiveEndSql = sql<Date>`COALESCE(${webinars.endsAt}, ${webinars.starts
 const DECLARED_PAST: WebinarStatus[] = ["ENDED", "CANCELLED"];
 
 function phaseCondition(phase: WebinarPhase, now: Date): SQL {
+  // Bind `now` as an ISO string with an explicit timestamptz cast. Passing a
+  // raw Date object breaks query layers that stringify bind params (prod:
+  // `TypeError: The "string" argument must be of type string... Received Date`).
+  const nowParam = sql`${now.toISOString()}::timestamptz`;
   if (phase === "past") {
-    return or(inArray(webinars.status, DECLARED_PAST), lte(effectiveEndSql, now)) as SQL;
+    return or(inArray(webinars.status, DECLARED_PAST), lte(effectiveEndSql, nowParam)) as SQL;
   }
   return and(
     notInArray(webinars.status, DECLARED_PAST),
-    or(isNull(effectiveEndSql), gt(effectiveEndSql, now)),
+    or(isNull(effectiveEndSql), gt(effectiveEndSql, nowParam)),
   ) as SQL;
 }
 
