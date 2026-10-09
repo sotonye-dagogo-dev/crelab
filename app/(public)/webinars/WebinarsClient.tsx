@@ -7,12 +7,15 @@ import {
   CheckCircle2,
   Clock,
   MapPin,
+  Maximize2,
   MonitorPlay,
   Video,
+  X,
 } from "lucide-react";
 import {
   ClBadge,
   ClButton,
+  ClDialog,
   ClEmptyState,
   ClInput,
   ClPagination,
@@ -308,6 +311,72 @@ function MetaItem({ icon, children }: { icon: ReactNode; children: ReactNode }) 
   );
 }
 
+/**
+ * Responsive webinar cover with a dismissable expand overlay.
+ *
+ * Tile uses a 16:9 frame (`aspect-video`) so covers render at a legible
+ * height on every breakpoint instead of the previous fixed `h-32`/`h-36`
+ * strip. The image is wrapped in a button (keyboard accessible) that opens
+ * a `ClDialog` overlay with the full-bleed image — dismissable via the
+ * close button, backdrop click, or Escape (handled by `ClDialog`).
+ */
+function WebinarCoverImage({ src, title }: { src: string; title: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const label = title ? `Expand cover image for ${title}` : "Expand cover image";
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        aria-label={label}
+        title="View larger"
+        className="group relative block w-full aspect-video overflow-hidden border-b border-[var(--color-border)] bg-[var(--color-surface-raised)] cursor-zoom-in"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={title ? `${title} cover` : ""}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] group-focus-visible:scale-[1.02]"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute bottom-2 right-2 inline-flex items-center justify-center w-8 h-8 rounded-full bg-[rgba(10,10,10,0.65)] text-white opacity-0 backdrop-blur-[2px] transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+        >
+          <Maximize2 size={15} strokeWidth={2} />
+        </span>
+      </button>
+
+      <ClDialog open={expanded} onClose={() => setExpanded(false)} aria-label={title || "Webinar cover image"}>
+        <div className="relative flex flex-col">
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            aria-label="Close image preview"
+            className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] cursor-pointer hover:text-[var(--color-text-primary)]"
+          >
+            <X size={16} />
+          </button>
+          <div className="rounded-[12px] overflow-hidden bg-black flex items-center justify-center min-h-[200px] max-h-[70vh]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={title ? `${title} cover` : ""}
+              className="max-h-[70vh] w-auto max-w-full object-contain"
+            />
+          </div>
+          {title && (
+            <p className="pt-3 text-[13px] font-semibold text-[var(--color-text-primary)] leading-snug">
+              {title}
+            </p>
+          )}
+        </div>
+      </ClDialog>
+    </>
+  );
+}
+
 function UpcomingCard({
   webinar,
   webinars,
@@ -347,12 +416,7 @@ function UpcomingCard({
   return (
     <article className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden flex flex-col">
       {webinar.coverUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={webinar.coverUrl}
-          alt=""
-          className="w-full h-36 object-cover border-b border-[var(--color-border)]"
-        />
+        <WebinarCoverImage src={webinar.coverUrl} title={webinar.title} />
       )}
       <div className="p-5 flex flex-col gap-3 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -489,12 +553,7 @@ function PastCard({ webinar }: { webinar: IWebinar }) {
   return (
     <article className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden flex flex-col">
       {webinar.coverUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={webinar.coverUrl}
-          alt=""
-          className="w-full h-32 object-cover border-b border-[var(--color-border)]"
-        />
+        <WebinarCoverImage src={webinar.coverUrl} title={webinar.title} />
       )}
       <div className="p-5 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
