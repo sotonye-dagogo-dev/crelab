@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — cover-visible-everywhere)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: fix-build (Session 2026-10-09 — webinars Date param + dashboard client boundary)
+> - last-verified-against-code: 2026-10-09
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,18 @@
 
 ## Last Run
 
-**Date:** 2026-10-08
-**Run by:** execute-feature (cover-visible-everywhere) + update-ai-system deep sync
+**Date:** 2026-10-09
+**Run by:** fix-build (webinars Date param + dashboard client boundary)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 418 | 0 | 0 |
+| Unit (vitest) | 457 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | Lint (next lint) | — | 0 errors (pre-existing warnings only) | — |
-| Production build | — | not re-run this session (no app-shell change; last green 2026-10-08 session) | — |
+| Production build | — | not re-run this session (2-file targeted fix; tsc + full vitest green) | — |
 
-**Overall Status:** ✅ All 418/418 tests pass. Typecheck clean. Lint 0 errors. +8 new portfolio cover-fallback tests; +2 new media backfill tests (photo cover, already-attached cover); see History.
+**Overall Status:** ✅ All 457/457 tests pass. Typecheck clean. Lint 0 errors. No new tests (minimal 2-file fix; existing WebinarService 21 + DashboardService 16 tests cover both areas).
 
 ---
 
@@ -38,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-09 | 457 | 0 | fix-build: webinars `phaseCondition` binds ISO string + `::timestamptz` (was raw Date); PortfolioPerformanceTable → `"use client"`. tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 407 | 0 | execute-feature: leaderboard pagination optimisation (30s board cache, batched candidates, current-user rank; +5 tests) + orphan backfill service/API/admin UI (+3 tests). tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 399 | 0 | execute-feature: leaderboard keeps zero-score rows (+2 tests, 1 expectation updated); explore portfolio mock fallback; upload→portfolio auto-attach + POST /api/portfolio/items. tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 398 | 0 | verify-work: resolved the 3 long-standing failures non-breaking (media message restores "too large" substring; BlogPostService expectations reflect merge-with-fallback). tsc 0 errors, lint 0 errors |

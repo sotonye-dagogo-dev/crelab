@@ -1662,3 +1662,26 @@ verified via `git stash`), no regressions.
 **Notes / Blockers:**
 - `node_modules` absent; no install attempted (network/time) — `npm ci` + `npm test` + `npm run typecheck` + `npm run build` must pass in CI before merge.
 - Residual: `authClient.updateUser({image})` depends on Better Auth user schema carrying `image` (default field — present via `hooks/useAuth.ts` `AuthUser.image`).
+
+## Session 2026-10-09 — fix-build: /api/webinars 500 + /dashboard 500
+
+**Directive:** `ai-system/commands/fix-build.md` — resolve `GET /api/webinars` 500 (Date bind param) + `GET /dashboard` 500 (functions passed to Client Components).
+
+**Diagnosed:**
+1. Webinars: `WebinarService.phaseCondition()` passed raw `Date` into `lte/gt(effectiveEndSql, now)`; prod query layer stringifies bind params → `TypeError: ... Received an instance of Date`. Both parallel `listPublic` calls threw.
+2. Dashboard: `PortfolioPerformanceTable` (server) defined `columns` with `cell` functions + `rowKey` fn into `"use client"` `ClDataTable` — 8 serialization errors, exact match to its 7 columns + table call.
+
+**Completed:**
+1. `services/WebinarService.ts` — `phaseCondition` binds `sql`${now.toISOString()}::timestamptz``; ORM insert/update paths untouched (driver handles `Date` there).
+2. `app/(auth)/dashboard/components/PortfolioPerformanceTable.tsx` — added `"use client"`; parents pass only serializable `rows`.
+3. Repair log: 2 new entries in `ai-system/repair-system.md`; test-results + session-log updated; in-progress.md cleared.
+
+**Verified:** `npx tsc --noEmit` 0 errors; `npm test` 457/457 pass (incl. WebinarService 21, DashboardService 16); `npm run lint` 0 errors (pre-existing warnings only). No build re-run (2-file targeted fix).
+
+**Files Modified/Created:** `services/WebinarService.ts`, `app/(auth)/dashboard/components/PortfolioPerformanceTable.tsx` + 3 ai-system docs (no migrations).
+
+**Chain check:** fix touched 2 files + repair-system patterns added → `sync-context.md` would be mandatory per contract, but that command file does not exist in `ai-system/commands/`; doc headers (test-results, repair-system) updated inline instead. No assumptions introduced.
+
+**Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).
+
+**sync-context (fix-build chain):** drift check — repo-map, dependency-graph, system-architecture webinar/dashboard claims all still accurate (internal-only changes, no module-boundary/import drift); repair-system entries verified in place; no task-queue mutation → no checkpoint chain required. No doc updates needed.
