@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: fix-build (Session 2026-10-12 — WebinarService TS7006 build fix)
+> - last-verified-against-code: 2026-10-12
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -10,6 +10,43 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-12 — Fix Build: WebinarService TS7006 (fix-build)
+
+**Directive:** `npm run build` fails — `./services/WebinarService.ts:280:24 Type error: Parameter 'r' implicitly has an 'any' type` (+ non-blocking ESLint unused-var warnings).
+
+**Diagnose:** Searched `repair-system.md` — no matching pattern. Traced execution path: `grantMarketingConsent(tx: any, …)` types the tx handle as `any` → `existing` is `any` → `.some((r) => …)` has no contextual type → TS7006 under `strict/noImplicitAny`. Other `.map`/`.some` callbacks in the file are safe (typed `db.select()` rows); only the `any`-tx path loses inference.
+
+**Completed:**
+1. `services/WebinarService.ts` — explicit `(r: { id: string; granted: boolean | null })` annotation (1-line, minimal).
+2. `__tests__/platform-name-compliance.test.ts` — secondary fix: pre-existing failure from the prior webinars-persistence session (`crellab:webinar-*` localStorage keys unallowlisted); added reviewed allowlist entry (test-only, precedent-based).
+3. Verified: `npx tsc --noEmit` 0 errors, `npx vitest run` 459/459 pass, `npm run build` full green.
+4. Logged 2 `repair-system.md` patterns; updated `testing/test-results.md`.
+
+**Sync-context (chain check):** single-file code fix + test-allowlist entry — no new modules, no arch/import/task-queue drift; `repo-map.md`, `dependency-graph.md`, `system-architecture.md` unaffected. No assumptions introduced.
+
+**Chains:** `sync-context.md` lightweight check inline (no drift); `repair-system.md` pattern added per contract §10.
+
+## Session 2026-10-12 — Webinars Persistence Tightening (execute-feature)
+
+**Directive:** Registrations don't persist (authed seat → admin 0, Reserve reappears); newsletter checkbox must be functional + sticky/default-checked for subscribers; pagination alignment + past-heading spacing + 1-col → 2-col grid. Config-driven, modular, non-breaking, fallbacks + edge cases.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system scope; bug-fix + small additive scope (2 new GET routes, no schema/migration, consent grant-only, UI spacing only). Scope/decision checks pass.
+
+**Root causes found:**
+1. Client-only registered state (`outcomes` in `useState`) — lost on reload/navigation, so Reserve reappeared even for saved seats.
+2. Brittle authed registration: session resolved only via `req.headers` (silent null → "Email is required") and name required even for session users with empty profile names.
+3. Newsletter checkbox stored only on the registration row — never granted MARKETING consent, so "Send to Subscribers" pool never included opt-ins (stub).
+
+**Completed:**
+1. `services/WebinarService.ts` — `getByIdOrSlug()`, `myWebinarIds()`, `hasMarketingConsent()`, `listRegistrations()`, in-transaction grant-only `grantMarketingConsent()`, guest→user email linking.
+2. `app/api/webinars/mine/route.ts` (new, always-200) + `app/api/admin/webinars/[id]/registrations/route.ts` (new) + register route hardened (headers fallback, email validation, name fallback, slug-tolerant service).
+3. `app/(public)/webinars/WebinarsClient.tsx` — server-persisted seats, stored + subscriber default-checked consent, guest localStorage cache, debounced `/mine`, padded pagination, divided past section, 1-col → md:2-col grids.
+4. `app/admin/webinars/page.tsx` — clickable count → attendee drawer.
+5. `__tests__/services/WebinarService.test.ts` — `myWebinarIds` empty-identity tests.
+6. `sync-context.md` at checkpoints; `update-ai-system.md` inline (repo-map, dependency-graph, dev-history, this log).
+
+**Chains:** `sync-context.md` mid-work + close (this entry); `update-ai-system.md` deep sync inline per directive (Step 5 condition: user-facing behaviour change across service + routes + pages).
 
 ## Session 2026-10-08 — Verified-Status Hardening (execute-feature)
 

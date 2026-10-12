@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-09 — webinars Date param + dashboard client boundary)
-> - last-verified-against-code: 2026-10-09
+> - last-updated-by: fix-build (Session 2026-10-12 — WebinarService TS7006 + compliance allowlist)
+> - last-verified-against-code: 2026-10-12
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,17 @@
 
 ## Last Run
 
-**Date:** 2026-10-09
-**Run by:** fix-build (webinars Date param + dashboard client boundary)
+**Date:** 2026-10-12
+**Run by:** fix-build (WebinarService TS7006 implicit-any + webinar storage-key compliance allowlist)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 457 | 0 | 0 |
+| Unit (vitest) | 459 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
-| Lint (next lint) | — | 0 errors (pre-existing warnings only) | — |
-| Production build | — | not re-run this session (2-file targeted fix; tsc + full vitest green) | — |
+| Production build (`npm run build`) | — | 0 errors (full route build green) | — |
 
-**Overall Status:** ✅ All 457/457 tests pass. Typecheck clean. Lint 0 errors. No new tests (minimal 2-file fix; existing WebinarService 21 + DashboardService 16 tests cover both areas).
+**Overall Status:** ✅ All 459/459 tests pass. Typecheck clean. Production build green. No new tests (1-file code annotation + 1 test-allowlist entry; existing WebinarService + compliance suites cover both areas).
 
 ---
 
@@ -38,6 +37,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-12 | 459 | 0 | fix-build: WebinarService `grantMarketingConsent` explicit `{ id; granted }` annotation (was TS7006 implicit any off `tx: any`); compliance allowlist +3 webinar storage keys. tsc 0 errors, `npm run build` green |
 | 2026-10-09 | 457 | 0 | fix-build: webinars `phaseCondition` binds ISO string + `::timestamptz` (was raw Date); PortfolioPerformanceTable → `"use client"`. tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 407 | 0 | execute-feature: leaderboard pagination optimisation (30s board cache, batched candidates, current-user rank; +5 tests) + orphan backfill service/API/admin UI (+3 tests). tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 399 | 0 | execute-feature: leaderboard keeps zero-score rows (+2 tests, 1 expectation updated); explore portfolio mock fallback; upload→portfolio auto-attach + POST /api/portfolio/items. tsc 0 errors, lint 0 errors |

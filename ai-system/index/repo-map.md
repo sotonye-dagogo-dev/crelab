@@ -83,7 +83,7 @@ crelab/
 │       ├── referrals/      # GET /referrals/me + POST /referrals/claim (idempotent cookie claim + JSON {code} fallback)
 │       ├── verify-email/   # Verify-email: /send (shared sendVerificationEmailTo helper) + /welcome (fires welcome once verified) + /verify (case-insensitive token verify with affected-row check)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
-│       ├── webinars/       # GET /webinars + POST /webinars/[id]/register (unique-index upsert)
+│       ├── webinars/       # GET /webinars + GET /webinars/mine (my seats + subscriber flag) + POST /webinars/[id]/register (id-or-slug, unique-index upsert, MARKETING grant on opt-in)
 │       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or Paystack initiate with real client email + metadata
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
