@@ -153,6 +153,11 @@ const ALLOWLIST: AllowlistEntry[] = [
     allowed: ["demo@crellab.test"],
     reason: "Demo account e-mail for mock auth",
   },
+  {
+    file: "app/(public)/webinars/WebinarsClient.tsx",
+    allowed: ["crellab:webinar-consent", "crellab:webinar-guest-email", "crellab:webinar-guest-seats"],
+    reason: "localStorage keys for webinar consent cache and guest seats",
+  },
 ];
 
 function walk(dir: string, out: string[]): void {
