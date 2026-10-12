@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — webinars persistence tightening)
+> - last-updated-by: fix-build (Session 2026-10-12 — WebinarService TS7006 build fix)
 > - last-verified-against-code: 2026-10-12
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,22 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-12 — Fix Build: WebinarService TS7006 (fix-build)
+
+**Directive:** `npm run build` fails — `./services/WebinarService.ts:280:24 Type error: Parameter 'r' implicitly has an 'any' type` (+ non-blocking ESLint unused-var warnings).
+
+**Diagnose:** Searched `repair-system.md` — no matching pattern. Traced execution path: `grantMarketingConsent(tx: any, …)` types the tx handle as `any` → `existing` is `any` → `.some((r) => …)` has no contextual type → TS7006 under `strict/noImplicitAny`. Other `.map`/`.some` callbacks in the file are safe (typed `db.select()` rows); only the `any`-tx path loses inference.
+
+**Completed:**
+1. `services/WebinarService.ts` — explicit `(r: { id: string; granted: boolean | null })` annotation (1-line, minimal).
+2. `__tests__/platform-name-compliance.test.ts` — secondary fix: pre-existing failure from the prior webinars-persistence session (`crellab:webinar-*` localStorage keys unallowlisted); added reviewed allowlist entry (test-only, precedent-based).
+3. Verified: `npx tsc --noEmit` 0 errors, `npx vitest run` 459/459 pass, `npm run build` full green.
+4. Logged 2 `repair-system.md` patterns; updated `testing/test-results.md`.
+
+**Sync-context (chain check):** single-file code fix + test-allowlist entry — no new modules, no arch/import/task-queue drift; `repo-map.md`, `dependency-graph.md`, `system-architecture.md` unaffected. No assumptions introduced.
+
+**Chains:** `sync-context.md` lightweight check inline (no drift); `repair-system.md` pattern added per contract §10.
 
 ## Session 2026-10-12 — Webinars Persistence Tightening (execute-feature)
 

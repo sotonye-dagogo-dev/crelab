@@ -573,3 +573,60 @@ Any component that builds a `ClColumn[]` (with `cell` functions) or passes callb
 
 **Date:** 2026-10-09
 **Status:** Active
+
+---
+
+### Next.js Build `TS7006` — Implicit `any` Callback Param Off an `any`-Typed Transaction Handle
+
+**Symptom:**
+`npm run build` fails at type-check:
+```
+./services/WebinarService.ts:280:24
+Type error: Parameter 'r' implicitly has an 'any' type.
+> 280 |     if (existing.some((r) => r.granted === true)) return;
+```
+(ESLint unused-var warnings elsewhere in the log are non-blocking and unrelated.)
+
+**Root Cause:**
+`grantMarketingConsent(tx: any, …)` deliberately types the drizzle transaction handle as `any` (cross-version compatibility). `existing` is therefore `any`, so `existing.some((r) => …)` leaves `r` with no contextual type and `noImplicitAny` (`strict: true` in `tsconfig.json`) rejects it with TS7006. Other `.map`/`.some` callbacks in the same file are safe because their `rows` come from typed `db.select()` calls — only the `any`-tx path loses inference.
+
+**Fix Applied:**
+Explicit element annotation on the callback:
+`existing.some((r: { id: string; granted: boolean | null }) => r.granted === true)`.
+
+**Prevention:**
+Any callback chained off an `any`-typed value (transaction handles, untyped query results) must carry an explicit param annotation — never rely on contextual inference there. Prefer narrowing `tx: any` at the boundary and annotating immediately.
+
+**Files Affected:**
+- `services/WebinarService.ts` (`grantMarketingConsent`)
+
+**Date:** 2026-10-12
+**Status:** Active
+
+---
+
+### Platform-Name Compliance Failure on New `localStorage` Keys (`crellab:webinar-*`)
+
+**Symptom:**
+`__tests__/platform-name-compliance.test.ts > finds no hardcoded platform name outside the allowlist` fails after the webinars-persistence session:
+```
+app/(public)/webinars/WebinarsClient.tsx:55: const CONSENT_STORAGE_KEY = "crellab:webinar-consent";
+app/(public)/webinars/WebinarsClient.tsx:56: const GUEST_EMAIL_STORAGE_KEY = "crellab:webinar-guest-email";
+app/(public)/webinars/WebinarsClient.tsx:57: const GUEST_SEATS_STORAGE_KEY = "crellab:webinar-guest-seats";
+```
+
+**Root Cause:**
+The compliance scanner matches `crellab|crellab` case-insensitively on every scanned line; new infrastructure identifiers (storage keys) must be explicitly allowlisted and reviewed, per the test's own contract. The prior session added the keys without extending the allowlist.
+
+**Fix Applied:**
+Added an allowlist entry for `app/(public)/webinars/WebinarsClient.tsx` covering the three storage keys (test-only change; keys themselves are non-display infrastructure identifiers, same precedent as `crellab-onboarding-state`, `crellab-error-context`, `crellab-verify-banner-dismissed`).
+
+**Prevention:**
+Any new `crellab…`/`crellab…` infrastructure identifier (storage key, cookie, reference prefix) must ship with its compliance-allowlist entry in the same change. Display copy must still resolve from `config.name`.
+
+**Files Affected:**
+- `__tests__/platform-name-compliance.test.ts`
+- `app/(public)/webinars/WebinarsClient.tsx` (unchanged — keys reviewed, allowlisted)
+
+**Date:** 2026-10-12
+**Status:** Active

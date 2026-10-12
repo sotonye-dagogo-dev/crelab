@@ -277,7 +277,7 @@ async function grantMarketingConsent(
         and(eq(consentRecords.userId, userId), eq(consentRecords.type, ConsentType.MARKETING)),
       )
       .limit(5);
-    if (existing.some((r) => r.granted === true)) return;
+    if (existing.some((r: { id: string; granted: boolean | null }) => r.granted === true)) return;
     if (existing.length > 0) {
       await tx
         .update(consentRecords)
