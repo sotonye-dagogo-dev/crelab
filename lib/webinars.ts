@@ -20,6 +20,10 @@ const FALLBACK_WEBINARS_CONFIG: IWebinarsConfig = {
   registerCtaLabel: "Reserve my seat",
   registeredLabel: "You're registered",
   marketingConsentLabel: "Email me about future sessions and platform news.",
+  cancelCtaLabel: "Cancel registration",
+  cancelConfirmMessage:
+    "Cancel your seat for this session? You can re-register any time while seats last.",
+  registrationCancelledLabel: "Registration cancelled",
 };
 
 /**
@@ -51,6 +55,9 @@ export function resolveWebinarsConfig(raw?: Partial<IWebinarsConfig> | null): IW
     registerCtaLabel: raw.registerCtaLabel || base.registerCtaLabel,
     registeredLabel: raw.registeredLabel || base.registeredLabel,
     marketingConsentLabel: raw.marketingConsentLabel ?? base.marketingConsentLabel,
+    cancelCtaLabel: raw.cancelCtaLabel || base.cancelCtaLabel,
+    cancelConfirmMessage: raw.cancelConfirmMessage ?? base.cancelConfirmMessage,
+    registrationCancelledLabel: raw.registrationCancelledLabel || base.registrationCancelledLabel,
   };
 }
 

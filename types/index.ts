@@ -671,6 +671,12 @@ export interface IWebinarRegistration {
   createdAt: string;
   /** ISO 8601 */
   updatedAt: string;
+  /** Linked platform account (present when the seat belongs to a registered user). Additive — absent on older payloads. */
+  accountName?: string | null;
+  accountEmail?: string | null;
+  accountRole?: string | null;
+  /** True when `userId` links to a platform account; false = pure guest seat. */
+  isAccount?: boolean;
 }
 
 export interface IWebinarsConfig {
@@ -686,6 +692,10 @@ export interface IWebinarsConfig {
   registerCtaLabel: string;
   registeredLabel: string;
   marketingConsentLabel: string;
+  /** User-facing rollback copy — all have hardcoded fallbacks so older saved configs keep working. */
+  cancelCtaLabel: string;
+  cancelConfirmMessage: string;
+  registrationCancelledLabel: string;
 }
 
 export interface IPlatformConfig {

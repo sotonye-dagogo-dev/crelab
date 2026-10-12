@@ -348,6 +348,10 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     registerCtaLabel: "Reserve my seat",
     registeredLabel: "You're registered",
     marketingConsentLabel: "Email me about future sessions and platform news.",
+    cancelCtaLabel: "Cancel registration",
+    cancelConfirmMessage:
+      "Cancel your seat for this session? You can re-register any time while seats last.",
+    registrationCancelledLabel: "Registration cancelled",
   },
   blogConfig: {
     heroTitle: "Insights for Nigerian Creators & Brands",

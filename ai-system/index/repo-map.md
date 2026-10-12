@@ -83,7 +83,7 @@ crelab/
 │       ├── referrals/      # GET /referrals/me + POST /referrals/claim (idempotent cookie claim + JSON {code} fallback)
 │       ├── verify-email/   # Verify-email: /send (shared sendVerificationEmailTo helper) + /welcome (fires welcome once verified) + /verify (case-insensitive token verify with affected-row check)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
-│       ├── webinars/       # GET /webinars + GET /webinars/mine (my seats + subscriber flag) + POST /webinars/[id]/register (id-or-slug, unique-index upsert, MARKETING grant on opt-in)
+│       ├── webinars/       # GET /webinars + GET /webinars/mine (my seats + subscriber flag) + POST/DELETE /webinars/[id]/register (id-or-slug, unique-index upsert, MARKETING grant on opt-in; idempotent user cancel)
 │       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or Paystack initiate with real client email + metadata
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
@@ -120,7 +120,7 @@ crelab/
 │   ├── ReferralService.ts    # Invite codes + ACID degree-1/degree-2 events + idempotent cookie claim
 │   ├── TeamService.ts        # Public team listing (active-only) + socialLinks normalisation + serialiser
 │   ├── WalletService.ts
-│   └── WebinarService.ts     # Webinar CRUD + unique-index-upsert registration (idempotent)
+│   └── WebinarService.ts     # Webinar CRUD + unique-index-upsert registration (idempotent) + cancel/rollback + enriched attendees
 ├── types/                   # Global TypeScript interfaces
 │   ├── index.ts            # Barrel export + all entity/config/API types
 │   ├── dashboard.ts        # IDashboard* types

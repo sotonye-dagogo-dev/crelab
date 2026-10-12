@@ -194,6 +194,23 @@ describe("lib/webinars — resolveWebinarsConfig", () => {
     );
     expect(normalizeSeatLimit(12.7)).toBe(12);
   });
+
+  it("resolves cancel/rollback copy from the defaults when nothing is saved", () => {
+    const resolved = resolveWebinarsConfig(null);
+    expect(resolved.cancelCtaLabel).toBe(DEFAULT_CONFIG.webinars?.cancelCtaLabel);
+    expect(resolved.cancelConfirmMessage).toBe(DEFAULT_CONFIG.webinars?.cancelConfirmMessage);
+    expect(resolved.registrationCancelledLabel).toBe(
+      DEFAULT_CONFIG.webinars?.registrationCancelledLabel,
+    );
+  });
+
+  it("lets saved cancel copy win over the defaults", () => {
+    const resolved = resolveWebinarsConfig({ cancelCtaLabel: "Withdraw seat" });
+    expect(resolved.cancelCtaLabel).toBe("Withdraw seat");
+    expect(resolved.registrationCancelledLabel).toBe(
+      DEFAULT_CONFIG.webinars?.registrationCancelledLabel,
+    );
+  });
 });
 
 describe("WebinarService — myWebinarIds (persistence source of truth)", () => {
@@ -208,7 +225,22 @@ describe("WebinarService — myWebinarIds (persistence source of truth)", () => 
     // Blank email normalises to no usable key — still no identity.
     // (registrationEmailKey("   ") === "" which is falsy-guarded by the caller
     // contract; the service treats whitespace-only as absent.)
-    expect(Array.isArray(ids)).toBe(true);
+    expect(ids).toEqual([]);
+    expect(mockDb.select).not.toHaveBeenCalled();
+  });
+});
+
+describe("WebinarService — cancel (user rollback)", () => {
+  it("returns cancelled:false without touching the DB when there is no identity", async () => {
+    const result = await WebinarService.cancel({ webinarId: "w-1", userId: null, email: null });
+    expect(result).toEqual({ cancelled: false });
+    expect(mockDb.transaction).not.toHaveBeenCalled();
+  });
+
+  it("returns cancelled:false without touching the DB when the email is blank", async () => {
+    const result = await WebinarService.cancel({ webinarId: "w-1", userId: null, email: "   " });
+    expect(result).toEqual({ cancelled: false });
+    expect(mockDb.transaction).not.toHaveBeenCalled();
   });
 });
 

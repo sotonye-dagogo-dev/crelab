@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: execute-feature (Session 2026-10-12 — webinars rollback + attendees + pagination)
+> - last-verified-against-code: 2026-10-12
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -41,7 +41,7 @@ Service Layer (services/)
     |-- EarlyMemberService      -- Founding-100 rank via ROW_NUMBER() over user.createdAt (cached, no schema change)
     |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim (cookie-first + JSON body fallback) + auth-agnostic claim retry (ReferralClaimOnAuth) + discovery links (navbar/footer/profile/dashboards/leaderboard)
     |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking over ALL members (zero-score rows kept, ranked last) + 30s user-agnostic board cache + batched candidate load + per-request current-user rank
-     |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert)
+     |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert), user rollback (`cancel`, idempotent CANCELLED flip, re-registerable), enriched attendee list (account-vs-guest via user join), admin seat cancel
      |-- TeamService             -- Public team listing (active-only, display order) + socialLinks normalisation (array | legacy JSON-string | null)
     |-- PlatformStatsService    -- Cached landing aggregates with null → fallbackValue degradation
     |
@@ -278,7 +278,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | BUG_REPORT | `bugReport` — error popup copy, CTA labels, severity, includeConsoleLogs | platform.config.ts | { enabled: true, severity: 'MEDIUM', includeConsoleLogs: true } |
 | LANDING_STATS | `landingStats.items.{id}` — keyed record of stat items (key, label, format, orderIndex, enabled, fallbackValue) feeding the landing stats | platform.config.ts | creators/bookings/avgRating enabled; portfolio/members/team disabled |
 | SCROLL_TO_TOP | `scrollToTop` — enabled / thresholdPx / label for the platform-wide `ScrollToTopButton` | platform.config.ts | { enabled: true, thresholdPx: 400 } |
-| WEBINARS | `webinars` — page copy, `maxRegistrantsPerWebinar`, guest prompt + registration CTA + marketing-consent label | platform.config.ts | { maxRegistrantsPerWebinar: 500 } |
+| WEBINARS | `webinars` — page copy, `maxRegistrantsPerWebinar`, guest prompt + registration CTA + marketing-consent label + cancel/rollback copy (`cancelCtaLabel`, `cancelConfirmMessage`, `registrationCancelledLabel`) | platform.config.ts | { maxRegistrantsPerWebinar: 500 } |
 | TEAM_PAGE | `teamPage` — public `/team` hiring block (hiringEnabled/hiringTitle/hiringSubtitle/hiringCtaLabel/hiringCtaHref, relative or full URL); admin-editable from the `/admin/team` Page-settings card (PATCH `teamPage.*` dotted keys) | platform.config.ts | { hiringEnabled: true, hiringCtaHref: '/about' } |
 | EMAIL_VERIFICATION | `emailVerification.bannerEnabled` — dismissible verify nudge with resend for signed-in unverified users (`VerifyEmailBanner`, root layout); never a hard gate | platform.config.ts | { bannerEnabled: true } |
 | FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Referrals/Leaderboard & Webinars links and the referral/webinar surfaces (referral discovery: navbar, footer, profile card, dashboard `ReferralBanner`, leaderboard CTA) | platform.config.ts | both `true` |
@@ -359,6 +359,12 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-12 — Webinars Rollback + Attendees + Pagination
+- **User rollback** — `WebinarService.cancel()` flips the visitor's REGISTERED row(s) to CANCELLED (idempotent, slug-tolerant, identity = session userId OR email key); `register()` already re-activates CANCELLED rows, so cancel→re-register is a round trip. New `DELETE /api/webinars/[id]/register` (shared session helper, guest `?email=`/JSON fallback) + Cancel button under the registered card (`ClConfirmDialog`, config copy, reverse-path cleanup of server ids/outcomes/guest-seat cache).
+- **Admin attendees** — `listRegistrations()` left-joins `user` (additive `accountName/accountEmail/accountRole/isAccount`); the drawer shows Account/Guest badges + linked-account line + per-seat Cancel (`DELETE ?registrationId=`, audit-logged `webinar.registration.cancel`, counts invalidated). Both admin queries pin `staleTime: 0` (same stale-read class as the verify-status fix) so a fresh seat never renders as a cached zero.
+- **Pagination + gap** — public pagination wrappers centered + tight (`justify-center`, `pt-1`, no side padding); sections `gap-10→gap-6`, past `mt-2 pt-8→pt-6`. Grids unchanged (`grid-cols-1 md:grid-cols-2`).
+- **QA:** `vitest` 463/463, `tsc --noEmit` clean, `next lint` 0 errors, `next build` green.
 
 ### 2026-10-08 — Verified-Status Hardening (DB-not-updated + stale session)
 - **Root cause of "received the email but still unverified everywhere"** — `POST /api/verify-email/verify` matched with exact `eq(user.email, identifier)` while the token identifier is stored lowercased: mixed-case addresses updated 0 rows, yet the route returned success and deleted the token (false success, no retry). Fixed with shared `normalizeEmail()` + case-insensitive `ilike` match + `.returning()` affected-row check (honest 404, token retained; idempotent when already verified).

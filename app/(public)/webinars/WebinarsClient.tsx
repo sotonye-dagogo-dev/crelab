@@ -15,6 +15,7 @@ import {
 import {
   ClBadge,
   ClButton,
+  ClConfirmDialog,
   ClDialog,
   ClEmptyState,
   ClInput,
@@ -105,6 +106,8 @@ export function WebinarsClient() {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelFor, setCancelFor] = useState<IWebinar | null>(null);
   const [outcomes, setOutcomes] = useState<Record<string, RegistrationOutcome>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Server-confirmed seats — the persistence source of truth across reloads.
@@ -296,6 +299,55 @@ export function WebinarsClient() {
     }
   }, []);
 
+  /**
+   * User rollback — cancels the visitor's own seat. The confirm dialog lives
+   * at page level (`cancelFor`); this runs after confirm. State cleanup
+   * mirrors the register success path in reverse (server ids, in-memory
+   * outcome, guest-seat cache) so the Reserve form returns immediately.
+   */
+  const cancel = useCallback(
+    async (webinar: IWebinar) => {
+      setCancellingId(webinar.id);
+      try {
+        const params = new URLSearchParams();
+        const trimmed = email.trim();
+        if (!isAuthenticated && trimmed.includes("@")) params.set("email", trimmed);
+        const qs = params.toString();
+        const res = await fetch(
+          `/api/webinars/${webinar.id}/register${qs ? `?${qs}` : ""}`,
+          { method: "DELETE", credentials: "include" },
+        );
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          throw new Error(
+            typeof json?.error === "string" ? json.error : "Cancellation failed. Please try again.",
+          );
+        }
+        setMineIds((prev) => prev.filter((id) => id !== webinar.id));
+        setOutcomes((prev) => {
+          const next = { ...prev };
+          delete next[webinar.id];
+          return next;
+        });
+        try {
+          const seats = new Set(readGuestSeats());
+          if (seats.delete(webinar.id)) {
+            localStorage.setItem(GUEST_SEATS_STORAGE_KEY, JSON.stringify([...seats]));
+          }
+        } catch {
+          // Storage unavailable — server state already dropped the seat.
+        }
+        toast(webinars.registrationCancelledLabel, "success");
+      } catch (err) {
+        toast(errorMessage(err), "error");
+      } finally {
+        setCancellingId(null);
+        setCancelFor(null);
+      }
+    },
+    [email, isAuthenticated, toast, webinars.registrationCancelledLabel],
+  );
+
   if (config.features?.webinarsEnabled === false) {
     return null;
   }
@@ -334,10 +386,10 @@ export function WebinarsClient() {
         )}
 
         {data && (
-          <div className={`flex flex-col gap-10 transition-opacity ${loading ? "opacity-60" : ""}`}>
+          <div className={`flex flex-col gap-6 transition-opacity ${loading ? "opacity-60" : ""}`}>
             {/* Upcoming */}
             <section>
-              <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
                 <h2 className="font-[family-name:var(--font-display)] font-bold text-[19px] text-[var(--color-text-primary)]">
                   {webinars.upcomingTitle}
                 </h2>
@@ -373,28 +425,30 @@ export function WebinarsClient() {
                         serverRegistered={mineIds.includes(webinar.id)}
                         error={errors[webinar.id]}
                         submitting={submittingId === webinar.id}
+                        cancelling={cancellingId === webinar.id}
                         onSubmit={() => submit(webinar.id)}
+                        onCancel={() => setCancelFor(webinar)}
                         onCreateAccount={() => router.push("/register?returnTo=/webinars")}
                       />
                     ))}
                   </div>
-                  <div className="px-1 pt-2 mt-1">
+                  <div className="flex justify-center pt-1">
                     <ClPagination
                       page={data.upcoming.page}
                       totalPages={data.upcoming.totalPages}
                       onPageChange={setUpcomingPage}
                       pageSize={data.upcoming.pageSize}
                       totalItems={data.upcoming.total}
-                      className="justify-between"
+                      className="justify-center"
                     />
                   </div>
                 </div>
               )}
             </section>
 
-            {/* Past — separated with breathing room above the heading. */}
-            <section className="mt-2 pt-8 border-t border-[var(--color-border)]">
-              <div className="flex items-center justify-between gap-3 mb-5">
+            {/* Past — a clean single gap above the divider. */}
+            <section className="pt-6 border-t border-[var(--color-border)]">
+              <div className="flex items-center justify-between gap-3 mb-4">
                 <h2 className="font-[family-name:var(--font-display)] font-bold text-[19px] text-[var(--color-text-primary)]">
                   {webinars.pastTitle}
                 </h2>
@@ -416,14 +470,14 @@ export function WebinarsClient() {
                       <PastCard key={webinar.id} webinar={webinar} />
                     ))}
                   </div>
-                  <div className="px-1 pt-2 mt-1">
+                  <div className="flex justify-center pt-1">
                     <ClPagination
                       page={data.past.page}
                       totalPages={data.past.totalPages}
                       onPageChange={setPastPage}
                       pageSize={data.past.pageSize}
                       totalItems={data.past.total}
-                      className="justify-between"
+                      className="justify-center"
                     />
                   </div>
                 </div>
@@ -431,6 +485,19 @@ export function WebinarsClient() {
             </section>
           </div>
         )}
+
+        <ClConfirmDialog
+          open={cancelFor !== null}
+          title={webinars.cancelCtaLabel}
+          message={webinars.cancelConfirmMessage}
+          detail={cancelFor ? cancelFor.title : undefined}
+          confirmLabel={webinars.cancelCtaLabel}
+          loading={cancelFor ? cancellingId === cancelFor.id : false}
+          onConfirm={() => cancelFor && cancel(cancelFor)}
+          onCancel={() => {
+            if (!cancellingId) setCancelFor(null);
+          }}
+        />
       </div>
     </div>
   );
@@ -526,7 +593,9 @@ function UpcomingCard({
   serverRegistered,
   error,
   submitting,
+  cancelling,
   onSubmit,
+  onCancel,
   onCreateAccount,
 }: {
   webinar: IWebinar;
@@ -544,7 +613,9 @@ function UpcomingCard({
   serverRegistered?: boolean;
   error?: string;
   submitting: boolean;
+  cancelling: boolean;
   onSubmit: () => void;
+  onCancel: () => void;
   onCreateAccount: () => void;
 }) {
   const when = formatWebinarStart(webinar.startsAt);
@@ -604,6 +675,11 @@ function UpcomingCard({
                   </ClButton>
                 </div>
               )}
+              <div>
+                <ClButton variant="ghost" size="sm" loading={cancelling} onClick={onCancel}>
+                  {webinars.cancelCtaLabel}
+                </ClButton>
+              </div>
             </div>
           ) : (
             <form

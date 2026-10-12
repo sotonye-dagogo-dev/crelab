@@ -163,6 +163,9 @@ export default function AdminWebinarsPage() {
       if (json.success) return json.data ?? [];
       throw new Error(json.error ?? "Failed to load webinars");
     },
+    // Registration counts must never read stale — an admin verifying a seat
+    // right after a user registers sees the live DB row, not a cached zero.
+    staleTime: 0,
   });
 
   const {
@@ -179,6 +182,25 @@ export default function AdminWebinarsPage() {
       throw new Error(json.error ?? "Failed to load attendees");
     },
     enabled: attendeesFor !== null,
+    staleTime: 0,
+  });
+
+  const cancelSeat = useMutation({
+    mutationFn: async ({ webinarId, registrationId }: { webinarId: string; registrationId: string }) => {
+      const res = await fetch(
+        `/api/admin/webinars/${webinarId}/registrations?registrationId=${encodeURIComponent(registrationId)}`,
+        { method: "DELETE" },
+      );
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Failed to cancel seat");
+      return json;
+    },
+    onSuccess: () => {
+      toast("Seat cancelled", "info");
+      queryClient.invalidateQueries({ queryKey: ["admin-webinars"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-webinar-attendees"] });
+    },
+    onError: (err: Error) => toast(err.message, "error"),
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin-webinars"] });
@@ -669,27 +691,55 @@ export default function AdminWebinarsPage() {
             />
           ) : (
             <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
-              {attendees.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-2"
-                >
-                  <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-                    {a.name || "—"}
-                  </span>
-                  <span className="text-[12px] text-[var(--color-text-secondary)]">{a.email}</span>
-                  <span className="ml-auto flex items-center gap-2">
-                    {a.consentMarketing ? (
-                      <ClBadge variant="success">Subscribed</ClBadge>
-                    ) : (
-                      <ClBadge variant="default">No newsletter</ClBadge>
-                    )}
-                    <span className="text-[11px] text-[var(--color-text-tertiary)]">
-                      {a.createdAt ? new Date(a.createdAt).toLocaleString() : ""}
+              {attendees.map((a) => {
+                const isAccount = a.isAccount ?? a.userId != null;
+                return (
+                  <div
+                    key={a.id}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-2"
+                  >
+                    <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+                      {a.name || "—"}
                     </span>
-                  </span>
-                </div>
-              ))}
+                    <span className="text-[12px] text-[var(--color-text-secondary)]">{a.email}</span>
+                    {isAccount ? (
+                      <ClBadge variant="info">Account</ClBadge>
+                    ) : (
+                      <ClBadge variant="default">Guest</ClBadge>
+                    )}
+                    {isAccount && (a.accountEmail || a.accountRole) && (
+                      <span className="text-[11px] text-[var(--color-text-tertiary)]">
+                        {a.accountEmail && a.accountEmail !== a.email ? a.accountEmail : ""}
+                        {a.accountEmail && a.accountEmail !== a.email && a.accountRole ? " · " : ""}
+                        {a.accountRole ? a.accountRole : ""}
+                      </span>
+                    )}
+                    <span className="ml-auto flex items-center gap-2">
+                      {a.consentMarketing ? (
+                        <ClBadge variant="success">Subscribed</ClBadge>
+                      ) : (
+                        <ClBadge variant="default">No newsletter</ClBadge>
+                      )}
+                      <span className="text-[11px] text-[var(--color-text-tertiary)]">
+                        {a.createdAt ? new Date(a.createdAt).toLocaleString() : ""}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          attendeesFor &&
+                          cancelSeat.mutate({ webinarId: attendeesFor.id, registrationId: a.id })
+                        }
+                        disabled={cancelSeat.isPending}
+                        title="Cancel this seat"
+                        aria-label={`Cancel seat for ${a.email}`}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-[6px] text-[var(--color-text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--color-surface)] cursor-pointer border-none disabled:opacity-50"
+                      >
+                        <Trash2 size={14} strokeWidth={1.8} />
+                      </button>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </ClModal>
