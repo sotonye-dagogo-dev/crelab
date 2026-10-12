@@ -19,7 +19,7 @@ import { ContentBlocksEditor } from "@/components/admin/ContentBlocksEditor";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { useToast } from "@/lib/toast";
 import { webinarStatusLabel, webinarStatusVariant } from "@/lib/webinars";
-import type { EmailTemplateBlock, IWebinar, WebinarStatus } from "@/types";
+import type { EmailTemplateBlock, IWebinar, IWebinarRegistration, WebinarStatus } from "@/types";
 import { Edit3, Eye, Plus, Power, Trash2, Users } from "lucide-react";
 
 const inputClass =
@@ -152,6 +152,8 @@ export default function AdminWebinarsPage() {
   const [draft, setDraft] = useState<WebinarDraft>(emptyDraft());
   const [webinarToDelete, setWebinarToDelete] = useState<IWebinar | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Attendee drawer — verifies seats actually persisted per webinar.
+  const [attendeesFor, setAttendeesFor] = useState<IWebinar | null>(null);
 
   const { data: webinars = [], isLoading, isError, refetch } = useQuery<IWebinar[]>({
     queryKey: ["admin-webinars"],
@@ -161,6 +163,22 @@ export default function AdminWebinarsPage() {
       if (json.success) return json.data ?? [];
       throw new Error(json.error ?? "Failed to load webinars");
     },
+  });
+
+  const {
+    data: attendees = [],
+    isLoading: attendeesLoading,
+    isError: attendeesError,
+    refetch: refetchAttendees,
+  } = useQuery<IWebinarRegistration[]>({
+    queryKey: ["admin-webinar-attendees", attendeesFor?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/webinars/${attendeesFor?.id}/registrations`);
+      const json = await res.json();
+      if (json.success) return json.data ?? [];
+      throw new Error(json.error ?? "Failed to load attendees");
+    },
+    enabled: attendeesFor !== null,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin-webinars"] });
@@ -259,10 +277,15 @@ export default function AdminWebinarsPage() {
       key: "registrations",
       header: "Registrations",
       cell: (w) => (
-        <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-text-primary)]">
+        <button
+          type="button"
+          onClick={() => setAttendeesFor(w)}
+          title={w.registrationCount ? `View ${w.registrationCount} attendee(s)` : "No attendees yet — click to verify"}
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-text-primary)] rounded-[6px] px-1.5 py-1 cursor-pointer border-none bg-transparent hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-accent)]"
+        >
           <Users size={13} strokeWidth={1.8} className="text-[var(--color-text-tertiary)]" />
           {w.registrationCount ?? 0}
-        </span>
+        </button>
       ),
     },
     {
@@ -612,6 +635,65 @@ export default function AdminWebinarsPage() {
         onConfirm={() => webinarToDelete && deleteWebinar(webinarToDelete.id)}
         onCancel={() => setWebinarToDelete(null)}
       />
+
+      {attendeesFor !== null && (
+        <ClModal
+          open={attendeesFor !== null}
+          onClose={() => setAttendeesFor(null)}
+          size="md"
+          title={`Attendees — ${attendeesFor.title}`}
+          description={
+            attendeesFor.registrationCount
+              ? `${attendeesFor.registrationCount} registered seat(s). Newest first.`
+              : "No registered seats yet. New registrations appear here immediately after the public form succeeds."
+          }
+          footer={
+            <ClButton variant="ghost" size="default" onClick={() => setAttendeesFor(null)}>
+              Close
+            </ClButton>
+          }
+        >
+          {attendeesLoading ? (
+            <div className="text-[13px] text-[var(--color-text-secondary)]">Loading attendees...</div>
+          ) : attendeesError ? (
+            <ClErrorState
+              title="Attendees failed to load"
+              message="Try again — if it keeps happening, check the server logs."
+              action={{ label: "Try again", onClick: () => refetchAttendees() }}
+            />
+          ) : attendees.length === 0 ? (
+            <ClEmptyState
+              title="No attendees yet"
+              message="Seats reserved on /webinars will show up here with name, email and newsletter consent."
+              className="py-8"
+            />
+          ) : (
+            <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
+              {attendees.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-2"
+                >
+                  <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+                    {a.name || "—"}
+                  </span>
+                  <span className="text-[12px] text-[var(--color-text-secondary)]">{a.email}</span>
+                  <span className="ml-auto flex items-center gap-2">
+                    {a.consentMarketing ? (
+                      <ClBadge variant="success">Subscribed</ClBadge>
+                    ) : (
+                      <ClBadge variant="default">No newsletter</ClBadge>
+                    )}
+                    <span className="text-[11px] text-[var(--color-text-tertiary)]">
+                      {a.createdAt ? new Date(a.createdAt).toLocaleString() : ""}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </ClModal>
+      )}
     </div>
   );
 }

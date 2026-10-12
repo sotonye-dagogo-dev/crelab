@@ -52,6 +52,28 @@ interface RegistrationOutcome {
   guestPrompt?: GuestPrompt;
 }
 
+const CONSENT_STORAGE_KEY = "crellab:webinar-consent";
+const GUEST_EMAIL_STORAGE_KEY = "crellab:webinar-guest-email";
+const GUEST_SEATS_STORAGE_KEY = "crellab:webinar-guest-seats";
+
+function readStoredConsent(): boolean {
+  try {
+    return localStorage.getItem(CONSENT_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function readGuestSeats(): string[] {
+  try {
+    const raw = localStorage.getItem(GUEST_SEATS_STORAGE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 const labelClass =
   "block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]";
 
@@ -85,6 +107,10 @@ export function WebinarsClient() {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<Record<string, RegistrationOutcome>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Server-confirmed seats — the persistence source of truth across reloads.
+  // `outcomes` alone lived only in memory, so the Reserve button reappeared
+  // after navigation even though the seat existed in the DB.
+  const [mineIds, setMineIds] = useState<string[]>([]);
 
   const load = useCallback(async (upcoming: number, past: number) => {
     setLoading(true);
@@ -92,6 +118,7 @@ export function WebinarsClient() {
     try {
       const res = await fetch(
         `/api/webinars?upcomingPage=${upcoming}&pastPage=${past}`,
+        { credentials: "include" },
       );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) throw new Error("webinars request failed");
@@ -106,6 +133,85 @@ export function WebinarsClient() {
   useEffect(() => {
     load(upcomingPage, pastPage);
   }, [upcomingPage, pastPage, load]);
+
+  // Remember the visitor's last consent choice so the checkbox stays checked
+  // for future instances (guests); signed-in subscribers are resolved below.
+  useEffect(() => {
+    setConsent(readStoredConsent());
+    try {
+      const storedEmail = localStorage.getItem(GUEST_EMAIL_STORAGE_KEY);
+      if (storedEmail) setEmail((prev) => prev || storedEmail);
+      const seats = readGuestSeats();
+      if (seats.length) {
+        setOutcomes((prev) => {
+          const next = { ...prev };
+          for (const id of seats) {
+            if (!next[id]) next[id] = { alreadyRegistered: true };
+          }
+          return next;
+        });
+      }
+    } catch {
+      // Storage unavailable (private mode) — page still works, just stateless.
+    }
+  }, []);
+
+  // Server truth for "am I registered?": session seats for signed-in visitors,
+  // email-keyed seats for guests. Runs after auth settles and whenever the
+  // guest email changes (debounced so typing doesn't fan out requests), so the
+  // Reserve button never reappears for a saved seat.
+  useEffect(() => {
+    if (authLoading) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      (async () => {
+        try {
+          const params = new URLSearchParams();
+          const trimmed = email.trim();
+          if (!isAuthenticated && trimmed.includes("@")) params.set("email", trimmed);
+          const qs = params.toString();
+          const res = await fetch(`/api/webinars/mine${qs ? `?${qs}` : ""}`, {
+            credentials: "include",
+          });
+          const json = await res.json().catch(() => null);
+          if (cancelled || !json?.success) return;
+          const ids = Array.isArray(json.data?.webinarIds) ? json.data.webinarIds : [];
+          setMineIds(ids.filter((v: unknown): v is string => typeof v === "string"));
+          // Already a newsletter subscriber → checkbox checked by default.
+          if (json.data?.subscribed === true) setConsent(true);
+        } catch {
+          // Offline or 500 — the page still renders; registration re-checks server-side.
+        }
+      })();
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [authLoading, isAuthenticated, email]);
+
+  // Signed-in subscribers resolve via the consent ledger even when the
+  // `/mine` subscribed flag is unavailable (older deploys, cached responses).
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/account/consent", { credentials: "include" });
+        const json = await res.json().catch(() => null);
+        if (cancelled || !json?.success || !Array.isArray(json.data)) return;
+        const subscribed = json.data.some(
+          (r: { type?: string; granted?: boolean }) => r.type === "MARKETING" && r.granted === true,
+        );
+        if (subscribed) setConsent(true);
+      } catch {
+        // Non-fatal — checkbox keeps its stored default.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isAuthenticated]);
 
   // Signed-in visitors get their identity pre-filled — the form is then one tap.
   useEffect(() => {
@@ -133,6 +239,7 @@ export function WebinarsClient() {
       try {
         const res = await fetch(`/api/webinars/${webinarId}/register`, {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...(isAuthenticated ? {} : { name: trimmedName, email: trimmedEmail }),
@@ -151,6 +258,18 @@ export function WebinarsClient() {
 
         const outcome = (json.data ?? {}) as RegistrationOutcome;
         setOutcomes((prev) => ({ ...prev, [webinarId]: outcome }));
+        setMineIds((prev) => (prev.includes(webinarId) ? prev : [...prev, webinarId]));
+        try {
+          localStorage.setItem(CONSENT_STORAGE_KEY, consent ? "1" : "0");
+          if (!isAuthenticated) {
+            if (trimmedEmail) localStorage.setItem(GUEST_EMAIL_STORAGE_KEY, trimmedEmail);
+            const seats = new Set(readGuestSeats());
+            seats.add(webinarId);
+            localStorage.setItem(GUEST_SEATS_STORAGE_KEY, JSON.stringify([...seats]));
+          }
+        } catch {
+          // Storage unavailable — server state (`mineIds`) still persists the seat.
+        }
         toast(
           outcome.alreadyRegistered
             ? "You're already registered for this session."
@@ -167,6 +286,15 @@ export function WebinarsClient() {
     },
     [consent, email, isAuthenticated, name, toast],
   );
+
+  const persistConsent = useCallback((value: boolean) => {
+    setConsent(value);
+    try {
+      localStorage.setItem(CONSENT_STORAGE_KEY, value ? "1" : "0");
+    } catch {
+      // Storage unavailable — checkbox still works for this session.
+    }
+  }, []);
 
   if (config.features?.webinarsEnabled === false) {
     return null;
@@ -226,7 +354,8 @@ export function WebinarsClient() {
                 />
               ) : (
                 <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 1 col on phones, 2 cols on tablets and up (existing grid kept). */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                     {upcomingItems.map((webinar) => (
                       <UpcomingCard
                         key={webinar.id}
@@ -239,8 +368,9 @@ export function WebinarsClient() {
                         consent={consent}
                         onNameChange={setName}
                         onEmailChange={setEmail}
-                        onConsentChange={setConsent}
+                        onConsentChange={persistConsent}
                         outcome={outcomes[webinar.id]}
+                        serverRegistered={mineIds.includes(webinar.id)}
                         error={errors[webinar.id]}
                         submitting={submittingId === webinar.id}
                         onSubmit={() => submit(webinar.id)}
@@ -248,21 +378,23 @@ export function WebinarsClient() {
                       />
                     ))}
                   </div>
-                  <ClPagination
-                    page={data.upcoming.page}
-                    totalPages={data.upcoming.totalPages}
-                    onPageChange={setUpcomingPage}
-                    pageSize={data.upcoming.pageSize}
-                    totalItems={data.upcoming.total}
-                    className="justify-between"
-                  />
+                  <div className="px-1 pt-2 mt-1">
+                    <ClPagination
+                      page={data.upcoming.page}
+                      totalPages={data.upcoming.totalPages}
+                      onPageChange={setUpcomingPage}
+                      pageSize={data.upcoming.pageSize}
+                      totalItems={data.upcoming.total}
+                      className="justify-between"
+                    />
+                  </div>
                 </div>
               )}
             </section>
 
-            {/* Past */}
-            <section>
-              <div className="flex items-center justify-between gap-3 mb-4">
+            {/* Past — separated with breathing room above the heading. */}
+            <section className="mt-2 pt-8 border-t border-[var(--color-border)]">
+              <div className="flex items-center justify-between gap-3 mb-5">
                 <h2 className="font-[family-name:var(--font-display)] font-bold text-[19px] text-[var(--color-text-primary)]">
                   {webinars.pastTitle}
                 </h2>
@@ -279,19 +411,21 @@ export function WebinarsClient() {
                 />
               ) : (
                 <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                     {pastItems.map((webinar) => (
                       <PastCard key={webinar.id} webinar={webinar} />
                     ))}
                   </div>
-                  <ClPagination
-                    page={data.past.page}
-                    totalPages={data.past.totalPages}
-                    onPageChange={setPastPage}
-                    pageSize={data.past.pageSize}
-                    totalItems={data.past.total}
-                    className="justify-between"
-                  />
+                  <div className="px-1 pt-2 mt-1">
+                    <ClPagination
+                      page={data.past.page}
+                      totalPages={data.past.totalPages}
+                      onPageChange={setPastPage}
+                      pageSize={data.past.pageSize}
+                      totalItems={data.past.total}
+                      className="justify-between"
+                    />
+                  </div>
                 </div>
               )}
             </section>
@@ -389,6 +523,7 @@ function UpcomingCard({
   onEmailChange,
   onConsentChange,
   outcome,
+  serverRegistered,
   error,
   submitting,
   onSubmit,
@@ -405,13 +540,15 @@ function UpcomingCard({
   onEmailChange: (value: string) => void;
   onConsentChange: (value: boolean) => void;
   outcome?: RegistrationOutcome;
+  /** Server-confirmed seat (persists across reloads) — OR-ed with `outcome`. */
+  serverRegistered?: boolean;
   error?: string;
   submitting: boolean;
   onSubmit: () => void;
   onCreateAccount: () => void;
 }) {
   const when = formatWebinarStart(webinar.startsAt);
-  const registered = Boolean(outcome);
+  const registered = Boolean(outcome) || serverRegistered === true;
 
   return (
     <article className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden flex flex-col">

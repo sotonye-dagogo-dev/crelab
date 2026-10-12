@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
@@ -59,7 +60,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     let session: { id: string; email: string; name: string } | null = null;
     try {
-      const s = await auth.api.getSession({ headers: req.headers });
+      // `req.headers` carries cookies in route handlers, but fall back to the
+      // request-scoped `headers()` so session resolution never silently misses
+      // an authenticated user (the previous silent-null path made authed
+      // registrations fail with "Email is required" and never persist).
+      let s = await auth.api.getSession({ headers: req.headers });
+      if (!s?.user) {
+        try {
+          const h = await headers();
+          s = await auth.api.getSession({ headers: h });
+        } catch {
+          // Keep the req.headers result (null → guest flow).
+        }
+      }
       if (s?.user) {
         session = {
           id: s.user.id,
@@ -71,14 +84,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // Public endpoint — anonymous visitors register as guests.
     }
 
-    const email = session?.email || check.data.email || null;
-    if (!email) {
+    const email = (session?.email || check.data.email || "").trim() || null;
+    if (!email || !email.includes("@")) {
       return NextResponse.json(
-        { success: false, data: null, error: { email: ["Email is required"] } },
+        { success: false, data: null, error: { email: ["A valid email is required"] } },
         { status: 400 },
       );
     }
-    const name = (session?.name || check.data.name || "").trim() || null;
+    // Signed-in users without a profile name still get a seat — fall back to
+    // the email local-part so the NOT NULL-adjacent UX never blocks persistence.
+    const sessionFallbackName = session ? email.split("@")[0] : "";
+    const name = (session?.name || check.data.name || sessionFallbackName || "").trim() || null;
     if (!name) {
       return NextResponse.json(
         { success: false, data: null, error: { name: ["Name is required"] } },

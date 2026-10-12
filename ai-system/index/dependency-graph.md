@@ -265,9 +265,9 @@ PlatformStatsService (services/PlatformStatsService.ts)
   → consumed by app/page.tsx + app/(public)/home/page.tsx (server) → components/landing/LandingContent.tsx
 
 WebinarService (services/WebinarService.ts)
-  → lib/db.ts + drizzle/schema.ts (webinars, webinar_registrations) — registration dedupes via unique `(webinar_id, lower(email))` / partial unique `(webinar_id, user_id)` **upsert** (no pre-read race)
+  → lib/db.ts + drizzle/schema.ts (webinars, webinar_registrations, consent_records, user) — registration dedupes via unique `(webinar_id, lower(email))` / partial unique `(webinar_id, user_id)` **upsert** (no pre-read race); id-or-slug lookup; opt-in grants MARKETING consent in-transaction (grant-only, never revoke)
   → lib/webinars.ts (server/client-safe copy + status helpers) + PlatformConfigService (webinars config) + EmailService (wired `webinarRegistration` confirmation, non-blocking)
-  → consumed by app/api/webinars (GET list) + app/api/webinars/[id]/register (POST, guest + auth, zod) + app/api/admin/webinars (+[id]) + app/(public)/webinars page + app/admin/webinars page + AuditService on admin mutations
+  → consumed by app/api/webinars (GET list) + app/api/webinars/mine (GET my seats + subscribed flag, always-200) + app/api/webinars/[id]/register (POST, guest + auth, zod, session fallback via next/headers, email-local-part name fallback) + app/api/admin/webinars (+[id], +[id]/registrations attendee list) + app/(public)/webinars page (server-persisted registered state via /mine + localStorage guest cache, stored-consent + subscriber default-checked checkbox, padded pagination + divided past section, 1-col → md:2-col grid) + app/admin/webinars page (clickable count → attendee drawer) + AuditService on admin mutations
 
 TeamService (services/TeamService.ts)
   → lib/db.ts + drizzle/schema.ts (team_members) — `listPublic()` (active-only, orderIndex + createdAt) + pure `normalizeSocialLinks()` (array | legacy JSON-string | null → array) + `serializeTeamMember()`
