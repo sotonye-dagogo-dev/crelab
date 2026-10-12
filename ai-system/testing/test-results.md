@@ -1,7 +1,7 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — webinars rollback + attendees + pagination)
+> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
 > - last-verified-against-code: 2026-10-12
 > - staleness-policy: overwritten on every test run — always current
 
@@ -12,17 +12,17 @@
 ## Last Run
 
 **Date:** 2026-10-12
-**Run by:** execute-feature (webinars rollback + attendees + pagination)
+**Run by:** execute-feature (wired webinar + newsletter emails)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 463 | 0 | 0 |
+| Unit (vitest) | 467 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
-| ESLint (`npm run lint`) | — | 0 errors (3 pre-existing unused-var warnings) | — |
+| ESLint (`npm run lint`) | — | 0 errors (pre-existing unused-var warnings) | — |
 | Production build (`npm run build`) | — | 0 errors (full route build green) | — |
 
-**Overall Status:** ✅ All 463/463 tests pass. Typecheck clean. Lint 0 errors. Production build green. +4 new tests (cancel no-identity/blank no-DB ×2, cancel-copy default/override ×2, whitespace myWebinarIds no-DB assertion).
+**Overall Status:** ✅ All 467/467 tests pass. Typecheck clean. Lint 0 errors. Production build green. +4 new tests (wired-key parity + newsletter defaults, newsletter/webinar preview-fallback sends, disabled-template guard).
 
 ---
 

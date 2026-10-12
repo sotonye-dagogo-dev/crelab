@@ -790,3 +790,23 @@ A seat with no undo is a trap: stale client state (or a seat saved under a misma
 - `isAccount` and friends are additive — older clients ignore them; new admin surfaces should badge account vs guest wherever seats are listed.
 - Rollback copy (`cancelCtaLabel/cancelConfirmMessage/registrationCancelledLabel`) is config-driven like all webinar copy; no hardcoded strings in the cancel path.
 
+
+## Wired Newsletter Welcome Fires Only on Genuinely New Opt-ins
+
+**Decision:** The wired `newsletterSubscription` welcome email fires best-effort (never fails the subscribe/seat) only when the opt-in is genuinely new: `POST /api/newsletter` sends only on insert or flip-from-revoked (already-granted re-submits skip it); `POST /api/webinars/[id]/register` sends only when `register()` reports in-transaction `marketingConsentGranted=true` (signed-in) or a guest checks the box on a new seat (`!alreadyRegistered`). Re-registers, duplicate submits and already-subscribed checkouts never re-fire it. Guest cross-webinar opt-ins may receive the welcome once per webinar (no cross-webinar guest subscriber store exists — consent lives per registration row), accepted as a harmless edge.
+**Date:** 2026-10-12
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** None (extends the wired-email decision: new wired key, same preview/simulate-only admin treatment)
+**Superseded by:** None
+
+**Reason:**
+A welcome email on every subscribe call would spam re-submits and double-taps; no welcome at all leaves subscribers unsure the opt-in worked (and the blog success copy already promises inbox mail). The in-transaction newly-granted flag avoids a pre-read race that a route-level "was subscribed?" check would introduce under concurrent submits.
+
+**Alternatives Considered:**
+- Route-level pre-check (`hasMarketingConsent` before `register()`) — rejected: TOCTOU race under concurrent submits; the in-transaction computation is exact and costs no extra round trip.
+- Never emailing guest webinar opt-ins (defer until account creation) — rejected: guests gave an explicit consented address; confirming the subscription is NDPR-friendly and matches the checkbox promise. Cross-webinar duplicates accepted and logged as residual risk.
+- Unsubscribing/consent-management email links (`preferencesUrl`) — deferred: no unsubscribe endpoint exists yet; the template points at account settings instead. A future `DELETE /api/newsletter` can add a real preferences URL var.
+
+**Implications:**
+- All future "welcome on opt-in" sends must gate on a newly-granted signal computed at the write site, not on the request reaching the endpoint.
+- New wired templates need only a `WIRED_EMAIL_TEMPLATES` entry + a `DEFAULT_CONFIG` default — the admin send guard is key-based and applies automatically.

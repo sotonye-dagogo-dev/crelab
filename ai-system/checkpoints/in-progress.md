@@ -1,12 +1,12 @@
 # In Progress
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — webinars rollback + attendees + pagination, closed)
+> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails, closed)
 > - last-verified-against-code: 2026-10-12
 > - staleness-policy: update after each major sub-step; clear on close
 
-*(No active work — the "Webinars Rollback + Attendees + Pagination (2026-10-12)" task is **CLOSED**.)*
+*(No active work — the "Wired Emails: Webinar Registration + Newsletter Subscribe (2026-10-12)" task is **CLOSED**.)*
 
-- **Status:** Directive addressed + full QA — `cancel()`/`adminCancelRegistration()` + user/admin DELETE routes + enriched attendees + Cancel UI + centered tight pagination + section gap + config cancel copy; `vitest` 463/463, `tsc` clean, `lint` 0 errors, `next build` green.
-- **Full record:** `checkpoints/session-log.md` → Session 2026-10-12 (Webinars Rollback + Attendees + Pagination).
-- **Residual risks:** guests with no stored email resolve stateless until they type their address (by design — no identity to match).
+- **Status:** Directive addressed + full QA — wired `newsletterSubscription` template + `sendNewsletterSubscription` + newsletter-route welcome (new opt-ins only) + webinar checkbox welcome (in-transaction newly-granted flag, guest new-seat path); webinar confirmation semantics unchanged; `vitest` 467/467, `tsc` clean, `lint` 0 errors, `next build` green.
+- **Full record:** `checkpoints/session-log.md` → Session 2026-10-12 (Wired Emails: Webinar Registration + Newsletter Subscribe).
+- **Residual risks:** guest cross-webinar double welcome (no guest subscriber store — per-registration consent only); concurrent double-submit duplicate welcome (best-effort, harmless, no seat/consent corruption).

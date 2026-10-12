@@ -141,6 +141,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
+    // Newsletter welcome — non-blocking second email for genuine new
+    // opt-ins via the marketing-consent checkbox (mirrors the
+    // /api/newsletter welcome). Signed-in grants are ACID-accurate via
+    // `result.marketingConsentGranted` (no pre-read race); guests have no
+    // consent row, so a checked box on a new seat counts as the opt-in.
+    // Already-subscribed re-registers skip it so nobody gets spammed.
+    let newsletterEmail: { sent: boolean; reason?: string } | null = null;
+    const guestNewOptIn =
+      check.data.consentMarketing && !result.alreadyRegistered && !session && !result.marketingConsentGranted;
+    if (
+      check.data.consentMarketing &&
+      config.features?.emailNotifications &&
+      (result.marketingConsentGranted || guestNewOptIn)
+    ) {
+      try {
+        const { EmailService } = await import("@/services/EmailService");
+        const newsletterResult = await EmailService.sendNewsletterSubscription(
+          email,
+          { userName: name, exploreUrl: resolveAbsoluteUrl("/explore") },
+          config,
+        );
+        newsletterEmail = newsletterResult.sent
+          ? { sent: true }
+          : { sent: false, reason: newsletterResult.reason };
+      } catch (err) {
+        console.error("[POST /api/webinars/[id]/register] newsletter email failed", err);
+        newsletterEmail = { sent: false, reason: err instanceof Error ? err.message : "send error" };
+      }
+    }
+
     const webinarsConfig = resolveWebinarsConfig(config.webinars);
     const guest = session === null;
 
@@ -161,6 +191,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             : {}),
         },
         email: emailResult,
+        newsletterEmail,
       },
       { status: result.alreadyRegistered ? 200 : 201 },
     );
