@@ -1,8 +1,27 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — webinars rollback + attendees + pagination)
+> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
 > - last-verified-against-code: 2026-10-12
+
+
+## Session 2026-10-12 — Wired Emails: Webinar Registration + Newsletter Subscribe
+
+### What
+Directive: wire in emails for webinar registration and newsletter/email subscription. Config + metadata driven, reusable modular code, non-breaking, with fallbacks, error handling and edge-case handling.
+
+### Verification
+`vitest` → 39 files, **467 passed / 0 failed** (+4 new). `tsc --noEmit` → clean. `next lint` → 0 errors (pre-existing warnings only). `next build` → green.
+
+### Key Changes
+- **Investigation:** the webinar seat confirmation was already wired end-to-end (`webinarRegistration` template + `sendWebinarRegistration` + best-effort route call, new-seats-only incl. re-register after cancel) — verified, semantics unchanged. The gaps were (a) `POST /api/newsletter` granted MARKETING consent with no email, and (b) the webinar checkbox opt-in granted consent with no subscription welcome.
+- **New wired template:** `newsletterSubscription` in `lib/email-templates.ts` (label + trigger) + `DEFAULT_CONFIG.emailConfig.templates` default (subject/bodyHtml/blocks/enabled; existing vars only — `userName`, `exploreUrl` — so previews resolve). Preview/simulate-only in admin via the existing key-based wired guard.
+- **EmailService:** `sendNewsletterSubscription(to, {userName, exploreUrl}, config)` following the `sendBugReportReceived` pattern.
+- **WebinarService:** `grantMarketingConsent()` now returns `newlyGranted:boolean` (insert or flip-from-revoked; false for guests/unchecked/already-granted/failure); `RegisterResult` gains additive `marketingConsentGranted` on all three return paths — computed inside the seat transaction, no pre-read race.
+- **Newsletter route:** fires the welcome best-effort only on genuinely new opt-ins (already-granted re-submits skip it); `features.emailNotifications` gate; `getCached` config with `DEFAULT_CONFIG` fallback; additive `email:{sent,reason?}`; failures never fail the subscribe.
+- **Webinar register route:** fires the newsletter welcome best-effort for signed-in new grants or guest new seats with the box checked; additive `newsletterEmail:{sent,reason?}|null` alongside the unchanged `email` field; failures never fail the seat.
+- **Tests:** `email-templates.test.ts` (+1: wired parity incl. new keys, newsletter defaults use resolvable vars); `EmailService.test.ts` (+3: newsletter/webinar preview-fallback sends, disabled-template guard).
+- Residual risks: a guest who opts in on two different webinars receives the newsletter welcome twice (no cross-webinar guest subscriber store — per-registration consent only); concurrent double-submits can double-send the welcome (best-effort, non-blocking; harmless duplicate, no seat/consent corruption).
 
 
 ## Session 2026-10-12 — Webinars Rollback + Attendees + Pagination

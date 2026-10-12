@@ -48,6 +48,15 @@ export interface RegisterResult {
   registration: IWebinarRegistration;
   webinar: IWebinar;
   alreadyRegistered: boolean;
+  /**
+   * True when this call newly granted a MARKETING consent record for a
+   * signed-in opt-in (inserted or flipped from revoked). False for guests
+   * (no userId to attach the grant to), for unchecked boxes, and for
+   * already-subscribed users. Callers use it to decide whether a
+   * "you're subscribed" email is due — without a pre-read race, because it
+   * is computed inside the seat transaction.
+   */
+  marketingConsentGranted: boolean;
 }
 
 export interface WebinarInput {
@@ -270,6 +279,10 @@ async function resolveMaxSeats(): Promise<number> {
  * checkbox is functional, not a stub. Only grants — never revokes — and only
  * for signed-in users (guests have no userId to attach the grant to). Runs
  * inside the registration transaction for ACID parity with the seat row.
+ *
+ * Returns true only when this call newly granted consent (inserted a fresh row
+ * or flipped a revoked one), so callers can fire a "you're subscribed" email
+ * exactly once per genuine opt-in without a pre-read race.
  */
 async function grantMarketingConsent(
   // Transaction handle from `db.transaction` — typed loosely to stay
@@ -278,8 +291,8 @@ async function grantMarketingConsent(
   tx: any,
   userId: string | null | undefined,
   consentMarketing: boolean,
-): Promise<void> {
-  if (!userId || !consentMarketing) return;
+): Promise<boolean> {
+  if (!userId || !consentMarketing) return false;
   try {
     const existing = await tx
       .select({ id: consentRecords.id, granted: consentRecords.granted })
@@ -288,13 +301,13 @@ async function grantMarketingConsent(
         and(eq(consentRecords.userId, userId), eq(consentRecords.type, ConsentType.MARKETING)),
       )
       .limit(5);
-    if (existing.some((r: { id: string; granted: boolean | null }) => r.granted === true)) return;
+    if (existing.some((r: { id: string; granted: boolean | null }) => r.granted === true)) return false;
     if (existing.length > 0) {
       await tx
         .update(consentRecords)
         .set({ granted: true })
         .where(eq(consentRecords.id, existing[0].id));
-      return;
+      return true;
     }
     await tx.insert(consentRecords).values({
       id: crypto.randomUUID(),
@@ -302,9 +315,11 @@ async function grantMarketingConsent(
       type: ConsentType.MARKETING,
       granted: true,
     });
+    return true;
   } catch {
     // Consent sync must never fail the seat reservation — the registration row
     // is already the source of truth and a retry happens on the next opt-in.
+    return false;
   }
 }
 
@@ -620,11 +635,12 @@ export class WebinarService {
           })
           .where(eq(webinarRegistrations.id, existing.id))
           .returning();
-        await grantMarketingConsent(tx, userId ?? existing.userId, params.consentMarketing);
+        const marketingConsentGranted = await grantMarketingConsent(tx, userId ?? existing.userId, params.consentMarketing);
         return {
           registration: serializeRegistration(updated[0] ?? existing),
           webinar: serializeWebinar(webinar),
           alreadyRegistered: existing.status === "REGISTERED",
+          marketingConsentGranted,
         };
       }
 
@@ -663,11 +679,12 @@ export class WebinarService {
         .returning();
 
       if (inserted.length > 0) {
-        await grantMarketingConsent(tx, userId, params.consentMarketing);
+        const marketingConsentGranted = await grantMarketingConsent(tx, userId, params.consentMarketing);
         return {
           registration: serializeRegistration(inserted[0]),
           webinar: serializeWebinar(webinar),
           alreadyRegistered: false,
+          marketingConsentGranted,
         };
       }
 
@@ -677,11 +694,12 @@ export class WebinarService {
       if (!winner.length) {
         throw new WebinarError("Could not save your registration", "invalid");
       }
-      await grantMarketingConsent(tx, userId ?? winner[0].userId, params.consentMarketing);
+      const marketingConsentGranted = await grantMarketingConsent(tx, userId ?? winner[0].userId, params.consentMarketing);
       return {
         registration: serializeRegistration(winner[0]),
         webinar: serializeWebinar(webinar),
         alreadyRegistered: true,
+        marketingConsentGranted,
       };
     });
   }

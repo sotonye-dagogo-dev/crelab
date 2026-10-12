@@ -61,6 +61,11 @@ export const WIRED_EMAIL_TEMPLATES: Record<
     trigger:
       "Sent when a registrant reserves a seat for an upcoming webinar (guest or signed-in).",
   },
+  newsletterSubscription: {
+    label: "Newsletter Subscription",
+    trigger:
+      "Sent when a visitor subscribes to platform emails (blog newsletter form or the webinar registration opt-in checkbox).",
+  },
 };
 
 export function isWiredEmailTemplate(key: string): boolean {
