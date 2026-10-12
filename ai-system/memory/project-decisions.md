@@ -766,3 +766,47 @@ Reporters previously heard nothing until an admin changed status — silent subm
 
 **Implications:**
 New user-triggered lifecycle emails default to wired + best-effort + editable, following this trio's pattern. Guest reports (reporterEmail only, no userId) receive the ack identically to signed-in reports.
+
+---
+
+## Webinar Seats: Soft-Cancel Rollback (Re-registerable), Account-vs-Guest Attendees
+
+**Decision:** Webinar registration rollback is a status flip (`REGISTERED` → `CANCELLED`), never a row delete — by the visitor themselves (`DELETE /api/webinars/[id]/register`, session userId OR email key, idempotent `{cancelled}`) and by admins per seat (`DELETE ?registrationId=`, webinar-scoped, audit-logged). Cancelled seats re-register through the existing `register()` update path (no new code), and `myWebinarIds`/counts stay `REGISTERED`-only so cancelled seats vanish from both the public "You're registered" state and the admin count immediately while surviving under `?all=1` for audit. Attendee rows expose their linked platform account (`accountName/accountEmail/accountRole/isAccount`, additive) so admins can tell account seats from pure guest seats at a glance.
+**Date:** 2026-10-12
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** None (extends the upsert-dedupe decision with the inverse transition)
+**Superseded by:** None
+
+**Reason:**
+A seat with no undo is a trap: stale client state (or a seat saved under a mismatched identity) left users staring at "You're registered" with no recovery, and admins staring at a bare count with no way to verify or remove a single seat. Soft-cancel keeps the audit trail (who held which seat, when) while making both surfaces honest within one request.
+
+**Alternatives Considered:**
+- Hard delete of the registration row — rejected: destroys the audit trail and the marketing-consent record's context (`consentMarketing` on the row); the count query already filters by status, so delete buys nothing.
+- Admin-only cancellation (no user rollback) — rejected: the reported pain was user-side (Reserve reappearing / unwanted seat); forcing users through support for their own seat is the wrong shape.
+- Blocking re-registration after cancel (one-shot seats) — rejected: no product requirement; seats are capacity-limited, not identity-limited, and the upsert path handles the flip for free.
+
+**Implications:**
+- Future "one row per actor per entity" flows get the same pair: idempotent upsert write + idempotent status-flip undo, with counts always scoped to the active status.
+- `isAccount` and friends are additive — older clients ignore them; new admin surfaces should badge account vs guest wherever seats are listed.
+- Rollback copy (`cancelCtaLabel/cancelConfirmMessage/registrationCancelledLabel`) is config-driven like all webinar copy; no hardcoded strings in the cancel path.
+
+
+## Wired Newsletter Welcome Fires Only on Genuinely New Opt-ins
+
+**Decision:** The wired `newsletterSubscription` welcome email fires best-effort (never fails the subscribe/seat) only when the opt-in is genuinely new: `POST /api/newsletter` sends only on insert or flip-from-revoked (already-granted re-submits skip it); `POST /api/webinars/[id]/register` sends only when `register()` reports in-transaction `marketingConsentGranted=true` (signed-in) or a guest checks the box on a new seat (`!alreadyRegistered`). Re-registers, duplicate submits and already-subscribed checkouts never re-fire it. Guest cross-webinar opt-ins may receive the welcome once per webinar (no cross-webinar guest subscriber store exists — consent lives per registration row), accepted as a harmless edge.
+**Date:** 2026-10-12
+**Made by:** Product directive (via execute-feature)
+**Supersedes:** None (extends the wired-email decision: new wired key, same preview/simulate-only admin treatment)
+**Superseded by:** None
+
+**Reason:**
+A welcome email on every subscribe call would spam re-submits and double-taps; no welcome at all leaves subscribers unsure the opt-in worked (and the blog success copy already promises inbox mail). The in-transaction newly-granted flag avoids a pre-read race that a route-level "was subscribed?" check would introduce under concurrent submits.
+
+**Alternatives Considered:**
+- Route-level pre-check (`hasMarketingConsent` before `register()`) — rejected: TOCTOU race under concurrent submits; the in-transaction computation is exact and costs no extra round trip.
+- Never emailing guest webinar opt-ins (defer until account creation) — rejected: guests gave an explicit consented address; confirming the subscription is NDPR-friendly and matches the checkbox promise. Cross-webinar duplicates accepted and logged as residual risk.
+- Unsubscribing/consent-management email links (`preferencesUrl`) — deferred: no unsubscribe endpoint exists yet; the template points at account settings instead. A future `DELETE /api/newsletter` can add a real preferences URL var.
+
+**Implications:**
+- All future "welcome on opt-in" sends must gate on a newly-granted signal computed at the write site, not on the request reaching the endpoint.
+- New wired templates need only a `WIRED_EMAIL_TEMPLATES` entry + a `DEFAULT_CONFIG` default — the admin send guard is key-based and applies automatically.

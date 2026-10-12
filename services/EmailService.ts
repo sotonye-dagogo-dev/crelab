@@ -285,4 +285,18 @@ export class EmailService {
   ): Promise<EmailSendResult> {
     return EmailService.send(to, "webinarRegistration", vars, config);
   }
+
+  /**
+   * Newsletter welcome — fired (best-effort, never fails the subscribe) when a
+   * visitor newly opts into platform emails: the blog newsletter form or the
+   * webinar registration marketing-consent checkbox. Callers must only invoke
+   * it for genuinely new opt-ins so re-subscribes never spam.
+   */
+  static async sendNewsletterSubscription(
+    to: string,
+    vars: { userName: string; exploreUrl: string },
+    config?: IPlatformConfig,
+  ): Promise<EmailSendResult> {
+    return EmailService.send(to, "newsletterSubscription", vars, config);
+  }
 }

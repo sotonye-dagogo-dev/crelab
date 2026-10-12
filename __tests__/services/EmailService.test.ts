@@ -263,9 +263,68 @@ describe("services/EmailService — send with Resend key", () => {
     expect(result.error).toContain("timed out");
   }, 15000);
 });
+describe("services/EmailService — newsletter + webinar wired sends", () => {
+  it("renders the newsletter welcome as a preview when no API key is present", async () => {
+    delete process.env.RESEND_API_KEY;
+    const result = await EmailService.sendNewsletterSubscription(
+      "reader@example.com",
+      { userName: "Ada", exploreUrl: "https://crellab.example/explore" },
+      DEFAULT_CONFIG,
+    );
+    expect(result.sent).toBe(false);
+    expect(result.reason).toBe("resend_not_configured");
+    expect(result.preview).toContain("Hi Ada");
+    expect(result.preview).toContain("Thanks for subscribing");
+    expect(result.preview).toContain("https://crellab.example/explore");
+  });
 
-describe("services/EmailService — emailNotSentLabel", () => {
-  it("returns a human-readable label for every machine reason", () => {
+  it("renders the webinar confirmation as a preview when no API key is present", async () => {
+    delete process.env.RESEND_API_KEY;
+    const result = await EmailService.sendWebinarRegistration(
+      "guest@example.com",
+      {
+        userName: "Bayo",
+        webinarTitle: "Pricing Your Creative Work",
+        startsAt: "Saturday, 10 October 2026, 5:00 pm (WAT)",
+        joinUrl: "https://crellab.example/webinars",
+      },
+      DEFAULT_CONFIG,
+    );
+    expect(result.sent).toBe(false);
+    expect(result.reason).toBe("resend_not_configured");
+    expect(result.preview).toContain("Hi Bayo");
+    expect(result.preview).toContain("Pricing Your Creative Work");
+  });
+
+  it("returns sent:false + template_disabled when the newsletter template is disabled", async () => {
+    delete process.env.RESEND_API_KEY;
+    const config = {
+      ...DEFAULT_CONFIG,
+      emailConfig: {
+        ...DEFAULT_CONFIG.emailConfig!,
+        templates: {
+          ...DEFAULT_CONFIG.emailConfig!.templates,
+          newsletterSubscription: {
+            ...DEFAULT_CONFIG.emailConfig!.templates.newsletterSubscription,
+            enabled: false,
+          },
+        },
+      },
+    };
+    const result = await EmailService.sendNewsletterSubscription(
+      "reader@example.com",
+      { userName: "Ada", exploreUrl: "https://crellab.example/explore" },
+      config,
+    );
+    expect(result).toEqual({
+      sent: false,
+      to: "reader@example.com",
+      reason: "template_disabled",
+    });
+  });
+});
+
+describe("services/EmailService — emailNotSentLabel", () => {  it("returns a human-readable label for every machine reason", () => {
     const reasons = [
       "template_missing",
       "template_disabled",

@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening, docs reconciled)
-> - last-verified-against-code: 2026-10-08
-> - last-synced: 2026-10-08 (verified-status hardening: 453/453, docs reconciled)
+> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
+> - last-verified-against-code: 2026-10-12
+> - last-synced: 2026-10-12 (wired webinar + newsletter emails: 467/467, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -97,6 +97,8 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Wired webinar + newsletter emails: new wired `newsletterSubscription` template (label/trigger + default subject/bodyHtml/blocks/enabled) + `EmailService.sendNewsletterSubscription`; `POST /api/newsletter` fires the welcome best-effort on genuinely new opt-ins only (additive `email`); webinar checkbox opt-in fires it via in-transaction `marketingConsentGranted` flag (signed-in new grants + guest new seats, additive `newsletterEmail`); webinar confirmation semantics unchanged. 467/467 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-12 |
+| Webinars rollback + attendees + pagination: `cancel()`/`adminCancelRegistration()` (idempotent soft-cancel, re-registerable), user `DELETE /register` + admin `DELETE ?registrationId=` (audit-logged), account-vs-guest attendee badges + per-seat cancel + `staleTime: 0` counts, centered tight pagination (`justify-center`, `pt-1`), `gap-10→gap-6` sections, config-driven cancel copy (3 keys + editor fields). 463/463 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-12 |
 | Verified-status hardening: case-insensitive verify match (`normalizeEmail` + `ilike`, honest 404 on no-match, idempotent when verified) + session freshness (`useAuth.refresh`, post-verify refresh, profile refresh-status affordance, admin `staleTime: 0` + Refresh). 453/453 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-08 |
 | Email verification + wired delivery tightening: token-only verify links (dead `done=1&token=` fixed) + server-side signup hook (`databaseHooks.user.create.after`, single send) + register→verify routing (`?new=1&next=`) + hardened verify page + awaited OAuth welcome + recipients `verified` filter (picker verified-only default + toggle/notice/badges, batch reports `unverifiedIncluded`) + wired `bugReportReceived` ack on submission + config-driven `emailVerification.bannerEnabled` + `VerifyEmailBanner`. 452/452 vitest, tsc 0 errors, lint 0 errors, build green + full deep sync | 2026-10-08 |
 | Email batch send: `lib/email-batch.ts` pure helpers (normalize/filter/invert/cap 500) + `GET /api/admin/email/recipients` (search/role/consent/limit/offset + marketing flag) + `POST /api/admin/email/send` `recipientIds` branch (wired guard, per-recipient send, `email.batch` audit) + `EmailBatchSendDialog` picker (checkboxes, select-all/invert/clear/10-deep undo, first-100/creators/brands/subscribers quick filters) on `/admin/email-templates`. 442/442 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-08 |

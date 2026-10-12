@@ -77,13 +77,13 @@ crelab/
 │       ├── milestones/     # Milestone CRUD
 │       ├── media/          # Media upload (Cloudinary) + status + asset registry (list/delete/replace)
 │       ├── email/          # Email send (welcome, booking, payment) + status health route
-│       ├── newsletter/     # Newsletter subscribe (grants MARKETING consent for signed-in users)
+  │       ├── newsletter/     # Newsletter subscribe (grants MARKETING consent for signed-in users + wired newsletterSubscription welcome on new opt-ins)
 │       ├── portfolio/      # Portfolio CRUD (+ items list, reorder, individual item PATCH/DELETE)
 │       ├── profile/        # Profile management (setup)
 │       ├── referrals/      # GET /referrals/me + POST /referrals/claim (idempotent cookie claim + JSON {code} fallback)
 │       ├── verify-email/   # Verify-email: /send (shared sendVerificationEmailTo helper) + /welcome (fires welcome once verified) + /verify (case-insensitive token verify with affected-row check)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
-│       ├── webinars/       # GET /webinars + GET /webinars/mine (my seats + subscriber flag) + POST /webinars/[id]/register (id-or-slug, unique-index upsert, MARKETING grant on opt-in)
+│       ├── webinars/       # GET /webinars + GET /webinars/mine (my seats + subscriber flag) + POST/DELETE /webinars/[id]/register (id-or-slug, unique-index upsert, MARKETING grant on opt-in; idempotent user cancel)
 │       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or Paystack initiate with real client email + metadata
 │       └── webhooks/       # Paystack webhook handler
 ├── components/
@@ -107,7 +107,7 @@ crelab/
 │   ├── DriveService.ts
 │   ├── EarlyMemberService.ts # Founding-100 rank (ROW_NUMBER over user.createdAt, cached)
 │   ├── EscrowService.ts
-│   ├── EmailService.ts       # Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate)
+  │   ├── EmailService.ts       # Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + webinar registration + newsletter welcome)
 │   ├── ExploreService.ts   # Provider search + portfolioThumbnails (carousel payload)
 │   ├── LeaderboardService.ts # Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking
   │   ├── MediaAssetService.ts  # Media asset registry: record, list, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile, backfillOrphans (bulk owner-matched rescue)
@@ -120,7 +120,7 @@ crelab/
 │   ├── ReferralService.ts    # Invite codes + ACID degree-1/degree-2 events + idempotent cookie claim
 │   ├── TeamService.ts        # Public team listing (active-only) + socialLinks normalisation + serialiser
 │   ├── WalletService.ts
-│   └── WebinarService.ts     # Webinar CRUD + unique-index-upsert registration (idempotent)
+│   └── WebinarService.ts     # Webinar CRUD + unique-index-upsert registration (idempotent) + cancel/rollback + enriched attendees
 ├── types/                   # Global TypeScript interfaces
 │   ├── index.ts            # Barrel export + all entity/config/API types
 │   ├── dashboard.ts        # IDashboard* types
@@ -144,7 +144,7 @@ crelab/
 │   ├── db.ts               # Drizzle + Supabase client
 │   ├── drive.ts            # Google Drive API helpers + validation
 │   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS/previewVarsFor (platform name + resolved logoUrl; relative URLs resolved via lib/url)
-│   ├── email-templates.ts  # WIRED_EMAIL_TEMPLATES registry (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset: label + trigger) + isWiredEmailTemplate — code-wired emails are preview/simulate only, never sendable/broadcastable; resolveEmailTemplates/resolveEmailTemplate/resolveEmailConfig merge hardcoded defaults under DB-saved templates (defaults apply when a template was never saved to DB)
+  │   ├── email-templates.ts  # WIRED_EMAIL_TEMPLATES registry (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset/bugReportReceived/bugReportUnderReview/bugReportResolved/webinarRegistration/newsletterSubscription: label + trigger) + isWiredEmailTemplate — code-wired emails are preview/simulate only, never sendable/broadcastable; resolveEmailTemplates/resolveEmailTemplate/resolveEmailConfig merge hardcoded defaults under DB-saved templates (defaults apply when a template was never saved to DB)
 │   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
 │   ├── media.ts            # Media file/URL validation helpers (type, size, link; oversize reason keeps "too large" substring + per-file-limit detail)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)

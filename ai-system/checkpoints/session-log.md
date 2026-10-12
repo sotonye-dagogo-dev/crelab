@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-12 — WebinarService TS7006 build fix)
+> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
 > - last-verified-against-code: 2026-10-12
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,50 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-12 — Wired Emails: Webinar Registration + Newsletter Subscribe (execute-feature)
+
+**Directive:** Wire in emails for webinar registration and newsletter/email subscription. Config + metadata driven, reusable modular code, non-breaking, with fallbacks, error handling and edge cases.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, project-context, email-templates, EmailService, WebinarService, both routes, platform.config, email-blocks, email tests. Findings: webinar seat confirmation already wired end-to-end (verified, semantics kept); gaps were (a) `/api/newsletter` granted consent with no email, (b) webinar checkbox opt-in granted consent with no subscription welcome. Scope/decision checks pass (wired templates stay preview/simulate-only in admin; NDPR grant-only consent preserved; `emailNotifications` flag + non-blocking sends preserved).
+
+**Completed:**
+1. `lib/email-templates.ts` — `newsletterSubscription` wired entry (label + trigger).
+2. `config/platform.config.ts` — `newsletterSubscription` default template (subject/bodyHtml/blocks/enabled; existing vars only: `userName`, `exploreUrl`).
+3. `services/EmailService.ts` — `sendNewsletterSubscription(to, {userName, exploreUrl}, config)`.
+4. `services/WebinarService.ts` — `grantMarketingConsent()` returns `newlyGranted:boolean`; `RegisterResult` gains additive `marketingConsentGranted` (all three return paths; computed in-transaction, no pre-read race).
+5. `app/api/newsletter/route.ts` — welcome fires best-effort only on genuinely new opt-ins (already-granted re-submits skip); `getCached` config w/ `DEFAULT_CONFIG` fallback; additive `email:{sent,reason?}`; failures never fail the subscribe.
+6. `app/api/webinars/[id]/register/route.ts` — newsletter welcome fires best-effort for signed-in new grants or guest new seats with the box checked; additive `newsletterEmail:{sent,reason?}|null`; webinar `email` field semantics unchanged.
+7. Tests — `email-templates.test.ts` (+1: wired parity incl. new keys, newsletter defaults use resolvable vars); `EmailService.test.ts` (+3: newsletter/webinar preview-fallback, disabled-template guard).
+8. QA: `vitest` 467/467 (39 files; +4 new), `tsc --noEmit` clean, `next lint` 0 errors (pre-existing warnings only), `next build` green.
+
+**Chains:** `sync-context.md` mid-work + close (this entry); `update-ai-system.md` deep sync inline per directive (system-architecture, dependency-graph, dev-history, task-queue, decisions, test-results, this log; in-progress cleared).
+
+**Residual risks:** guest cross-webinar double welcome (no guest subscriber store — per-registration consent only); concurrent double-submit duplicate welcome (best-effort, harmless, no seat/consent corruption).
+
+## Session 2026-10-12 — Webinars Rollback + Attendees + Pagination (execute-feature)
+
+**Directive:** Registrations still don't visibly persist (authed seat → admin 0, Reserve reappears); add user rollback + admin attendee list (accounts vs guests); center + tighten pagination; clean upcoming/past gap. Config-driven, modular, non-breaking + `update-ai-system.md` deep sync.
+
+**Planning pass (Step 1):** read task-queue, system-architecture, design-system, repair-system, project-context, project-decisions; additive scope (2 DELETE routes, no schema/migration, status-flip cancel, enriched list join, copy keys with fallbacks, spacing only). Scope/decision checks pass (cancel complements the upsert-dedupe decision; re-register flips CANCELLED→REGISTERED via the existing update path).
+
+**Root causes / hardening:**
+1. No user rollback existed — a stale "registered" state (localStorage/outcome) had no server-side undo, and a seat saved under a mismatched identity had no visible recovery.
+2. Admin attendee rows carried no account linkage — a guest-email seat vs a platform-account seat were indistinguishable, and the counts query had no per-row verification surface beyond the number.
+3. Admin list could read a cached zero right after a registration (React Query default staleness) — same class of bug as the verify-status stale-session issue.
+4. Pagination wrappers used side padding + `justify-between` with `pt-2 mt-1` (excessive vertical rhythm); sections used `gap-10` + `mt-2 pt-8` (heavy double gap).
+
+**Completed:**
+1. `types/index.ts` — `IWebinarRegistration` gains additive optional `accountName/accountEmail/accountRole/isAccount`; `IWebinarsConfig` gains `cancelCtaLabel/cancelConfirmMessage/registrationCancelledLabel` (all fallback-backed).
+2. `services/WebinarService.ts` — `cancel()` (idempotent status-flip, slug-tolerant, re-registerable), `adminCancelRegistration()` (soft-cancel by id, webinar-scoped), `listRegistrations()` left-joins `user` for account-vs-guest enrichment; `myWebinarIds()` treats whitespace email as absent (no pointless DB hit).
+3. `app/api/webinars/[id]/register/route.ts` — new `DELETE` (shared `resolveSession()` helper, `?email=`/JSON guest fallback, always honest `{cancelled}`); `app/api/admin/webinars/[id]/registrations/route.ts` — new `DELETE ?registrationId=` (ADMIN, audit-logged `webinar.registration.cancel`).
+4. `app/(public)/webinars/WebinarsClient.tsx` — registered cards gain config-driven Cancel (`ClConfirmDialog`, per-card pending, reverse-path state cleanup incl. guest-seat cache); pagination centered + tight (`justify-center`, `pt-1`, no side padding); sections `gap-10→gap-6`, past `mt-2 pt-8→pt-6`, upcoming heading `mb-4→mb-3`.
+5. `app/admin/webinars/page.tsx` — attendee rows show Account/Guest badge + linked-account line + per-seat Cancel (confirm-free single tap with toast, refetch + count invalidation); both queries pin `staleTime: 0`.
+6. `config/platform.config.ts` + `lib/webinars.ts` + `/admin/config` Growth section — 3 new cancel-copy keys (defaults + resolver + editor fields; `registeredLabel` editor field also added, was missing).
+7. `__tests__/services/WebinarService.test.ts` — cancel no-identity/blank no-DB tests + cancel-copy default/override tests + whitespace `myWebinarIds` no-DB assertion.
+8. QA: `vitest` 463/463 (39 files; +4 new), `tsc --noEmit` clean, `next lint` 0 errors (3 pre-existing warnings), `next build` green.
+
+**Chains:** `sync-context.md` mid-work + close (this entry); `update-ai-system.md` deep sync inline per directive (repo-map, dependency-graph, dev-history, task-queue, decisions, test-results, this log).
 
 ## Session 2026-10-12 — Fix Build: WebinarService TS7006 (fix-build)
 

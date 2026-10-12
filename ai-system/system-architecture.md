@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
+> - last-verified-against-code: 2026-10-12
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -36,12 +36,12 @@ Service Layer (services/)
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute — approve now credits provider, not client)
     |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile, backfillOrphans (bulk owner-matched rescue)
     |-- MockDataService         -- Mock data fallback when DB unavailable
-    |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + password reset)
+    |-- EmailService            -- Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + password reset + webinar registration + newsletter welcome)
     |-- BlogPostService         -- Blog post CRUD + DB→Sanity→fallback merge (admin/DB posts win, dedup by slug)
     |-- EarlyMemberService      -- Founding-100 rank via ROW_NUMBER() over user.createdAt (cached, no schema change)
     |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim (cookie-first + JSON body fallback) + auth-agnostic claim retry (ReferralClaimOnAuth) + discovery links (navbar/footer/profile/dashboards/leaderboard)
     |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking over ALL members (zero-score rows kept, ranked last) + 30s user-agnostic board cache + batched candidate load + per-request current-user rank
-     |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert)
+     |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert + additive `marketingConsentGranted` newly-granted flag computed in-transaction), user rollback (`cancel`, idempotent CANCELLED flip, re-registerable), enriched attendee list (account-vs-guest via user join), admin seat cancel
      |-- TeamService             -- Public team listing (active-only, display order) + socialLinks normalisation (array | legacy JSON-string | null)
     |-- PlatformStatsService    -- Cached landing aggregates with null → fallbackValue degradation
     |
@@ -151,7 +151,7 @@ Data Stores
    -> real sends resolve relative URLs too (EmailService.send runs resolveRelativeUrlsInHtml on the filled HTML)
     -> template lookup is resilient: resolveEmailTemplate/resolveEmailTemplates (lib/email-templates.ts) merge hardcoded DEFAULT_CONFIG templates under DB-saved ones, so a wired template (e.g. verifyEmail) still applies when it was never saved to the DB (PlatformConfigService re-merges emailConfig on every get)
 2. New templates created via create-new-template modal (added to emailConfig.templates)
-3. Wired (code-triggered) templates — welcome / verifyEmail / emailChanged / bookingConfirmation / paymentReceived / passwordReset / bugReportUnderReview / bugReportResolved / bugReportReceived / webinarRegistration (lib/email-templates.ts WIRED_EMAIL_TEMPLATES, each with a trigger description):
+3. Wired (code-triggered) templates — welcome / verifyEmail / emailChanged / bookingConfirmation / paymentReceived / passwordReset / bugReportUnderReview / bugReportResolved / bugReportReceived / webinarRegistration / newsletterSubscription (lib/email-templates.ts WIRED_EMAIL_TEMPLATES, each with a trigger description):
    -> preview + Simulate ONLY (useEmailSimulation) — badge + Zap icon + trigger banner in the admin
    -> /api/admin/email/send rejects wired keys for test-send AND broadcast (content/timing owned by code, not the operator)
    -> passwordReset fired by Better Auth emailAndPassword.sendResetPassword -> sendTransactionalEmail ({{resetUrl}} var)
@@ -267,7 +267,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | CATEGORIES | Category slugs + field schema JSONB | platform.config.ts | ['content-creator', 'cinematographer'] |
 | FEATURES | Feature flags (guest browse, Drive sync, blog) | platform.config.ts | { guestBrowse: true, googleDriveSync: true, blogEnabled: true } |
 | MEDIA_UPLOAD | mediaUpload.enabled / cloudinaryEnabled / maxFileSizeMb / videoTypes / imageTypes / cleanupEnabled / cleanupOrphanAfterHours | platform.config.ts | { enabled: true, cloudinaryEnabled: true, maxFileSizeMb: 100, cleanupEnabled: true, cleanupOrphanAfterHours: 24 } |
-| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged, passwordReset, bugReportReceived/underReview/resolved, webinarRegistration) + fromName/fromEmail | platform.config.ts | template defaults + from settings. Wired (code-triggered) templates are preview/simulate-only; admin-created templates can be sent/broadcast. Templates saved in DB are merged OVER hardcoded defaults (resolveEmailTemplates) so wired templates never silently drop. Sender defaults to a real address on a subdomain (`hello@mail.crellab.com`) — no no-reply; overridable via RESEND_FROM_NAME/RESEND_FROM_EMAIL |
+| EMAIL_CONFIG | emailConfig.templates (welcome, booking, payment, verifyEmail, emailChanged, passwordReset, bugReportReceived/underReview/resolved, webinarRegistration, newsletterSubscription) + fromName/fromEmail | platform.config.ts | template defaults + from settings. Wired (code-triggered) templates are preview/simulate-only; admin-created templates can be sent/broadcast. Templates saved in DB are merged OVER hardcoded defaults (resolveEmailTemplates) so wired templates never silently drop. Sender defaults to a real address on a subdomain (`hello@mail.crellab.com`) — no no-reply; overridable via RESEND_FROM_NAME/RESEND_FROM_EMAIL |
 | BLOG_CONFIG | blogConfig.heroTitle / heroSubtitle / newsletter / footerTagline — drives blog page hero + newsletter section, admin-editable at /admin/blog-templates | platform.config.ts | hero + newsletter defaults |
 | NEXT_PUBLIC_APP_URL | Absolute origin for SEO canonical URLs + email logo links (falls back to VERCEL_URL, then http://localhost:3000) | .env | - |
 | ENABLE_DESIGN_VIEWER | Mounts the dev-only design-asset viewer at `/__design/*`; must be false in production builds | .env | false |
@@ -278,7 +278,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | BUG_REPORT | `bugReport` — error popup copy, CTA labels, severity, includeConsoleLogs | platform.config.ts | { enabled: true, severity: 'MEDIUM', includeConsoleLogs: true } |
 | LANDING_STATS | `landingStats.items.{id}` — keyed record of stat items (key, label, format, orderIndex, enabled, fallbackValue) feeding the landing stats | platform.config.ts | creators/bookings/avgRating enabled; portfolio/members/team disabled |
 | SCROLL_TO_TOP | `scrollToTop` — enabled / thresholdPx / label for the platform-wide `ScrollToTopButton` | platform.config.ts | { enabled: true, thresholdPx: 400 } |
-| WEBINARS | `webinars` — page copy, `maxRegistrantsPerWebinar`, guest prompt + registration CTA + marketing-consent label | platform.config.ts | { maxRegistrantsPerWebinar: 500 } |
+| WEBINARS | `webinars` — page copy, `maxRegistrantsPerWebinar`, guest prompt + registration CTA + marketing-consent label + cancel/rollback copy (`cancelCtaLabel`, `cancelConfirmMessage`, `registrationCancelledLabel`) | platform.config.ts | { maxRegistrantsPerWebinar: 500 } |
 | TEAM_PAGE | `teamPage` — public `/team` hiring block (hiringEnabled/hiringTitle/hiringSubtitle/hiringCtaLabel/hiringCtaHref, relative or full URL); admin-editable from the `/admin/team` Page-settings card (PATCH `teamPage.*` dotted keys) | platform.config.ts | { hiringEnabled: true, hiringCtaHref: '/about' } |
 | EMAIL_VERIFICATION | `emailVerification.bannerEnabled` — dismissible verify nudge with resend for signed-in unverified users (`VerifyEmailBanner`, root layout); never a hard gate | platform.config.ts | { bannerEnabled: true } |
 | FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Referrals/Leaderboard & Webinars links and the referral/webinar surfaces (referral discovery: navbar, footer, profile card, dashboard `ReferralBanner`, leaderboard CTA) | platform.config.ts | both `true` |
@@ -359,6 +359,18 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-12 — Wired Emails: Webinar Registration + Newsletter Subscribe
+- **New wired `newsletterSubscription` template** — `lib/email-templates.ts` + `DEFAULT_CONFIG.emailConfig.templates` (subject/bodyHtml/blocks/enabled, existing vars only: `userName`, `exploreUrl`) + `EmailService.sendNewsletterSubscription()`. Preview/simulate-only in admin like all wired templates (`/api/admin/email/send` guard is key-based, no change needed).
+- **Newsletter subscribe now emails** — `POST /api/newsletter` fires the welcome best-effort only on genuinely new opt-ins (insert or flip from revoked; already-granted re-submits skip it, so no spam), gated by `features.emailNotifications`, config via `getCached` with `DEFAULT_CONFIG` fallback, additive `email:{sent,reason?}` in the response; send failure never fails the subscribe.
+- **Webinar checkbox opt-in now emails** — `grantMarketingConsent()` returns a `newlyGranted` boolean computed inside the seat transaction (no pre-read race); `RegisterResult` gains additive `marketingConsentGranted`. The register route fires the newsletter welcome best-effort for signed-in new grants, or for guest new seats with the box checked (guests have no consent row; `alreadyRegistered` re-submits skip it). Additive `newsletterEmail:{sent,reason?}|null` alongside the existing `email` (webinar confirmation, unchanged semantics: new seats only, re-fires on re-register after cancel).
+- **QA:** `vitest` 467/467 (+4 new: wired-key parity, newsletter defaults, newsletter/webinar preview-fallback, disabled-template), `tsc --noEmit` clean, `next lint` 0 errors, `next build` green.
+
+### 2026-10-12 — Webinars Rollback + Attendees + Pagination
+- **User rollback** — `WebinarService.cancel()` flips the visitor's REGISTERED row(s) to CANCELLED (idempotent, slug-tolerant, identity = session userId OR email key); `register()` already re-activates CANCELLED rows, so cancel→re-register is a round trip. New `DELETE /api/webinars/[id]/register` (shared session helper, guest `?email=`/JSON fallback) + Cancel button under the registered card (`ClConfirmDialog`, config copy, reverse-path cleanup of server ids/outcomes/guest-seat cache).
+- **Admin attendees** — `listRegistrations()` left-joins `user` (additive `accountName/accountEmail/accountRole/isAccount`); the drawer shows Account/Guest badges + linked-account line + per-seat Cancel (`DELETE ?registrationId=`, audit-logged `webinar.registration.cancel`, counts invalidated). Both admin queries pin `staleTime: 0` (same stale-read class as the verify-status fix) so a fresh seat never renders as a cached zero.
+- **Pagination + gap** — public pagination wrappers centered + tight (`justify-center`, `pt-1`, no side padding); sections `gap-10→gap-6`, past `mt-2 pt-8→pt-6`. Grids unchanged (`grid-cols-1 md:grid-cols-2`).
+- **QA:** `vitest` 463/463, `tsc --noEmit` clean, `next lint` 0 errors, `next build` green.
 
 ### 2026-10-08 — Verified-Status Hardening (DB-not-updated + stale session)
 - **Root cause of "received the email but still unverified everywhere"** — `POST /api/verify-email/verify` matched with exact `eq(user.email, identifier)` while the token identifier is stored lowercased: mixed-case addresses updated 0 rows, yet the route returned success and deleted the token (false success, no retry). Fixed with shared `normalizeEmail()` + case-insensitive `ilike` match + `.returning()` affected-row check (honest 404, token retained; idempotent when already verified).

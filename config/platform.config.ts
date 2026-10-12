@@ -348,6 +348,10 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     registerCtaLabel: "Reserve my seat",
     registeredLabel: "You're registered",
     marketingConsentLabel: "Email me about future sessions and platform news.",
+    cancelCtaLabel: "Cancel registration",
+    cancelConfirmMessage:
+      "Cancel your seat for this session? You can re-register any time while seats last.",
+    registrationCancelledLabel: "Registration cancelled",
   },
   blogConfig: {
     heroTitle: "Insights for Nigerian Creators & Brands",
@@ -593,6 +597,37 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
 </div>
 <p style="font-size:12px;color:#5C5C5C;text-align:center;">Save this email — the link above takes you to the session page any time.</p>
 </div>`,
+        enabled: true,
+      },
+      newsletterSubscription: {
+        name: "Newsletter Subscription",
+        subject: "You're subscribed — {{name}} updates",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">You're on the list</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Thanks for subscribing — you'll now receive {{name}} updates, session announcements and platform news. One email at a time, no spam.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{exploreUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">Explore Creators</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">You can unsubscribe any time from your account settings. {{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        blocks: [
+          { type: "image", url: "{{logoUrl}}", alt: "{{name}}" },
+          { type: "heading", text: "You're on the list" },
+          { type: "paragraph", text: "Hi {{userName}}," },
+          {
+            type: "paragraph",
+            text: "Thanks for subscribing — you'll now receive {{name}} updates, session announcements and platform news. One email at a time, no spam.",
+          },
+          { type: "button", text: "Explore Creators", url: "{{exploreUrl}}" },
+          {
+            type: "paragraph",
+            text: "You can unsubscribe any time from your account settings. {{name}} — Get hired for your creativity, not your follower count.",
+          },
+        ],
         enabled: true,
       },
     },

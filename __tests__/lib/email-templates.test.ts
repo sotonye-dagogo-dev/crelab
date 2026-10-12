@@ -16,6 +16,8 @@ describe("lib/email-templates — wired email templates", () => {
     expect(isWiredEmailTemplate("passwordReset")).toBe(true);
     expect(isWiredEmailTemplate("bookingConfirmation")).toBe(true);
     expect(isWiredEmailTemplate("paymentReceived")).toBe(true);
+    expect(isWiredEmailTemplate("webinarRegistration")).toBe(true);
+    expect(isWiredEmailTemplate("newsletterSubscription")).toBe(true);
   });
 
   it("treats admin-created templates as non-wired", () => {
@@ -38,12 +40,26 @@ describe("lib/email-templates — wired email templates", () => {
     expect(WIRED_EMAIL_TEMPLATES).toHaveProperty("bookingConfirmation");
     expect(WIRED_EMAIL_TEMPLATES).toHaveProperty("paymentReceived");
     expect(WIRED_EMAIL_TEMPLATES).toHaveProperty("passwordReset");
+    expect(WIRED_EMAIL_TEMPLATES).toHaveProperty("webinarRegistration");
+    expect(WIRED_EMAIL_TEMPLATES).toHaveProperty("newsletterSubscription");
   });
 
   it("has a passwordReset template configured as a wired default", async () => {
     const { DEFAULT_CONFIG } = await import("@/config/platform.config");
     expect(DEFAULT_CONFIG.emailConfig?.templates).toHaveProperty("passwordReset");
     expect(DEFAULT_CONFIG.emailConfig?.templates?.passwordReset?.enabled).toBe(true);
+  });
+
+  it("has webinar + newsletter templates configured as wired defaults", async () => {
+    const { DEFAULT_CONFIG } = await import("@/config/platform.config");
+    const templates = DEFAULT_CONFIG.emailConfig?.templates;
+    expect(templates).toHaveProperty("webinarRegistration");
+    expect(templates?.webinarRegistration?.enabled).toBe(true);
+    expect(templates).toHaveProperty("newsletterSubscription");
+    expect(templates?.newsletterSubscription?.enabled).toBe(true);
+    // Newsletter defaults reuse existing vars only, so previews resolve.
+    expect(templates?.newsletterSubscription?.bodyHtml).toContain("{{userName}}");
+    expect(templates?.newsletterSubscription?.bodyHtml).toContain("{{exploreUrl}}");
   });
 });
 

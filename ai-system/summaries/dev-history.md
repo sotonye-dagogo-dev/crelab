@@ -1,8 +1,44 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — webinars persistence tightening)
+> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
 > - last-verified-against-code: 2026-10-12
+
+
+## Session 2026-10-12 — Wired Emails: Webinar Registration + Newsletter Subscribe
+
+### What
+Directive: wire in emails for webinar registration and newsletter/email subscription. Config + metadata driven, reusable modular code, non-breaking, with fallbacks, error handling and edge-case handling.
+
+### Verification
+`vitest` → 39 files, **467 passed / 0 failed** (+4 new). `tsc --noEmit` → clean. `next lint` → 0 errors (pre-existing warnings only). `next build` → green.
+
+### Key Changes
+- **Investigation:** the webinar seat confirmation was already wired end-to-end (`webinarRegistration` template + `sendWebinarRegistration` + best-effort route call, new-seats-only incl. re-register after cancel) — verified, semantics unchanged. The gaps were (a) `POST /api/newsletter` granted MARKETING consent with no email, and (b) the webinar checkbox opt-in granted consent with no subscription welcome.
+- **New wired template:** `newsletterSubscription` in `lib/email-templates.ts` (label + trigger) + `DEFAULT_CONFIG.emailConfig.templates` default (subject/bodyHtml/blocks/enabled; existing vars only — `userName`, `exploreUrl` — so previews resolve). Preview/simulate-only in admin via the existing key-based wired guard.
+- **EmailService:** `sendNewsletterSubscription(to, {userName, exploreUrl}, config)` following the `sendBugReportReceived` pattern.
+- **WebinarService:** `grantMarketingConsent()` now returns `newlyGranted:boolean` (insert or flip-from-revoked; false for guests/unchecked/already-granted/failure); `RegisterResult` gains additive `marketingConsentGranted` on all three return paths — computed inside the seat transaction, no pre-read race.
+- **Newsletter route:** fires the welcome best-effort only on genuinely new opt-ins (already-granted re-submits skip it); `features.emailNotifications` gate; `getCached` config with `DEFAULT_CONFIG` fallback; additive `email:{sent,reason?}`; failures never fail the subscribe.
+- **Webinar register route:** fires the newsletter welcome best-effort for signed-in new grants or guest new seats with the box checked; additive `newsletterEmail:{sent,reason?}|null` alongside the unchanged `email` field; failures never fail the seat.
+- **Tests:** `email-templates.test.ts` (+1: wired parity incl. new keys, newsletter defaults use resolvable vars); `EmailService.test.ts` (+3: newsletter/webinar preview-fallback sends, disabled-template guard).
+- Residual risks: a guest who opts in on two different webinars receives the newsletter welcome twice (no cross-webinar guest subscriber store — per-registration consent only); concurrent double-submits can double-send the welcome (best-effort, non-blocking; harmless duplicate, no seat/consent corruption).
+
+
+## Session 2026-10-12 — Webinars Rollback + Attendees + Pagination
+
+### What
+Directive: seats still not visibly persisting (admin 0, Reserve reappears); add user-facing rollback + admin attendee list distinguishing accounts from guests; center + tighten pagination; clean upcoming/past gap. Config-driven, modular, non-breaking + deep sync.
+
+### Verification
+`vitest` → 39 files, **463 passed / 0 failed** (+4 new). `tsc --noEmit` → clean. `next lint` → 0 errors (3 pre-existing unused-var warnings). `next build` → green.
+
+### Key Changes
+- **User rollback:** `WebinarService.cancel()` (idempotent CANCELLED flip, slug-tolerant, re-registerable via the existing register update path) + `DELETE /api/webinars/[id]/register` (shared session helper, guest `?email=`/JSON fallback) + Cancel button under the registered state (`ClConfirmDialog`, config copy, reverse-path cleanup of server ids/outcomes/guest cache).
+- **Admin attendees:** `listRegistrations()` left-joins `user` (additive `accountName/accountEmail/accountRole/isAccount`) → Account/Guest badges + linked-account line + per-seat Cancel (`DELETE ?registrationId=`, audit-logged, count invalidated); both admin queries pin `staleTime: 0` so a fresh registration never reads as cached zero.
+- **Pagination + gap:** wrappers → centered tight (`justify-center`, `pt-1`, no side padding); sections `gap-10→gap-6`, past `mt-2 pt-8→pt-6`; grids unchanged (`grid-cols-1 md:grid-cols-2` already per directive).
+- **Config-driven copy:** `cancelCtaLabel/cancelConfirmMessage/registrationCancelledLabel` in types + `DEFAULT_CONFIG` + `resolveWebinarsConfig` fallback + `/admin/config` Growth fields (plus the missing `registeredLabel` field).
+- Docs close — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`), `system-architecture.md`, `index/repo-map.md`, `index/dependency-graph.md`, `memory/project-decisions.md`, `testing/test-results.md`; `in-progress.md` cleared. Deep `update-ai-system.md` invoked inline per directive.
+- Residual risk: guests with no stored email still resolve stateless until they type their address (unchanged, by design — no identity to match).
 
 
 ## Session 2026-10-12 — Webinars Persistence Tightening

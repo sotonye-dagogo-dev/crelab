@@ -38,6 +38,31 @@ async function resolveConfig() {
   }
 }
 
+async function resolveSession(req: NextRequest): Promise<{ id: string; email: string; name: string } | null> {
+  try {
+    // Same two-step resolution as POST: `req.headers` first, `headers()`
+    // fallback, so authenticated seats never silently resolve as guests.
+    let s = await auth.api.getSession({ headers: req.headers });
+    if (!s?.user) {
+      try {
+        const h = await headers();
+        s = await auth.api.getSession({ headers: h });
+      } catch {
+        // Keep the req.headers result (null → guest flow).
+      }
+    }
+    if (!s?.user) return null;
+    return {
+      id: s.user.id,
+      email: s.user.email,
+      name: typeof s.user.name === "string" ? s.user.name : "",
+    };
+  } catch {
+    // Public endpoint — anonymous visitors act as guests.
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -59,30 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     let session: { id: string; email: string; name: string } | null = null;
-    try {
-      // `req.headers` carries cookies in route handlers, but fall back to the
-      // request-scoped `headers()` so session resolution never silently misses
-      // an authenticated user (the previous silent-null path made authed
-      // registrations fail with "Email is required" and never persist).
-      let s = await auth.api.getSession({ headers: req.headers });
-      if (!s?.user) {
-        try {
-          const h = await headers();
-          s = await auth.api.getSession({ headers: h });
-        } catch {
-          // Keep the req.headers result (null → guest flow).
-        }
-      }
-      if (s?.user) {
-        session = {
-          id: s.user.id,
-          email: s.user.email,
-          name: typeof s.user.name === "string" ? s.user.name : "",
-        };
-      }
-    } catch {
-      // Public endpoint — anonymous visitors register as guests.
-    }
+    session = await resolveSession(req);
 
     const email = (session?.email || check.data.email || "").trim() || null;
     if (!email || !email.includes("@")) {
@@ -139,6 +141,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
+    // Newsletter welcome — non-blocking second email for genuine new
+    // opt-ins via the marketing-consent checkbox (mirrors the
+    // /api/newsletter welcome). Signed-in grants are ACID-accurate via
+    // `result.marketingConsentGranted` (no pre-read race); guests have no
+    // consent row, so a checked box on a new seat counts as the opt-in.
+    // Already-subscribed re-registers skip it so nobody gets spammed.
+    let newsletterEmail: { sent: boolean; reason?: string } | null = null;
+    const guestNewOptIn =
+      check.data.consentMarketing && !result.alreadyRegistered && !session && !result.marketingConsentGranted;
+    if (
+      check.data.consentMarketing &&
+      config.features?.emailNotifications &&
+      (result.marketingConsentGranted || guestNewOptIn)
+    ) {
+      try {
+        const { EmailService } = await import("@/services/EmailService");
+        const newsletterResult = await EmailService.sendNewsletterSubscription(
+          email,
+          { userName: name, exploreUrl: resolveAbsoluteUrl("/explore") },
+          config,
+        );
+        newsletterEmail = newsletterResult.sent
+          ? { sent: true }
+          : { sent: false, reason: newsletterResult.reason };
+      } catch (err) {
+        console.error("[POST /api/webinars/[id]/register] newsletter email failed", err);
+        newsletterEmail = { sent: false, reason: err instanceof Error ? err.message : "send error" };
+      }
+    }
+
     const webinarsConfig = resolveWebinarsConfig(config.webinars);
     const guest = session === null;
 
@@ -159,6 +191,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             : {}),
         },
         email: emailResult,
+        newsletterEmail,
       },
       { status: result.alreadyRegistered ? 200 : 201 },
     );
@@ -174,6 +207,46 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ success: false, error: err.message }, { status });
     }
     console.error("[POST /api/webinars/[id]/register] error", err);
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
+ * Roll back a seat (user-facing cancellation). Idempotent — cancelling twice
+ * reports `cancelled: false` with a 200, never an error, so stale "You're
+ * registered" UI resolves honestly. Signed-in visitors resolve via the
+ * session; guests pass the registration email (`?email=` or JSON `{email}`).
+ */
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const session = await resolveSession(req);
+
+    let bodyEmail: string | null = null;
+    try {
+      const json = await req.json();
+      if (json && typeof json.email === "string") bodyEmail = json.email;
+    } catch {
+      // No JSON body (e.g. `fetch(..., { method: "DELETE" })`) — fall back to query.
+    }
+    const { searchParams } = new URL(req.url);
+    const email = (session?.email || bodyEmail || searchParams.get("email") || "").trim() || null;
+
+    if (!session?.id && !email) {
+      return NextResponse.json(
+        { success: false, error: "An email is required to cancel a guest registration" },
+        { status: 400 },
+      );
+    }
+
+    const result = await WebinarService.cancel({
+      webinarId: id,
+      userId: session?.id ?? null,
+      email,
+    });
+    return NextResponse.json({ success: true, data: result });
+  } catch (err) {
+    console.error("[DELETE /api/webinars/[id]/register] error", err);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

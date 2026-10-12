@@ -104,7 +104,7 @@ Explore Portfolio API (app/api/explore/portfolio/route.ts)
   → types/index.ts (IPortfolioItem + extended gallery fields)
   → consumed by app/(public)/explore/page.tsx (gallery view)
 
-EmailService (+ isResendConfigured / getResendConfig / getResendSender + DEFAULT_FROM_EMAIL + sendVerifyEmail / sendEmailChanged / sendTemplate + bug-report trio (sendBugReportReceived/UnderReview/Resolved) + sendResetPassword path via Better Auth)
+EmailService (+ isResendConfigured / getResendConfig / getResendSender + DEFAULT_FROM_EMAIL + sendVerifyEmail / sendEmailChanged / sendTemplate + bug-report trio (sendBugReportReceived/UnderReview/Resolved) + sendWebinarRegistration + sendNewsletterSubscription + sendResetPassword path via Better Auth)
   → config/platform.config.ts (DEFAULT_CONFIG email templates + fromName/fromEmail — subdomain sender default)
   → types/index.ts (IEmailTemplate, IPlatformConfig, EmailTemplateBlock)
   → lib/url.ts (resolveAbsoluteUrl for logoUrl + resolveRelativeUrlsInHtml on the final filled HTML)
@@ -112,10 +112,10 @@ EmailService (+ isResendConfigured / getResendConfig / getResendSender + DEFAULT
   → lib/email-templates.ts (resolveEmailTemplate/resolveEmailConfig — hardcoded defaults apply when a template wasn't saved to DB)
   → global fetch → https://api.resend.com/emails (raw HTTP, no SDK)
   → env RESEND_API_KEY + RESEND_FROM_NAME + RESEND_FROM_EMAIL (read at call time; preview fallback when absent)
-  → consumed by app/api/email/send + app/api/email/welcome + app/api/email/status + app/api/verify-email/send + app/api/verify-email/welcome + app/api/admin/email/send
+  → consumed by app/api/email/send + app/api/email/welcome + app/api/email/status + app/api/verify-email/send + app/api/verify-email/welcome + app/api/admin/email/send + app/api/newsletter (newsletter welcome) + app/api/webinars/[id]/register (seat confirmation + newsletter welcome)
 
 Wired email templates (lib/email-templates.ts)
-  → leaf module — WIRED_EMAIL_TEMPLATES map (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset, each with label + trigger) + isWiredEmailTemplate(key) + resolveEmailTemplates/resolveEmailTemplate/resolveEmailConfig (defaults merged under DB-saved templates)
+  → leaf module — WIRED_EMAIL_TEMPLATES map (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset/bugReportReceived/bugReportUnderReview/bugReportResolved/webinarRegistration/newsletterSubscription, each with label + trigger) + isWiredEmailTemplate(key) + resolveEmailTemplates/resolveEmailTemplate/resolveEmailConfig (defaults merged under DB-saved templates)
   → consumed by app/api/admin/email/send (rejects wired keys for test-send + broadcast; resolver for known-template check) + app/admin/email-templates/page.tsx (badge + Simulate-only UX) + app/api/verify-email/send (enabled check) + services/PlatformConfigService (emailConfig merge) + services/EmailService (send fallback)
 
 BlogPostService (blog post CRUD + content-source merge)
@@ -202,7 +202,7 @@ Email verify flow (verify-email)
   → app/(auth)/profile/page.tsx ("I've verified — refresh status" affordance alongside resend when unverified)
 
 Newsletter
-  → app/api/newsletter/route.ts (signed-in users get a granted MARKETING consent record)
+  → app/api/newsletter/route.ts (signed-in users get a granted MARKETING consent record; newly-granted opt-ins fire the wired `newsletterSubscription` welcome best-effort, never fails the subscribe, additive `email` in response)
   → app/(public)/blog/page.tsx + BlogPageClient.tsx (newsletter section + config-driven hero title/subtitle)
   → app/admin/blog-templates/page.tsx (edits blogConfig with live preview)
 
@@ -265,9 +265,9 @@ PlatformStatsService (services/PlatformStatsService.ts)
   → consumed by app/page.tsx + app/(public)/home/page.tsx (server) → components/landing/LandingContent.tsx
 
 WebinarService (services/WebinarService.ts)
-  → lib/db.ts + drizzle/schema.ts (webinars, webinar_registrations, consent_records, user) — registration dedupes via unique `(webinar_id, lower(email))` / partial unique `(webinar_id, user_id)` **upsert** (no pre-read race); id-or-slug lookup; opt-in grants MARKETING consent in-transaction (grant-only, never revoke)
-  → lib/webinars.ts (server/client-safe copy + status helpers) + PlatformConfigService (webinars config) + EmailService (wired `webinarRegistration` confirmation, non-blocking)
-  → consumed by app/api/webinars (GET list) + app/api/webinars/mine (GET my seats + subscribed flag, always-200) + app/api/webinars/[id]/register (POST, guest + auth, zod, session fallback via next/headers, email-local-part name fallback) + app/api/admin/webinars (+[id], +[id]/registrations attendee list) + app/(public)/webinars page (server-persisted registered state via /mine + localStorage guest cache, stored-consent + subscriber default-checked checkbox, padded pagination + divided past section, 1-col → md:2-col grid) + app/admin/webinars page (clickable count → attendee drawer) + AuditService on admin mutations
+  → lib/db.ts + drizzle/schema.ts (webinars, webinar_registrations, consent_records, user) — registration dedupes via unique `(webinar_id, lower(email))` / partial unique `(webinar_id, user_id)` **upsert** (no pre-read race); id-or-slug lookup; opt-in grants MARKETING consent in-transaction (grant-only, never revoke; returns a newly-granted flag so routes fire the newsletter welcome exactly once per genuine opt-in)
+  → lib/webinars.ts (server/client-safe copy + status helpers) + PlatformConfigService (webinars config) + EmailService (wired `webinarRegistration` confirmation, non-blocking; wired `newsletterSubscription` welcome on genuine new opt-ins via the consent checkbox, additive `newsletterEmail` in response)
+  → consumed by app/api/webinars (GET list) + app/api/webinars/mine (GET my seats + subscribed flag, always-200) + app/api/webinars/[id]/register (POST, guest + auth, zod, session fallback via next/headers, email-local-part name fallback; `register()` returns additive `marketingConsentGranted` computed in-transaction; DELETE user rollback, idempotent CANCELLED flip, re-registerable) + app/api/admin/webinars (+[id], +[id]/registrations attendee list with account-vs-guest join; DELETE per-seat cancel, audit-logged) + app/(public)/webinars page (server-persisted registered state via /mine + localStorage guest cache, stored-consent + subscriber default-checked checkbox, config-driven Cancel with confirm, centered tight pagination, gap-6 sections, 1-col → md:2-col grid) + app/admin/webinars page (clickable count → attendee drawer with Account/Guest badges + per-seat cancel, staleTime 0) + AuditService on admin mutations
 
 TeamService (services/TeamService.ts)
   → lib/db.ts + drizzle/schema.ts (team_members) — `listPublic()` (active-only, orderIndex + createdAt) + pure `normalizeSocialLinks()` (array | legacy JSON-string | null → array) + `serializeTeamMember()`
