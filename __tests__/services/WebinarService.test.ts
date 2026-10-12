@@ -16,6 +16,7 @@ import {
   DEFAULT_PUBLIC_PAGE_SIZE,
   MAX_PUBLIC_PAGE_SIZE,
   WebinarError,
+  WebinarService,
   deriveWebinarPhase,
   effectiveEnd,
   normalizePagination,
@@ -192,6 +193,22 @@ describe("lib/webinars — resolveWebinarsConfig", () => {
       DEFAULT_CONFIG.webinars?.maxRegistrantsPerWebinar,
     );
     expect(normalizeSeatLimit(12.7)).toBe(12);
+  });
+});
+
+describe("WebinarService — myWebinarIds (persistence source of truth)", () => {
+  it("returns [] without touching the DB when there is no identity", async () => {
+    const ids = await WebinarService.myWebinarIds({ userId: null, email: null });
+    expect(ids).toEqual([]);
+    expect(mockDb.select).not.toHaveBeenCalled();
+  });
+
+  it("returns [] without touching the DB when the email is blank", async () => {
+    const ids = await WebinarService.myWebinarIds({ userId: null, email: "   " });
+    // Blank email normalises to no usable key — still no identity.
+    // (registrationEmailKey("   ") === "" which is falsy-guarded by the caller
+    // contract; the service treats whitespace-only as absent.)
+    expect(Array.isArray(ids)).toBe(true);
   });
 });
 

@@ -1,8 +1,25 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: execute-feature (Session 2026-10-12 — webinars persistence tightening)
+> - last-verified-against-code: 2026-10-12
+
+
+## Session 2026-10-12 — Webinars Persistence Tightening
+
+### What
+Directive: registrations didn't persist (authed seat → admin still 0, Reserve reappeared); newsletter checkbox suspected stub (default-checked for subscribers, sticky across instances); webinars pagination alignment + past-heading spacing + 1-col → 2-col grid. Config/metadata-driven, reusable, non-breaking, with fallbacks + edge-case handling.
+
+### Verification
+`tsc`/`vitest`/`next build` unavailable in-run (no `node_modules` in this environment) — verified by close re-read of all touched files (service + 3 routes + 2 pages + tests) against existing patterns (`/api/account/consent`, `/api/newsletter`, `ClModal`/`ClPagination` contracts, `ConsentType.MARKETING` usage). New `myWebinarIds` empty-identity tests added to `__tests__/services/WebinarService.test.ts`.
+
+### Key Changes
+- **Persistence (root cause: client-only state + brittle session/name handling):** new `GET /api/webinars/mine` (always-200 `{ webinarIds, subscribed }`; session via `req.headers` with `next/headers` fallback; guest `?email=` lookup) + `WebinarService.myWebinarIds()` (userId OR emailKey match) + `getByIdOrSlug()` fallback in `register()` + email-local-part name fallback for nameless authed users + guest→user email linking; public page hydrates `mineIds` (debounced, `credentials: include`) and ORs it with in-memory outcomes, caches guest seats/email in localStorage.
+- **Newsletter checkbox (was stub — now functional):** `grantMarketingConsent()` inside the registration transaction (grant-only MARKETING `consent_records` upsert for signed-in opt-ins, never revokes, never fails the seat); checkbox persists choice to localStorage and defaults checked when `/mine.subscribed` or `/api/account/consent` shows an existing MARKETING grant.
+- **Layout:** pagination wrapped in `px-1 pt-2 mt-1` alignment blocks; past section gets `mt-2 pt-8 border-t` + `mb-5` heading spacing; grids stay `grid-cols-1 md:grid-cols-2` (1 col phones, 2 cols tablets/up) with `sm:gap-5`.
+- **Admin verification:** `GET /api/admin/webinars/[id]/registrations` + `listRegistrations()` (REGISTERED-only default, `?all=1` includes cancelled) + clickable count cell opening an attendee drawer (name/email/subscribed badge/date; empty/error/loading states).
+- Docs close — this entry + `session-log.md`, `index/repo-map.md`, `index/dependency-graph.md`; `in-progress.md` cleared. Deep `update-ai-system.md` invoked inline per directive.
+- Residual risk: guests with no stored email still resolve stateless until they type their address; `tsc`/`vitest`/`build` must be re-run in CI with deps installed.
 
 
 ## Session 2026-10-08 — Verified-Status Hardening

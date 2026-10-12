@@ -13,9 +13,10 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { webinars, webinarRegistrations } from "@/drizzle/schema";
+import { consentRecords, user, webinars, webinarRegistrations } from "@/drizzle/schema";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { normalizeSeatLimit } from "@/lib/webinars";
+import { ConsentType } from "@/types";
 import type { EmailTemplateBlock, IWebinar, IWebinarRegistration, WebinarStatus } from "@/types";
 
 /**
@@ -252,6 +253,50 @@ async function resolveMaxSeats(): Promise<number> {
   return normalizeSeatLimit(raw ?? DEFAULT_CONFIG.webinars?.maxRegistrantsPerWebinar);
 }
 
+/**
+ * Opt-in side effect for the registration checkbox: checking it grants a
+ * MARKETING consent record (the same pool "Send to Subscribers" reads), so the
+ * checkbox is functional, not a stub. Only grants — never revokes — and only
+ * for signed-in users (guests have no userId to attach the grant to). Runs
+ * inside the registration transaction for ACID parity with the seat row.
+ */
+async function grantMarketingConsent(
+  // Transaction handle from `db.transaction` — typed loosely to stay
+  // compatible across drizzle versions without leaking ORM types outward.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tx: any,
+  userId: string | null | undefined,
+  consentMarketing: boolean,
+): Promise<void> {
+  if (!userId || !consentMarketing) return;
+  try {
+    const existing = await tx
+      .select({ id: consentRecords.id, granted: consentRecords.granted })
+      .from(consentRecords)
+      .where(
+        and(eq(consentRecords.userId, userId), eq(consentRecords.type, ConsentType.MARKETING)),
+      )
+      .limit(5);
+    if (existing.some((r) => r.granted === true)) return;
+    if (existing.length > 0) {
+      await tx
+        .update(consentRecords)
+        .set({ granted: true })
+        .where(eq(consentRecords.id, existing[0].id));
+      return;
+    }
+    await tx.insert(consentRecords).values({
+      id: crypto.randomUUID(),
+      userId,
+      type: ConsentType.MARKETING,
+      granted: true,
+    });
+  } catch {
+    // Consent sync must never fail the seat reservation — the registration row
+    // is already the source of truth and a retry happens on the next opt-in.
+  }
+}
+
 export class WebinarService {
   /**
    * One public section (upcoming or past), paginated. Only `active` rows are
@@ -318,6 +363,75 @@ export class WebinarService {
     return serializeWebinar(rows[0].row, Math.max(0, Number(rows[0].registrationCount ?? 0)));
   }
 
+  /**
+   * Resolve a webinar by id with a slug fallback, so public cards keep working
+   * even if a caller passes a slug (deep links, cached cards). Pure lookup —
+   * no phase or visibility filtering.
+   */
+  static async getByIdOrSlug(idOrSlug: string): Promise<IWebinar | null> {
+    const byId = await db.select().from(webinars).where(eq(webinars.id, idOrSlug)).limit(1);
+    if (byId.length) return serializeWebinar(byId[0]);
+    return this.getBySlug(idOrSlug);
+  }
+
+  /**
+   * Registration ids for the current visitor — the persistence source of truth
+   * the public page uses to keep the "You're registered" state across reloads
+   * (the previous client kept it only in memory, so the Reserve button
+   * reappeared after navigation). Matches on session userId OR email key so
+   * guests who later sign in still see their seat.
+   */
+  static async myWebinarIds(opts: {
+    userId?: string | null;
+    email?: string | null;
+  }): Promise<string[]> {
+    const emailKey = opts.email ? registrationEmailKey(opts.email) : null;
+    const clauses: SQL[] = [eq(webinarRegistrations.status, "REGISTERED")];
+    const identity: SQL[] = [];
+    if (opts.userId) identity.push(eq(webinarRegistrations.userId, opts.userId));
+    if (emailKey) identity.push(eq(webinarRegistrations.emailKey, emailKey));
+    if (identity.length === 0) return [];
+    clauses.push(identity.length === 1 ? identity[0] : or(...identity) as SQL);
+    const rows = await db
+      .select({ webinarId: webinarRegistrations.webinarId })
+      .from(webinarRegistrations)
+      .where(and(...clauses));
+    return [...new Set(rows.map((r) => r.webinarId))];
+  }
+
+  /** Whether a signed-in user already holds a MARKETING consent grant. */
+  static async hasMarketingConsent(userId: string): Promise<boolean> {
+    const rows = await db
+      .select({ granted: consentRecords.granted })
+      .from(consentRecords)
+      .where(and(eq(consentRecords.userId, userId), eq(consentRecords.type, ConsentType.MARKETING)))
+      .limit(10);
+    return rows.some((r) => r.granted === true);
+  }
+
+  /**
+   * Attendee list for the admin panel — newest first, REGISTERED only by
+   * default so the count column and the drawer always agree.
+   */
+  static async listRegistrations(
+    webinarId: string,
+    opts: { includeCancelled?: boolean } = {},
+  ): Promise<IWebinarRegistration[]> {
+    const where = opts.includeCancelled
+      ? eq(webinarRegistrations.webinarId, webinarId)
+      : and(
+          eq(webinarRegistrations.webinarId, webinarId),
+          eq(webinarRegistrations.status, "REGISTERED"),
+        );
+    const rows = await db
+      .select()
+      .from(webinarRegistrations)
+      .where(where)
+      .orderBy(desc(webinarRegistrations.createdAt))
+      .limit(500);
+    return rows.map(serializeRegistration);
+  }
+
   static async getBySlug(slug: string): Promise<IWebinar | null> {
     const rows = await db.select().from(webinars).where(eq(webinars.slug, slug)).limit(1);
     if (!rows.length) return null;
@@ -336,16 +450,39 @@ export class WebinarService {
   static async register(params: RegisterParams): Promise<RegisterResult> {
     const emailKey = registrationEmailKey(params.email);
     const name = params.name?.trim() || null;
-    const userId = params.userId ?? null;
+    let userId = params.userId ?? null;
     const now = new Date();
 
+    // Guests who use the same email as an existing account get linked to it,
+    // so a later sign-in still sees the seat via `myWebinarIds()`.
+    if (!userId) {
+      try {
+        const match = await db
+          .select({ id: user.id })
+          .from(user)
+          .where(sql`lower(${user.email}) = ${emailKey}`)
+          .limit(1);
+        if (match.length) userId = match[0].id;
+      } catch {
+        // Non-fatal — registration proceeds as a pure guest row.
+      }
+    }
+
     return db.transaction(async (tx) => {
-      const webinarRows = await tx
+      const byId = await tx
         .select()
         .from(webinars)
         .where(eq(webinars.id, params.webinarId))
         .for("update");
-      const webinar = webinarRows[0];
+      let webinar = byId[0] ?? null;
+      if (!webinar) {
+        const bySlug = await tx
+          .select()
+          .from(webinars)
+          .where(eq(webinars.slug, params.webinarId))
+          .for("update");
+        webinar = bySlug[0] ?? null;
+      }
       if (!webinar) throw new WebinarError("Webinar not found", "not_found");
       if (!webinar.active) {
         throw new WebinarError("This webinar is not accepting registrations", "inactive");
@@ -382,6 +519,7 @@ export class WebinarService {
           })
           .where(eq(webinarRegistrations.id, existing.id))
           .returning();
+        await grantMarketingConsent(tx, userId ?? existing.userId, params.consentMarketing);
         return {
           registration: serializeRegistration(updated[0] ?? existing),
           webinar: serializeWebinar(webinar),
@@ -424,6 +562,7 @@ export class WebinarService {
         .returning();
 
       if (inserted.length > 0) {
+        await grantMarketingConsent(tx, userId, params.consentMarketing);
         return {
           registration: serializeRegistration(inserted[0]),
           webinar: serializeWebinar(webinar),
@@ -437,6 +576,7 @@ export class WebinarService {
       if (!winner.length) {
         throw new WebinarError("Could not save your registration", "invalid");
       }
+      await grantMarketingConsent(tx, userId ?? winner[0].userId, params.consentMarketing);
       return {
         registration: serializeRegistration(winner[0]),
         webinar: serializeWebinar(webinar),
