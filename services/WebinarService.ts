@@ -220,7 +220,10 @@ function serializeWebinar(row: WebinarRow, registrationCount?: number): IWebinar
   };
 }
 
-function serializeRegistration(row: RegistrationRow): IWebinarRegistration {
+function serializeRegistration(
+  row: RegistrationRow,
+  account?: { name: string | null; email: string | null; role: string | null },
+): IWebinarRegistration {
   return {
     id: row.id,
     webinarId: row.webinarId,
@@ -232,6 +235,14 @@ function serializeRegistration(row: RegistrationRow): IWebinarRegistration {
     status: row.status,
     createdAt: serializeDate(row.createdAt) ?? "",
     updatedAt: serializeDate(row.updatedAt) ?? "",
+    ...(account
+      ? {
+          accountName: account.name,
+          accountEmail: account.email,
+          accountRole: account.role,
+          isAccount: true,
+        }
+      : { isAccount: row.userId != null }),
   };
 }
 
@@ -385,7 +396,8 @@ export class WebinarService {
     userId?: string | null;
     email?: string | null;
   }): Promise<string[]> {
-    const emailKey = opts.email ? registrationEmailKey(opts.email) : null;
+    const trimmedEmail = opts.email?.trim() || null;
+    const emailKey = trimmedEmail ? registrationEmailKey(trimmedEmail) : null;
     const clauses: SQL[] = [eq(webinarRegistrations.status, "REGISTERED")];
     const identity: SQL[] = [];
     if (opts.userId) identity.push(eq(webinarRegistrations.userId, opts.userId));
@@ -411,7 +423,9 @@ export class WebinarService {
 
   /**
    * Attendee list for the admin panel — newest first, REGISTERED only by
-   * default so the count column and the drawer always agree.
+   * default so the count column and the drawer always agree. Each row carries
+   * its linked platform account (when `userId` is set) so admins can tell
+   * account seats apart from pure guest seats without a second lookup.
    */
   static async listRegistrations(
     webinarId: string,
@@ -424,12 +438,99 @@ export class WebinarService {
           eq(webinarRegistrations.status, "REGISTERED"),
         );
     const rows = await db
-      .select()
+      .select({
+        registration: webinarRegistrations,
+        accountName: user.name,
+        accountEmail: user.email,
+        accountRole: user.role,
+      })
       .from(webinarRegistrations)
+      .leftJoin(user, eq(user.id, webinarRegistrations.userId))
       .where(where)
       .orderBy(desc(webinarRegistrations.createdAt))
       .limit(500);
-    return rows.map(serializeRegistration);
+    return rows.map((r) =>
+      serializeRegistration(
+        r.registration,
+        r.registration.userId
+          ? { name: r.accountName, email: r.accountEmail, role: r.accountRole }
+          : undefined,
+      ),
+    );
+  }
+
+  /**
+   * User rollback — cancels the visitor's own seat(s) on a webinar.
+   * Idempotent: cancelling twice (or cancelling nothing) reports
+   * `cancelled: false` rather than erroring, so double-taps and stale UI
+   * states resolve honestly. A cancelled seat can re-register later —
+   * `register()` already flips CANCELLED rows back to REGISTERED.
+   */
+  static async cancel(params: {
+    webinarId: string;
+    userId?: string | null;
+    email?: string | null;
+  }): Promise<{ cancelled: boolean }> {
+    const emailKey = params.email ? registrationEmailKey(params.email) : null;
+    const identity: SQL[] = [];
+    if (params.userId) identity.push(eq(webinarRegistrations.userId, params.userId));
+    if (emailKey) identity.push(eq(webinarRegistrations.emailKey, emailKey));
+    if (identity.length === 0) return { cancelled: false };
+
+    return db.transaction(async (tx) => {
+      const lookup = await tx
+        .select()
+        .from(webinars)
+        .where(eq(webinars.id, params.webinarId))
+        .limit(1);
+      let webinarId = lookup[0]?.id ?? null;
+      if (!webinarId) {
+        const bySlug = await tx
+          .select()
+          .from(webinars)
+          .where(eq(webinars.slug, params.webinarId))
+          .limit(1);
+        webinarId = bySlug[0]?.id ?? null;
+      }
+      if (!webinarId) return { cancelled: false };
+
+      const updated = await tx
+        .update(webinarRegistrations)
+        .set({ status: "CANCELLED", updatedAt: new Date() })
+        .where(
+          and(
+            eq(webinarRegistrations.webinarId, webinarId),
+            eq(webinarRegistrations.status, "REGISTERED"),
+            identity.length === 1 ? identity[0] : (or(...identity) as SQL),
+          ),
+        )
+        .returning({ id: webinarRegistrations.id });
+      return { cancelled: updated.length > 0 };
+    });
+  }
+
+  /**
+   * Admin removal — soft-cancels a single seat by registration id (scoped to
+   * the webinar so ids can't cross webinars). Returns false when missing.
+   * Soft (not hard delete) so `?all=1` keeps the audit trail and the count
+   * column (REGISTERED-only) drops immediately.
+   */
+  static async adminCancelRegistration(
+    webinarId: string,
+    registrationId: string,
+  ): Promise<boolean> {
+    const updated = await db
+      .update(webinarRegistrations)
+      .set({ status: "CANCELLED", updatedAt: new Date() })
+      .where(
+        and(
+          eq(webinarRegistrations.id, registrationId),
+          eq(webinarRegistrations.webinarId, webinarId),
+          eq(webinarRegistrations.status, "REGISTERED"),
+        ),
+      )
+      .returning({ id: webinarRegistrations.id });
+    return updated.length > 0;
   }
 
   static async getBySlug(slug: string): Promise<IWebinar | null> {

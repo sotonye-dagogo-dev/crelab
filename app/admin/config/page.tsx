@@ -104,7 +104,11 @@ const configFields = [
   { key: "webinars.guestPrompt", label: "Webinar Guest Prompt", type: "text" as const, section: "Growth" },
   { key: "webinars.guestPromptCtaLabel", label: "Webinar Guest CTA Label", type: "text" as const, section: "Growth" },
   { key: "webinars.registerCtaLabel", label: "Webinar Register CTA Label", type: "text" as const, section: "Growth" },
+  { key: "webinars.registeredLabel", label: "Webinar Registered Label", type: "text" as const, section: "Growth" },
   { key: "webinars.marketingConsentLabel", label: "Webinar Consent Label", type: "text" as const, section: "Growth" },
+  { key: "webinars.cancelCtaLabel", label: "Webinar Cancel CTA Label", type: "text" as const, section: "Growth" },
+  { key: "webinars.cancelConfirmMessage", label: "Webinar Cancel Confirm Message", type: "text" as const, section: "Growth" },
+  { key: "webinars.registrationCancelledLabel", label: "Webinar Cancelled Toast Label", type: "text" as const, section: "Growth" },
 ];
 
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {

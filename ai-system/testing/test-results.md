@@ -1,7 +1,7 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-12 — WebinarService TS7006 + compliance allowlist)
+> - last-updated-by: execute-feature (Session 2026-10-12 — webinars rollback + attendees + pagination)
 > - last-verified-against-code: 2026-10-12
 > - staleness-policy: overwritten on every test run — always current
 
@@ -12,16 +12,17 @@
 ## Last Run
 
 **Date:** 2026-10-12
-**Run by:** fix-build (WebinarService TS7006 implicit-any + webinar storage-key compliance allowlist)
+**Run by:** execute-feature (webinars rollback + attendees + pagination)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 459 | 0 | 0 |
+| Unit (vitest) | 463 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
+| ESLint (`npm run lint`) | — | 0 errors (3 pre-existing unused-var warnings) | — |
 | Production build (`npm run build`) | — | 0 errors (full route build green) | — |
 
-**Overall Status:** ✅ All 459/459 tests pass. Typecheck clean. Production build green. No new tests (1-file code annotation + 1 test-allowlist entry; existing WebinarService + compliance suites cover both areas).
+**Overall Status:** ✅ All 463/463 tests pass. Typecheck clean. Lint 0 errors. Production build green. +4 new tests (cancel no-identity/blank no-DB ×2, cancel-copy default/override ×2, whitespace myWebinarIds no-DB assertion).
 
 ---
 
@@ -37,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-12 | 463 | 0 | execute-feature: webinars rollback (`cancel`/`adminCancelRegistration`, user + admin DELETE), enriched attendees (account-vs-guest join), centered tight pagination, config cancel copy (+4 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-12 | 459 | 0 | fix-build: WebinarService `grantMarketingConsent` explicit `{ id; granted }` annotation (was TS7006 implicit any off `tx: any`); compliance allowlist +3 webinar storage keys. tsc 0 errors, `npm run build` green |
 | 2026-10-09 | 457 | 0 | fix-build: webinars `phaseCondition` binds ISO string + `::timestamptz` (was raw Date); PortfolioPerformanceTable → `"use client"`. tsc 0 errors, lint 0 errors |
 | 2026-10-08 | 407 | 0 | execute-feature: leaderboard pagination optimisation (30s board cache, batched candidates, current-user rank; +5 tests) + orphan backfill service/API/admin UI (+3 tests). tsc 0 errors, lint 0 errors |

@@ -1,8 +1,25 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — webinars persistence tightening)
+> - last-updated-by: execute-feature (Session 2026-10-12 — webinars rollback + attendees + pagination)
 > - last-verified-against-code: 2026-10-12
+
+
+## Session 2026-10-12 — Webinars Rollback + Attendees + Pagination
+
+### What
+Directive: seats still not visibly persisting (admin 0, Reserve reappears); add user-facing rollback + admin attendee list distinguishing accounts from guests; center + tighten pagination; clean upcoming/past gap. Config-driven, modular, non-breaking + deep sync.
+
+### Verification
+`vitest` → 39 files, **463 passed / 0 failed** (+4 new). `tsc --noEmit` → clean. `next lint` → 0 errors (3 pre-existing unused-var warnings). `next build` → green.
+
+### Key Changes
+- **User rollback:** `WebinarService.cancel()` (idempotent CANCELLED flip, slug-tolerant, re-registerable via the existing register update path) + `DELETE /api/webinars/[id]/register` (shared session helper, guest `?email=`/JSON fallback) + Cancel button under the registered state (`ClConfirmDialog`, config copy, reverse-path cleanup of server ids/outcomes/guest cache).
+- **Admin attendees:** `listRegistrations()` left-joins `user` (additive `accountName/accountEmail/accountRole/isAccount`) → Account/Guest badges + linked-account line + per-seat Cancel (`DELETE ?registrationId=`, audit-logged, count invalidated); both admin queries pin `staleTime: 0` so a fresh registration never reads as cached zero.
+- **Pagination + gap:** wrappers → centered tight (`justify-center`, `pt-1`, no side padding); sections `gap-10→gap-6`, past `mt-2 pt-8→pt-6`; grids unchanged (`grid-cols-1 md:grid-cols-2` already per directive).
+- **Config-driven copy:** `cancelCtaLabel/cancelConfirmMessage/registrationCancelledLabel` in types + `DEFAULT_CONFIG` + `resolveWebinarsConfig` fallback + `/admin/config` Growth fields (plus the missing `registeredLabel` field).
+- Docs close — this entry + `session-log.md`, `task-queue.md` (Completed + `last-synced`), `system-architecture.md`, `index/repo-map.md`, `index/dependency-graph.md`, `memory/project-decisions.md`, `testing/test-results.md`; `in-progress.md` cleared. Deep `update-ai-system.md` invoked inline per directive.
+- Residual risk: guests with no stored email still resolve stateless until they type their address (unchanged, by design — no identity to match).
 
 
 ## Session 2026-10-12 — Webinars Persistence Tightening
