@@ -7,6 +7,7 @@ import { EscrowTimeline } from "@/components/booking/EscrowTimeline";
 import { MilestoneTimeline } from "@/components/booking/MilestoneTimeline";
 import { DisputeModal } from "@/components/booking/DisputeModal";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/lib/toast";
 import { buildProviderSlug } from "@/lib/slug";
 import type { IBooking, IPayment, IBookingMilestone } from "@/types";
 
@@ -53,6 +54,7 @@ function statusBadgeVariant(status: string) {
 
 export function BookingDetailClient({ data }: BookingDetailClientProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [showDispute, setShowDispute] = useState(false);
   const [milestones, setMilestones] = useState<IBookingMilestone[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -71,15 +73,22 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
         `/api/bookings/${data.booking.id}/release`,
         { method: "POST" },
       );
-      const json = await res.json();
-      if (json.success) {
+      const json = await res.json().catch(() => null);
+      if (json?.success) {
         window.location.reload();
+      } else {
+        // Never fail silently on a money action — surface the real reason.
+        toast(
+          json?.error ?? "Could not release the payment — please try again.",
+          "error",
+        );
       }
     } catch {
+      toast("Could not release the payment — please check your connection and try again.", "error");
     } finally {
       setReleasing(false);
     }
-  }, [data.booking.id]);
+  }, [data.booking.id, toast]);
 
   const fetchMilestones = useCallback(async () => {
     try {

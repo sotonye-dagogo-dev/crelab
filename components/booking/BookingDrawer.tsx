@@ -4,6 +4,8 @@ import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClSheet, ClButton, ClDialog, ClTextarea } from "@/components/ui";
 import { usePlatformConfig } from "@/lib/config-context";
+import { useToast } from "@/lib/toast";
+import { resolvePaymentNotice } from "@/lib/payment-notices";
 import { X, Check, ChevronRight } from "lucide-react";
 import type { IServicePackage, IProvider } from "@/types";
 
@@ -29,13 +31,20 @@ export function BookingDrawer({
   const [serviceDate, setServiceDate] = useState("");
   const [scopeNotes, setScopeNotes] = useState("");
   const [bookingId, setBookingId] = useState<string | null>(null);
+  /** Snapshot of the details `bookingId` was created with — a retry reuses the
+   *  booking only when the details still match (never pays a stale booking). */
+  const [createdFor, setCreatedFor] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const platformConfig = usePlatformConfig();
+  const { toast } = useToast();
   const paystackRef = useRef<HTMLDivElement>(null);
 
   const subtotal = selectedPackage.price;
   const feeKobo = Math.round(subtotal * platformConfig.feeRate);
   const totalKobo = subtotal + feeKobo;
+  // Config-driven escrow explainer (replaces the hardcoded "held by Paystack"
+  // line — accurate only if the operator keeps the notice enabled).
+  const escrowNotice = resolvePaymentNotice(platformConfig, "escrowExplainer");
 
   const handleClose = useCallback(() => {
     if (step !== "details") {
@@ -45,6 +54,8 @@ export function BookingDrawer({
       setStep("details");
       setServiceDate("");
       setScopeNotes("");
+      setBookingId(null);
+      setCreatedFor(null);
     }
   }, [step, onClose]);
 
@@ -53,54 +64,179 @@ export function BookingDrawer({
     setStep("details");
     setServiceDate("");
     setScopeNotes("");
+    setBookingId(null);
+    setCreatedFor(null);
     onClose();
   }, [onClose]);
 
   const handleSubmitDetails = useCallback(async () => {
-    if (!serviceDate) return;
+    if (!serviceDate || isSubmitting) return;
     setIsSubmitting(true);
+    // Popup path hands the outcome to Paystack's async callbacks — the button
+    // must stay in its loading state until those fire (else a second click can
+    // init a competing charge). Everything else resolves within this call.
+    let keepLoading = false;
     try {
-      const res = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          providerId: provider.id,
-          clientId,
-          packageId: selectedPackage.id,
-          serviceDate,
-          scopeNotes: scopeNotes || undefined,
-        }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error ?? "Failed to create booking");
+      const detailsKey = `${provider.id}|${selectedPackage.id}|${serviceDate}|${scopeNotes.trim()}`;
+      // Reuse a booking created by an earlier failed attempt only when the
+      // details still match — a retry must never create a duplicate booking,
+      // and never pay a booking made from stale details.
+      let currentBookingId = bookingId;
+      if (!currentBookingId || createdFor !== detailsKey) {
+        const res = await fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            providerId: provider.id,
+            clientId,
+            packageId: selectedPackage.id,
+            serviceDate,
+            scopeNotes: scopeNotes || undefined,
+          }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error ?? "Failed to create booking");
+        currentBookingId = json.data.id as string;
+        setBookingId(currentBookingId);
+        setCreatedFor(detailsKey);
+      }
 
-      setBookingId(json.data.id);
-
-      const payRes = await fetch("/api/bookings/" + json.data.id + "/pay", {
+      const payRes = await fetch("/api/bookings/" + currentBookingId + "/pay", {
         method: "POST",
       });
-      const payJson = await payRes.json();
-      if (!payJson.success) throw new Error(payJson.error ?? "Failed to init payment");
+      const payJson = await payRes.json().catch(() => null);
+      if (!payJson?.success) throw new Error(payJson?.error ?? "Failed to start payment");
+
+      // Wallet path — funds moved server-side synchronously; nothing to verify.
+      if (payJson.data?.method === "WALLET") {
+        setStep("confirmation");
+        return;
+      }
+
+      const { accessCode, reference, authorizationUrl } = (payJson.data ?? {}) as {
+        accessCode?: string;
+        reference?: string;
+        authorizationUrl?: string;
+      };
+      if (!accessCode && !authorizationUrl) {
+        throw new Error("Payment could not be started — please try again");
+      }
+
+      // Server-side verify before ANY confirmation is shown — the popup callback
+      // and our own 200 are not proof that money moved ("Payment Truthfulness").
+      interface VerifyOutcome {
+        done: boolean;
+        retry: boolean;
+        message?: string;
+      }
+      const checkVerify = async (ref: string): Promise<VerifyOutcome> => {
+        const verifyRes = await fetch(
+          `/api/bookings/${currentBookingId}/pay/verify?reference=${encodeURIComponent(ref)}`,
+        );
+        const v = await verifyRes.json().catch(() => null);
+        if (v?.success && v?.data?.verified) return { done: true, retry: false };
+
+        if (v?.success) {
+          const status = v.data?.status as string | undefined;
+          if (status === "pending") return { done: false, retry: true };
+          if (status === "failed") {
+            return { done: false, retry: false, message: "Payment failed — you haven't been charged. Please try again." };
+          }
+          return { done: false, retry: false, message: "Payment was not completed — you haven't been charged. You can try again." };
+        }
+
+        const error = (v?.error as string | undefined) ?? "";
+        // Transient processor/network errors are worth retrying; ownership,
+        // mismatch and validation failures are definitive.
+        if (verifyRes.status >= 500 || /could not verify/i.test(error)) {
+          return { done: false, retry: true, message: error || undefined };
+        }
+        return { done: false, retry: false, message: error || "Payment could not be verified — check your Bookings page or try again." };
+      };
 
       interface PaystackPopInstance {
-        resume: (accessCode: string) => void;
-        on: (event: string, cb: () => void) => void;
+        resume: (code: string) => void;
+        on: (event: string, cb: (resp?: { reference?: string }) => void) => void;
       }
-      const PaystackPop = (window as unknown as Record<string, unknown>).PaystackPop as unknown as { new(): PaystackPopInstance } | undefined;
-      if (typeof window !== "undefined" && PaystackPop) {
+      const PaystackPop = (window as unknown as Record<string, unknown>).PaystackPop as unknown as
+        | (new () => PaystackPopInstance)
+        | undefined;
+
+      if (PaystackPop && accessCode) {
+        const release = () => setIsSubmitting(false);
         const handler = new PaystackPop();
-        handler.resume(payJson.data.accessCode);
-        handler.on("success", () => {
-          setStep("confirmation");
+        // Handlers registered BEFORE resume so a fast success can't be missed.
+        handler.on("success", (resp) => {
+          void (async () => {
+            try {
+              const outcome = await checkVerify(resp?.reference ?? reference ?? "");
+              if (outcome.done) {
+                setStep("confirmation");
+              } else {
+                toast(outcome.message ?? "Payment could not be verified — check your Bookings page or try again.", "error");
+              }
+            } catch {
+              toast("Payment could not be verified — check your Bookings page or try again.", "error");
+            } finally {
+              release();
+            }
+          })();
         });
-      } else {
-        setStep("confirmation");
+        handler.on("cancel", () => {
+          toast("Payment cancelled — you can try again whenever you're ready.", "info");
+          release();
+        });
+        handler.on("error", () => {
+          toast("Something went wrong with the payment. Please try again.", "error");
+          release();
+        });
+        handler.resume(accessCode);
+        keepLoading = true; // only once the popup is genuinely in flight
+        return; // released by the handlers above
       }
-    } catch {
+
+      if (authorizationUrl && reference) {
+        // No popup library — open the hosted checkout in a NEW tab so the drawer
+        // and entered details stay intact, then poll until Paystack settles it
+        // (the webhook finalizes server-side regardless).
+        const opened = window.open(authorizationUrl, "_blank", "noopener,noreferrer");
+        if (!opened) {
+          // Pop-up blocked — last resort: full-page redirect (callback_url lands
+          // on /bookings where status is rendered server-side).
+          window.location.assign(authorizationUrl);
+          return;
+        }
+
+        const MAX_ATTEMPTS = 30;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, 4000));
+          const outcome = await checkVerify(reference);
+          if (outcome.done) {
+            setStep("confirmation");
+            return;
+          }
+          if (!outcome.retry) {
+            toast(outcome.message ?? "Payment was not completed — you can try again.", "info");
+            return;
+          }
+        }
+        toast(
+          "We couldn't confirm the payment yet. It completes automatically once confirmed — check your Bookings page in a few minutes.",
+          "info",
+        );
+        return;
+      }
+
+      throw new Error("Payment could not be started — please try again");
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Something went wrong — please try again",
+        "error",
+      );
     } finally {
-      setIsSubmitting(false);
+      if (!keepLoading) setIsSubmitting(false);
     }
-  }, [serviceDate, scopeNotes, provider.id, clientId, selectedPackage.id]);
+  }, [serviceDate, scopeNotes, provider.id, clientId, selectedPackage.id, bookingId, createdFor, isSubmitting, toast]);
 
   const minDate = new Date().toISOString().split("T")[0];
 
@@ -221,13 +357,13 @@ export function BookingDrawer({
                 <details className="mb-5 group">
                   <summary className="text-[12px] text-[var(--color-text-tertiary)] cursor-pointer list-none flex items-center gap-1 select-none">
                     <ChevronRight size={12} strokeWidth={2} className="transition-transform group-open:rotate-90" />
-                    How escrow works
+                    {escrowNotice?.title ?? "How escrow works"}
                   </summary>
-                  <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2 leading-relaxed">
-                    Your payment is held securely by Paystack until you confirm
-                    the work is complete. {provider.displayName} only receives
-                    the funds after your approval.
-                  </p>
+                  {escrowNotice?.body && (
+                    <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2 leading-relaxed">
+                      {escrowNotice.body}
+                    </p>
+                  )}
                 </details>
 
                 <ClButton

@@ -169,6 +169,47 @@ export function normalizePagination(
   return { page: safePage, pageSize: safeSize, offset: (safePage - 1) * safeSize };
 }
 
+/**
+ * Attach the REGISTERED seat count to a serialized webinar. Counts arrive as
+ * `count(*)` — drivers hand bigint back as a string ("4"), so everything is
+ * coerced through `Number()` and clamped at 0 (never a negative/garbage render).
+ *
+ * Deliberately NOT a raw correlated subquery: in a raw `sql` template Drizzle
+ * renders interpolated columns unqualified, so the correlated outer reference
+ * (`webinars.id`) binds to the INNER table inside the subquery and the count
+ * silently returns 0 while the attendee list (a normal query) shows real rows.
+ * See repair-system: "Correlated count subquery shadowed by inner table".
+ */
+export function withRegistrationCount(
+  webinar: IWebinar,
+  counts: ReadonlyMap<string, number>,
+): IWebinar {
+  const raw = counts.get(webinar.id);
+  const parsed = Number(raw ?? 0);
+  return {
+    ...webinar,
+    registrationCount: Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : 0,
+  };
+}
+
+/** REGISTERED seat counts for a set of webinars — one grouped, parameterized query. */
+async function registrationCountsFor(ids: string[]): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (ids.length === 0) return counts;
+  const rows = await db
+    .select({ webinarId: webinarRegistrations.webinarId, total: sql<number>`count(*)` })
+    .from(webinarRegistrations)
+    .where(
+      and(
+        inArray(webinarRegistrations.webinarId, ids),
+        eq(webinarRegistrations.status, "REGISTERED"),
+      ),
+    )
+    .groupBy(webinarRegistrations.webinarId);
+  for (const r of rows) counts.set(r.webinarId, Number(r.total ?? 0));
+  return counts;
+}
+
 /* ── SQL mirrors of the pure helpers ── */
 
 /** `COALESCE(ends_at, starts_at + duration) ` — NULL when the webinar has no timing at all. */
@@ -367,26 +408,18 @@ export class WebinarService {
   /** Admin list — includes inactive/unscheduled rows and a registration count per webinar. */
   static async adminList(): Promise<IWebinar[]> {
     const rows = await db
-      .select({
-        row: webinars,
-        registrationCount: sql<number>`(SELECT count(*) FROM ${webinarRegistrations} WHERE ${webinarRegistrations.webinarId} = ${webinars.id} AND ${webinarRegistrations.status} = 'REGISTERED')`,
-      })
+      .select()
       .from(webinars)
       .orderBy(asc(webinars.orderIndex), desc(webinars.startsAt));
-    return rows.map((r) => serializeWebinar(r.row, Math.max(0, Number(r.registrationCount ?? 0))));
+    const counts = await registrationCountsFor(rows.map((r) => r.id));
+    return rows.map((row) => withRegistrationCount(serializeWebinar(row), counts));
   }
 
   static async adminGet(id: string): Promise<IWebinar | null> {
-    const rows = await db
-      .select({
-        row: webinars,
-        registrationCount: sql<number>`(SELECT count(*) FROM ${webinarRegistrations} WHERE ${webinarRegistrations.webinarId} = ${webinars.id} AND ${webinarRegistrations.status} = 'REGISTERED')`,
-      })
-      .from(webinars)
-      .where(eq(webinars.id, id))
-      .limit(1);
+    const rows = await db.select().from(webinars).where(eq(webinars.id, id)).limit(1);
     if (!rows.length) return null;
-    return serializeWebinar(rows[0].row, Math.max(0, Number(rows[0].registrationCount ?? 0)));
+    const counts = await registrationCountsFor([id]);
+    return withRegistrationCount(serializeWebinar(rows[0]), counts);
   }
 
   /**

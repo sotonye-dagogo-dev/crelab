@@ -6,7 +6,7 @@ import { usePlatformConfig } from "@/lib/config-context";
 export interface ConfigFieldProps {
   label: string;
   fieldKey: string;
-  type: "text" | "color" | "number" | "toggle";
+  type: "text" | "color" | "number" | "toggle" | "textarea";
   value: unknown;
   defaultValue: unknown;
   unit?: string;
@@ -31,6 +31,13 @@ export function ConfigField({
 
   const handleTextChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange(fieldKey, e.target.value);
+    },
+    [fieldKey, onChange],
+  );
+
+  const handleTextareaChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(fieldKey, e.target.value);
     },
     [fieldKey, onChange],
@@ -78,11 +85,16 @@ export function ConfigField({
         : String(value ?? "");
 
   const displayDefault =
-    type === "number" && typeof defaultValue === "number" && unit === "%"
-      ? `${Math.round(defaultValue * 100)}${unit}`
-      : type === "number" && typeof defaultValue === "number"
-        ? `${defaultValue}${unit ?? ""}`
-        : `${String(defaultValue ?? "—")}${unit ? ` ${unit}` : ""}`;
+    type === "textarea"
+      ? (() => {
+          const text = String(defaultValue ?? "—");
+          return text.length > 48 ? `${text.slice(0, 48).trimEnd()}…` : text;
+        })()
+      : type === "number" && typeof defaultValue === "number" && unit === "%"
+        ? `${Math.round(defaultValue * 100)}${unit}`
+        : type === "number" && typeof defaultValue === "number"
+          ? `${defaultValue}${unit ?? ""}`
+          : `${String(defaultValue ?? "—")}${unit ? ` ${unit}` : ""}`;
 
   const fieldControl =
     type === "text" ? (
@@ -122,6 +134,13 @@ export function ConfigField({
           </span>
         )}
       </div>
+    ) : type === "textarea" ? (
+      <textarea
+        value={displayValue}
+        onChange={handleTextareaChange}
+        rows={3}
+        className="min-h-[72px] px-3 py-2 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[13px] leading-relaxed text-[var(--color-text-primary)] outline-none w-full max-w-[560px] resize-y focus:border-[var(--color-accent)] transition-[border-color] duration-[150ms] placeholder:text-[var(--color-text-tertiary)]"
+      />
     ) : (
       <button
         onClick={handleToggle}

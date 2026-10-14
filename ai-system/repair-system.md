@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email verification tightening)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + payment tightening fixes)
+> - last-verified-against-code: 2026-10-14
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -46,6 +46,50 @@
 ---
 
 ## Known Error Patterns
+
+### Drizzle Correlated Count Subquery Renders Columns Unqualified → Silent Zero
+
+**Symptom:**
+Admin webinars table shows `0` in the invitee/registrations count beside the icon while the attendee drawer for the same webinar lists real invitees (e.g. 4). No error, no empty-result signal — the count is simply always 0.
+
+**Root Cause:**
+`WebinarService.adminList()`/`adminGet()` built a correlated count subquery in a raw `sql` template: `(SELECT count(*) FROM "webinar_registrations" WHERE "webinar_id" = "id" AND "status" = 'REGISTERED')`. Drizzle renders **both** columns unqualified, so the correlated `"id"` resolves to the **inner** table's `webinar_registrations.id` (never equal to `webinar_id`) → `count(*)` = 0 for every row, silently.
+
+**Fix Applied:**
+Replaced the raw correlated subquery with two-step parameterized counts: fetch rows, then one grouped count query over `webinar_registrations` filtered by `inArray(webinarId, ids)` + `eq(status, "REGISTERED")`, mapped onto rows by a pure `withRegistrationCounts()`/`registrationCountsFor()` helper (testable); `adminGet()` uses a single parameterized count. Verified live: 0/0 → 4/4 matching the drawer.
+
+**Prevention:**
+Never correlate raw `sql` fragments across two Drizzle tables — either alias/qualify every column explicitly (`"webinar_registrations"."id"`) or (preferred) fetch IDs then run a separate grouped/parameterized count and join in JS. Pure mappers keep the join testable without a DB.
+
+**Files Affected:**
+`services/WebinarService.ts`, `__tests__/services/WebinarService.test.ts`
+
+**Date:** 2026-10-14
+**Status:** Active
+
+---
+
+### PaystackPop Never Loaded → False "Booking Confirmed" (client-trusted checkout)
+
+**Symptom:**
+Booking card checkout appears to succeed instantly ("Booking Confirmed!" step shown) with no payment UI, no charge, and no error. The booking stays `ACCEPTED` forever; the Paystack webhook never fires; `catch {}` swallows everything else.
+
+**Root Cause:**
+`components/booking/BookingDrawer.tsx` called `window.PaystackPop` — but `https://js.paystack.co/v1/inline.js` was never loaded anywhere in the app, so `PaystackPop` was always `undefined` and the code fell through to `setStep("confirmation")` without any money moving (false confirmation). Even with the library present, `handler.resume()` was called **before** the `success` handler was registered (race), no `cancel`/`error` handlers existed, and an empty `catch {}` hid all failures — i.e. the client's own callback was treated as proof of payment.
+
+**Fix Applied:**
+1) Load the inline script in `app/layout.tsx` via `next/script` (`strategy="afterInteractive"`). 2) Drawer flow: handlers registered before `resume()`, wallet fast-path, then **server verify** (`GET`+`POST /api/bookings/[id]/pay/verify` → `verifyTransaction` + metadata/ownership/amount checks) before the confirmation step is ever shown; honest error toasts replace the empty `catch`. 3) Fallbacks: hosted checkout in a new tab + verify polling; full-page redirect with `callback_url` → `/bookings` when popups are blocked. 4) Retry reuses the already-created booking (details snapshot) instead of creating duplicates.
+
+**Prevention:**
+Treat third-party checkout scripts as explicit dependencies (load them, and degrade to a hosted flow if unavailable). Never show success from a client callback or an empty catch — verify server-side ("Payment Truthfulness: verify, don't assume"), and register popup event handlers before triggering the flow.
+
+**Files Affected:**
+`app/layout.tsx`, `components/booking/BookingDrawer.tsx`, `app/api/bookings/[id]/pay/verify/route.ts`, `app/api/bookings/[id]/pay/route.ts`
+
+**Date:** 2026-10-14
+**Status:** Active
+
+---
 
 ### ClButton Cannot Express Wrapping / Two-Sided Rows (whitespace-nowrap + fixed h-10 + children span)
 

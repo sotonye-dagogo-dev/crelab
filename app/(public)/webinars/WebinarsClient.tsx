@@ -389,7 +389,7 @@ export function WebinarsClient() {
           <div className={`flex flex-col gap-6 transition-opacity ${loading ? "opacity-60" : ""}`}>
             {/* Upcoming */}
             <section>
-              <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center justify-between gap-3 mb-4">
                 <h2 className="font-[family-name:var(--font-display)] font-bold text-[19px] text-[var(--color-text-primary)]">
                   {webinars.upcomingTitle}
                 </h2>
@@ -505,7 +505,7 @@ export function WebinarsClient() {
 
 function MetaItem({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-text-secondary)]">
+    <span className="inline-flex items-center gap-1.5 min-w-0 max-w-full text-[12px] text-[var(--color-text-secondary)] break-words">
       {icon}
       {children}
     </span>
@@ -643,7 +643,7 @@ function UpcomingCard({
         </div>
 
         <div>
-          <h3 className="font-[family-name:var(--font-display)] font-bold text-[17px] text-[var(--color-text-primary)] leading-snug">
+          <h3 className="font-[family-name:var(--font-display)] font-bold text-[17px] text-[var(--color-text-primary)] leading-snug break-words">
             {webinar.title}
           </h3>
           {webinar.subtitle && (
@@ -670,13 +670,13 @@ function UpcomingCard({
                   <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
                     {outcome.guestPrompt.message}
                   </p>
-                  <ClButton variant="primary" size="sm" onClick={onCreateAccount}>
+                  <ClButton variant="primary" className="w-full sm:w-auto" onClick={onCreateAccount}>
                     {outcome.guestPrompt.ctaLabel}
                   </ClButton>
                 </div>
               )}
-              <div>
-                <ClButton variant="ghost" size="sm" loading={cancelling} onClick={onCancel}>
+              <div className="flex flex-wrap">
+                <ClButton variant="ghost" className="w-full sm:w-auto" loading={cancelling} onClick={onCancel}>
                   {webinars.cancelCtaLabel}
                 </ClButton>
               </div>
@@ -746,7 +746,8 @@ function UpcomingCard({
 
               {error && <p className="text-[12px] text-[var(--color-error)]">{error}</p>}
 
-              <ClButton type="submit" variant="primary" loading={submitting}>
+              {/* Consistent h-10 CTA; full-width tap target on phones, auto on sm+. */}
+              <ClButton type="submit" variant="primary" className="w-full sm:w-auto" loading={submitting}>
                 {webinars.registerCtaLabel}
               </ClButton>
             </form>
@@ -777,7 +778,7 @@ function PastCard({ webinar }: { webinar: IWebinar }) {
         </div>
 
         <div>
-          <h3 className="font-[family-name:var(--font-display)] font-bold text-[17px] text-[var(--color-text-primary)] leading-snug">
+          <h3 className="font-[family-name:var(--font-display)] font-bold text-[17px] text-[var(--color-text-primary)] leading-snug break-words">
             {webinar.title}
           </h3>
           {webinar.subtitle && (
@@ -797,7 +798,7 @@ function PastCard({ webinar }: { webinar: IWebinar }) {
             href={ctaHref}
             target={ctaHref.startsWith("http") ? "_blank" : undefined}
             rel={ctaHref.startsWith("http") ? "noopener noreferrer" : undefined}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-[8px] border border-[var(--color-border-mid)] text-[13px] font-semibold text-[var(--color-text-primary)] no-underline hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors w-fit"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 max-w-full rounded-[8px] border border-[var(--color-border-mid)] text-[13px] font-semibold text-[var(--color-text-primary)] no-underline hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors w-fit text-center"
           >
             <MonitorPlay size={15} strokeWidth={1.8} />
             {ctaLabel}

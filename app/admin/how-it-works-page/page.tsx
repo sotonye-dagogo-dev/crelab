@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClButton, ClCard, ClBadge } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { usePlatformConfig } from "@/lib/config-context";
-import { fillPlatformName } from "@/lib/platform-copy";
+import { fillConfigCopy, type ConfigCopyVars } from "@/lib/platform-copy";
 import { ArrowUp, ArrowDown, Trash2, Plus, GripVertical } from "lucide-react";
 import type { IHowItWorksPage } from "@/types";
 
@@ -15,8 +15,9 @@ const inputClass =
 const labelClass =
   "block mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]";
 
-// Module-scope default: `{{name}}` tokens are resolved with the platform name
-// from config wherever this default is used (see fillHowItWorksPageName).
+// Module-scope default: `{{name}}`, `{{escrowWindow}}` and `{{feeRate}}` tokens
+// are resolved with the live config wherever this default is used (see
+// fillHowItWorksPage — same render-boundary fill the public page uses).
 const DEFAULT_HOW_IT_WORKS: IHowItWorksPage = {
   id: "how-it-works-1",
   heroTitle: "How It Works",
@@ -49,8 +50,8 @@ const DEFAULT_HOW_IT_WORKS: IHowItWorksPage = {
       title: "Secure Payments with Escrow",
       subtitle: "Your money is protected every step of the way",
       steps: [
-        { step: 1, title: "Payment Held in Escrow", description: "When you book, funds are securely held by our payment partner (Paystack) — not released to the creator until you're happy." },
-        { step: 2, title: "Auto-Release Timeline", description: "If no dispute is raised, funds auto-release 5 days after the service date. You're always in control." },
+        { step: 1, title: "Payment Held in Escrow", description: "When you book, your payment is held in escrow — the creator is not paid until you approve the work." },
+        { step: 2, title: "Auto-Release Timeline", description: "If no dispute is raised, funds auto-release {{escrowWindow}} after the service date. You're always in control." },
         { step: 3, title: "Dispute Resolution", description: "If something goes wrong, our admin team mediates. We review evidence from both sides and make a fair decision." },
         { step: 4, title: "Milestone Payments", description: "For larger projects, split payments into milestones. Each milestone is funded upfront and released upon approval." },
       ],
@@ -63,8 +64,8 @@ const DEFAULT_HOW_IT_WORKS: IHowItWorksPage = {
     { id: "search-simulator", title: "Search & Discovery Simulator", description: "See how creators appear in search results based on profile completeness", type: "search-simulator" },
   ],
   faqs: [
-    { question: "How do I get paid as a creator?", answer: "Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your {{name}} wallet. You can withdraw to your bank account anytime.", category: "payments" },
-    { question: "What's the platform fee?", answer: "{{name}} charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.", category: "payments" },
+    { question: "How do I get paid as a creator?", answer: "Payments are held in escrow and processed by our payment partner. Once the client approves your work (or after {{escrowWindow}} with no dispute), funds are automatically released to your {{name}} wallet. You can withdraw to your bank account anytime — just make sure your payout details are correct, as payouts are sent to the details you provide.", category: "payments" },
+    { question: "What's the platform fee?", answer: "{{name}} charges a {{feeRate}}% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.", category: "payments" },
     { question: "Can I cancel a booking?", answer: "Yes. Full refunds are available within 48 hours of booking. After that, a 50% cancellation fee applies to protect the creator's time.", category: "bookings" },
     { question: "How do I build my portfolio?", answer: "Upload videos and images directly, or connect Google Drive to sync your existing portfolio. Portfolio items appear on your public profile and in the Explore feed.", category: "creators" },
     { question: "What types of creators can I hire?", answer: "We support Content Creators (UGC, lifestyle, brand content) and Cinematographers/Videographers (events, commercials, narrative, documentary). Each has tailored profile fields.", category: "clients" },
@@ -76,21 +77,25 @@ const DEFAULT_HOW_IT_WORKS: IHowItWorksPage = {
   updatedAt: new Date().toISOString(),
 };
 
-function fillHowItWorksPageName(page: IHowItWorksPage, name: string): IHowItWorksPage {
+function fillHowItWorksPage(page: IHowItWorksPage, vars: ConfigCopyVars): IHowItWorksPage {
+  const fill = (text: string) => fillConfigCopy(text, vars);
   return {
     ...page,
-    faqs: page.faqs.map((faq) => ({ ...faq, answer: fillPlatformName(faq.answer, name) })),
-    metaTitle: page.metaTitle ? fillPlatformName(page.metaTitle, name) : page.metaTitle,
-    metaDescription: page.metaDescription
-      ? fillPlatformName(page.metaDescription, name)
-      : page.metaDescription,
+    sections: page.sections.map((section) => ({
+      ...section,
+      steps: section.steps.map((step) => ({ ...step, description: fill(step.description) })),
+    })),
+    faqs: page.faqs.map((faq) => ({ ...faq, answer: fill(faq.answer) })),
+    metaTitle: page.metaTitle ? fill(page.metaTitle) : page.metaTitle,
+    metaDescription: page.metaDescription ? fill(page.metaDescription) : page.metaDescription,
   };
 }
 
 export default function AdminHowItWorksPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { name: platformName } = usePlatformConfig();
+  const { name: platformName, escrowReleaseDays, feeRate } = usePlatformConfig();
+  const copyVars: ConfigCopyVars = { name: platformName, escrowReleaseDays, feeRate };
   const [page, setPage] = useState<IHowItWorksPage | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -107,9 +112,10 @@ export default function AdminHowItWorksPage() {
     if (data) {
       setPage(data);
     } else {
-      setPage(fillHowItWorksPageName(DEFAULT_HOW_IT_WORKS, platformName));
+      setPage(fillHowItWorksPage(DEFAULT_HOW_IT_WORKS, copyVars));
     }
-  }, [data, platformName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, platformName, escrowReleaseDays, feeRate]);
 
   const saveMutation = useMutation({
     mutationFn: async (payload: IHowItWorksPage) => {
@@ -220,7 +226,7 @@ export default function AdminHowItWorksPage() {
     );
   }
 
-  const cfg = page ?? fillHowItWorksPageName(DEFAULT_HOW_IT_WORKS, platformName);
+  const cfg = page ?? fillHowItWorksPage(DEFAULT_HOW_IT_WORKS, copyVars);
 
   return (
     <div>

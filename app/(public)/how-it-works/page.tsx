@@ -7,7 +7,9 @@ import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import type { IHowItWorksPage } from "@/types";
 import { SandboxesGrid } from "@/components/how-it-works/Sandboxes";
-import { fillPlatformName } from "@/lib/platform-copy";
+import { fillConfigCopy, type ConfigCopyVars } from "@/lib/platform-copy";
+import { resolvePaymentNotices } from "@/lib/payment-notices";
+import { PaymentNoticeBlock } from "@/components/shared/PaymentNoticeBlock";
 
 // Admin-managed content — always render live so edits appear immediately.
 export const dynamic = "force-dynamic";
@@ -46,8 +48,8 @@ const FALLBACK_HOW_IT_WORKS_PAGE: IHowItWorksPage = {
       title: "Secure Payments with Escrow",
       subtitle: "Your money is protected every step of the way",
       steps: [
-        { step: 1, title: "Payment Held in Escrow", description: "When you book, funds are securely held by our payment partner (Paystack) — not released to the creator until you're happy." },
-        { step: 2, title: "Auto-Release Timeline", description: "If no dispute is raised, funds auto-release 5 days after the service date. You're always in control." },
+        { step: 1, title: "Payment Held in Escrow", description: "When you book, your payment is held in escrow — the creator is not paid until you approve the work." },
+        { step: 2, title: "Auto-Release Timeline", description: "If no dispute is raised, funds auto-release {{escrowWindow}} after the service date. You're always in control." },
         { step: 3, title: "Dispute Resolution", description: "If something goes wrong, our admin team mediates. We review evidence from both sides and make a fair decision." },
         { step: 4, title: "Milestone Payments", description: "For larger projects, split payments into milestones. Each milestone is funded upfront and released upon approval." },
       ],
@@ -71,8 +73,8 @@ const FALLBACK_HOW_IT_WORKS_PAGE: IHowItWorksPage = {
     { id: "search-simulator", title: "Search & Discovery Simulator", description: "See how creators appear in search results based on profile completeness", type: "search-simulator" },
   ],
   faqs: [
-    { question: "How do I get paid as a creator?", answer: "Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your {{name}} wallet. You can withdraw to your bank account anytime.", category: "payments" },
-    { question: "What's the platform fee?", answer: "{{name}} charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.", category: "payments" },
+    { question: "How do I get paid as a creator?", answer: "Payments are held in escrow and processed by our payment partner. Once the client approves your work (or after {{escrowWindow}} with no dispute), funds are automatically released to your {{name}} wallet. You can withdraw to your bank account anytime — just make sure your payout details are correct, as payouts are sent to the details you provide.", category: "payments" },
+    { question: "What's the platform fee?", answer: "{{name}} charges a {{feeRate}}% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.", category: "payments" },
     { question: "Can I cancel a booking?", answer: "Yes. Full refunds are available within 48 hours of booking. After that, a 50% cancellation fee applies to protect the creator's time.", category: "bookings" },
     { question: "How do I build my portfolio?", answer: "Upload videos and images directly, or connect Google Drive to sync your existing portfolio. Portfolio items appear on your public profile and in the Explore feed.", category: "creators" },
     { question: "What types of creators can I hire?", answer: "We support Content Creators (UGC, lifestyle, brand content) and Cinematographers/Videographers (events, commercials, narrative, documentary). Each has tailored profile fields.", category: "clients" },
@@ -87,14 +89,23 @@ const FALLBACK_HOW_IT_WORKS_PAGE: IHowItWorksPage = {
   updatedAt: new Date().toISOString(),
 };
 
-function fillHowItWorksPageName(page: IHowItWorksPage, name: string): IHowItWorksPage {
+/**
+ * Render-boundary fill: `{{name}}`, `{{escrowWindow}}` and `{{feeRate}}` resolve
+ * from the LIVE config for DB-saved content as well as the fallback defaults, so
+ * operators can use the tokens in the admin editor and admin edits to the escrow
+ * window / fee rate flow into the copy without a deploy.
+ */
+function fillHowItWorksPage(page: IHowItWorksPage, vars: ConfigCopyVars): IHowItWorksPage {
+  const fill = (text: string) => fillConfigCopy(text, vars);
   return {
     ...page,
-    faqs: page.faqs.map((faq) => ({ ...faq, answer: fillPlatformName(faq.answer, name) })),
-    metaTitle: page.metaTitle ? fillPlatformName(page.metaTitle, name) : page.metaTitle,
-    metaDescription: page.metaDescription
-      ? fillPlatformName(page.metaDescription, name)
-      : page.metaDescription,
+    sections: page.sections.map((section) => ({
+      ...section,
+      steps: section.steps.map((step) => ({ ...step, description: fill(step.description) })),
+    })),
+    faqs: page.faqs.map((faq) => ({ ...faq, answer: fill(faq.answer) })),
+    metaTitle: page.metaTitle ? fill(page.metaTitle) : page.metaTitle,
+    metaDescription: page.metaDescription ? fill(page.metaDescription) : page.metaDescription,
   };
 }
 
@@ -135,7 +146,12 @@ export default async function HowItWorksPage() {
     // DB unavailable, will use fallback
   }
 
-  const data = pageData || fillHowItWorksPageName(FALLBACK_HOW_IT_WORKS_PAGE, config.name);
+  const data = fillHowItWorksPage(pageData ?? FALLBACK_HOW_IT_WORKS_PAGE, {
+    name: config.name,
+    escrowReleaseDays: config.escrowReleaseDays,
+    feeRate: config.feeRate,
+  });
+  const paymentNotices = resolvePaymentNotices(config);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -183,6 +199,18 @@ export default async function HowItWorksPage() {
               </div>
             </section>
           ))}
+
+          {paymentNotices.length > 0 && (
+            <div className="flex flex-col gap-3" aria-label="Payment notes">
+              {paymentNotices.map((notice) => (
+                <PaymentNoticeBlock
+                  key={notice.key}
+                  notice={notice}
+                  tone={notice.key === "payoutDetails" ? "warning" : "info"}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="divider" />
 

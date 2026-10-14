@@ -1,5 +1,12 @@
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { resolvePaymentNotices } from "@/lib/payment-notices";
+import { formatEscrowWindow } from "@/lib/platform-copy";
+import { PaymentNoticeBlock } from "@/components/shared/PaymentNoticeBlock";
+
+// Config-driven copy (fee rate, escrow window, payment notices) — always render
+// live so admin edits appear immediately (same posture as /how-it-works).
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const { buildSeoMetadata } = await import("@/lib/seo");
@@ -16,7 +23,13 @@ export async function generateMetadata() {
 }
 
 export default async function TermsPage() {
-  const { DEFAULT_CONFIG: cfg } = await import("@/config/platform.config");
+  let cfg = DEFAULT_CONFIG;
+  try {
+    cfg = await PlatformConfigService.getCached();
+  } catch {
+    // DB unavailable — hardcoded defaults still render the full page.
+  }
+  const paymentNotices = resolvePaymentNotices(cfg);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -68,11 +81,22 @@ export default async function TermsPage() {
             <ul className="list-disc pl-5 space-y-1">
               <li>All prices are quoted in Nigerian Naira (NGN)</li>
               <li>A platform fee of {(cfg.feeRate * 100).toFixed(0)}% is added to each booking</li>
-              <li>Payments are held in escrow via Paystack until service completion</li>
+              <li>Payments are held in escrow until service completion; payouts are distributed through our payment partner</li>
               <li>Full refunds are available within {cfg.cancellationPolicy.fullRefundThresholdHours} hours of booking</li>
               <li>{cfg.cancellationPolicy.lateCancellationHoldPercent}% of payment is held on late cancellations</li>
-              <li>Funds are released {cfg.escrowReleaseDays} days after the service date if no dispute is raised</li>
+              <li>Funds are released {formatEscrowWindow(cfg.escrowReleaseDays)} after the service date if no dispute is raised</li>
             </ul>
+            {paymentNotices.length > 0 && (
+              <div className="mt-4 flex flex-col gap-3">
+                {paymentNotices.map((notice) => (
+                  <PaymentNoticeBlock
+                    key={notice.key}
+                    notice={notice}
+                    tone={notice.key === "payoutDetails" ? "warning" : "info"}
+                  />
+                ))}
+              </div>
+            )}
           </section>
 
           <section>

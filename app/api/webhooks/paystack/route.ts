@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
 
       const walletService = new WalletService();
       try {
+        // Process BEFORE recording: if crediting throws, the event is not
+        // recorded, so Paystack's retry can actually complete the work (the
+        // credit itself is reference-idempotent — see DuplicateWebhookError).
         await walletService.topUpFromCard(userId, amount, ref);
       } catch (err) {
         // The post-payment callback page may already have credited this ref
@@ -70,6 +73,12 @@ export async function POST(req: NextRequest) {
         }
         throw err;
       }
+
+      await db.insert(processedWebhookEvents).values({
+        id: crypto.randomUUID(),
+        paystackRef: ref,
+        eventType: "charge.success",
+      });
 
       return NextResponse.json({ success: true });
     }
@@ -84,14 +93,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: "duplicate" });
       }
 
+      // Process BEFORE recording: onPaystackSuccess is idempotent, so a retry
+      // after a partial failure re-runs safely, while recording first would
+      // permanently swallow a charge that never actually got held.
+      const escrowService = new EscrowService();
+      await escrowService.onPaystackSuccess(ref);
+
       await db.insert(processedWebhookEvents).values({
         id: crypto.randomUUID(),
         paystackRef: ref,
         eventType: "charge.success",
       });
-
-      const escrowService = new EscrowService();
-      await escrowService.onPaystackSuccess(ref);
 
       return NextResponse.json({ success: true });
     }

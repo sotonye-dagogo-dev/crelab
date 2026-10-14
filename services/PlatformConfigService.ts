@@ -18,6 +18,12 @@ export function setNestedValue(
     const part = parts[i];
     if (!current[part] || typeof current[part] !== "object" || Array.isArray(current[part])) {
       current[part] = {};
+    } else {
+      // Shallow-clone before descending: `target` is often a `{...DEFAULT_CONFIG}`
+      // spread whose nested objects are still SHARED references — writing without
+      // cloning here would permanently mutate the module-level defaults in-process
+      // (visible to anything reading DEFAULT_CONFIG directly, e.g. notice resolvers).
+      current[part] = { ...(current[part] as Record<string, unknown>) };
     }
     current = current[part] as Record<string, unknown>;
   }

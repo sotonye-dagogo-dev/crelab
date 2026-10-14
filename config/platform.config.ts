@@ -7,7 +7,7 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
   logoPath: "/primary-logo.png",
   iconPath: "/icon.png",
   feeRate: 0.05,
-  escrowReleaseDays: 5,
+  escrowReleaseDays: 1, // Default escrow window ≈ 1 day (alpha testing); admin-editable at /admin/config "Fees & Escrow"
   cancellationPolicy: {
     fullRefundThresholdHours: 48,
     lateCancellationHoldPercent: 50,
@@ -25,6 +25,27 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     minTopUpKobo: 100000,
     minWithdrawalKobo: 100000,
     maxDvaAccounts: 1000,
+  },
+  // Config-driven payment notices/disclaimers (render-time tokens:
+  // {{name}}, {{feeRate}}, {{escrowWindow}} — see lib/platform-copy.fillConfigCopy)
+  payments: {
+    notices: {
+      payoutDetails: {
+        enabled: true,
+        title: "Check your payout details",
+        body: "Payouts are sent to the bank account details you provide. Double-check your account number and bank before you withdraw — a payout sent to incorrect details cannot be recovered, and neither {{name}} nor Paystack can be held liable for payouts made to the details you entered.",
+      },
+      processingFees: {
+        enabled: true,
+        title: "Fees & what you pay",
+        body: "Every booking includes a {{feeRate}}% platform service fee, shown in the price breakdown before you pay. Payment processing charges on bookings are borne by the platform — a creator's payout is the booking total minus the platform service fee, with no hidden deductions.",
+      },
+      escrowExplainer: {
+        enabled: true,
+        title: "How escrow protects you",
+        body: "Your payment is held in escrow under our release policy — the creator is only paid once you approve the work, or automatically {{escrowWindow}} after the service date when no dispute is raised. Funds are processed and payouts are distributed through our payment partner's secure payment infrastructure, so payments stay protected from checkout to payout.",
+      },
+    },
   },
   categories: [
     {

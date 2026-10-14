@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — verified-status hardening)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: execute-feature (Session 2026-10-14 — exactly-once money movement + config-defaults mutation)
+> - last-verified-against-code: 2026-10-14
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -30,6 +30,35 @@
 ---
 
 ## Lessons
+
+## Money Movement Must Be Exactly-Once — Deterministic Unique References + Direction-Aware Ordering
+
+**Context:** Escrow release/refund could be triggered concurrently (client confirm vs. cron auto-release vs. webhook retry) or crash between the money write and the state flip. The original `creditFromEscrowRelease` used `ESCROW-RELEASE-${randomUUID()}` — every call was a *new* valid movement, so nothing but application-level care prevented double-paying.
+
+**What We Learned:**
+1. Derive the ledger reference from the business event, not randomness (`ESCROW-RELEASE-{bookingId}`, `ESCROW-REFUND-{bookingId}`, `BOOKING-DEBIT-REVERSAL-{bookingId}`) and rely on the `wallet_transactions.reference` UNIQUE constraint as the exactly-once mechanism. Catch unique violations as "already done" (continue), never as failure.
+2. Ordering is direction-aware: **credit first → flip state** for local ledger moves (a crash retries as a no-op credit + completed flip — the flip must still run on unique violation, or the row stays stuck); **flip first → external API** for third-party moves (Paystack `refund()`), so a retry can never double-refund — the API failure window is loud-logged for manual handling instead.
+3. Gate every state transition with a conditional update (`.where(status = expected).returning()`) so concurrent paths elect exactly one winner; treat "0 rows returned" as *someone else won*, not as an error.
+
+**Apply When:** implementing settlement, refund, payout, reversal, compensation, or any path reachable from both a webhook and a client callback; anything that writes money and flips status in two steps.
+
+**Supersedes:** None (complements "Deep-Merge Config Keys When Round-Tripping DB Rows" — both are about idempotent writes under retries)
+**Superseded by:** None
+
+---
+
+## Deep-Setting Dotted Config Keys on a Shallow-Copied Defaults Object Mutates the Module-Level Defaults
+
+**Context:** `PlatformConfigService.get()` builds `merged = { ...DEFAULT_CONFIG }` (shallow), then `setNestedValue(merged, "payments.notices.payoutDetails.body", v)` walked *into* `DEFAULT_CONFIG.payments…` — the same object references — so admin edits permanently mutated the module-level defaults in-process (visible to anything reading `DEFAULT_CONFIG` directly, e.g. notice resolvers, fallbacks, tests in the same process).
+
+**What We Learned:** clone-on-descend: when a path walker traverses an existing object level, shallow-clone that level onto the target *before* descending. One line per level makes every nested write land on target-owned objects while sibling keys keep their references (cheap, no deep clone of the whole config, and it gives React state updaters a fresh identity along the edited path). Applies to any `{...defaults}` + dotted-path merge — config services, form state, patch utilities.
+
+**Apply When:** writing or reviewing code that spreads a shared/nested object and then mutates it by path; when a "default" must stay pristine as the merge base (resolvers comparing saved-over-default values depend on it).
+
+**Supersedes:** None (complements "Deep-Merge Config Keys When Round-Tripping DB Rows")
+**Superseded by:** None
+
+---
 
 ## Email Columns: Match Case-Insensitively, Check the Affected Row, Refresh the Session
 
