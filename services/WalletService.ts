@@ -251,22 +251,48 @@ export class WalletService implements IWalletService {
     return { debit: mapTransaction(txns.debit), fee: mapTransaction(txns.fee) };
   }
 
+  /**
+   * Credit the PROVIDER on escrow release (net = amount − fee; the platform
+   * keeps the fee — modelled as money that simply exits the user-ledger).
+   *
+   * Exactly-once: the reference is deterministic (`ESCROW-RELEASE-{bookingId}`)
+   * and unique in wallet_transactions, so retries and concurrent release paths
+   * (client confirm vs. cron) collapse to one credit — callers treat a unique
+   * violation as "already credited".
+   *
+   * The client's escrowKobo is only cleared for WALLET-funded bookings, and only
+   * by `netKobo` — that is exactly what `debitForBooking` parked there
+   * (`amount - fee`). Card-funded bookings never touched the client wallet, so
+   * clearing here would eat into the client's OTHER bookings' escrow, and
+   * subtracting the fee (as an earlier draft did) over-draws the shared pool.
+   * `feeKobo` is kept for call-site symmetry but deliberately not subtracted.
+   */
   async creditFromEscrowRelease(providerUserId: string, bookingId: string, netKobo: number, feeKobo: number): Promise<IWalletTransaction> {
     const wallet = await this.getOrCreate(providerUserId);
+    void feeKobo; // never part of the client-side escrow movement (see docblock)
 
-    const ref = `ESCROW-RELEASE-${crypto.randomUUID()}`;
+    const ref = `ESCROW-RELEASE-${bookingId}`;
 
-    // If this release corresponds to a wallet-funded booking, also clear the client's escrow balance atomically
+    // Best-effort: locate the client wallet + confirm this was wallet-funded.
     let clientWalletId: string | null = null;
     try {
-      const { bookings } = await import("@/drizzle/schema");
+      const { bookings, payments } = await import("@/drizzle/schema");
       const [bookingRow] = await db.select({ clientId: bookings.clientId }).from(bookings).where(eq(bookings.id, bookingId));
       if (bookingRow) {
         const [cWallet] = await db.select({ id: wallets.id }).from(wallets).where(eq(wallets.userId, bookingRow.clientId));
-        if (cWallet) clientWalletId = cWallet.id;
+        if (cWallet) {
+          const [paymentRow] = await db
+            .select({ paystackRef: payments.paystackRef })
+            .from(payments)
+            .where(eq(payments.bookingId, bookingId))
+            .limit(1);
+          if (paymentRow?.paystackRef.startsWith("WALLET-")) {
+            clientWalletId = cWallet.id;
+          }
+        }
       }
     } catch {
-      // best-effort escrow clearing
+      // best-effort escrow clearing — never blocks the provider credit
     }
 
     const [txn] = await db.transaction(async (tx) => {
@@ -280,17 +306,23 @@ export class WalletService implements IWalletService {
         .where(eq(wallets.id, wallet.id));
 
       if (clientWalletId) {
-        // Guard: never go negative — clamp at 0 via GREATEST
+        // Guard: never go negative — clamp at 0 via GREATEST. Subtract exactly
+        // what debitForBooking added (net), never net + fee.
         await tx
           .update(wallets)
           .set({
-            escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo + feeKobo}, 0)`,
+            escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo}, 0)`,
             updatedAt: new Date(),
           })
           .where(eq(wallets.id, clientWalletId));
       }
 
-      const balanceAfterKobo = wallet.balanceKobo + netKobo;
+      // Read back the post-update balance — a pre-read would record a wrong
+      // balanceAfterKobo whenever two releases credit the same wallet.
+      const [updated] = await tx
+        .select({ balanceKobo: wallets.balanceKobo })
+        .from(wallets)
+        .where(eq(wallets.id, wallet.id));
 
       return tx
         .insert(walletTransactions)
@@ -300,9 +332,100 @@ export class WalletService implements IWalletService {
           type: "ESCROW_RELEASE",
           amountKobo: netKobo,
           direction: "CREDIT",
-          balanceAfterKobo,
+          balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + netKobo,
           reference: ref,
           relatedBookingId: bookingId,
+        })
+        .returning();
+    });
+
+    return mapTransaction(txn);
+  }
+
+  /**
+   * Return escrow-funded money to the CLIENT's wallet (dispute refund of a
+   * wallet-funded booking): restores what they paid (`amountKobo`) to their
+   * balance and clears the net that `debitForBooking`/`debitForMilestone`
+   * parked in escrowKobo. Deterministic reference (`ESCROW-REFUND-{bookingId}`)
+   * + unique constraint = double-refund is impossible; callers treat a unique
+   * violation as "already refunded".
+   */
+  async refundEscrowToClient(clientUserId: string, bookingId: string, amountKobo: number, netKobo: number): Promise<IWalletTransaction> {
+    const wallet = await this.getOrCreate(clientUserId);
+    const ref = `ESCROW-REFUND-${bookingId}`;
+
+    const [txn] = await db.transaction(async (tx) => {
+      await tx
+        .update(wallets)
+        .set({
+          balanceKobo: sql`${wallets.balanceKobo} + ${amountKobo}`,
+          escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo}, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(wallets.id, wallet.id));
+
+      const [updated] = await tx
+        .select({ balanceKobo: wallets.balanceKobo })
+        .from(wallets)
+        .where(eq(wallets.id, wallet.id));
+
+      return tx
+        .insert(walletTransactions)
+        .values({
+          id: crypto.randomUUID(),
+          walletId: wallet.id,
+          type: "REFUND",
+          amountKobo,
+          direction: "CREDIT",
+          balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + amountKobo,
+          reference: ref,
+          relatedBookingId: bookingId,
+          metadata: { reason: "Escrow refund to client" },
+        })
+        .returning();
+    });
+
+    return mapTransaction(txn);
+  }
+
+  /**
+   * Compensating refund for a wallet escrow debit that failed to start escrow
+   * (hold race / booking left the payable state after the debit): restores the
+   * full debit to the balance and the net that was parked in escrowKobo.
+   * Deterministic reference keeps the compensation itself exactly-once.
+   */
+  async reverseBookingDebit(userId: string, bookingId: string, amountKobo: number, feeKobo: number): Promise<IWalletTransaction> {
+    const wallet = await this.getOrCreate(userId);
+    const netKobo = Math.max(0, amountKobo - feeKobo);
+    const ref = `BOOKING-DEBIT-REVERSAL-${bookingId}`;
+
+    const [txn] = await db.transaction(async (tx) => {
+      await tx
+        .update(wallets)
+        .set({
+          balanceKobo: sql`${wallets.balanceKobo} + ${amountKobo}`,
+          escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo}, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(wallets.id, wallet.id));
+
+      const [updated] = await tx
+        .select({ balanceKobo: wallets.balanceKobo })
+        .from(wallets)
+        .where(eq(wallets.id, wallet.id));
+
+      return tx
+        .insert(walletTransactions)
+        .values({
+          id: crypto.randomUUID(),
+          walletId: wallet.id,
+          type: "REFUND",
+          amountKobo,
+          direction: "CREDIT",
+          balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + amountKobo,
+          reference: ref,
+          relatedBookingId: bookingId,
+          metadata: { reason: "Escrow start failed after wallet debit" },
         })
         .returning();
     });
@@ -415,6 +538,7 @@ export class WalletService implements IWalletService {
 
   async creditMilestoneRelease(providerUserId: string, milestoneId: string, netKobo: number, feeKobo: number): Promise<IWalletTransaction> {
     const wallet = await this.getOrCreate(providerUserId);
+    void feeKobo; // never part of the client-side escrow movement (see subtraction note below)
 
     const ref = `MILESTONE-RELEASE-${crypto.randomUUID()}`;
     const balanceAfterKobo = wallet.balanceKobo + netKobo;
@@ -447,10 +571,14 @@ export class WalletService implements IWalletService {
         .where(eq(wallets.id, wallet.id));
 
       if (clientWalletId) {
+        // Subtract exactly what debitForMilestone parked (`amount - fee` = net),
+        // never net + fee — the fee was debited from balance directly and never
+        // entered escrowKobo, so including it over-draws the shared escrow pool
+        // whenever the client has other bookings in escrow.
         await tx
           .update(wallets)
           .set({
-            escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo + feeKobo}, 0)`,
+            escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo}, 0)`,
             updatedAt: new Date(),
           })
           .where(eq(wallets.id, clientWalletId));

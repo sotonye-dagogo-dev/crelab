@@ -1,6 +1,6 @@
 # Crelab — ROADMAP.md
 **Version:** 1.1  
-**Metadata:** last-updated-by: update-ai-system | last-verified-against-code: 2026-07-28  
+**Metadata:** last-updated-by: update-ai-system | last-verified-against-code: 2026-10-14  
 **Pipeline Stage:** PRD -> ROADMAP -> DESIGN -> PROMPTS -> Open Design -> Open Code  
 **Stack:** Next.js 15.3.x · TypeScript 5 · PostgreSQL (Supabase) · Paystack · Cloudinary · Mux · Better Auth · Sanity · Drizzle ORM  
 **Architecture:** Metadata-driven · Config-first · Standalone · .ai-system governed  
@@ -259,7 +259,7 @@ crelab/
   - autoRelease(bookingId): IN_PROGRESS → RELEASED (cron, deadline passed, no dispute)
   - raiseDispute(bookingId, clientId, reason): IN_PROGRESS → DISPUTED
   - resolveDispute(disputeId, outcome, adminNotes): admin only → RELEASED or REFUNDED
-- [ ] Paystack subaccount split on RELEASED: fee deducted, provider receives net amount
+- [x] Release-time settlement (implemented 2026-10-14): platform fee kept from charge amount, provider net credited in-ledger on RELEASED (`settleRelease`, exactly-once) and paid out via Paystack Transfers withdrawal rail — charge-time subaccount split rejected (Paystack sets provider share at charge time; see `memory/project-decisions.md` → Paystack Rail)
 - [ ] Cron (app/api/cron/escrow/route.ts):
   - Service dates reached today → setInProgress()
   - Release deadlines passed → autoRelease()

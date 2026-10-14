@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
-> - last-verified-against-code: 2026-10-12
-> - last-synced: 2026-10-12 (wired webinar + newsletter emails: 467/467, docs reconciled)
+> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
+> - last-verified-against-code: 2026-10-14
+> - last-synced: 2026-10-14 (webinar count + layout + payment tightening: 493/493, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -57,6 +57,9 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [M] | Wired email templates: `lib/email-templates.ts` marks the 6 code-triggered emails (welcome, verifyEmail, emailChanged, bookingConfirmation, paymentReceived, passwordReset) as preview/simulate-only; `/api/admin/email/send` rejects wired keys for test-send + broadcast; `/admin/email-templates` wired badge/Simulate/trigger banner; `passwordReset` template + Better Auth `sendResetPassword` wiring | [x] |
 | [M] | Blog post management: `blog_posts` table (`0005_blog_posts.sql`) + `BlogPostService` (DB → Sanity → fallback, dedup by slug) + `/api/admin/blog-posts` CRUD + `/admin/blog-posts` page (modal editor, publish toggle) + `ImageUploadField` hero image upload (Cloudinary/paste) + public `/blog` + `/blog/[slug]` render DB posts | [x] |
 | [S] | Admin responsive: sidebar collapse hidden on mobile (`hidden lg:block` — mobile = hamburger overlay only); `/admin/config` change log `formatChangeValue()` + `break-words`/`min-w-0`; `ConfigField` stacks on mobile | [x] |
+| [BUG] | Admin webinar invitee count 0 beside the icon — Drizzle unqualified correlated subquery shadowing; two-step grouped parameterized counts + pure mapper (`WebinarService.adminList/adminGet`) | [x] |
+| [M] | Public `/webinars` layout polish — responsive CTAs (`w-full sm:w-auto`), unified section rhythm, `break-words`/`max-w-full` overflow guards, 360/768/1280 audit | [x] |
+| [L] | Payment tightening (Paystack "no escrow" directive) — escrow window default 1 day + `{{escrowWindow}}`/`{{feeRate}}` token copy; `payments.notices` config block (payout-details/fees/escrow-explainer) rendered in withdraw/terms/how-it-works/booking drawer + recipient-code validation; real card checkout (inline.js + handlers-before-resume + `GET`/`POST /pay/verify` + hosted fallbacks); idempotent `onPaystackSuccess` + atomic `holdBookingFunds`; missing `/release` + `/dispute` endpoints; exactly-once settlement (`settleRelease`, deterministic refs) + dispute refunds (wallet credit / Paystack refund best-effort); webhook process-before-record; Paystack rail decision (charge→platform, payout on release) + sanitized copy | [x] |
 
 ---
 

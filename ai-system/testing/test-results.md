@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
-> - last-verified-against-code: 2026-10-12
+> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
+> - last-verified-against-code: 2026-10-14
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,18 @@
 
 ## Last Run
 
-**Date:** 2026-10-12
-**Run by:** execute-feature (wired webinar + newsletter emails)
+**Date:** 2026-10-14
+**Run by:** execute-feature (webinar count + public webinars layout + payment tightening)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 467 | 0 | 0 |
+| Unit (vitest) | 493 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | ESLint (`npm run lint`) | — | 0 errors (pre-existing unused-var warnings) | — |
 | Production build (`npm run build`) | — | 0 errors (full route build green) | — |
 
-**Overall Status:** ✅ All 467/467 tests pass. Typecheck clean. Lint 0 errors. Production build green. +4 new tests (wired-key parity + newsletter defaults, newsletter/webinar preview-fallback sends, disabled-template guard).
+**Overall Status:** ✅ All 493/493 tests pass (40 files). Typecheck clean. Lint 0 errors. Production build green. New tests this run (+26 over the 467 baseline): `payment-notices.test.ts` (12 [new file] — resolver defaults/merge/disabled/token-fill + `formatEscrowWindow`/`formatFeeRatePercent`/`fillConfigCopy`), `EscrowService.test.ts` (+7 — `computeEscrowReleaseDeadline` null/invalid/clamp cases, `isUniqueViolation`), `WebinarService.test.ts` (+7 → 34 total [extended] — `withRegistrationCounts` mapper contract incl. bigint-string coercion / missing-row → 0 / clamp + grouped-count integration: REGISTERED-only join, no-row → 0, empty list skips query). Live-verified: admin invitee counts 0/0 → 4/4.
 
 ---
 

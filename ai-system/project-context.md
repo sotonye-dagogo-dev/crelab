@@ -1,8 +1,8 @@
 # Project Context
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-08-11
+> - last-updated-by: update-ai-system (Session 2026-10-14 — Paystack rail reconciliation)
+> - last-verified-against-code: 2026-10-14
 > - staleness-policy: re-verify if >10 sessions old or after major scope changes
 
 > **Overview:** Crelab is a standalone, video-first creative services marketplace for Nigeria that connects creative professionals (content creators, cinematographers) with brands and businesses. Providers win jobs based on the quality of their work, not follower count. Payments are protected by Paystack escrow with a hybrid auto-release mechanism.
@@ -28,7 +28,7 @@ Nigeria's $15B creative industry operates through informal, trust-deficit channe
 ## Business Constraints
 
 - NGN-only at MVP (multi-currency requires additional CBN approval)
-- Paystack subaccount model — Crelab never holds user funds directly
+- Paystack rail (2026-10-14): charges settle to the platform balance; escrow is app-side; provider payouts via Paystack Transfers — compliance review flagged (PRD licensing rationale assumed the subaccount model)
 - NDPR-compliant from Day 1 (Nigeria Data Protection Regulation)
 - Age-restricted platform (18+)
 - Guest browse allowed; booking requires registration
@@ -76,7 +76,7 @@ Active sprint focus: Testing, Provider Dashboard, Client Dashboard, and Phase 2 
 | Service | Purpose | Auth Method |
 |---------|---------|------------|
 | Supabase | PostgreSQL database, auth session storage, RLS | Service role key (server) / anon key (client with RLS) |
-| Paystack | Payment processing, escrow subaccount splits | Secret key (server), public key (client) |
+| Paystack | Payment processing (charge → platform balance), escrow (app-side), payouts via Transfers | Secret key (server), public key (client) |
 | Cloudinary | Video/image upload, thumbnail generation | API key + secret |
 | Mux | Video streaming | Access token + secret key |
 | Google Drive API | Portfolio file sync (public folders) | API key (no OAuth for public folders) |

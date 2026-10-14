@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: execute-feature (Session 2026-10-14 — payment tightening: notices + escrow settlement edges)
+> - last-verified-against-code: 2026-10-14
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -45,7 +45,27 @@ PlatformConfigService
   → config/platform.config.ts (fallback default)
   → Drizzle schema (platform_config + audit_log tables)
   → Next.js unstable_cache / revalidateTag
-  → setNestedValue(target, path, value) deep-sets dotted config keys when merging DB rows in get(); null values skipped so defaults never clobbered
+  → setNestedValue(target, path, value) deep-sets dotted config keys when merging DB rows in get(); null values skipped so defaults never clobbered; clones each traversed level (clone-on-descend) so admin writes never mutate shared DEFAULT_CONFIG nested objects
+
+Payment Notices (lib/payment-notices.ts)
+  → config/platform.config.ts (DEFAULT_CONFIG.payments.notices as pristine base)
+  → lib/platform-copy.ts (fillConfigCopy: {{name}}/{{feeRate}}/{{escrowWindow}} token fill at render boundary)
+  → consumed by components/shared/PaymentNoticeBlock.tsx, components/wallet/WithdrawModal, BookingDrawer,
+    app/(public)/terms + app/(public)/how-it-works, app/admin/config (editor fields via ConfigField textarea)
+
+EscrowService settlement (services/EscrowService.ts)
+  → services/WalletService (creditFromEscrowRelease / refundEscrowToClient / reverseBookingDebit — deterministic
+    ESCROW-RELEASE|REFUND|DEBIT-REVERSAL-{bookingId} unique references = exactly-once money movement)
+  → lib/paystack.ts (initTransaction for charges, refund() for card dispute refunds — best-effort, logged)
+  → services/PlatformConfigService (escrowReleaseDays → computeEscrowReleaseDeadline, single deadline source)
+  → services/BookingService (read/refresh paths); drizzle/schema (bookings/payments/disputes conditional flips)
+
+Booking checkout (components/booking/BookingDrawer.tsx)
+  → app/layout.tsx next/script → https://js.paystack.co/v1/inline.js (window.PaystackPop; hosted new-tab fallback)
+  → POST /api/bookings/[id]/pay (wallet: debitForBooking + holdBookingFunds with reverse-on-failure compensation;
+    card: EscrowService.initiate)
+  → GET+POST /api/bookings/[id]/pay/verify → verifyTransaction (ownership/ref/metadata/amount) → onPaystackSuccess
+  → lib/payment-notices (escrowExplainer) + lib/config-context + lib/toast
 
 About Page (app/(public)/about/page.tsx)
   → lib/seo.ts (buildSeoMetadata for generateMetadata)

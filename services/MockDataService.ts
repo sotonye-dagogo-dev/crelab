@@ -19,6 +19,7 @@ import type {
 } from "@/types";
 import { BookingStatus, EscrowState, ExperienceLevel, PaymentMode, PortfolioItemSource, UserRole } from "@/types";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
+import { formatEscrowWindow, formatFeeRatePercent } from "@/lib/platform-copy";
 
 export class MockDataService {
   static isEnabled(): boolean {
@@ -905,8 +906,8 @@ export class MockDataService {
           title: "Secure Payments with Escrow",
           subtitle: "Your money is protected every step of the way",
           steps: [
-            { step: 1, title: "Payment Held in Escrow", description: "When you book, funds are securely held by our payment partner (Paystack) — not released to the creator until you're happy." },
-            { step: 2, title: "Auto-Release Timeline", description: "If no dispute is raised, funds auto-release 5 days after the service date. You're always in control." },
+            { step: 1, title: "Payment Held in Escrow", description: "When you book, your payment is held in escrow — the creator is not paid until you approve the work." },
+            { step: 2, title: "Auto-Release Timeline", description: `If no dispute is raised, funds auto-release ${formatEscrowWindow(DEFAULT_CONFIG.escrowReleaseDays)} after the service date. You're always in control.` },
             { step: 3, title: "Dispute Resolution", description: "If something goes wrong, our admin team mediates. We review evidence from both sides and make a fair decision." },
             { step: 4, title: "Milestone Payments", description: "For larger projects, split payments into milestones. Each milestone is funded upfront and released upon approval." },
           ],
@@ -941,12 +942,12 @@ export class MockDataService {
       faqs: [
         {
           question: "How do I get paid as a creator?",
-          answer: `Payments are held in escrow via Paystack. Once the client approves your work (or after 5 days with no dispute), funds are automatically released to your ${DEFAULT_CONFIG.name} wallet. You can withdraw to your bank account anytime.`,
+          answer: `Payments are held in escrow and processed by our payment partner. Once the client approves your work (or after ${formatEscrowWindow(DEFAULT_CONFIG.escrowReleaseDays)} with no dispute), funds are automatically released to your ${DEFAULT_CONFIG.name} wallet. You can withdraw to your bank account anytime — just make sure your payout details are correct, as payouts are sent to the details you provide.`,
           category: "payments",
         },
         {
           question: "What's the platform fee?",
-          answer: `${DEFAULT_CONFIG.name} charges a 5% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.`,
+          answer: `${DEFAULT_CONFIG.name} charges a ${formatFeeRatePercent(DEFAULT_CONFIG.feeRate)}% platform fee on each booking. This covers payment processing, escrow protection, platform maintenance, and support.`,
           category: "payments",
         },
         {

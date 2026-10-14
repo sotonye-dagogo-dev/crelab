@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
-> - last-verified-against-code: 2026-10-12
+> - last-updated-by: execute-feature (Session 2026-10-14 — booking/payment flow rewritten: no charge-time split, verify endpoints, exactly-once settlement)
+> - last-verified-against-code: 2026-10-14
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -28,11 +28,11 @@ Service Layer (services/)
     |-- EscrowService           -- Escrow state machine (PENDING -> HELD -> IN_PROGRESS -> RELEASED/DISPUTED, now uses real client email + BOOKING_PAYMENT metadata)
     |-- PortfolioService        -- Portfolio CRUD, reorder, hide/show + attachUploadToProvider (best-effort portfolio attach on every media upload/confirm, idempotent)
     |-- DriveService            -- Google Drive folder sync, validate, ingest
-    |-- PaymentService          -- Paystack integration, subaccount split
+    |-- PaymentService          -- LEGACY Paystack integration (initPaystack/splitPayout unused — settlement runs through EscrowService + WalletService, see Paystack Rail decision 2026-10-14)
     |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
     |-- ExploreService          -- Provider search, filter, sort, cursor pagination + portfolio thumbnails for tile carousel
     |-- DashboardService        -- Role-aware Provider/Client dashboards (pipeline, stats, availability, payments, portfolio gallery)
-    |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA (escrowKobo cleared atomically on release)
+    |-- WalletService           -- Wallet CRUD, topup, debit, credit, withdrawal, DVA (escrowKobo cleared on release for wallet-funded bookings; release/refund/reversal use deterministic unique references)
     |-- MilestoneService        -- Milestone lifecycle (create, fund, submit, approve, dispute — approve now credits provider, not client)
     |-- MediaAssetService       -- Media asset registry: record uploads, list by owner/all, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile, backfillOrphans (bulk owner-matched rescue)
     |-- MockDataService         -- Mock data fallback when DB unavailable
@@ -56,7 +56,7 @@ Data Stores
     |-- Sanity CMS                -- Blog content, creator spotlights
     |-- Cloudinary                -- Video/image upload, thumbnails
     |-- Mux                       -- Video streaming
-    |-- Paystack                  -- Payment processing, subaccount splits
+    |-- Paystack                  -- Payment processing: charges settle to platform balance (no charge-time split); refunds; payouts via Transfers (withdrawal rail)
 ```
 
 ---
@@ -184,13 +184,42 @@ Data Stores
 
 ### Booking & Payment Flow
 ```
-1. Client selects package -> booking request (REQUESTED)
-2. Provider accepts/counter-proposes/declines (ACCEPTED / DECLINED)
-3. Client pays via Paystack inline checkout (PAYMENT_PENDING -> HELD)
-4. Paystack webhook -> EscrowService.onPaystackSuccess()
-5. Service date reached (cron) -> EscrowService.setInProgress() (IN_PROGRESS)
-6. Client confirms OR auto-release after deadline -> EscrowService.release() (RELEASED)
-7. Paystack subaccount split: platform fee deducted, provider receives net
+1. Client selects package -> booking created (ACCEPTED, paymentMode ESCROW;
+   MILESTONE bookings are funded milestone-by-milestone and are rejected by the
+   full-amount pay route so they can't be double-funded)
+2. Client pays:
+   a. Wallet -> /api/bookings/[id]/pay?useWallet -> debitForBooking (atomic, throws
+      InsufficientBalance) -> EscrowService.holdBookingFunds() with a WALLET-* ref;
+      any hold failure reverses the debit (WalletService.reverseBookingDebit)
+   b. Card -> EscrowService.initiate() -> Paystack inline popup (next/script loads
+      js.paystack.co/v1/inline.js; success/cancel/error handlers registered BEFORE
+      resume(); hosted new-tab + verify polling as fallback, callback_url -> /bookings)
+3. Charge finalized server-side: Paystack webhook (primary) OR client verify
+   (GET+POST /api/bookings/[id]/pay/verify -> verifyTransaction + metadata check)
+   -> EscrowService.onPaystackSuccess() (idempotent: payment-row fast path, loud
+   log for non-ACCEPTED bookings) -> holdBookingFunds(): conditional ACCEPTED->HELD
+   + payments row (status HELD) in ONE transaction (exactly-once under races)
+4. Service date reached (cron /api/cron/escrow) -> setInProgress() (IN_PROGRESS).
+   Release deadline = serviceDate + escrowReleaseDays via the single pure helper
+   computeEscrowReleaseDeadline() (default 1 day, admin-editable; null-safe)
+5. Release: client confirms (POST /api/bookings/[id]/release -> clientConfirmRelease)
+   OR cron autoRelease after deadline (null deadlines backfilled first)
+   -> settleRelease() pays the provider exactly once (deterministic
+   ESCROW-RELEASE-{bookingId} wallet txn gated by the payments HELD->RELEASED flip;
+   unique constraint = no double pay, no milestone double pay) -> conditional
+   IN_PROGRESS->RELEASED flip (double clicks / concurrent paths collapse)
+6. Dispute: POST /api/bookings/[id]/dispute -> raiseDispute (client-owned, reason
+   validated, deadline-checked) -> DISPUTED; admin resolve:
+   RELEASED -> settleRelease(); REFUNDED -> refundBookingFunds() (wallet-funded:
+   credit client back via ESCROW-REFUND-{bookingId} then flip; card-funded: flip
+   HELD->REFUNDED first, then Paystack refund() best-effort, failures logged for
+   manual dashboard refund)
+7. Funds model (decided 2026-10-14): charges settle to the platform's Paystack
+   balance — NO charge-time subaccount split (it would settle the provider share
+   immediately and break hold/refund/dispute). Platform keeps feeRate (amount - net
+   exits the user ledger at release); the provider's net is credited in-ledger and
+   paid out via the existing Paystack Transfers withdrawal rail. Milestone
+   bookings carry no escrow payments row -> settlement is a natural no-op.
 ```
 
 ### Google Drive Portfolio Sync Flow
@@ -263,7 +292,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | LOGO_PATH | Full logo image path (expanded navbars, hero) | platform.config.ts | '/primary-logo.png' |
 | ICON_PATH | Icon image path (favicon, collapsed nav, auth pages) | platform.config.ts | '/icon.png' |
 | FEE_RATE | Platform commission (decimal) | platform.config.ts | 0.05 |
-| ESCROW_RELEASE_DAYS | Days after service date for auto-release | platform.config.ts | 5 |
+| ESCROW_RELEASE_DAYS | Days after service date for auto-release | platform.config.ts | 1 |
 | CATEGORIES | Category slugs + field schema JSONB | platform.config.ts | ['content-creator', 'cinematographer'] |
 | FEATURES | Feature flags (guest browse, Drive sync, blog) | platform.config.ts | { guestBrowse: true, googleDriveSync: true, blogEnabled: true } |
 | MEDIA_UPLOAD | mediaUpload.enabled / cloudinaryEnabled / maxFileSizeMb / videoTypes / imageTypes / cleanupEnabled / cleanupOrphanAfterHours | platform.config.ts | { enabled: true, cloudinaryEnabled: true, maxFileSizeMb: 100, cleanupEnabled: true, cleanupOrphanAfterHours: 24 } |
@@ -341,7 +370,7 @@ This is the "undo" instinct applied one layer up from data (§22 covers user-fac
 - All monetary values stored in kobo (integer) — no floating point arithmetic on money
 - Privacy by design: consent records, data minimisation, Supabase RLS from first migration
 - NDPR compliance required for Nigerian market
-- Paystack subaccount model for escrow (Crelab never holds funds directly)
+- Paystack rail: charge → platform balance, provider net paid out via Transfers on release (app-side escrow; supersedes the subaccount-model claim — compliance follow-up open, see project-decisions)
 
 ---
 

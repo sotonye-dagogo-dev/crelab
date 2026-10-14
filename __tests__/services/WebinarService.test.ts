@@ -21,6 +21,7 @@ import {
   effectiveEnd,
   normalizePagination,
   registrationEmailKey,
+  withRegistrationCount,
 } from "@/services/WebinarService";
 import {
   formatWebinarStart,
@@ -258,5 +259,88 @@ describe("lib/webinars — formatWebinarStart", () => {
     });
     expect(label).toContain("2026");
     expect(label).toContain("(UTC)");
+  });
+});
+
+describe("WebinarService — withRegistrationCount (admin count mapper)", () => {
+  const webinar = { id: "w-1", slug: "s", title: "T" } as never;
+
+  it("attaches the matched count for the webinar id", () => {
+    const out = withRegistrationCount(webinar, new Map([["w-1", 4]]));
+    expect(out.registrationCount).toBe(4);
+  });
+
+  it("coerces count(*) string values from the driver (bigint → string)", () => {
+    const counts = new Map<string, number>([["w-1", "7" as unknown as number]]);
+    expect(withRegistrationCount(webinar, counts).registrationCount).toBe(7);
+  });
+
+  it("falls back to 0 when the webinar has no count row (never undefined)", () => {
+    expect(withRegistrationCount(webinar, new Map([["other", 3]])).registrationCount).toBe(0);
+    expect(withRegistrationCount(webinar, new Map()).registrationCount).toBe(0);
+  });
+
+  it("clamps negative or garbage values to a safe integer", () => {
+    expect(withRegistrationCount(webinar, new Map([["w-1", -2]])).registrationCount).toBe(0);
+    expect(
+      withRegistrationCount(webinar, new Map([["w-1", Number.NaN as unknown as number]]))
+        .registrationCount,
+    ).toBe(0);
+  });
+});
+
+describe("WebinarService — adminList (grouped counts, no correlated subquery)", () => {
+  const webinarRow = {
+    id: "w-1",
+    slug: "session-one",
+    title: "Session One",
+    status: "UPCOMING",
+    active: true,
+    orderIndex: 0,
+    createdAt: new Date("2026-10-01T00:00:00Z"),
+    updatedAt: new Date("2026-10-01T00:00:00Z"),
+  };
+
+  it("joins REGISTERED counts from the grouped query onto each row", async () => {
+    mockDb.select
+      .mockReturnValueOnce({
+        from: () => ({ orderBy: async () => [webinarRow] }),
+      })
+      .mockReturnValueOnce({
+        from: () => ({
+          where: () => ({
+            groupBy: async () => [{ webinarId: "w-1", total: "3" }],
+          }),
+        }),
+      });
+
+    const out = await WebinarService.adminList();
+    expect(out).toHaveLength(1);
+    expect(out[0].slug).toBe("session-one");
+    expect(out[0].registrationCount).toBe(3);
+    expect(mockDb.select).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders 0 (not undefined) when the grouped query returns no row for a webinar", async () => {
+    mockDb.select
+      .mockReturnValueOnce({
+        from: () => ({ orderBy: async () => [webinarRow] }),
+      })
+      .mockReturnValueOnce({
+        from: () => ({ where: () => ({ groupBy: async () => [] }) }),
+      });
+
+    const out = await WebinarService.adminList();
+    expect(out[0].registrationCount).toBe(0);
+  });
+
+  it("skips the count query entirely when there are no webinars", async () => {
+    mockDb.select.mockReturnValueOnce({
+      from: () => ({ orderBy: async () => [] }),
+    });
+
+    const out = await WebinarService.adminList();
+    expect(out).toEqual([]);
+    expect(mockDb.select).toHaveBeenCalledTimes(1);
   });
 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { WalletService } from "@/services/WalletService";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { isValidRecipientCode } from "@/lib/wallet-recipients";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,6 +24,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Format check BEFORE any wallet debit — a malformed code would otherwise
+    // debit the balance and only fail later at Paystack transfer time.
+    if (typeof bankRecipientCode !== "string" || !isValidRecipientCode(bankRecipientCode)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invalid payout recipient code — expected a Paystack code like RCP_x8f2k4q9. Double-check the details you are paying out to; payouts sent to the wrong details cannot be recovered.",
+        },
+        { status: 400 },
+      );
+    }
+
     const platformConfig = await PlatformConfigService.get();
     if (amountKobo < platformConfig.wallet.minWithdrawalKobo) {
       return NextResponse.json(
@@ -35,7 +49,7 @@ export async function POST(req: NextRequest) {
     const result = await walletService.requestWithdrawal(
       session.user.id,
       amountKobo,
-      bankRecipientCode,
+      bankRecipientCode.trim(),
     );
 
     return NextResponse.json({ success: true, data: result });

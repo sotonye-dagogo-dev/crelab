@@ -10,8 +10,8 @@ describe("config/platform.config — DEFAULT_CONFIG", () => {
     expect(DEFAULT_CONFIG.feeRate).toBe(0.05);
   });
 
-  it("has the correct escrow release days", () => {
-    expect(DEFAULT_CONFIG.escrowReleaseDays).toBe(5);
+  it("has the correct escrow release days (default ≈ 1 day, admin-editable)", () => {
+    expect(DEFAULT_CONFIG.escrowReleaseDays).toBe(1);
   });
 
   it("has the correct cancellation policy", () => {

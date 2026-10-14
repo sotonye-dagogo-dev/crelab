@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email verification tightening)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: execute-feature (Session 2026-10-14 — payment tightening: escrow window + Paystack rail)
+> - last-verified-against-code: 2026-10-14
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -33,6 +33,53 @@
 ---
 
 ## Decisions
+
+## Paystack Rail: Charge → Platform Balance, Payout on Release (Escrow Stays App-Side)
+
+**Decision:** Booking charges initialize **without** a charge-time subaccount/split — funds settle to the platform's Paystack balance. Escrow semantics are held entirely app-side (`bookings.status`/`escrow_state` + `payments.status` HELD). On release, the provider's net is credited in-ledger (`WalletService.creditFromEscrowRelease`, exactly-once) and paid out through the existing **Paystack Transfers** withdrawal rail. The platform keeps `feeRate` (amount − net exits the user-ledger at release). User-facing copy keeps the word **escrow**, sanitized: no `subaccount`/`split`/internal names anywhere in public docs; Paystack is named only in fee/liability disclaimers (per config `payments.notices`).
+**Date:** 2026-10-14
+**Made by:** Implementer (execute-feature — per directive: Paystack's "we do not support escrow" email + split-payments docs review)
+**Supersedes:** "Paystack Subaccount Model for Escrow" (2026-07-04) — rail mechanism only; its webhook-verification and PCI-SAQ-A aspects remain valid
+**Superseded by:** None
+
+**Reason:**
+Paystack has no escrow product, and its split-payment (subaccount) mechanism settles the recipient's share **at charge time** — which makes hold/dispute/refund of that share impossible, i.e. it structurally breaks the escrow promise. Paystack's sanctioned multi-party distribution feature is Transfers, which is exactly what the existing withdrawal rail already uses; escrow semantics are ours to enforce app-side where we already have the state machine.
+
+**Alternatives Considered:**
+- **Charge-time `subaccount` split** — rejected for escrow: provider share settles immediately → cannot be held, disputed or refunded; would have required moving money back out of a third-party subaccount on every dispute.
+- **Restructuring user-facing terminology away from "escrow"** — rejected: directive explicitly keeps "escrow" on user-facing surfaces; only the *technical* story is sanitized.
+- **`PaymentService.splitPayout` / `lib/paystack.ts subaccountSplit` (existing dead code)** — left untouched and unused as legacy (broken URL literal; never called); documented rather than deleted (non-breaking).
+
+**Implications:**
+- The platform's Paystack balance must always cover outstanding HELD amounts + provider payouts — reconciliation is the `payments` table (`amount = fee + netAmount`), not Paystack subaccount balances.
+- **Compliance follow-up (flagged):** the PRD's CBN-licensing rationale leaned on "Crelab never holds user funds directly" (subaccount model). Under this rail the platform balance does hold funds between charge and release — legal review needed before real money flows (mirrors the PRD §9.3 counsel requirement, now with a different mechanism).
+- Refunds of card-funded escrow go through `refund()` against the platform balance (flip-then-refund ordering; API failures logged for manual dashboard refund).
+- Any future "multi-party" feature must use Transfers (payout) semantics, never charge-time splits, while escrow is in play.
+- Public copy stays config-driven via `payments.notices` so operators can retune the sanitized wording without code changes.
+
+---
+
+## Escrow Release Window Default: 5 Days → 1 Day (Admin-Editable)
+
+**Decision:** `DEFAULT_CONFIG.escrowReleaseDays` changes from `5` to `1`. The auto-release *mechanism* (Hybrid Auto-Release: client confirm or cron after `serviceDate + escrowReleaseDays`) is unchanged; the field remains admin-editable at `/admin/config` → Fees & Escrow, and stored DB overrides are untouched (existing deployments keep their stored value). All public/admin copy that used to hardcode "5 days" now renders the `{{escrowWindow}}` token via `formatEscrowWindow()`/`fillConfigCopy()`.
+**Date:** 2026-10-14
+**Made by:** Implementer (execute-feature — user directive: "set default escrow window to ~1 day, admin-editable")
+**Supersedes:** "Payment Release Trigger: Hybrid Auto-Release (5 days default)" — **default value only**; the decision's mechanism and configurability stand
+**Superseded by:** None
+
+**Reason:**
+User directive for this release; one day matches the platform's fast-payout expectation while still giving the client a full day after the service date to confirm or dispute. De-hardcoding the copy means a future window change is config-only.
+
+**Alternatives Considered:**
+- Hardcoding "1 day" in copy — rejected: caused the original drift; every window change must stay config-driven.
+- Changing the release mechanism itself (e.g. instant release) — rejected: non-breaking constraint; the hybrid confirm-or-cron model still applies.
+- Forcing the new default on existing deployments (overwriting stored config) — rejected: DB overrides are respected, only the code default changes.
+
+**Implications:**
+- `computeEscrowReleaseDeadline(serviceDate, escrowReleaseDays)` is the single source for every deadline (card hold, wallet hold, cron backfill, dispute check).
+- Docs/tests referencing a 5-day window must go through `{{escrowWindow}}` / `escrowReleaseDays`, never literal copy.
+
+---
 
 ## Leaderboard Scoring: Pluggable Factor Registry + Config Weights, Not a Fixed Formula
 
@@ -227,11 +274,11 @@ Alpha feedback reported the change-email confirmation reaching "both the old mai
 **Supersedes:** None
 **Superseded by:** None
 
-**Reason:** Competitive rate that funds escrow and dispute infrastructure. Paystack subaccount split deducts fee before provider payout.
+**Reason:** Competitive rate that funds escrow and dispute infrastructure. The fee is the difference between charge amount and provider net (`amount = fee + netAmount` in the payments ledger), realized at release under the Charge → Platform Balance rail (2026-10-14) — no Paystack split deducts it.
 
 **Alternatives Considered:** Tiered pricing; subscription model. Both rejected for simplicity at MVP.
 
-**Implications:** Fee rate displayed prominently in booking flow. Paystack subaccount configuration needed. Fee displayed as platformConfig.feeRate — never hardcoded.
+**Implications:** Fee rate displayed prominently in booking flow. Fee rendered as `{{feeRate}}` token from platformConfig.feeRate — never hardcoded. Under the current rail the platform bears Paystack's processing fees; no subaccount configuration needed.
 
 ---
 
@@ -273,7 +320,7 @@ Alpha feedback reported the change-email confirmation reaching "both the old mai
 **Date:** 2026-07-04
 **Made by:** Product (PRD v2.1 §9.3)
 **Supersedes:** None
-**Superseded by:** None
+**Superseded by:** "Paystack Rail: Charge → Platform Balance, Payout on Release (Escrow Stays App-Side)" (2026-10-14) — rail mechanism superseded; webhook + PCI-SAQ-A aspects still stand
 
 **Reason:** PCI SAQ A scope (lowest complexity). No CBN payment licence needed at MVP. Paystack handles all regulatory compliance for payment processing.
 

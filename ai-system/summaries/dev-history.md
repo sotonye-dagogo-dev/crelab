@@ -1,8 +1,29 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-12 — wired webinar + newsletter emails)
-> - last-verified-against-code: 2026-10-12
+> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
+> - last-verified-against-code: 2026-10-14
+
+
+## Session 2026-10-14 — Webinar Invitee Count + Public Webinars Layout + Payment Tightening
+
+### What
+Directive: (1) fix admin webinar invitee count showing 0 beside the icon while the attendee drawer shows real invitees; (2) polish public `/webinars` (action buttons, section gaps, responsiveness, no overlap); (3) default escrow window ≈1 day (admin-editable); (4) tighten the payment system for Paystack's "no escrow" reality — config-driven disclaimers (bank-details accuracy, wrong-account liability, transaction fees), "escrow" kept user-facing with sanitized copy, split-payments awareness. Config/metadata-driven, modular, non-breaking, fallbacks + edge cases; QA gate + deep sync at close.
+
+### Verification
+`vitest` → 40 files, **493 passed / 0 failed** (+26: 12 payment-notices [new file], 7 EscrowService deadline/unique-violation, 7 WebinarService registration-count [extended]). `tsc --noEmit` → clean. `next lint` → 0 errors (pre-existing warnings only). `next build` → green. Diag scripts deleted.
+
+### Key Changes
+- **Count bug (root cause reproduced live):** Drizzle rendered the correlated count subquery's columns unqualified — `WHERE "webinar_id" = "id"` bound `"id"` to the inner `webinar_registrations` table → always 0. `adminList()`/`adminGet()` now do two-step grouped parameterized counts mapped by a pure `withRegistrationCounts()` helper; live-verified 0/0 → 4/4.
+- **Checkout was silently fake:** `js.paystack.co/v1/inline.js` was never loaded, so `window.PaystackPop` was always undefined and the drawer showed a false "Booking Confirmed!" without charging anything (empty `catch {}`, `resume()` before handlers, no server verify). Fixed: root-layout `next/script`, handlers registered before `resume()`, **verify-don't-assume** endpoint (`GET`+`POST /api/bookings/[id]/pay/verify`: ownership + ref + Paystack metadata/amount checks) gating the confirmation step, honest toasts, retry-safe booking reuse (details snapshot), hosted new-tab + polling and full-page `callback_url` fallbacks.
+- **Escrow now actually moves money, exactly once:** new atomic `holdBookingFunds()` (conditional ACCEPTED→HELD + payment row in one tx — race-safe under webhook+verify); idempotent `onPaystackSuccess()` (payment-row fast path, loud non-ACCEPTED manual-refund log); `settleRelease()`/`refundBookingFunds()` with deterministic unique references (`ESCROW-RELEASE/REFUND-{bookingId}`) + conditional HELD→RELEASED/REFUNDED flips (money-first ordering so crashes retry as no-ops; milestone bookings have no HELD payment row → naturally excluded); missing `POST /api/bookings/[id]/release` + `/dispute` endpoints (session-owned, validated, audit-logged); null-deadline-safe `autoRelease`/`raiseDispute` (backfill instead of 1970-edge); `resolveDispute` settles/refunds before state flip (card: flip-then-Paystack-`refund()` best-effort logged; wallet: credit-then-flip).
+- **Wallet ledger fixes:** `creditFromEscrowRelease` (was dead) wired with deterministic ref, client `escrowKobo` cleared only for wallet-funded bookings and only by net (was: any booking, net+fee — over-draws shared escrow), read-back `balanceAfterKobo`; new `refundEscrowToClient` + `reverseBookingDebit` (pay-route compensation after a post-debit hold failure); `creditMilestoneRelease` subtraction corrected (net, not net+fee). Webhook reordered to process-before-record so a failed finalize isn't permanently swallowed by the duplicate gate.
+- **Escrow window + copy:** default 5 → 1 day (`escrowReleaseDays`, still admin-editable; stored DB overrides untouched); all "5 days"/"via Paystack" copy de-hardcoded behind `{{escrowWindow}}`/`{{feeRate}}` tokens (`formatEscrowWindow`, `formatFeeRatePercent`, `fillConfigCopy`); single pure `computeEscrowReleaseDeadline()` replaces three inline computations.
+- **Config-driven disclaimers:** new `payments.notices.{payoutDetails,processingFees,escrowExplainer}` block (defaults + `/admin/config` editor fields with textarea) rendered via `lib/payment-notices.ts` + `PaymentNoticeBlock` in WithdrawModal, terms, how-it-works and the BookingDrawer (replacing the inaccurate "held securely by Paystack"); withdraw flow hardened with `lib/wallet-recipients.ts` recipient-code validation (client + server pre-debit).
+- **Public webinars layout:** consistent section headers, responsive CTA buttons (`w-full sm:w-auto`, `h-10`, flex-wrap), `break-words` overflow guards on meta/titles, `max-w-full` past-card CTA; 360/768/1280 audited by class inspection.
+- **Paystack rail decision (C4):** charges settle to the platform's balance — no charge-time subaccount split (rejected: settles provider share at charge time, breaks hold/refund/dispute); provider net credited in-ledger at release and paid via the existing Transfers withdrawal rail; sanitized public copy keeps "escrow". Logged in `memory/project-decisions.md` (with the 1-day default decision).
+- Docs close — this entry + session-log, task-queue, project-decisions, system-architecture (booking/payment flow rewritten: no more subaccount-split claim), repair-system (2 entries: unqualified correlated subquery → silent 0; PaystackPop never loaded → false confirmation), lessons-learned (2), design-system (responsive CTA note), test-results, repo-map/dependency-graph; checkpoint cleared. Deep `update-ai-system.md` invoked inline per directive.
+- Residual risks: card refund-request failure = logged for manual dashboard refund (flip-first prevents double-refund; crash window between flip and request loses the attempt until noticed); hosted-checkout verify polling is 2 minutes (webhook stays primary); late charge on a non-ACCEPTED booking is a loud manual-refund case by design.
 
 
 ## Session 2026-10-12 — Wired Emails: Webinar Registration + Newsletter Subscribe

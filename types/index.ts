@@ -698,6 +698,27 @@ export interface IWebinarsConfig {
   registrationCancelledLabel: string;
 }
 
+/** A config-driven payment notice/disclaimer rendered at its point of action. */
+export interface IPaymentNotice {
+  enabled: boolean;
+  title: string;
+  /**
+   * Body copy. Supports render-time tokens filled from the live config:
+   * `{{name}}`, `{{feeRate}}` (platform fee as percent), `{{escrowWindow}}`
+   * (auto-release window, pre-pluralised) — see `lib/platform-copy.fillConfigCopy`.
+   */
+  body: string;
+}
+
+export interface IPaymentsConfig {
+  /** Disclaimers shown where users act on payout/bank details. */
+  notices: {
+    payoutDetails: IPaymentNotice;
+    processingFees: IPaymentNotice;
+    escrowExplainer: IPaymentNotice;
+  };
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
@@ -724,6 +745,7 @@ export interface IPlatformConfig {
   blogConfig?: IBlogConfig;
   emailConfig?: IEmailConfig;
   emailVerification?: IEmailVerificationConfig;
+  payments?: IPaymentsConfig;
   devCredit?: IDevCredit;
   teamPage?: ITeamPageConfig;
 }

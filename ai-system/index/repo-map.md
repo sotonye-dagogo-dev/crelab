@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-08 — email batch send)
-> - last-verified-against-code: 2026-10-08
+> - last-updated-by: execute-feature (Session 2026-10-14 — payment tightening: notice/recipient libs + verify routes)
+> - last-verified-against-code: 2026-10-14
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -149,7 +149,8 @@ crelab/
 │   ├── media.ts            # Media file/URL validation helpers (type, size, link; oversize reason keeps "too large" substring + per-file-limit detail)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
 │   ├── paystack.ts         # Init transaction, verify webhook, split, refund, DVA, transfer
-│   ├── platform-copy.ts    # PLATFORM_NAME_TOKEN ({{name}}) + fillPlatformName — display copy resolves from config.name
+│   ├── payment-notices.ts  # PAYMENT_NOTICE_KEYS + resolvePaymentNotice(s): saved notices merged over DEFAULT_CONFIG payments.notices + token fill (disabled/empty → hidden)
+│   ├── platform-copy.ts    # PLATFORM_NAME_TOKEN ({{name}}) + fillPlatformName + ESCROW_WINDOW_TOKEN/FEE_RATE_TOKEN + formatEscrowWindow/formatFeeRatePercent/fillConfigCopy — display copy resolves from config
 │   ├── referral-cookie.ts  # crelab_ref cookie read/clear + normalizeReferralCode + resolveClaimCode (cookie-first, body fallback) for ?ref= capture + claim
 │   ├── sanitize-error.ts   # Redacts emails/tokens/cookies/data-URIs, truncates message/stack/logs, 8 KB cap
 │   ├── social-platforms.ts # Team social-link catalogue: SOCIAL_PLATFORM_OPTIONS + normalizeSocialPlatform (legacy alias → canonical kind, "other" keeps raw label)
@@ -158,6 +159,7 @@ crelab/
 │   ├── sanity.ts           # Sanity CMS client + helpers
 │   ├── url.ts              # appOrigin (NEXT_PUBLIC_APP_URL → VERCEL_URL → localhost, trailing-slash normalised) + resolveAbsoluteUrl + resolveUrlForRender + resolveRelativeUrlsInHtml (email/blog relative URL resolution)
 │   ├── webinars.ts         # Shared webinar copy/status helpers (server + client safe, no DB)
+│   ├── wallet-recipients.ts # isValidRecipientCode — payout recipient-code format guard (client + server pre-debit)
 │   ├── theme-context.tsx   # Theme provider (System/Light/Dark) + useTheme hook
 │   ├── toast.tsx           # Toast notification component
 │   └── use-undoable.ts      # useUndoable hook (undo toasts for reversible admin destructive actions)
@@ -193,17 +195,17 @@ crelab/
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
 | `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor, ImageUploadField |
 | `components/error/` | Error-boundary UX: report/continue popup + global window catcher | ErrorReportDialog, GlobalErrorCatcher |
-| `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth (auth-agnostic claim retry), CountdownWidget/Slot, ScrollToTopButton | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth, CountdownWidget, ScrollToTopButton |
+| `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth (auth-agnostic claim retry), CountdownWidget/Slot, ScrollToTopButton, PaymentNoticeBlock (config-driven payment disclaimers), ThemeToggler (System/Light/Dark) | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth, CountdownWidget, ScrollToTopButton, PaymentNoticeBlock, ThemeToggler |
 | `components/team/` | Team page social icons | `TeamSocialIcon.tsx` |
 | `sanity/` | Sanity CMS project config + content schemas | `sanity.config.ts`, `schemas/` |
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService, EarlyMemberService, ReferralService, LeaderboardService, WebinarService, PlatformStatsService, TeamService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts`, `dashboard.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts`, `platform-copy.ts`, `sanitize-error.ts`, `error-log-buffer.ts`, `countdown.ts`, `countdown-icons.ts`, `referral-cookie.ts`, `landing-stats.ts`, `webinars.ts`, `social-platforms.ts` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `payment-notices.ts`, `wallet-recipients.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts`, `platform-copy.ts`, `sanitize-error.ts`, `error-log-buffer.ts`, `countdown.ts`, `countdown-icons.ts`, `referral-cookie.ts`, `landing-stats.ts`, `webinars.ts`, `social-platforms.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (tables incl. `referral_codes`, `referral_events`, `webinars`, `webinar_registrations`, `bug_reports.error_context`), `migrations/` (journal tracks 0000–0002; 0003+ are standalone SQL applied by hand — incl. `0007_referrals_and_error_context.sql`, NOT yet applied) |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
-| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `services/ReferralService.test.ts`, `services/LeaderboardService.test.ts`, `services/WebinarService.test.ts`, `services/TeamService.test.ts`, `services/BlogPostService.test.ts` (adminList expects DB + fallback merge), `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `platform-name-compliance.test.ts`, `lib/config-helpers.test.ts`, `lib/email-blocks.test.ts`, `lib/email-templates.test.ts`, `lib/countdown.test.ts`, `lib/early-member.test.ts`, `lib/error-log-buffer.test.ts`, `lib/sanitize-error.test.ts`, `lib/social-platforms.test.ts` |
+| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `services/ReferralService.test.ts`, `services/LeaderboardService.test.ts`, `services/WebinarService.test.ts`, `services/TeamService.test.ts`, `services/BlogPostService.test.ts` (adminList expects DB + fallback merge), `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `platform-name-compliance.test.ts`, `lib/config-helpers.test.ts`, `lib/payment-notices.test.ts`, `lib/email-blocks.test.ts`, `lib/email-templates.test.ts`, `lib/countdown.test.ts`, `lib/early-member.test.ts`, `lib/error-log-buffer.test.ts`, `lib/sanitize-error.test.ts`, `lib/social-platforms.test.ts` |
 
 ---
 

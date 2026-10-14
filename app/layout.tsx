@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { PlatformConfigProvider } from "@/lib/config-context";
 import { ThemeProvider } from "@/lib/theme-context";
@@ -58,6 +59,10 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
+        {/* Paystack inline checkout (window.PaystackPop) — required for the
+            booking drawer's popup payment; the drawer falls back to the hosted
+            checkout in a new tab if the library isn't available yet. */}
+        <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
         <PlatformConfigProvider config={platformConfig}>
           <ThemeProvider>
             <Providers>

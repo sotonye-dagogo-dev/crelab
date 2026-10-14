@@ -2,8 +2,11 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { usePlatformConfig } from "@/lib/config-context";
+import { formatEscrowWindow, formatFeeRatePercent } from "@/lib/platform-copy";
 
 export function BookingFlowSimulator() {
+  const { escrowReleaseDays } = usePlatformConfig();
   const steps = ["Browse", "Request", "Escrow Held", "Delivered", "Released"];
   const [idx, setIdx] = useState(0);
   const progress = ((idx + 1) / steps.length) * 100;
@@ -22,9 +25,9 @@ export function BookingFlowSimulator() {
       <p className="text-[12px] text-[var(--color-text-secondary)] mb-3 min-h-[32px]">
         {idx === 0 && "Start by exploring creators and picking a package."}
         {idx === 1 && "Send a booking request with date & notes — creator accepts or negotiates."}
-        {idx === 2 && "Payment is held by Paystack (escrow). Creator sees funds are secured."}
+        {idx === 2 && "Payment is held in escrow. Creator sees funds are secured."}
         {idx === 3 && "Creator delivers work. Client reviews and can request revision."}
-        {idx === 4 && "Client approves → funds auto-release (or after 5 days). Dispute → admin mediates."}
+        {idx === 4 && `Client approves → funds auto-release (or after ${formatEscrowWindow(escrowReleaseDays)}). Dispute → admin mediates.`}
       </p>
       <div className="flex gap-2">
         <button onClick={() => setIdx((v) => Math.max(0, v - 1))} disabled={idx === 0} className="h-8 px-3 rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[12px] font-semibold disabled:opacity-40 cursor-pointer">Back</button>
@@ -37,10 +40,11 @@ export function BookingFlowSimulator() {
 }
 
 export function EscrowTimelineExplorer() {
+  const { escrowReleaseDays } = usePlatformConfig();
   const states = [
     { label: "Held", color: "var(--color-escrow-held)", desc: "Funds locked on booking. Neither party can touch them." },
     { label: "In Progress", color: "var(--color-escrow-progress)", desc: "Creator works. Milestones can be funded & submitted." },
-    { label: "Release Pending", color: "var(--color-warning)", desc: "Work delivered. Client has 5 days to approve/dispute." },
+    { label: "Release Pending", color: "var(--color-warning)", desc: `Work delivered. Client has ${formatEscrowWindow(escrowReleaseDays)} to approve/dispute.` },
     { label: "Released", color: "var(--color-escrow-released)", desc: "Funds settled to creator wallet — withdrawable." },
     { label: "Disputed", color: "var(--color-escrow-disputed)", desc: "Admin reviews evidence and decides split." },
   ];
@@ -74,16 +78,18 @@ export function EscrowTimelineExplorer() {
 }
 
 export function PricingCalculator() {
+  const { feeRate } = usePlatformConfig();
+  const feePercentLabel = formatFeeRatePercent(feeRate);
   const [tier, setTier] = useState<"standard" | "premium">("standard");
   const [videos, setVideos] = useState(2);
   const base = tier === "standard" ? 25000 : 60000;
   const total = base * videos;
-  const fee = Math.round(total * 0.05);
+  const fee = Math.round(total * feeRate);
   const payout = total - fee;
   return (
     <div className="sandbox-card">
       <div className="sandbox-title">Pricing Calculator</div>
-      <div className="sandbox-desc">Estimate costs including the 5% platform fee</div>
+      <div className="sandbox-desc">Estimate costs including the {feePercentLabel}% platform fee</div>
       <div className="flex gap-2 mb-3">
         {(["standard", "premium"] as const).map((t) => (
           <button key={t} onClick={() => setTier(t)} className={`flex-1 h-9 rounded-[8px] text-[12px] font-semibold capitalize cursor-pointer border ${tier === t ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)] border-[var(--color-accent)]" : "bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)] border-[var(--color-border)]"}`}>{t}</button>
@@ -93,7 +99,7 @@ export function PricingCalculator() {
       <input type="range" min={1} max={10} value={videos} onChange={(e) => setVideos(Number(e.target.value))} className="w-full accent-[var(--color-accent)] my-2" />
       <div className="space-y-1 text-[12px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-[8px] p-3">
         <div className="flex justify-between"><span className="text-[var(--color-text-secondary)]">Subtotal ({videos} × ₦{base.toLocaleString()})</span><span className="font-mono text-[var(--color-text-primary)]">₦{total.toLocaleString()}</span></div>
-        <div className="flex justify-between"><span className="text-[var(--color-text-secondary)]">Platform fee (5%)</span><span className="font-mono text-[var(--color-text-primary)]">₦{fee.toLocaleString()}</span></div>
+        <div className="flex justify-between"><span className="text-[var(--color-text-secondary)]">Platform fee ({feePercentLabel}%)</span><span className="font-mono text-[var(--color-text-primary)]">₦{fee.toLocaleString()}</span></div>
         <div className="flex justify-between font-semibold border-t border-[var(--color-border)] pt-1 mt-1"><span>Creator payout</span><span className="font-mono text-[var(--color-success)]">₦{payout.toLocaleString()}</span></div>
       </div>
       <span className="sandbox-type mt-3">pricing-calculator</span>
