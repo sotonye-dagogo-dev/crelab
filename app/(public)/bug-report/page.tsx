@@ -16,6 +16,25 @@ function formatTimestamp(value: string): string {
   return Number.isNaN(parsed) ? value : new Date(parsed).toLocaleString();
 }
 
+/**
+ * Required-field marker — red asterisk (aria-hidden, the native `required`
+ * attribute already announces the constraint to assistive tech).
+ */
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="text-[var(--color-error)] font-bold">
+      {" *"}
+    </span>
+  );
+}
+
+/** Muted "(optional)" suffix so visitors can tell at a glance what to skip. */
+function OptionalMark() {
+  return (
+    <span className="font-normal text-[var(--color-text-tertiary)]"> (optional)</span>
+  );
+}
+
 export default function BugReportPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -211,23 +230,36 @@ export default function BugReportPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <p className="text-[12px] text-[var(--color-text-tertiary)]">
+            Fields marked with
+            <span aria-hidden="true" className="text-[var(--color-error)] font-bold"> * </span>
+            are required — everything else is optional.
+          </p>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Title</span>
+            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+              Title<RequiredMark />
+              <span className="sr-only"> (required)</span>
+            </span>
             <ClInput
               name="title"
               placeholder="Brief summary of the issue"
               required
+              aria-required="true"
               minLength={5}
               maxLength={200}
             />
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Description</span>
+            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+              Description<RequiredMark />
+              <span className="sr-only"> (required)</span>
+            </span>
             <ClTextarea
               name="description"
               placeholder="Tell us what happened in detail"
               required
+              aria-required="true"
               minLength={20}
               maxLength={5000}
               rows={5}
@@ -235,7 +267,9 @@ export default function BugReportPage() {
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Steps to Reproduce</span>
+            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+              Steps to Reproduce<OptionalMark />
+            </span>
             <ClTextarea
               name="stepsToReproduce"
               placeholder="1. Go to... 2. Click on... 3. See error"
@@ -246,7 +280,9 @@ export default function BugReportPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">What did you expect?</span>
+              <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+                What did you expect?<OptionalMark />
+              </span>
               <ClTextarea
                 name="expectedBehavior"
                 placeholder="What should have happened?"
@@ -255,7 +291,9 @@ export default function BugReportPage() {
               />
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">What actually happened?</span>
+              <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+                What actually happened?<OptionalMark />
+              </span>
               <ClTextarea
                 name="actualBehavior"
                 placeholder="What happened instead?"
@@ -266,7 +304,9 @@ export default function BugReportPage() {
           </div>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">Severity</span>
+            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+              Severity<OptionalMark />
+            </span>
             <ClSelect name="severity" value={severity} onChange={(e) => setSeverity(e.target.value)}>
               <option value="LOW">Low — Minor cosmetic issue</option>
               <option value="MEDIUM">Medium — Affects workflow</option>

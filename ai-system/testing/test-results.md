@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: fix-build (Session 2026-10-15 — webinars bug-popup + bug-report required indicators)
+> - last-verified-against-code: 2026-10-15
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,18 @@
 
 ## Last Run
 
-**Date:** 2026-10-14
-**Run by:** execute-feature (webinar count + public webinars layout + payment tightening)
+**Date:** 2026-10-15
+**Run by:** fix-build (webinars bug-popup + bug-report required indicators)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 493 | 0 | 0 |
+| Unit (vitest) | 498 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
-| ESLint (`npm run lint`) | — | 0 errors (pre-existing unused-var warnings) | — |
+| ESLint (`npm run lint` via next lint) | — | 0 errors | — |
 | Production build (`npm run build`) | — | 0 errors (full route build green) | — |
 
-**Overall Status:** ✅ All 493/493 tests pass (40 files). Typecheck clean. Lint 0 errors. Production build green. New tests this run (+26 over the 467 baseline): `payment-notices.test.ts` (12 [new file] — resolver defaults/merge/disabled/token-fill + `formatEscrowWindow`/`formatFeeRatePercent`/`fillConfigCopy`), `EscrowService.test.ts` (+7 — `computeEscrowReleaseDeadline` null/invalid/clamp cases, `isUniqueViolation`), `WebinarService.test.ts` (+7 → 34 total [extended] — `withRegistrationCounts` mapper contract incl. bigint-string coercion / missing-row → 0 / clamp + grouped-count integration: REGISTERED-only join, no-row → 0, empty list skips query). Live-verified: admin invitee counts 0/0 → 4/4.
+**Overall Status:** ✅ All 498/498 tests pass (40 files). Typecheck clean. Lint 0 errors. Production build green. New tests this run (+5): `__tests__/lib/sanitize-error.test.ts` `isIgnorableCapture` block (Script-error false-positive shape, ResizeObserver, empties, Error/stack kept, real errors kept). Note: `node_modules` was absent in this environment — ran `npm install` first, then all gates.
 
 ---
 
@@ -37,6 +37,9 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 ## History
 
 | Date | Passed | Failed | Notes |
+|------|--------|--------|-------|
+| 2026-10-15 | 498 | 0 | fix-build: masked cross-origin `Script error.` no longer pops the bug dialog (`isIgnorableCapture` + once-per-mount guard); bug-report form required/optional markers (+5 tests). tsc 0 errors, lint 0 errors, build green |
+| 2026-10-14 | 493 | 0 | execute-feature: webinar count + public webinars layout + payment tightening (see prior Last Run). tsc 0 errors, lint 0 errors, build green |
 |------|--------|--------|-------|
 | 2026-10-12 | 463 | 0 | execute-feature: webinars rollback (`cancel`/`adminCancelRegistration`, user + admin DELETE), enriched attendees (account-vs-guest join), centered tight pagination, config cancel copy (+4 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-12 | 459 | 0 | fix-build: WebinarService `grantMarketingConsent` explicit `{ id; granted }` annotation (was TS7006 implicit any off `tx: any`); compliance allowlist +3 webinar storage keys. tsc 0 errors, `npm run build` green |
