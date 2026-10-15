@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   sanitizeText,
   sanitizeErrorContext,
+  isIgnorableCapture,
   MAX_ERROR_CONTEXT_BYTES,
 } from "@/lib/sanitize-error";
 
@@ -195,5 +196,49 @@ describe("sanitizeErrorContext", () => {
     expect(out.stack).toBeNull();
     expect(out.url).toBeNull();
     expect(out.consoleLogs).toEqual([]);
+  });
+});
+
+describe("isIgnorableCapture — low-signal popup filter", () => {
+  it("ignores the browser-masked cross-origin 'Script error.' with no stack", () => {
+    // Exact shape of the /webinars false positive: message only, no stack,
+    // no Error object, no console output.
+    expect(isIgnorableCapture("Script error.", null, false)).toBe(true);
+    expect(isIgnorableCapture("Script error", null, false)).toBe(true);
+    expect(isIgnorableCapture("  script error.  ", null, false)).toBe(true);
+  });
+
+  it("ignores benign ResizeObserver loop warnings", () => {
+    expect(
+      isIgnorableCapture("ResizeObserver loop limit exceeded", null, false),
+    ).toBe(true);
+    expect(
+      isIgnorableCapture(
+        "ResizeObserver loop completed with undelivered notifications.",
+        null,
+        false,
+      ),
+    ).toBe(true);
+  });
+
+  it("ignores empty messages with nothing behind them", () => {
+    expect(isIgnorableCapture("", null, false)).toBe(true);
+    expect(isIgnorableCapture("   ", null, false)).toBe(true);
+    expect(isIgnorableCapture(null, null, false)).toBe(true);
+    expect(isIgnorableCapture(undefined, null, false)).toBe(true);
+  });
+
+  it("keeps anything backed by a real Error object or a stack", () => {
+    expect(isIgnorableCapture("Script error.", "at fn (app.js:1:1)", false)).toBe(false);
+    expect(isIgnorableCapture("Script error.", null, true)).toBe(false);
+    expect(isIgnorableCapture("TypeError: Cannot read properties of undefined", null, true)).toBe(
+      false,
+    );
+  });
+
+  it("keeps real application errors", () => {
+    expect(isIgnorableCapture("TypeError: x is not a function", null, false)).toBe(false);
+    expect(isIgnorableCapture("Unhandled promise rejection", null, false)).toBe(false);
+    expect(isIgnorableCapture("Loading chunk 42 failed", null, false)).toBe(false);
   });
 });

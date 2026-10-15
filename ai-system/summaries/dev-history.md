@@ -1,8 +1,24 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: fix-build (Session 2026-10-15 — webinars bug-popup + bug-report required indicators)
+> - last-verified-against-code: 2026-10-15
+
+
+## Session 2026-10-15 — fix-build: Webinars Bug-Popup + Bug-Report Required Indicators
+
+### What
+Directive: (1) report-dialog popup fires immediately on viewing `/webinars` (payload: `Script error.`, `window.onerror`, no stack, 0 console logs); (2) bug-report form needs required-field indicators so visitors aren't overwhelmed. Config/metadata-driven, reusable modular code, non-breaking, fallbacks + edge cases; QA gate + deep sync at close.
+
+### Verification
+`vitest` → 40 files, **498 passed / 0 failed** (+5: `isIgnorableCapture` block in `sanitize-error.test.ts`). `tsc --noEmit` → clean. `next lint` on touched files → 0 warnings/errors. `npm run build` → green (incl. `/webinars`). Note: `node_modules` was absent in the runner — `npm install` run first.
+
+### Key Changes
+- **Popup root cause:** browsers mask cross-origin script failures to `ErrorEvent{message:"Script error.", error:null}` with zeroed filename/lineno (spec) — sailed through the catcher's only guard (`!event.message && !err`) → stash + dialog on page view, with no dedupe on later errors.
+- **`lib/sanitize-error.ts`:** new pure exported `isIgnorableCapture(message, stack, hasErrorObject)` — drops empty messages, `Script error.` variants, benign ResizeObserver loop warnings, only when no stack and no real `Error` (diagnostics-backed payloads always kept).
+- **`GlobalErrorCatcher.tsx`:** `capture()` filters before stash/prompt (`hasErrorObject=true` for genuine `Error`s); dialog opens at most once per mount (`promptedRef`) — later errors refresh the stash without re-trapping the user.
+- **`/bug-report` form:** `RequiredMark` (`*` + sr-only + `aria-required`) on Title/Description; `OptionalMark` on Steps/Expected/Actual/Severity; top hint line. Matches the API's `title min 5 / description min 20` contract (already enforced via `minLength`).
+- Docs close — repair-system entry, test-results, session-log, dependency-graph + system-architecture F4 wording, lessons-learned, freshness headers; in-progress cleared. No migrations, no module-boundary changes (repo-map / project-plan / task-queue untouched — structure and task state unchanged).
 
 
 ## Session 2026-10-14 — Webinar Invitee Count + Public Webinars Layout + Payment Tightening

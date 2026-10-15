@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — exactly-once money movement + config-defaults mutation)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: fix-build (Session 2026-10-15 — masked cross-origin error lesson)
+> - last-verified-against-code: 2026-10-15
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -727,6 +727,22 @@
 4. For the orphan-backfill sibling risk: "explicit bulk admin action with dry-run" resolves toil without violating a "deliberate, never automatic" decision — automation level is a dial, not a binary.
 
 **Apply When:** Any globally-ranked board (leaderboard, search relevance) outgrows per-request full recompute, or any "reconcile deliberately" workflow becomes one-by-one toil — add bulk with preview, keep the human press.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Masked Cross-Origin Errors Are Noise — Never Prompt on Them
+
+**Context:** The global error catcher popped the bug-report dialog the moment visitors opened `/webinars`. The captured payload was `Script error.` via `window.onerror` — no stack, no error object, zero console logs. Browsers deliberately mask cross-origin script failures to that exact shape (spec-mandated, filename/lineno zeroed), so the payload is indistinguishable from "something, somewhere, in a third-party script" and unactionable.
+
+**What We Learned:**
+1. A `window.onerror` guard of `!event.message && !err` is not enough — masked failures carry a non-empty message (`Script error.`) with `error === null`. Filter on the full shape: ignorable message AND no stack AND no `Error` object. Anything with diagnostics behind it is always kept, even if the message text matches.
+2. Error prompts need a frequency cap independent of the filter: one prompt per page view, with later errors only refreshing the stashed payload. A dismissed dialog must never reopen itself — re-prompting trains users to ignore the very channel bug reports depend on.
+3. Keep the filter a pure, unit-tested helper next to the sanitiser (`isIgnorableCapture`) so every future `onerror`/`unhandledrejection` consumer routes through the same gate.
+
+**Apply When:** Any global error listener that prompts the user — check the masked-cross-origin shape first, cap prompts per mount, stash-latest always.
 
 **Supersedes:** None
 **Superseded by:** None

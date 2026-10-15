@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — payment tightening: notices + escrow settlement edges)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: fix-build (Session 2026-10-15 — bug-popup low-signal filter + required markers; graph edge wording only)
+> - last-verified-against-code: 2026-10-15
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -300,8 +300,8 @@ Countdown widget
   → consumed by components/landing/LandingContent.tsx (landing slot) + app/(public)/explore/page.tsx (explore slot) + app/admin/countdown/page.tsx (editor → PATCH single config key `countdown.widgets`)
 
 Error-boundary bug reporting pipeline
-  → lib/error-log-buffer.ts (console ring buffer) + lib/sanitize-error.ts (redaction + truncation + 8 KB cap)
-  → components/error/GlobalErrorCatcher.tsx (window.onerror + unhandledrejection, non-blocking) mounted in app/layout.tsx; app/error.tsx (route boundary, reset()) + app/global-error.tsx (root boundary)
+  → lib/error-log-buffer.ts (console ring buffer) + lib/sanitize-error.ts (redaction + truncation + 8 KB cap + `isIgnorableCapture` low-signal filter)
+  → components/error/GlobalErrorCatcher.tsx (window.onerror + unhandledrejection, non-blocking, ignorable-noise filter + one prompt per mount) mounted in app/layout.tsx; app/error.tsx (route boundary, reset()) + app/global-error.tsx (root boundary)
   → handoff to app/(public)/bug-report/page.tsx via sessionStorage `crelab-error-context` (never query strings — stacks exceed URL limits)
   → app/api/bug-report/route.ts (zod + re-sanitise) → drizzle/schema.ts bug_reports.error_context → app/admin/bug-reports/page.tsx triage block
 
