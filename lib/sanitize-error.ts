@@ -187,6 +187,47 @@ export function sanitizeErrorContext(raw: unknown): IErrorContext | null {
 }
 
 /* ------------------------------------------------------------------ */
+/* Low-signal filter (popup gate)                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Message shapes that carry no actionable diagnostics — the browser masks
+ * cross-origin failures to a bare `"Script error."` (no stack, no error
+ * object, zeroed filename/lineno by spec), and `ResizeObserver` loop warnings
+ * are a benign layout timing notice. Popping the report dialog for these
+ * trains users to ignore it, so the global catcher skips them silently.
+ *
+ * Pure + exported for unit tests; the catcher is the only caller.
+ */
+const IGNORABLE_MESSAGE_PATTERNS: RegExp[] = [
+  /^script error\.?$/,
+  /^resizeobserver loop (limit exceeded|completed with undelivered notifications)\.?$/,
+];
+
+function normaliseMessage(message: unknown): string {
+  return typeof message === "string" ? message.trim().toLowerCase() : "";
+}
+
+/**
+ * True when a captured payload is noise rather than an app failure:
+ * an ignorable message shape (or an empty message) with no stack and no
+ * real `Error` object behind it. Anything with a stack or an `Error`
+ * instance is always kept — even a `"Script error"` string attached to a
+ * real stack is worth reporting.
+ */
+export function isIgnorableCapture(
+  message: unknown,
+  stack: unknown,
+  hasErrorObject: boolean,
+): boolean {
+  if (hasErrorObject) return false;
+  if (typeof stack === "string" && stack.trim()) return false;
+  const normalised = normaliseMessage(message);
+  if (!normalised) return true;
+  return IGNORABLE_MESSAGE_PATTERNS.some((re) => re.test(normalised));
+}
+
+/* ------------------------------------------------------------------ */
 /* sessionStorage handoff (boundary → bug-report form)                 */
 /* ------------------------------------------------------------------ */
 

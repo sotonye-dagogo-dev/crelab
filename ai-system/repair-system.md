@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + payment tightening fixes)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: fix-build (Session 2026-10-15 — bug-popup Script-error entry)
+> - last-verified-against-code: 2026-10-15
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -673,4 +673,32 @@ Any new `crellab…`/`crellab…` infrastructure identifier (storage key, cookie
 - `app/(public)/webinars/WebinarsClient.tsx` (unchanged — keys reviewed, allowlisted)
 
 **Date:** 2026-10-12
+**Status:** Active
+
+---
+
+### Bug-Report Popup Fires on Page View From Masked Cross-Origin `Script error.`
+
+**Symptom:**
+Visiting `/webinars` (or any page loading a cross-origin script) immediately pops the "Something went wrong — Report this error" dialog. The submitted report carries `Script error.` as the message, source `window.onerror`, no stack trace, zero console logs. Separately, the `/bug-report` form shows no required/optional markers, so visitors can't tell only Title + Description are mandatory.
+
+**Root Cause:**
+`GlobalErrorCatcher.onWindowError` had a single guard (`if (!event.message && !err) return`). Browsers mask cross-origin script failures to an `ErrorEvent` with `message === "Script error."`, `error === null`, zeroed filename/lineno (per spec) — which sails through that guard, so `capture()` stashed the noise and opened the dialog. There was also no dedupe: every subsequent error reopened the dialog even right after dismissal.
+
+**Fix Applied:**
+- `lib/sanitize-error.ts`: new pure, exported `isIgnorableCapture(message, stack, hasErrorObject)` — ignores empty messages, `Script error.` variants, and benign `ResizeObserver` loop warnings, but only when there is no stack and no real `Error` object (anything with diagnostics behind it is always kept).
+- `components/error/GlobalErrorCatcher.tsx`: `capture()` drops ignorable payloads before stash/prompt (passes `hasErrorObject=true` for genuine `Error` instances) and opens the dialog at most once per page view (`promptedRef`) — later errors still refresh the stash so Report carries the latest diagnostics, without re-trapping the user.
+- `app/(public)/bug-report/page.tsx`: `RequiredMark` (`*` + sr-only "required" + `aria-required`) on Title/Description, `OptionalMark` on Steps/Expected/Actual/Severity (Name/Email/Screenshot already marked optional), plus a top hint line "Fields marked with * are required — everything else is optional."
+- 5 new unit tests for `isIgnorableCapture` (false-positive shape, ResizeObserver, empties, Error/stack kept, real errors kept).
+
+**Prevention:**
+Any new `window.onerror`/`unhandledrejection` consumer must route through `isIgnorableCapture` before prompting — masked cross-origin errors are noise by spec, not app failures. Popup UX stays "prompt at most once per mount; stash always latest."
+
+**Files Affected:**
+- `lib/sanitize-error.ts` (additive export)
+- `components/error/GlobalErrorCatcher.tsx`
+- `app/(public)/bug-report/page.tsx`
+- `__tests__/lib/sanitize-error.test.ts` (5 new tests)
+
+**Date:** 2026-10-15
 **Status:** Active

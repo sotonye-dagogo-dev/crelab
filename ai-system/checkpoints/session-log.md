@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: fix-build (Session 2026-10-15 — webinars bug-popup + bug-report required indicators)
+> - last-verified-against-code: 2026-10-15
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -1791,3 +1791,28 @@ verified via `git stash`), no regressions.
 **Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).
 
 **sync-context (fix-build chain):** drift check — repo-map, dependency-graph, system-architecture webinar/dashboard claims all still accurate (internal-only changes, no module-boundary/import drift); repair-system entries verified in place; no task-queue mutation → no checkpoint chain required. No doc updates needed.
+
+## Session 2026-10-15 — fix-build: webinars bug-popup + bug-report required indicators
+
+**Directive:** `ai-system/commands/fix-build.md` — (1) bug-report popup fires immediately on viewing `/webinars` (payload: `Script error.`, `window.onerror`, no stack, 0 console logs); (2) bug-report form needs required-field indicators.
+
+**Diagnosed:**
+1. `GlobalErrorCatcher.onWindowError` had one guard (`!event.message && !err`). Masked cross-origin failures arrive as `ErrorEvent{message:"Script error.", error:null}` (spec-mandated masking, zeroed filename/lineno) → passed the guard → stash + dialog on page view. No dedupe either — every later error reopened the dialog.
+2. `/bug-report` form: only native `required` attrs on Title/Description, no visual required/optional markers.
+
+**Completed:**
+1. `lib/sanitize-error.ts` — new pure exported `isIgnorableCapture(message, stack, hasErrorObject)`: drops empty messages, `Script error.` variants, benign ResizeObserver loop warnings — only when no stack and no real `Error` (diagnostics-backed payloads always kept).
+2. `components/error/GlobalErrorCatcher.tsx` — `capture()` filters via `isIgnorableCapture` before stash/prompt (`hasErrorObject=true` for genuine `Error` instances); dialog opens at most once per page view (`promptedRef`), later errors only refresh the stash.
+3. `app/(public)/bug-report/page.tsx` — `RequiredMark` (`*` + sr-only + `aria-required`) on Title/Description; `OptionalMark` on Steps/Expected/Actual/Severity; top hint line.
+4. `__tests__/lib/sanitize-error.test.ts` — 5 new `isIgnorableCapture` tests.
+5. Repair log: new entry in `ai-system/repair-system.md`; test-results updated; this log entry.
+
+**Verified:** `npx tsc --noEmit` 0 errors; `npx vitest run` 498/498 (40 files); `next lint` on touched files 0 warnings/errors; `npm run build` green (incl. `/webinars`). Note: `node_modules` was absent — ran `npm install` first.
+
+**Files Modified/Created:** `lib/sanitize-error.ts`, `components/error/GlobalErrorCatcher.tsx`, `app/(public)/bug-report/page.tsx`, `__tests__/lib/sanitize-error.test.ts` + ai-system docs (no migrations).
+
+**Assumptions:** masked cross-origin errors are unactionable noise by spec (logged in repair entry; no `memory/project-decisions.md` change — behaviour refinement, not architecture).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).
+
+**sync-context (fix-build chain):** fix touched 4 code files + repair-system pattern added → chain mandatory. Drift check — repo-map (no new routes/files), dependency-graph (GlobalErrorCatcher→sanitize-error edge already documented; internal-only change), system-architecture F4 claims accurate (behaviour refinement, same module boundaries); repair-system entry verified in place; no task-queue mutation → no checkpoint chain required. No doc rewrites needed beyond freshness headers below.
