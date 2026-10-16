@@ -55,8 +55,8 @@ interface AllowlistEntry {
 const ALLOWLIST: AllowlistEntry[] = [
   {
     file: "config/platform.config.ts",
-    allowed: ['name: "Crellab"', 'fromName: "Crellab"', 'fromEmail: "mail@crellab.com"'],
-    reason: "Source of truth for the platform name plus the default e-mail sender identity",
+    allowed: ['name: "Crellab"', 'fromName: "Crellab"', 'fromEmail: "mail@crellab.com"', 'companyName: "Crellab"', 'companyEmail: "hello@mail.crellab.com"'],
+    reason: "Source of truth for the platform name plus the default e-mail sender and invoice company identity",
   },
   {
     file: "app/robots.ts",

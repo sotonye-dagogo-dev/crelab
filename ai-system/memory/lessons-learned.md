@@ -746,3 +746,19 @@
 
 **Supersedes:** None
 **Superseded by:** None
+
+---
+
+## Dependency-Free SVG Charts Beat a Chart Library for Admin Analytics
+
+**Context:** The admin analytics page needed line/trend charts, breakdown bars and a donut with tooltips. No chart library was in `package.json`, and adding one would grow the client bundle for two admin-only pages.
+
+**What We Learned:**
+1. Hand-rolled SVG (viewBox + mouse-position hover + CSS-variable strokes) covers KPI/trend/breakdown needs with full theme (light/dark) support for free — a chart dep would fight the CSS-variable design tokens instead.
+2. Keep the chart primitives in one shared component file (`components/admin/AnalyticsCharts.tsx`) with `formatValue` injection so money vs count formatting stays at the call site, not in the chart.
+3. Pure insight-commentary (`buildInsights`) must be deterministic and threshold-driven from config, with an explicit quiet-period branch — otherwise empty windows produce nonsense "declining 100%" commentary.
+
+**Apply When:** Any internal dashboard needs a handful of standard charts — reach for SVG first; only add a chart dependency when interactivity exceeds hover tooltips (zoom, brush, 3D).
+
+**Supersedes:** None
+**Superseded by:** None
