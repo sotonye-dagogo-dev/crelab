@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — admin Finance + Platform Analytics)
+> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
 > - last-verified-against-code: 2026-10-16
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -315,6 +315,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | ANALYTICS | `analytics` — `defaultRangeDays`, `insightMinBookings` (commentary threshold), `insightSurgeThreshold` (surge/dip fraction); drives `/admin/analytics` range + auto insights | platform.config.ts | { defaultRangeDays: 30, insightMinBookings: 5, insightSurgeThreshold: 0.2 } |
 | EMAIL_VERIFICATION | `emailVerification.bannerEnabled` — dismissible verify nudge with resend for signed-in unverified users (`VerifyEmailBanner`, root layout); never a hard gate | platform.config.ts | { bannerEnabled: true } |
 | FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Referrals/Leaderboard & Webinars links and the referral/webinar surfaces (referral discovery: navbar, footer, profile card, dashboard `ReferralBanner`, leaderboard CTA) | platform.config.ts | both `true` |
+| NAVIGATION | `navigation` — desktop navbar overflow (`maxDesktopLinks`, `moreLabel`) + wallet link (`showWalletInNav`, `walletLabel`, `walletHref`); drives `NavbarOverflowNav` (ResizeObserver spill into "More ▾") + profile Wallet entry; admin-editable in `/admin/config` Navigation section | platform.config.ts | { maxDesktopLinks: 5, moreLabel: 'More', showWalletInNav: true, walletHref: '/wallet' } |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
 
@@ -392,6 +393,13 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-16 — Provider Booking Sync + Navbar Overflow + Wallet Links (no migrations)
+- **Booking selection sync (`/profile/[slug]`)** — `ProfileClient` now owns `selectedPackage` for the full portfolio content: `ServicePackages` grid + desktop `BookingSidebar` (`hidden lg:block`) + `BookingBottomBar` (breakpoint widened `md:hidden → lg:hidden`, restoring the tablet continue path). `page.tsx` `ProfileContent` is a thin server wrapper (no function props cross the boundary). `BookingSidebar` rows are tier-sorted like the grid and keyboard-operable (`<button role="radio" aria-checked>`); stateless `BookingSidebarDisplay` kept untouched for external consumers.
+- **Navbar overflow (`components/shared/NavbarOverflowNav.tsx` + `lib/nav-overflow.ts`)** — pure `resolveNavLinks` (blog/referral/webinar flags + auth-only + wallet gates) / `partitionNavLinks` (no-lone-straggler) / `fitCountForWidth` (pixel-fit with trigger reserve); desktop nav measures via ResizeObserver and spills excess into an accessible "More ▾" dropdown (lucide ChevronDown, Escape/outside-click close), SSR fallback first-N + More. Wallet link appended last (first to spill), auth-only + `wallet.enabled`-gated. Mobile overlay unchanged.
+- **Wallet discovery** — `/profile` gains a Wallet button + Wallet card (both `wallet.enabled`-gated, config label/href); navbar carries the wallet link for signed-in users.
+- **Config-driven** — new optional `INavigationConfig` + defaults (`navigation.*`); `/admin/config` gains a Navigation section. All additive with fallbacks.
+- **QA:** `vitest` 530/530 (+12 new: `lib/nav-overflow`), `tsc --noEmit` clean, `next lint` 0 errors (new files warning-free), `next build` green.
 
 ### 2026-10-16 — Admin Finance + Platform Analytics (read-only, no migrations)
 - **Finance page (`/admin/finance`)** — lifetime KPI cards (GMV, fees, escrow held, wallet balances, refunds) via `GET /api/admin/finance/summary`; unified payments+wallet transaction feed (`GET /api/admin/finance/transactions`: q/kind/status/type/from/to + server pagination, bounded 500-per-side merge) in `ClDataTable` with `ClPagination`; per-row detail modal with invoice generation (`GET /api/admin/finance/invoice?paymentId|bookingId` → deterministic `INV-{prefix}-{year}-{id}` projection, no rows created) rendered by `InvoicePreview` (print/PDF via browser + HTML download); page-level CSV export. All amounts stay kobo until render.

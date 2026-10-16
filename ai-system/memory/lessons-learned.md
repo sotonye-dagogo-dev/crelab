@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-15 — masked cross-origin error lesson)
-> - last-verified-against-code: 2026-10-15
+> - last-updated-by: execute-feature (Session 2026-10-16 — booking selection + navbar overflow lessons)
+> - last-verified-against-code: 2026-10-16
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -759,6 +759,36 @@
 3. Pure insight-commentary (`buildInsights`) must be deterministic and threshold-driven from config, with an explicit quiet-period branch — otherwise empty windows produce nonsense "declining 100%" commentary.
 
 **Apply When:** Any internal dashboard needs a handful of standard charts — reach for SVG first; only add a chart dependency when interactivity exceeds hover tooltips (zoom, brush, 3D).
+
+**Supersedes:** None
+**Superseded by:** None
+
+## Shared Selection State Beats Mirrored Menus on Profile Pages
+
+**Context:** The provider portfolio had two package menus — the `ServicePackages` grid and the desktop booking sidebar — but selection state lived only with the grid, so the sidebar (`BookingSidebarDisplay`, stateless by design) never reflected the chosen package. Tablets additionally had no continue path at all (`md:hidden` bottom bar vs `hidden lg:block` sidebar left 768–1024px with neither).
+
+**What We Learned:**
+1. When two components must reflect one choice, lift the state to their nearest shared client parent (`ProfileClient` owns `selectedPackage`; both menus are pure render + `onSelect`) instead of duplicating state or syncing via effects — one source of truth, no drift, no serialization issues (the server wrapper passes data only, never callbacks).
+2. Responsive breakpoints for complementary CTAs must tile the viewport without gaps: audit `hidden <bp>` / `<bp>:hidden` pairs at 360/768/1024/1280 — a bottom bar at `lg:hidden` paired with a sidebar at `hidden lg:block` covers every width exactly once.
+3. Sidebar option rows duplicated the grid's tier order implicitly; sorting both with the same `tierOrder` map keeps visual correspondence when either side drives the selection.
+
+**Apply When:** Any page shows the same choice in two places (grids + sidebars, filters + drawers) — lift state up, tile breakpoints, share the sort.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Measure-Then-Spill Beats Fixed Counts for Navbar Overflow
+
+**Context:** The desktop navbar rendered all links inline with no overflow, and the link count keeps growing. A fixed "show N" cut would rot as labels change; pure CSS truncation would clip.
+
+**What We Learned:**
+1. Keep the partition logic pure and unit-tested (`partitionNavLinks` / `fitCountForWidth` in `lib/nav-overflow.ts`) with the component doing only measurement (ResizeObserver + hidden sizer) and rendering — the no-lone-straggler rule (a single leftover stays inline) lives in the pure helper so SSR fallback and measured output agree.
+2. The overflow trigger is a native `<button>` with caret icon + `aria-haspopup/expanded`, menu `role="menu"` — Escape returns focus to the trigger, outside-click closes, route change closes. Cap and label come from optional `navigation` config so an admin tunes it without a deploy.
+3. Mobile never needs the dropdown: the full-screen overlay is already scrollable, so it renders the whole resolved list (wallet included when eligible).
+
+**Apply When:** Any inline link row can outgrow its container — measure, spill into More, keep the math pure.
 
 **Supersedes:** None
 **Superseded by:** None

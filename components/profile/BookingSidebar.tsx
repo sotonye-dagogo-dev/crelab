@@ -18,6 +18,12 @@ const tierLabels: Record<string, string> = {
   PREMIUM: "Premium",
 };
 
+const tierOrder: Record<string, number> = {
+  BASIC: 0,
+  STANDARD: 1,
+  PREMIUM: 2,
+};
+
 export function BookingSidebar({
   packages,
   providerName,
@@ -29,6 +35,12 @@ export function BookingSidebar({
 
   if (packages.length === 0) return null;
 
+  // Same tier ordering as the ServicePackages grid so the two stay visually
+  // in sync when a package is selected in either place.
+  const sorted = [...packages].sort(
+    (a, b) => (tierOrder[a.tier] ?? 0) - (tierOrder[b.tier] ?? 0),
+  );
+
   return (
     <div className="sticky top-6 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
       <h3 className="font-[family-name:var(--font-display)] font-bold text-[16px] text-[var(--color-text-primary)]">
@@ -39,12 +51,15 @@ export function BookingSidebar({
         Select a package to get started
       </p>
 
-      <div className="mt-4 flex flex-col gap-2">
-        {packages.map((pkg) => (
-          <label
+      <div className="mt-4 flex flex-col gap-2" role="radiogroup" aria-label={`Service packages from ${providerName}`}>
+        {sorted.map((pkg) => (
+          <button
             key={pkg.id}
+            type="button"
+            role="radio"
+            aria-checked={selectedPackage?.id === pkg.id}
             onClick={() => onSelect(pkg)}
-            className={`flex items-center gap-3 p-3 rounded-[10px] border cursor-pointer transition-colors ${
+            className={`w-full flex items-center gap-3 p-3 rounded-[10px] border cursor-pointer text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
               selectedPackage?.id === pkg.id
                 ? "border-[var(--color-accent)] bg-[var(--color-accent-muted)]"
                 : "border-[var(--color-border)] bg-[var(--color-surface-raised)] hover:border-[var(--color-border-mid)]"
@@ -72,7 +87,7 @@ export function BookingSidebar({
             <span className="font-semibold text-[14px] text-[var(--color-text-primary)] shrink-0 whitespace-nowrap">
               ₦{(pkg.price / 100).toLocaleString()}
             </span>
-          </label>
+          </button>
         ))}
       </div>
 

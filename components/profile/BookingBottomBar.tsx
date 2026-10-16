@@ -17,8 +17,10 @@ export function BookingBottomBar({
 
   if (!selectedPackage) return null;
 
+  // Visible on phones AND tablets (below lg) so medium screens always have a
+  // continue path; desktop (lg+) uses the sticky sidebar instead.
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[900] border-t border-[var(--color-border)] bg-[var(--color-surface)] p-4 md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-[900] border-t border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:hidden">
       <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-[12px] text-[var(--color-text-secondary)]">

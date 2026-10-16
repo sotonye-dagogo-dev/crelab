@@ -741,6 +741,23 @@ export interface IAnalyticsConfig {
   insightSurgeThreshold: number;
 }
 
+/**
+ * Desktop navbar behaviour. All fields optional so older saved configs keep
+ * working — Navbar falls back to the hardcoded defaults below.
+ */
+export interface INavigationConfig {
+  /** Max links shown inline on desktop before the rest spill into "More" */
+  maxDesktopLinks: number;
+  /** Label on the overflow dropdown trigger (caret icon is always rendered) */
+  moreLabel: string;
+  /** Show the Wallet link in the navbar (signed-in users only) */
+  showWalletInNav: boolean;
+  /** Wallet link label */
+  walletLabel: string;
+  /** Wallet link target (relative path) */
+  walletHref: string;
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
@@ -770,6 +787,7 @@ export interface IPlatformConfig {
   payments?: IPaymentsConfig;
   finance?: IFinanceConfig;
   analytics?: IAnalyticsConfig;
+  navigation?: INavigationConfig;
   devCredit?: IDevCredit;
   teamPage?: ITeamPageConfig;
 }
