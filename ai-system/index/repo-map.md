@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — payment tightening: notice/recipient libs + verify routes)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: execute-feature (Session 2026-10-16 — admin Finance + Platform Analytics)
+> - last-verified-against-code: 2026-10-16
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -60,13 +60,15 @@ crelab/
 │   │   ├── countdown/      # Countdown widget editor (list add/remove/reorder, datetime, icon allowlist, areas, live preview)
 │   │   ├── disputes/       # Dispute resolution dashboard
 │   │   ├── email-templates/ # Admin-editable email templates (Visual/HTML/Preview tabs)
+│   │   ├── finance/        # Finance & transactions (lifetime KPIs, unified payments+wallet feed w/ filters, invoice modal w/ print/download, CSV export)
+│   │   ├── analytics/      # Platform analytics (KPI grid w/ deltas, SVG trend/breakdown charts w/ tooltips, insights feed, top providers, CSV export)
   │   │   ├── media/          # Media asset manager (filters, preview, upload, reconcile orphan → portfolio/avatar/cover, backfill orphans bulk + dry-run, cleanup dry-run)
 │   │   ├── providers/      # Provider review queue
 │   │   ├── users/          # User management (search, role, verify, delete)
 │   │   └── webinars/       # Webinar manager (CRUD, status/publish toggle, registration counts)
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
-  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send (test + broadcast + recipientIds batch), /admin/email/recipients (batch picker source: search/role/consent/limit/offset), /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all)
+  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send (test + broadcast + recipientIds batch), /admin/email/recipients (batch picker source: search/role/consent/limit/offset), /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all, /admin/finance/summary, /admin/finance/transactions, /admin/finance/invoice, /admin/analytics)
 │       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission (re-sanitises + stores error_context)
 │       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)
@@ -107,6 +109,8 @@ crelab/
 │   ├── DriveService.ts
 │   ├── EarlyMemberService.ts # Founding-100 rank (ROW_NUMBER over user.createdAt, cached)
 │   ├── EscrowService.ts
+│   ├── FinanceService.ts   # Read-only admin money views: lifetime summary, unified payments+wallet feed (bounded merge), invoice projection (deterministic numbers, no rows created)
+│   ├── AnalyticsService.ts # Read-only admin overview: windowed KPIs + deltas, daily series + 7d average, breakdowns, top providers, platform counters, auto insights
   │   ├── EmailService.ts       # Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + webinar registration + newsletter welcome)
 │   ├── ExploreService.ts   # Provider search + portfolioThumbnails (carousel payload)
 │   ├── LeaderboardService.ts # Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking
@@ -138,6 +142,8 @@ crelab/
 │   ├── consent.ts          # NDPR consent capture server action│   ├── countdown.ts        # Countdown math + expiry/area selection (pure, hydration-safe inputs)
 │   ├── countdown-icons.ts  # Curated lucide icon allowlist for countdown widgets (§15)
 │   ├── currency.ts         # Money helpers: nairaToKobo, formatNaira, formatKobo
+│   ├── finance.ts          # Invoice builder/numbering, transaction filter normaliser, CSV + day-key helpers (pure, tested)
+│   ├── analytics.ts        # Day-axis fill, moving average, pct-change, auto insight commentary (pure, tested)
 │   ├── error-log-buffer.ts # Console ring buffer (last 60 entries) captured for error reports
 │   ├── landing-stats.ts    # Ordered stat items + format helpers (compact/rating/count) with fallbackValue
 │   ├── portfolio.ts        # dedupePortfolioItems, formatAssetLabel (sanitized provider# + date), isVideoItem, assetSerialKey + cover fallback (isImageCoverUrl, coverMimeType, buildCoverFallbackItem, withCoverFallback — covers surface as content, avatars never)
@@ -187,25 +193,25 @@ crelab/
 | `app/` | Next.js 15 App Router: route groups for public, auth, admin, and API | `layout.tsx`, `page.tsx`, `sitemap.ts`, `robots.ts`, route handlers |
 | `checkpoints/` | Session tracking: in-progress and session logs | `in-progress.md`, `session-log.md` |
 | `testing/` | Test results tracking | `test-results.md` |
-| `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager, email templates, blog templates, blog posts, user management, countdown widgets, webinars, bug-report triage | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx`, `blog-posts/page.tsx`, `countdown/page.tsx`, `webinars/page.tsx`, `bug-reports/page.tsx` |
+| `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager, email templates, blog templates, blog posts, user management, countdown widgets, webinars, bug-report triage, finance & transactions, platform analytics | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx`, `blog-posts/page.tsx`, `countdown/page.tsx`, `webinars/page.tsx`, `bug-reports/page.tsx`, `finance/page.tsx`, `analytics/page.tsx` |
 | `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx`, `ClConfirmDialog.tsx`, `ClBackButton.tsx`, `ClDataTable.tsx`, `ClPagination.tsx` |
 | `components/explore/` | Explore feed: filter bar, masonry grid, video cards (ordered display: avatar → carousel → initials), portfolio gallery | ExploreFilterBar, ExploreGrid, ExploreVideoCard, PortfolioGallery |
 | `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings, media upload | ProviderHero, PortfolioGrid, ServicePackages, MediaUpload |
 | `components/booking/` | Booking flow: drawer, escrow timeline, dispute modal | BookingDrawer, EscrowTimeline |
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
-| `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor, ImageUploadField |
+| `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor, ImageUploadField, AnalyticsCharts (Line/Bar/Donut + tooltips), InvoicePreview (print/PDF + HTML download) |
 | `components/error/` | Error-boundary UX: report/continue popup + global window catcher | ErrorReportDialog, GlobalErrorCatcher |
 | `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth (auth-agnostic claim retry), CountdownWidget/Slot, ScrollToTopButton, PaymentNoticeBlock (config-driven payment disclaimers), ThemeToggler (System/Light/Dark) | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth, CountdownWidget, ScrollToTopButton, PaymentNoticeBlock, ThemeToggler |
 | `components/team/` | Team page social icons | `TeamSocialIcon.tsx` |
 | `sanity/` | Sanity CMS project config + content schemas | `sanity.config.ts`, `schemas/` |
-| `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService, EarlyMemberService, ReferralService, LeaderboardService, WebinarService, PlatformStatsService, TeamService |
+| `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService, EarlyMemberService, ReferralService, LeaderboardService, WebinarService, PlatformStatsService, TeamService, FinanceService, AnalyticsService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts`, `dashboard.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `payment-notices.ts`, `wallet-recipients.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts`, `platform-copy.ts`, `sanitize-error.ts`, `error-log-buffer.ts`, `countdown.ts`, `countdown-icons.ts`, `referral-cookie.ts`, `landing-stats.ts`, `webinars.ts`, `social-platforms.ts` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `payment-notices.ts`, `wallet-recipients.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `finance.ts`, `analytics.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts`, `platform-copy.ts`, `sanitize-error.ts`, `error-log-buffer.ts`, `countdown.ts`, `countdown-icons.ts`, `referral-cookie.ts`, `landing-stats.ts`, `webinars.ts`, `social-platforms.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (tables incl. `referral_codes`, `referral_events`, `webinars`, `webinar_registrations`, `bug_reports.error_context`), `migrations/` (journal tracks 0000–0002; 0003+ are standalone SQL applied by hand — incl. `0007_referrals_and_error_context.sql`, NOT yet applied) |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
-| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `services/ReferralService.test.ts`, `services/LeaderboardService.test.ts`, `services/WebinarService.test.ts`, `services/TeamService.test.ts`, `services/BlogPostService.test.ts` (adminList expects DB + fallback merge), `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `platform-name-compliance.test.ts`, `lib/config-helpers.test.ts`, `lib/payment-notices.test.ts`, `lib/email-blocks.test.ts`, `lib/email-templates.test.ts`, `lib/countdown.test.ts`, `lib/early-member.test.ts`, `lib/error-log-buffer.test.ts`, `lib/sanitize-error.test.ts`, `lib/social-platforms.test.ts` |
+| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `services/ReferralService.test.ts`, `services/LeaderboardService.test.ts`, `services/WebinarService.test.ts`, `services/TeamService.test.ts`, `services/BlogPostService.test.ts` (adminList expects DB + fallback merge), `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `platform-name-compliance.test.ts`, `lib/finance.test.ts`, `lib/analytics.test.ts`, `lib/config-helpers.test.ts`, `lib/payment-notices.test.ts`, `lib/email-blocks.test.ts`, `lib/email-templates.test.ts`, `lib/countdown.test.ts`, `lib/early-member.test.ts`, `lib/error-log-buffer.test.ts`, `lib/sanitize-error.test.ts`, `lib/social-platforms.test.ts` |
 
 ---
 

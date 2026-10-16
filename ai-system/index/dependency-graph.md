@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-15 — bug-popup low-signal filter + required markers; graph edge wording only)
-> - last-verified-against-code: 2026-10-15
+> - last-updated-by: execute-feature (Session 2026-10-16 — admin Finance + Platform Analytics)
+> - last-verified-against-code: 2026-10-16
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -307,6 +307,20 @@ Error-boundary bug reporting pipeline
 
 Platform-name copy (lib/platform-copy.ts)
   → leaf module — PLATFORM_NAME_TOKEN (`{{name}}`) + fillPlatformName(text, name); display copy resolves from config.name at render time
+
+FinanceService (services/FinanceService.ts)
+  → lib/db.ts + drizzle/schema.ts (payments, bookings, wallet_transactions, wallets, user, providers, service_packages) — reads only, no migrations
+  → lib/finance.ts (pure: buildInvoiceData/buildInvoiceNumber, normalizeTransactionFilters, transactionsToCsv, toDayKey) + PlatformConfigService (`finance` config for invoice identity)
+  → consumed by app/api/admin/finance/summary (GET KPIs) + app/api/admin/finance/transactions (GET unified feed) + app/api/admin/finance/invoice (GET projection) + app/admin/finance/page.tsx (KPI cards, filter bar, ClDataTable + ClPagination, detail modal → InvoicePreview)
+
+AnalyticsService (services/AnalyticsService.ts)
+  → lib/db.ts + drizzle/schema.ts (bookings, payments, providers, reviews, user, disputes, portfolio_items, referral_events, webinars, webinar_registrations) — bounded group-bys only
+  → lib/analytics.ts (pure: buildDayAxis/fillSeries/movingAverage/pctChange/buildInsights/normalizeRange) + PlatformConfigService (`analytics` config for range + insight thresholds)
+  → consumed by app/api/admin/analytics (GET ?range=) + app/admin/analytics/page.tsx (KPI grid w/ deltas, LineChart trend toggle, BarList, DonutChart, insights feed, top providers, CSV export)
+
+Admin analytics charts (components/admin/AnalyticsCharts.tsx)
+  → dependency-free SVG (LineChart hover tooltip, BarList, DonutChart) — no chart library in package.json by design (bundle + theme-via-CSS-vars); tooltips via mouse events + title attrs
+  → consumed by app/admin/analytics/page.tsx only
   → consumed by LandingContent, page metadata, About/How-It-Works fallbacks, MockDataService, blog-fallback, BookingClient, AdminSidebar, TopUpModal
   → guarded by __tests__/platform-name-compliance.test.ts (source scan + explicit infrastructure allowlist)
 

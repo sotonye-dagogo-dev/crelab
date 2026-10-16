@@ -719,6 +719,28 @@ export interface IPaymentsConfig {
   };
 }
 
+export interface IFinanceConfig {
+  /** Prefix used in generated invoice numbers, e.g. `CRL` -> `INV-CRL-2026-XXXX` */
+  invoicePrefix: string;
+  /** Company details rendered on generated invoices */
+  companyName: string;
+  companyEmail: string;
+  companyAddress: string;
+  /** Footer note printed at the bottom of every invoice */
+  invoiceFooterNote: string;
+  /** Default page size on the admin transactions table */
+  defaultPageSize: number;
+}
+
+export interface IAnalyticsConfig {
+  /** Default lookback window (days) for the admin analytics page */
+  defaultRangeDays: number;
+  /** Minimum bookings in a range before trend commentary is emitted */
+  insightMinBookings: number;
+  /** Fractional change that counts as a "surge"/"dip" in auto commentary (0.2 = 20%) */
+  insightSurgeThreshold: number;
+}
+
 export interface IPlatformConfig {
   name: string;
   tagline: string;
@@ -746,6 +768,8 @@ export interface IPlatformConfig {
   emailConfig?: IEmailConfig;
   emailVerification?: IEmailVerificationConfig;
   payments?: IPaymentsConfig;
+  finance?: IFinanceConfig;
+  analytics?: IAnalyticsConfig;
   devCredit?: IDevCredit;
   teamPage?: ITeamPageConfig;
 }

@@ -916,3 +916,15 @@ Directive: avatar editing on profile (upload or link) · media-page upload panel
 - **Bug-report emails**: confirmed wired (ack on submit, under-review/resolved on status change incl. bulk); added stored `blocks[]` to all three templates so they open in the visual builder; default-merge in `PlatformConfigService` keeps them visible for pre-existing DB configs.
 - **Builder** (`lib/email-blocks.ts` + `admin/email-templates/page.tsx`): new `htmlToBlocks()` inverse parser; Visual↔HTML toggling re-parses instead of wiping (`htmlDirty`, no destructive confirm); tests added for round-trip, variable preservation, `{{adminNotesBlock}}` retention.
 - QA: static review only (no node_modules locally) — CI must run vitest/typecheck/build. No migrations.
+
+---
+
+## 2026-10-16 — Admin Finance + Platform Analytics (read-only, no migrations)
+
+Directive: admin page for viewing transactions + all financial info with invoice generation, plus a comprehensive platform analytics page (overview KPIs, charts with tooltips, trends, data tools, data-driven commentary). No schema changes — all data already stored.
+
+- **Finance** — `services/FinanceService.ts` (lifetime summary, unified payments+wallet feed with bounded 500/side merge + in-memory sort/paginate, invoice projection with deterministic `INV-{prefix}-{year}-{id}` numbers, zero writes); `lib/finance.ts` pure helpers (27 tests); 3 ADMIN APIs (`summary`, `transactions`, `invoice`); `/admin/finance` page (5 KPI cards, search/kind/status/type/date filters, ClDataTable + ClPagination, detail modal → `InvoicePreview` with Print/PDF + HTML download, page CSV export).
+- **Analytics** — `services/AnalyticsService.ts` (windowed KPIs + prior-period deltas, daily series + 7d moving average, status/category/role breakdowns, top-5 providers by GMV, lifetime platform counters); `lib/analytics.ts` pure helpers (axis fill, moving average, pct-change, deterministic `buildInsights` with quiet-period + surge-threshold handling); `GET /api/admin/analytics?range=`; `/admin/analytics` page (8 KPI cards with good-when-up delta badges, 4 trend charts with toggle + per-series CSV export, donut + bar breakdowns, auto insight feed, top providers table, platform totals). Charts are dependency-free SVG (`AnalyticsCharts.tsx`) — no new npm deps.
+- **Config-driven** — optional `IFinanceConfig`/`IAnalyticsConfig` + defaults; invoice identity/footer and insight thresholds admin-editable without deploys. Sidebar gains Finance + Analytics. platform-name-compliance allowlist extended for invoice-identity defaults.
+- QA: `vitest` 518/518 (42 files), `tsc --noEmit` clean, `next lint` 0 errors (new files warning-free), `next build` green (incl. `/admin/finance`, `/admin/analytics`).
+- Residual: transaction feed merges capped 500-per-side result sets in memory — revisit with keyset pagination if platform volume grows past low-thousands; invoice is a read-only projection (no persistence/audit of issuance).
