@@ -1816,3 +1816,28 @@ verified via `git stash`), no regressions.
 **Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).
 
 **sync-context (fix-build chain):** fix touched 4 code files + repair-system pattern added → chain mandatory. Drift check — repo-map (no new routes/files), dependency-graph (GlobalErrorCatcher→sanitize-error edge already documented; internal-only change), system-architecture F4 claims accurate (behaviour refinement, same module boundaries); repair-system entry verified in place; no task-queue mutation → no checkpoint chain required. No doc rewrites needed beyond freshness headers below.
+
+---
+
+## Session 2026-10-16 — execute-feature: Admin Finance + Platform Analytics
+
+**Directive:** admin transactions/finance page with invoice generation + comprehensive platform analytics page (KPIs, charts with tooltips, trends, data tools, data-driven comments). No schema changes; install node modules; proper QA; config/metadata-driven, reusable, non-breaking; close with update-ai-system.
+
+**Planning pass:** read task-queue, system-architecture, project-context + update-ai-system contract; decomposed into types/config → pure libs → services → APIs → components/pages → tests → QA → docs; architecture impact = none structural (read-only services + routes + pages, zero migrations). Scope check passed (admin analytics is an explicit admin need in project-context; kobo-only money preserved).
+
+**Completed:**
+1. Types: `IFinanceConfig`, `IAnalyticsConfig` (optional on `IPlatformConfig`) + defaults in `config/platform.config.ts`.
+2. Pure libs: `lib/finance.ts`, `lib/analytics.ts` (+27 unit tests).
+3. Services: `services/FinanceService.ts`, `services/AnalyticsService.ts` (Drizzle reads only).
+4. APIs (ADMIN): `/api/admin/finance/summary`, `/api/admin/finance/transactions`, `/api/admin/finance/invoice`, `/api/admin/analytics`.
+5. UI: `components/admin/AnalyticsCharts.tsx` (SVG Line/Bar/Donut + tooltips), `components/admin/InvoicePreview.tsx` (print/PDF + HTML download); pages `/admin/finance`, `/admin/analytics`; sidebar Finance + Analytics entries.
+6. Compliance: platform-name-compliance allowlist extended (invoice-identity defaults).
+7. QA gate: `vitest` 518/518 (42 files) · `tsc --noEmit` clean · `next lint` 0 errors, new files warning-free · `next build` green.
+
+**Files created (12):** types edit, config edit, lib/finance.ts, lib/analytics.ts, services/FinanceService.ts, services/AnalyticsService.ts, 4 API routes, components/admin/AnalyticsCharts.tsx, components/admin/InvoicePreview.tsx, app/admin/finance/page.tsx, app/admin/analytics/page.tsx, __tests__/lib/finance.test.ts, __tests__/lib/analytics.test.ts (+ sidebar, compliance test edits).
+
+**Assumptions:** invoice numbers need only be deterministic per payment (no issuance ledger — logged as residual); 500-per-side merge cap is sufficient at current volume; SVG charts preferred over a chart dep (bundle + theme). No `memory/project-decisions.md` change — additive read-only surface, no flow behaviour altered.
+
+**sync-context (execute-feature chain):** mid-work checkpoint observed via in-progress.md plan; close chain = this update-ai-system deep sync. Drift check — repo-map (new routes/files/services/libs recorded), dependency-graph (FinanceService/AnalyticsService/charts edges added), system-architecture (admin routes, services, config points, Recent Changes), dev-history entry, task-queue last-synced, lessons-learned entry, in-progress.md cleared. No migrations.
+
+**Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).

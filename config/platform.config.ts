@@ -26,6 +26,20 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     minWithdrawalKobo: 100000,
     maxDvaAccounts: 1000,
   },
+  finance: {
+    invoicePrefix: "CRL",
+    companyName: "Crellab",
+    companyEmail: "hello@mail.crellab.com",
+    companyAddress: "Lagos, Nigeria",
+    invoiceFooterNote:
+      "This invoice was generated from platform records. Amounts are shown in Naira (₦). Contact the details above for any questions.",
+    defaultPageSize: 20,
+  },
+  analytics: {
+    defaultRangeDays: 30,
+    insightMinBookings: 5,
+    insightSurgeThreshold: 0.2,
+  },
   // Config-driven payment notices/disclaimers (render-time tokens:
   // {{name}}, {{feeRate}}, {{escrowWindow}} — see lib/platform-copy.fillConfigCopy)
   payments: {

@@ -25,6 +25,8 @@ import {
   BookOpen,
   Timer,
   Video,
+  Wallet,
+  ChartNoAxesColumn,
 } from "lucide-react";
 import { ClLogo } from "@/components/ui";
 
@@ -108,6 +110,16 @@ const navItems = [
     label: "Webinars",
     href: "/admin/webinars",
     icon: <Video size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "Finance",
+    href: "/admin/finance",
+    icon: <Wallet size={16} strokeWidth={1.5} />,
+  },
+  {
+    label: "Analytics",
+    href: "/admin/analytics",
+    icon: <ChartNoAxesColumn size={16} strokeWidth={1.5} />,
   },
 ];
 

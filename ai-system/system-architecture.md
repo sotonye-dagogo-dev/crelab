@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-15 — F4 low-signal filter + once-per-mount wording)
-> - last-verified-against-code: 2026-10-15
+> - last-updated-by: execute-feature (Session 2026-10-16 — admin Finance + Platform Analytics)
+> - last-verified-against-code: 2026-10-16
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -18,7 +18,7 @@ Client (Browser)
 Next.js App Router (app/)
     |-- (public)  -- Guest: Landing/Explore, Category Browse, Search, Profiles, Blog, Verify-email, About, How It Works, Portfolio Gallery, Leaderboard, Webinars, Bug Report
     |-- (auth)    -- Authenticated: Dashboard, Bookings, Messages, Profile, Profile Edit, Referrals
-    |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Media, Email Templates, Blog Templates, Blog Posts, Users, Countdown, Webinars, Bug Reports
+    |-- (admin)   -- ADMIN role: Config editor, Categories, Disputes, Media, Email Templates, Blog Templates, Blog Posts, Users, Countdown, Webinars, Bug Reports, Finance (transactions + invoices), Analytics (KPIs, trends, insights)
     |-- api/      -- Route handlers: Auth, Bookings, Portfolio, Webhooks, Cron, Admin, Leaderboard, Referrals, Webinars, Early-access
     |-- error.tsx / global-error.tsx + components/error/GlobalErrorCatcher (window.onerror + unhandledrejection)
     |
@@ -42,6 +42,8 @@ Service Layer (services/)
     |-- ReferralService         -- Invite codes + ACID degree-1/degree-2 referral events, idempotent cookie claim (cookie-first + JSON body fallback) + auth-agnostic claim retry (ReferralClaimOnAuth) + discovery links (navbar/footer/profile/dashboards/leaderboard)
     |-- LeaderboardService      -- Pluggable factor registry (referrals/portfolio/bookings/ratings) + weighted ranking over ALL members (zero-score rows kept, ranked last) + 30s user-agnostic board cache + batched candidate load + per-request current-user rank
      |-- WebinarService          -- Webinar CRUD, upcoming/past lists, idempotent registration (unique-index upsert + additive `marketingConsentGranted` newly-granted flag computed in-transaction), user rollback (`cancel`, idempotent CANCELLED flip, re-registerable), enriched attendee list (account-vs-guest via user join), admin seat cancel
+     |-- FinanceService          -- Read-only admin money views: lifetime summary (GMV/fees/escrow/balances/booking mix), unified payments+wallet transaction feed (bounded 500/side merge, in-memory sort/paginate), invoice projection (deterministic INV-{prefix}-{year}-{id} numbers, no rows created)
+     |-- AnalyticsService        -- Read-only admin overview: windowed KPIs with prior-period deltas, daily series (bookings/GMV/signups/fees) + 7d moving average, breakdowns (status/category/role), top providers by GMV, lifetime platform counters, auto insights via lib/analytics
      |-- TeamService             -- Public team listing (active-only, display order) + socialLinks normalisation (array | legacy JSON-string | null)
     |-- PlatformStatsService    -- Cached landing aggregates with null → fallbackValue degradation
     |
@@ -67,15 +69,15 @@ Data Stores
 |--------|---------------|-----------|--------------|
 | Public Routes | Guest-accessible pages: landing/explore, category browse, profile/[slug], search, blog, verify-email, about, how-it-works, portfolio gallery, leaderboard, webinars, bug-report | `app/(public)/` | Components, Services |
 | Auth Routes | Authenticated pages: dashboard, booking, profile (page/setup/media), register, login, referrals | `app/(auth)/` | AuthGate, Services |
-| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, media, email templates, blog templates, users, countdown, webinars | `app/admin/` | requireRole('ADMIN'), Services |
+| Admin Routes | ADMIN-only: config editor, category manager, provider queue, disputes, media, email templates, blog templates, users, countdown, webinars, finance, analytics | `app/admin/` | requireRole('ADMIN'), Services |
 | API Routes | Backend handlers: auth, explore, bookings, portfolio, profile, admin, verify-email, newsletter, webhooks, cron, leaderboard, referrals, webinars, early-access, bug-report | `app/api/` | Services, Lib |
 | Error Boundaries | Route-segment (`app/error.tsx`), root (`app/global-error.tsx`) and global window catcher (sanitised console/stack capture → `/bug-report`) | `components/error/`, `app/error.tsx`, `app/global-error.tsx` | Lib (sanitize-error, error-log-buffer) |
 | UI Wrappers | Cl* wrappers around shadcn/ui primitives | `components/ui/` | shadcn/ui, Tailwind |
 | Feature Components | Domain-specific UI: explore cards, profile sections, booking drawer, admin panels | `components/` | UI Wrappers, Types |
-| Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore, email + growth (early-member, referral, leaderboard, webinar, platform stats) | `services/` | Lib, Types, Drizzle |
+| Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore, email + growth (early-member, referral, leaderboard, webinar, platform stats) + admin read-only (finance, analytics) | `services/` | Lib, Types, Drizzle |
 | Types | Global TS interfaces: entities, API responses, enums, explore types, email template blocks | `types/` | None |
 | Config | Platform config with DB override capability | `config/` | Types |
-| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks, platform-copy, sanitize-error, error-log-buffer, countdown, referral-cookie, landing-stats, webinars, social-platforms | `lib/` | SDK packages |
+| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks, platform-copy, sanitize-error, error-log-buffer, countdown, referral-cookie, landing-stats, webinars, social-platforms, finance (invoice/CSV/day-key), analytics (day-axis, moving average, insights) | `lib/` | SDK packages |
 | Drizzle | Database schema, migrations, RLS policies | `drizzle/` | Supabase, postgres |
 
 ---
@@ -309,6 +311,8 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | SCROLL_TO_TOP | `scrollToTop` — enabled / thresholdPx / label for the platform-wide `ScrollToTopButton` | platform.config.ts | { enabled: true, thresholdPx: 400 } |
 | WEBINARS | `webinars` — page copy, `maxRegistrantsPerWebinar`, guest prompt + registration CTA + marketing-consent label + cancel/rollback copy (`cancelCtaLabel`, `cancelConfirmMessage`, `registrationCancelledLabel`) | platform.config.ts | { maxRegistrantsPerWebinar: 500 } |
 | TEAM_PAGE | `teamPage` — public `/team` hiring block (hiringEnabled/hiringTitle/hiringSubtitle/hiringCtaLabel/hiringCtaHref, relative or full URL); admin-editable from the `/admin/team` Page-settings card (PATCH `teamPage.*` dotted keys) | platform.config.ts | { hiringEnabled: true, hiringCtaHref: '/about' } |
+| FINANCE | `finance` — invoice identity + company details (`invoicePrefix`, `companyName/Email/Address`, `invoiceFooterNote`) + `defaultPageSize`; drives `/admin/finance` invoice rendering | platform.config.ts | { invoicePrefix: 'CRL', defaultPageSize: 20 } |
+| ANALYTICS | `analytics` — `defaultRangeDays`, `insightMinBookings` (commentary threshold), `insightSurgeThreshold` (surge/dip fraction); drives `/admin/analytics` range + auto insights | platform.config.ts | { defaultRangeDays: 30, insightMinBookings: 5, insightSurgeThreshold: 0.2 } |
 | EMAIL_VERIFICATION | `emailVerification.bannerEnabled` — dismissible verify nudge with resend for signed-in unverified users (`VerifyEmailBanner`, root layout); never a hard gate | platform.config.ts | { bannerEnabled: true } |
 | FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Referrals/Leaderboard & Webinars links and the referral/webinar surfaces (referral discovery: navbar, footer, profile card, dashboard `ReferralBanner`, leaderboard CTA) | platform.config.ts | both `true` |
 
@@ -388,6 +392,12 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-16 — Admin Finance + Platform Analytics (read-only, no migrations)
+- **Finance page (`/admin/finance`)** — lifetime KPI cards (GMV, fees, escrow held, wallet balances, refunds) via `GET /api/admin/finance/summary`; unified payments+wallet transaction feed (`GET /api/admin/finance/transactions`: q/kind/status/type/from/to + server pagination, bounded 500-per-side merge) in `ClDataTable` with `ClPagination`; per-row detail modal with invoice generation (`GET /api/admin/finance/invoice?paymentId|bookingId` → deterministic `INV-{prefix}-{year}-{id}` projection, no rows created) rendered by `InvoicePreview` (print/PDF via browser + HTML download); page-level CSV export. All amounts stay kobo until render.
+- **Analytics page (`/admin/analytics`)** — `GET /api/admin/analytics?range=7|30|90|365` (`AnalyticsService.getOverview`: windowed aggregates + prior-period deltas, daily series + 7-day moving average, status/category/role breakdowns, top-5 providers by GMV, lifetime platform counters); 8 KPI cards with delta badges (good-when-up aware, `n/a` without basis); dependency-free SVG `LineChart` (hover tooltip + trend toggle + CSV export per series), `BarList`, `DonutChart` (`components/admin/AnalyticsCharts.tsx`); data-driven insight feed (`buildInsights`: demand/revenue/acquisition/fulfilment/dispute commentary with quiet-period + threshold handling).
+- **Config-driven** — new optional `IFinanceConfig` / `IAnalyticsConfig` + defaults (`finance.*`, `analytics.*`); invoice numbers/company block/footer and insight thresholds editable without deploys. Sidebar gains Finance + Analytics entries. platform-name-compliance allowlist extended for the two invoice-identity defaults.
+- **QA:** `vitest` 518/518 (+27 new: `lib/finance`, `lib/analytics`), `tsc --noEmit` clean, `next lint` 0 errors (new files warning-free), `next build` green.
 
 ### 2026-10-12 — Wired Emails: Webinar Registration + Newsletter Subscribe
 - **New wired `newsletterSubscription` template** — `lib/email-templates.ts` + `DEFAULT_CONFIG.emailConfig.templates` (subject/bodyHtml/blocks/enabled, existing vars only: `userName`, `exploreUrl`) + `EmailService.sendNewsletterSubscription()`. Preview/simulate-only in admin like all wired templates (`/api/admin/email/send` guard is key-based, no change needed).

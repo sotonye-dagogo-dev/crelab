@@ -3,7 +3,7 @@
 > **Metadata**
 > - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
 > - last-verified-against-code: 2026-10-14
-> - last-synced: 2026-10-14 (webinar count + layout + payment tightening: 493/493, docs reconciled)
+> - last-synced: 2026-10-16 (admin Finance + Platform Analytics: 518/518, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
