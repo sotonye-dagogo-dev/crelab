@@ -678,4 +678,11 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     hiringCtaLabel: "View Open Positions",
     hiringCtaHref: "/about",
   },
+  navigation: {
+    maxDesktopLinks: 5,
+    moreLabel: "More",
+    showWalletInNav: true,
+    walletLabel: "Wallet",
+    walletHref: "/wallet",
+  },
 };

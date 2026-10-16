@@ -2,41 +2,59 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { usePlatformConfig } from "@/lib/config-context";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { ClLogo } from "@/components/ui";
 import { ThemeToggler } from "./ThemeToggler";
-
-const navLinks: {
-  href: string;
-  label: string;
-  /** Optional IFeatureFlags key — the link renders unless the flag is false */
-  flag?: "referralsEnabled" | "webinarsEnabled";
-}[] = [
-  { href: "/explore", label: "Explore" },
-  { href: "/how-it-works", label: "How It Works" },
-  { href: "/about", label: "About" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/blog", label: "Blog" },
-  { href: "/team", label: "Team" },
-  { href: "/referrals", label: "Referrals", flag: "referralsEnabled" },
-  { href: "/leaderboard", label: "Leaderboard", flag: "referralsEnabled" },
-  { href: "/webinars", label: "Webinars", flag: "webinarsEnabled" },
-];
+import { NavbarOverflowNav } from "./NavbarOverflowNav";
+import {
+  BASE_NAV_LINKS,
+  WALLET_NAV_LINK,
+  resolveNavLinks,
+} from "@/lib/nav-overflow";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { features } = usePlatformConfig();
+  const config = usePlatformConfig();
+  const { features, navigation, wallet } = config;
   const { user, isAuthenticated } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = pathname.startsWith("/admin");
   const isUserAdmin = user?.role === "ADMIN";
-  const visibleLinks = navLinks.filter(
-    (l) =>
-      (l.href !== "/blog" || features?.blogEnabled !== false) &&
-      (!l.flag || features?.[l.flag] !== false),
+
+  const maxDesktopLinks = navigation?.maxDesktopLinks ?? 5;
+  const moreLabel = navigation?.moreLabel?.trim() || "More";
+  const showWalletInNav = navigation?.showWalletInNav !== false;
+  const walletLabel = navigation?.walletLabel?.trim() || WALLET_NAV_LINK.label;
+  const walletHref = navigation?.walletHref?.trim() || WALLET_NAV_LINK.href;
+
+  const visibleLinks = useMemo(
+    () =>
+      resolveNavLinks(
+        showWalletInNav
+          ? [...BASE_NAV_LINKS, { ...WALLET_NAV_LINK, label: walletLabel, href: walletHref }]
+          : BASE_NAV_LINKS,
+        {
+          blogEnabled: features?.blogEnabled !== false,
+          referralsEnabled: features?.referralsEnabled !== false,
+          webinarsEnabled: features?.webinarsEnabled !== false,
+          walletEnabled: wallet?.enabled !== false,
+          isAuthenticated,
+        },
+      ),
+    [
+      showWalletInNav,
+      walletLabel,
+      walletHref,
+      features?.blogEnabled,
+      features?.referralsEnabled,
+      features?.webinarsEnabled,
+      wallet?.enabled,
+      isAuthenticated,
+    ],
   );
 
   useEffect(() => {
@@ -68,23 +86,15 @@ export function Navbar() {
           <ClLogo variant="icon" logoWidth={120} logoHeight={32} priority />
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden sm:block">
-          <ul className="flex list-none items-center gap-6">
-            {visibleLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className={`text-sm font-medium no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    pathname === link.href
-                      ? "text-[var(--color-text-primary)]"
-                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                  }`}>
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+        {/* Desktop nav — excess links spill into a "More ▾" dropdown so the
+            bar never wraps or clips as links are added. */}
+        <nav className="hidden sm:block min-w-0" aria-label="Primary">
+          <NavbarOverflowNav
+            links={visibleLinks}
+            pathname={pathname}
+            maxVisible={maxDesktopLinks}
+            moreLabel={moreLabel}
+          />
         </nav>
 
         {/* Desktop actions */}

@@ -8,12 +8,6 @@ import { MockDataService } from "@/services/MockDataService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { parseProviderSlug } from "@/lib/slug";
 import { requireAuth } from "@/lib/auth";
-import { ProviderHero } from "@/components/profile/ProviderHero";
-import { PortfolioGrid } from "@/components/profile/PortfolioGrid";
-import { DrivePortfolioSection } from "@/components/profile/DrivePortfolioSection";
-import { WorkHistory } from "@/components/profile/WorkHistory";
-import { ReviewsSection } from "@/components/profile/ReviewsSection";
-import { BookingSidebarDisplay } from "@/components/profile/BookingSidebarDisplay";
 import { ProfileClient } from "./ProfileClient";
 import type { IProvider, IServicePackage, IPortfolioItem } from "@/types";
 
@@ -261,85 +255,19 @@ function ProfileContent({
   workHistory: Awaited<ReturnType<typeof getWorkHistory>>;
   isOwnProfile: boolean;
 }) {
-  const driveItems = portfolio.filter((item) => item.source === "DRIVE");
-  const directItems = portfolio.filter((item) => item.source === "DIRECT");
-
+  // Selection state lives inside ProfileClient so the packages grid, the
+  // desktop sidebar and the tablet/phone bottom bar always reflect the same
+  // selected package.
   return (
-    <>
-      <div className="mb-4">
-        <Link
-          href="/explore"
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-text-secondary)] no-underline hover:text-[var(--color-accent)] transition-colors"
-        >
-          ← Back to Explore
-        </Link>
-      </div>
-      <ProviderHero provider={provider} isOwnProfile={isOwnProfile} />
-
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
-        <div className="min-w-0">
-          <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-            <h2 className="font-[family-name:var(--font-display)] font-bold text-[16px] text-[var(--color-text-primary)] mb-1">
-              About
-            </h2>
-            <p className="text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
-              {provider.bio ?? "No bio yet"}
-            </p>
-            {provider.yearsActive && (
-              <p className="text-[13px] text-[var(--color-text-tertiary)] mt-2">
-                {provider.yearsActive}+ years of experience
-              </p>
-            )}
-          </div>
-
-          {directItems.length > 0 && (
-            <div className="mt-6">
-              <h2 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)] mb-3">
-                Portfolio
-              </h2>
-              <PortfolioGrid items={directItems} providerName={provider.displayName} />
-            </div>
-          )}
-
-          {driveItems.length > 0 && (
-            <DrivePortfolioSection
-              items={portfolio}
-              providerName={provider.displayName}
-            />
-          )}
-
-          {portfolio.length === 0 && (
-            <div className="mt-6 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-center">
-              <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">
-                No work published yet
-              </p>
-              <p className="text-[13px] text-[var(--color-text-secondary)] mt-1">
-                {provider.displayName} hasn&apos;t added any portfolio pieces.
-              </p>
-            </div>
-          )}
-
-          <ProfileClient
-            packages={packages}
-            providerId={provider.id}
-          />
-          <WorkHistory items={workHistory} />
-          <ReviewsSection reviews={reviewData} />
-
-          <div className="h-20 md:hidden" />
-        </div>
-
-        <div className="hidden lg:block">
-          {packages.length > 0 && (
-            <BookingSidebarDisplay
-              packages={packages}
-              providerName={provider.displayName}
-              providerId={provider.id}
-            />
-          )}
-        </div>
-      </div>
-    </>
+    <ProfileClient
+      packages={packages}
+      providerId={provider.id}
+      provider={provider}
+      portfolio={portfolio}
+      reviewData={reviewData}
+      workHistory={workHistory}
+      isOwnProfile={isOwnProfile}
+    />
   );
 }
 

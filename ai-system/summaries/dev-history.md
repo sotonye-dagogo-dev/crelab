@@ -1,8 +1,24 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-15 — webinars bug-popup + bug-report required indicators)
-> - last-verified-against-code: 2026-10-15
+> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
+> - last-verified-against-code: 2026-10-16
+
+
+## Session 2026-10-16 — execute-feature: Provider Booking Sync + Navbar Overflow + Wallet Links
+
+### What
+Directive: (1) portfolio package selection reflects in the desktop book-provider menu; (2) tablets get a continue-booking path; (3) wallet links on profile + navbar with dynamic desktop overflow into a "More ▾" dropdown. Config/metadata-driven, reusable modular, non-breaking, fallbacks + edge cases; QA gate + deep sync at close.
+
+### Verification
+`vitest` → 43 files, **530 passed / 0 failed** (+12: `nav-overflow.test.ts` [new file]). `tsc --noEmit` → clean. `next lint` → 0 errors (pre-existing warnings only, none in changed files). `npm run build` → green. Note: `node_modules` was absent in the runner — `npm install` run first.
+
+### Key Changes
+- **Booking sync root cause:** desktop column rendered the stateless `BookingSidebarDisplay` (rows navigate directly, no selection) while selection state lived in `ProfileClient` (grid + mobile bar only); the interactive `BookingSidebar` existed but was unwired. `ProfileClient` now owns `selectedPackage` for the full content (grid + `hidden lg:block` sidebar + `lg:hidden` bottom bar); `page.tsx` is a thin server wrapper. Sidebar rows are tier-sorted like the grid and keyboard-operable (`<button role="radio" aria-checked>`, was `<label>`).
+- **Tablet dead zone fixed:** bottom bar `md:hidden → lg:hidden` (+ spacer), so 768–1024px viewports keep a continue CTA; desktop keeps the sticky sidebar.
+- **Navbar overflow:** new pure `lib/nav-overflow.ts` (`resolveNavLinks` flag/auth/wallet gating, `partitionNavLinks` no-lone-straggler rule, `fitCountForWidth` pixel-fit) + `NavbarOverflowNav.tsx` (ResizeObserver spill into "More ⌄" dropdown: ChevronDown, Escape/outside-click close, SSR fallback first-N + More). Wallet link appended last (first to spill), auth-only + `wallet.enabled`-gated.
+- **Config-driven:** optional `INavigationConfig` (`maxDesktopLinks`, `moreLabel`, `showWalletInNav`, `walletLabel`, `walletHref`) with defaults + `/admin/config` Navigation section; profile wallet entry (actions-row button + Wallet card) honours the same config.
+- Docs close — session-log, dependency-graph + system-architecture nav/booking wording, design-system nav pattern, task-queue last-synced, test-results, lessons-learned, freshness headers; in-progress cleared. No migrations (`BookingSidebarDisplay` kept untouched).
 
 
 ## Session 2026-10-15 — fix-build: Webinars Bug-Popup + Bug-Report Required Indicators
