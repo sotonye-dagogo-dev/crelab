@@ -9,7 +9,7 @@ import { usePlatformConfig } from "@/lib/config-context";
 import { ClButton, ClCard, ClInput, ClBadge, ClBackButton } from "@/components/ui";
 import { EarlyMemberBadge } from "@/components/shared/EarlyMemberBadge";
 import { MediaUpload } from "@/components/profile/MediaUpload";
-import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight, LogOut, UserPlus, Pencil } from "lucide-react";
+import { Loader2, Mail, UserRound, ShieldCheck, ShieldAlert, ArrowRight, LogOut, UserPlus, Pencil, Wallet } from "lucide-react";
 
 const authClient = createAuthClient();
 
@@ -21,6 +21,9 @@ export default function ProfilePage() {
   const referralsEnabled =
     platformConfig.features?.referralsEnabled !== false &&
     platformConfig.referral?.enabled !== false;
+  const walletEnabled = platformConfig.wallet?.enabled !== false;
+  const walletHref = platformConfig.navigation?.walletHref?.trim() || "/wallet";
+  const walletLabel = platformConfig.navigation?.walletLabel?.trim() || "Wallet";
 
   const [signingOut, setSigningOut] = useState(false);
 
@@ -299,6 +302,11 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3 pt-2 border-t border-[var(--color-border)]">
+                {walletEnabled && (
+                  <ClButton variant="outlined" size="default" onClick={() => router.push(walletHref)}>
+                    <Wallet size={14} strokeWidth={2} /> {walletLabel}
+                  </ClButton>
+                )}
                 <ClButton variant="outlined" size="default" onClick={() => router.push("/profile/media")}>
                   Manage media
                 </ClButton>
@@ -308,6 +316,21 @@ export default function ProfilePage() {
               </div>
             </div>
           </ClCard>
+
+          {walletEnabled && (
+            <ClCard className="p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet size={15} strokeWidth={2} className="text-[var(--color-accent)]" />
+                <h2 className="font-[family-name:var(--font-display)] font-bold text-[17px]">{walletLabel}</h2>
+              </div>
+              <div className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mb-4">
+                Top up, track your balance and withdraw your earnings.
+              </div>
+              <ClButton variant="primary" size="default" onClick={() => router.push(walletHref)}>
+                Open {walletLabel.toLowerCase()} <ArrowRight size={14} strokeWidth={2} />
+              </ClButton>
+            </ClCard>
+          )}
 
           {referralsEnabled && (
             <ClCard className="p-5 sm:p-6">

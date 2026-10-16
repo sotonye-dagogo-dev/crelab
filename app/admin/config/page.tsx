@@ -118,6 +118,11 @@ const configFields = [
   { key: "webinars.cancelCtaLabel", label: "Webinar Cancel CTA Label", type: "text" as const, section: "Growth" },
   { key: "webinars.cancelConfirmMessage", label: "Webinar Cancel Confirm Message", type: "text" as const, section: "Growth" },
   { key: "webinars.registrationCancelledLabel", label: "Webinar Cancelled Toast Label", type: "text" as const, section: "Growth" },
+  { key: "navigation.maxDesktopLinks", label: "Desktop Nav Max Links", type: "number" as const, section: "Navigation", hint: "Links shown inline on desktop before the rest spill into the More dropdown." },
+  { key: "navigation.moreLabel", label: "Overflow Dropdown Label", type: "text" as const, section: "Navigation" },
+  { key: "navigation.showWalletInNav", label: "Show Wallet in Navbar", type: "toggle" as const, section: "Navigation", hint: "Wallet link renders for signed-in users only, and only while wallet payouts are enabled." },
+  { key: "navigation.walletLabel", label: "Wallet Link Label", type: "text" as const, section: "Navigation" },
+  { key: "navigation.walletHref", label: "Wallet Link Target", type: "text" as const, section: "Navigation" },
 ];
 
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
@@ -294,7 +299,7 @@ export default function ConfigPage() {
     }
   }, [data, toast]);
 
-  const sections = ["Branding", "Fees & Escrow", "Features", "Email", "Media", "Growth"] as const;
+  const sections = ["Branding", "Fees & Escrow", "Features", "Email", "Media", "Growth", "Navigation"] as const;
 
   if (isLoading) {
     return (

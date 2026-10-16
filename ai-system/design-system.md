@@ -1,8 +1,8 @@
 # Design System
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — responsive CTA pattern note)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: execute-feature (Session 2026-10-16 — navbar overflow pattern note)
+> - last-verified-against-code: 2026-10-16
 > - staleness-policy: re-verify if UI components or styling dependencies change
 
 > **Overview:** Dark-dominant, video-first design direction with a full light theme alternative. Electric yellow-green accent (#E8FF47) on near-black (#0A0A0A) for dark mode, earthier olive accent (#A3B800) on near-white (#FAFAF9) for light mode. Theme switching via tabbed toggler (System/Light/Dark) with localStorage persistence. All tokens defined as CSS custom properties with platform config overridability. The colour, typography, and spacing tables below are the single source of truth for design tokens — components must consume these tokens via Cl* wrappers rather than redeclaring values.
@@ -173,6 +173,7 @@ Size scale: 0.75rem / 0.875rem / 1rem / 1.125rem / 1.25rem / 1.5rem / 1.875rem /
 - Links: Explore, For Creators, Blog
 - CTAs: "Get Hired" (providers) + "Find Talent" (clients)
 - Mobile: hamburger -> full-screen overlay
+- Desktop overflow: links that don't fit spill into a "More ▾" dropdown (`NavbarOverflowNav` + `lib/nav-overflow` partition/fit; label + cap from `navigation` config). Trigger is a native button with caret icon (lucide ChevronDown, rotates on open), `aria-haspopup="menu"`/`aria-expanded`; menu is `role="menu"` with `role="menuitem"` links, active link highlighted, Escape/outside-click close. A lone leftover stays inline (no one-item dropdown). Mobile overlay keeps the full scrollable list (no More needed).
 
 ### ExploreVideoCard (most important component)
 - Aspect ratio 4:5 (portrait)

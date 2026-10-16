@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-15 — webinars bug-popup + bug-report required indicators)
-> - last-verified-against-code: 2026-10-15
+> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
+> - last-verified-against-code: 2026-10-16
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -1839,5 +1839,38 @@ verified via `git stash`), no regressions.
 **Assumptions:** invoice numbers need only be deterministic per payment (no issuance ledger — logged as residual); 500-per-side merge cap is sufficient at current volume; SVG charts preferred over a chart dep (bundle + theme). No `memory/project-decisions.md` change — additive read-only surface, no flow behaviour altered.
 
 **sync-context (execute-feature chain):** mid-work checkpoint observed via in-progress.md plan; close chain = this update-ai-system deep sync. Drift check — repo-map (new routes/files/services/libs recorded), dependency-graph (FinanceService/AnalyticsService/charts edges added), system-architecture (admin routes, services, config points, Recent Changes), dev-history entry, task-queue last-synced, lessons-learned entry, in-progress.md cleared. No migrations.
+
+**Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).
+
+## Session 2026-10-16 — Provider booking sync + Navbar overflow + Wallet links (execute-feature)
+
+**Directive:** (1) provider portfolio package selection reflects in the desktop book-provider menu; (2) tablets (md–lg) get a continue-booking path; (3) wallet links on profile + navbar, with the desktop navbar spilling excess links into a "More ▾" dropdown. Install node modules, proper QA; config/metadata-driven, reusable modular, non-breaking; close with update-ai-system.
+
+**Planning pass:** read task-queue, system-architecture, design-system, project-context + repair-system pitfalls (ClButton fixed-height trap, server→client function serialization); decomposed into booking-sync / navbar-overflow / profile-wallet / config+tests / QA / docs; architecture impact = none structural (client-state lift + additive optional config, zero migrations). Scope check passed (booking, nav, wallet all in-scope; no conflicts with project-decisions).
+
+**Root causes:**
+1. Desktop sidebar never reflected selection — `page.tsx` rendered `BookingSidebarDisplay` (stateless: each row navigates directly, no selected state) in the `lg:` column, while selection state lived inside `ProfileClient` (grid + mobile bottom bar only). The interactive `BookingSidebar` (selected + Continue) existed but was unwired.
+2. Tablet dead zone — `BookingBottomBar` was `md:hidden` and the sidebar `hidden lg:block`, so 768–1024px viewports had neither a package menu nor a continue CTA.
+3. Navbar had no wallet entry and rendered all links inline (`flex gap-6`, no overflow) — a growing list wraps/clips.
+
+**Completed:**
+1. `app/(public)/profile/[slug]/ProfileClient.tsx` — lifted to full content client: owns `selectedPackage` state, renders hero/about/portfolio + `ServicePackages` grid + `BookingSidebar` (`hidden lg:block`) + `BookingBottomBar` (`lg:hidden`). Legacy props shape (packages + providerId only) still renders grid + bottom bar. `page.tsx` `ProfileContent` is now a thin server wrapper (no functions cross the server/client boundary).
+2. `components/profile/BookingSidebar.tsx` — tier-sort parity with the grid; `<label>` rows → native `<button type="button" role="radio" aria-checked>` (keyboard-operable, full-width); selection + Continue reflect the shared state.
+3. `components/profile/BookingBottomBar.tsx` — breakpoint `md:hidden → lg:hidden` (tablets regain the continue path); spacer in content `md:hidden → lg:hidden`.
+4. `types/index.ts` + `config/platform.config.ts` — new optional `INavigationConfig` (`maxDesktopLinks: 5`, `moreLabel: "More"`, `showWalletInNav: true`, `walletLabel: "Wallet"`, `walletHref: "/wallet"`); additive with fallbacks, older DB configs keep working.
+5. `lib/nav-overflow.ts` (new, pure) — `BASE_NAV_LINKS`, `WALLET_NAV_LINK`, `resolveNavLinks()` (blog/referral/webinar flags + auth-only + wallet gates), `partitionNavLinks()` (no-lone-straggler rule), `fitCountForWidth()` (pixel-fit with trigger reserve). `__tests__/lib/nav-overflow.test.ts` (+12).
+6. `components/shared/NavbarOverflowNav.tsx` (new) — ResizeObserver-measured desktop links; excess spills into a "More ⌄" dropdown (lucide ChevronDown, aria-expanded/haspopup/menu, Escape + outside-click close, active-state highlight); SSR/no-JS fallback = first-N + More. Mobile overlay unchanged (full scrollable list, wallet included when eligible).
+7. `components/shared/Navbar.tsx` — delegates desktop links to the overflow component; wallet link appended last (first to spill), auth-only + `wallet.enabled`-gated, config label/href.
+8. `app/(auth)/profile/page.tsx` — Wallet quick-access: button in the account-actions row + dedicated Wallet card (`wallet.enabled`-gated, config label/href).
+9. `app/admin/config/page.tsx` — new Navigation section (5 fields, admin-manageable).
+10. QA gate: `npm install` (runner had no node_modules); `vitest` **530/530** (43 files; 518 → 530 = +12 nav-overflow); `tsc --noEmit` clean (one self-caught JSX-comment syntax error fixed mid-run); `next lint` 0 errors (pre-existing warnings only, none in changed files); `next build` green.
+
+**Files created (3):** lib/nav-overflow.ts, components/shared/NavbarOverflowNav.tsx, __tests__/lib/nav-overflow.test.ts. **Edited (9):** types, platform.config, BookingSidebar, BookingBottomBar, ProfileClient, profile/[slug]/page, Navbar, (auth)/profile/page, admin/config/page. `BookingSidebarDisplay.tsx` kept untouched for external consumers.
+
+**Assumptions:** wallet deep route stays `/wallet` (config-overridable); `maxDesktopLinks: 5` fits ≥1024px with current labels (runtime measurement corrects any width); tablet bottom-bar CTA is preferable to a second sidebar instance (no duplicate CTAs on md–lg). No `memory/project-decisions.md` structural change — additive UI/config surface, no flow behaviour altered (logged below as minor note).
+
+**Chains:** `sync-context.md` close (this entry); `update-ai-system.md` deep sync inline per directive (system-architecture, design-system nav pattern, dev-history, task-queue last-synced, test-results, repo-map/dependency-graph notes, lessons-learned, in-progress.md cleared). No migrations.
+
+**Residual risks:** dropdown is client-measured — first paint may briefly show the static first-N partition before ResizeObserver corrects it (no layout break, links remain reachable); hidden measurer adds ~10 off-screen spans (negligible).
 
 **Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).

@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
-> - last-verified-against-code: 2026-10-14
-> - last-synced: 2026-10-16 (admin Finance + Platform Analytics: 518/518, docs reconciled)
+> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
+> - last-verified-against-code: 2026-10-16
+> - last-synced: 2026-10-16 (provider booking sync + navbar overflow + wallet links: 530/530, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -100,6 +100,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Provider booking sync + navbar overflow + wallet links: `ProfileClient` owns `selectedPackage` for grid + desktop `BookingSidebar` + `lg:hidden` bottom bar (tablet path restored); sidebar tier-sort parity + keyboard radio rows; `lib/nav-overflow` pure partition/fit + `NavbarOverflowNav` ResizeObserver "More ▾" dropdown; wallet links on navbar (auth-only, wallet-gated) + profile (button + card); optional `navigation` config + `/admin/config` Navigation section; +12 `nav-overflow` tests. 530/530 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-16 |
 | Wired webinar + newsletter emails: new wired `newsletterSubscription` template (label/trigger + default subject/bodyHtml/blocks/enabled) + `EmailService.sendNewsletterSubscription`; `POST /api/newsletter` fires the welcome best-effort on genuinely new opt-ins only (additive `email`); webinar checkbox opt-in fires it via in-transaction `marketingConsentGranted` flag (signed-in new grants + guest new seats, additive `newsletterEmail`); webinar confirmation semantics unchanged. 467/467 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-12 |
 | Webinars rollback + attendees + pagination: `cancel()`/`adminCancelRegistration()` (idempotent soft-cancel, re-registerable), user `DELETE /register` + admin `DELETE ?registrationId=` (audit-logged), account-vs-guest attendee badges + per-seat cancel + `staleTime: 0` counts, centered tight pagination (`justify-center`, `pt-1`), `gap-10→gap-6` sections, config-driven cancel copy (3 keys + editor fields). 463/463 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-12 |
 | Verified-status hardening: case-insensitive verify match (`normalizeEmail` + `ilike`, honest 404 on no-match, idempotent when verified) + session freshness (`useAuth.refresh`, post-verify refresh, profile refresh-status affordance, admin `staleTime: 0` + Refresh). 453/453 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-08 |

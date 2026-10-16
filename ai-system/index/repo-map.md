@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — admin Finance + Platform Analytics)
+> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
 > - last-verified-against-code: 2026-10-16
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -35,7 +35,7 @@ crelab/
 │   │   ├── how-it-works/   # How It Works page (config-driven with sandboxes/FAQ)
 │   │   ├── leaderboard/    # Public leaderboard (podium + paginated table + "How scoring works" panel)
 │   │   ├── privacy/        # NDPR-compliant privacy policy
-│   │   ├── profile/[slug]/ # Provider public profile
+│   │   ├── profile/[slug]/ # Provider public profile (ProfileClient owns selectedPackage: grid + desktop BookingSidebar + lg bottom bar)
 │   │   ├── search/         # Search results
 │   │   ├── team/           # Team members page (config-driven incl. teamPage hiring block)
 │   │   ├── terms/          # Terms of service
@@ -98,7 +98,7 @@ crelab/
 │   ├── team/               # TeamSocialIcon (brand SVG + lucide fallback per normalized platform kind)
 │   ├── error/              # ErrorReportDialog (report/continue popup), GlobalErrorCatcher (window.onerror + unhandledrejection, non-blocking)
 │   ├── wallet/             # WalletBalanceCard, TopUpModal, WithdrawModal
-│   └── shared/             # AuthGate, MediaEmbed, CookieConsentBanner, ThemeToggler, EmailSimulation, EarlyMemberBadge, ReferralCapture, CountdownWidget, CountdownSlot, ScrollToTopButton
+│   └── shared/             # AuthGate, MediaEmbed, CookieConsentBanner, ThemeToggler, EmailSimulation, EarlyMemberBadge, ReferralCapture, CountdownWidget, CountdownSlot, ScrollToTopButton, NavbarOverflowNav (desktop More-dropdown)
 ├── sanity/                  # Sanity CMS config + schemas
 │   ├── sanity.config.ts     # Sanity project configuration
 │   └── schemas/             # Blog post + creator spotlight schemas
@@ -201,7 +201,7 @@ crelab/
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
 | `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor, ImageUploadField, AnalyticsCharts (Line/Bar/Donut + tooltips), InvoicePreview (print/PDF + HTML download) |
 | `components/error/` | Error-boundary UX: report/continue popup + global window catcher | ErrorReportDialog, GlobalErrorCatcher |
-| `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth (auth-agnostic claim retry), CountdownWidget/Slot, ScrollToTopButton, PaymentNoticeBlock (config-driven payment disclaimers), ThemeToggler (System/Light/Dark) | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth, CountdownWidget, ScrollToTopButton, PaymentNoticeBlock, ThemeToggler |
+| `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth (auth-agnostic claim retry), CountdownWidget/Slot, ScrollToTopButton, PaymentNoticeBlock (config-driven payment disclaimers), ThemeToggler (System/Light/Dark), NavbarOverflowNav + lib/nav-overflow (pure nav partition/fit) | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth, CountdownWidget, ScrollToTopButton, PaymentNoticeBlock, ThemeToggler, NavbarOverflowNav |
 | `components/team/` | Team page social icons | `TeamSocialIcon.tsx` |
 | `sanity/` | Sanity CMS project config + content schemas | `sanity.config.ts`, `schemas/` |
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService, EarlyMemberService, ReferralService, LeaderboardService, WebinarService, PlatformStatsService, TeamService, FinanceService, AnalyticsService |
