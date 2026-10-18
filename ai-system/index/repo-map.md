@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -80,7 +80,7 @@ crelab/
 │       ├── media/          # Media upload (Cloudinary) + status + asset registry (list/delete/replace)
 │       ├── email/          # Email send (welcome, booking, payment) + status health route
   │       ├── newsletter/     # Newsletter subscribe (grants MARKETING consent for signed-in users + wired newsletterSubscription welcome on new opt-ins)
-│       ├── portfolio/      # Portfolio CRUD (+ items list, reorder, individual item PATCH/DELETE)
+│       ├── portfolio/      # Portfolio CRUD (+ /drive sync, /drive/preview read-only link check, items list, reorder, individual item PATCH/DELETE)
 │       ├── profile/        # Profile management (setup)
 │       ├── referrals/      # GET /referrals/me + POST /referrals/claim (idempotent cookie claim + JSON {code} fallback)
 │       ├── verify-email/   # Verify-email: /send (shared sendVerificationEmailTo helper) + /welcome (fires welcome once verified) + /verify (case-insensitive token verify with affected-row check)
@@ -91,7 +91,7 @@ crelab/
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog, ClBackButton, ClDataTable, ClPagination)
 │   ├── explore/            # ExploreFilterBar, ExploreGrid (scroll-stable, no layout anim), ExploreVideoCard (persistent VIDEO tag + halo, ordered display: avatar → portfolioThumbnails carousel on 3.5s interval → initials fallback; no img remount on tick; mount-on-view video), PortfolioGallery (scroll-stable)
-│   ├── profile/            # ProviderHero, PortfolioGrid (with dedup + AssetLightbox video/pdf playback), ServicePackages, MediaUpload, DrivePortfolioSection, AssetLightbox, etc.
+│   ├── profile/            # ProviderHero, PortfolioGrid (with dedup + AssetLightbox video/pdf playback), ServicePackages, MediaUpload, DrivePortfolioSection, DriveConnectSettings (+ Quick preview), DriveLinkPreview, AssetLightbox, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
 │   ├── blog/               # ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks
 │   ├── admin/              # AdminSidebar, AdminShell, CategoryModal, ConfigField, TeamMemberModal (avatar direct-upload + platform select w/ custom option), BatchOperations, EmailTemplateBlocksEditor, ContentBlocksEditor, ImageUploadField
@@ -148,7 +148,8 @@ crelab/
 │   ├── landing-stats.ts    # Ordered stat items + format helpers (compact/rating/count) with fallbackValue
 │   ├── portfolio.ts        # dedupePortfolioItems, formatAssetLabel (sanitized provider# + date), isVideoItem, assetSerialKey + cover fallback (isImageCoverUrl, coverMimeType, buildCoverFallbackItem, withCoverFallback — covers surface as content, avatars never)
 │   ├── db.ts               # Drizzle + Supabase client
-│   ├── drive.ts            # Google Drive API: rate-limit classification + backoff/retry (Retry-After), per-process throttle, pagination cap (truncated), stable unsigned thumbnail URLs + legacy-thumb heal helpers, folder URL validation
+│   ├── drive.ts            # Google Drive API: rate-limit classification + backoff/retry (Retry-After), per-process throttle, pagination cap (truncated), stable unsigned thumbnail URLs + legacy-thumb heal helpers, folder URL validation, folder metadata fetch + preview budget knobs (DRIVE_PREVIEW_MAX_FILES/PER_MINUTE)
+│   ├── rate-limit.ts       # Generic in-memory sliding-window limiter (consumeRateWindow; per-caller API budgets, e.g. per-user Drive link previews)
 │   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS/previewVarsFor (platform name + resolved logoUrl; relative URLs resolved via lib/url)
   │   ├── email-templates.ts  # WIRED_EMAIL_TEMPLATES registry (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset/bugReportReceived/bugReportUnderReview/bugReportResolved/webinarRegistration/newsletterSubscription: label + trigger) + isWiredEmailTemplate — code-wired emails are preview/simulate only, never sendable/broadcastable; resolveEmailTemplates/resolveEmailTemplate/resolveEmailConfig merge hardcoded defaults under DB-saved templates (defaults apply when a template was never saved to DB)
 │   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
@@ -207,7 +208,7 @@ crelab/
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService, EarlyMemberService, ReferralService, LeaderboardService, WebinarService, PlatformStatsService, TeamService, FinanceService, AnalyticsService |
 | `types/` | Global TypeScript interfaces and enums — single source of truth | `index.ts`, `explore.ts`, `dashboard.ts` |
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
-| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `payment-notices.ts`, `wallet-recipients.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `finance.ts`, `analytics.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts`, `platform-copy.ts`, `sanitize-error.ts`, `error-log-buffer.ts`, `countdown.ts`, `countdown-icons.ts`, `referral-cookie.ts`, `landing-stats.ts`, `webinars.ts`, `social-platforms.ts` |
+| `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `payment-notices.ts`, `wallet-recipients.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `finance.ts`, `analytics.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts`, `platform-copy.ts`, `sanitize-error.ts`, `error-log-buffer.ts`, `countdown.ts`, `countdown-icons.ts`, `referral-cookie.ts`, `landing-stats.ts`, `webinars.ts`, `social-platforms.ts`, `rate-limit.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (tables incl. `referral_codes`, `referral_events`, `webinars`, `webinar_registrations`, `bug_reports.error_context`), `migrations/` (journal tracks 0000–0002; 0003+ are standalone SQL applied by hand — incl. `0007_referrals_and_error_context.sql`, NOT yet applied) |
 | `hooks/` | Custom React hooks | `useAuth.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |

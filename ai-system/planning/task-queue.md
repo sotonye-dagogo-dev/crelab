@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
 > - last-verified-against-code: 2026-10-18
-> - last-synced: 2026-10-18 (Google Drive limits/caveats hardening: 555/555, docs reconciled)
+> - last-synced: 2026-10-18 (Drive link quick preview: 575/575, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -100,6 +100,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 
 | Task | Completed |
 |------|-----------|
+| Drive link quick preview: `lib/rate-limit.ts` (generic sliding-window limiter) + `lib/drive.ts` `driveFetchJson` shared retry/classify loop, `fetchDriveFolderMetadata` (isFolder guard), clamped `fetchFileList` pageSize, `DRIVE_PREVIEW_MAX_FILES`/`DRIVE_PREVIEW_MAX_PER_MINUTE` knobs; `DriveService.previewFolder` (metadata + 1 bounded page, stable unsigned thumbs, supported/unsupported split, **zero DB writes**); `POST /api/portfolio/drive/preview` (no provider-row gate — onboarding works; per-user window → 429 + Retry-After); `DriveLinkPreview` card + Quick-preview button/cooldown/stale-clear in `DriveConnectSettings` (live + collect); design contract `09` preview state; +20 tests. 575/575 vitest, tsc 0 errors, lint clean, build green + full `update-ai-system.md` deep sync | 2026-10-18 |
 | Google Drive limits/caveats hardening: `DriveRateLimitError` (extends DriveAccessError) + classifier (429 / 403-rateLimitBody vs private-403) + exp-backoff/jitter retries honouring Retry-After + per-process throttle (spacing + sliding-window budget); `fetchAllFiles` pagination cap → `truncated` (folder-quota guard, default 500, env-tunable); stable unsigned `drive.google.com/thumbnail?id=&sz=` thumbnails replace cached ~1h-TTL signed thumbnailLinks (hot-link expiry trap killed at source); `syncAll` aborts remaining providers once throttled (`rateLimited` flag); drive route rate-limit → retryable 503; client one-shot heal of legacy expiring thumbs in shared+explore ExploreVideoCard + AssetLightbox (Drive images now render via stable endpoint); 5 `DRIVE_*` env knobs documented; +28 tests. 555/555 vitest, tsc 0 errors, lint clean, build green + full `update-ai-system.md` deep sync | 2026-10-18 |
 | Provider booking sync + navbar overflow + wallet links: `ProfileClient` owns `selectedPackage` for grid + desktop `BookingSidebar` + `lg:hidden` bottom bar (tablet path restored); sidebar tier-sort parity + keyboard radio rows; `lib/nav-overflow` pure partition/fit + `NavbarOverflowNav` ResizeObserver "More ▾" dropdown; wallet links on navbar (auth-only, wallet-gated) + profile (button + card); optional `navigation` config + `/admin/config` Navigation section; +12 `nav-overflow` tests. 530/530 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-16 |
 | Wired webinar + newsletter emails: new wired `newsletterSubscription` template (label/trigger + default subject/bodyHtml/blocks/enabled) + `EmailService.sendNewsletterSubscription`; `POST /api/newsletter` fires the welcome best-effort on genuinely new opt-ins only (additive `email`); webinar checkbox opt-in fires it via in-transaction `marketingConsentGranted` flag (signed-in new grants + guest new seats, additive `newsletterEmail`); webinar confirmation semantics unchanged. 467/467 vitest, tsc 0 errors, lint 0 errors, build green + full `update-ai-system.md` deep sync | 2026-10-12 |

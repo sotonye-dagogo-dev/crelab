@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
@@ -27,7 +27,7 @@ Service Layer (services/)
     |-- BookingService          -- Booking lifecycle (REQUESTED -> RELEASED/REFUNDED, now stores paymentMode + validates milestone config)
     |-- EscrowService           -- Escrow state machine (PENDING -> HELD -> IN_PROGRESS -> RELEASED/DISPUTED, now uses real client email + BOOKING_PAYMENT metadata)
     |-- PortfolioService        -- Portfolio CRUD, reorder, hide/show + attachUploadToProvider (best-effort portfolio attach on every media upload/confirm, idempotent)
-    |-- DriveService            -- Google Drive folder sync: rate-limit aware (DriveRateLimitError classification for 429/403 + exp-backoff/Retry-After retries + per-process pacing/budget), pagination cap (truncated flag), stable unsigned thumbnail URLs (hot-link expiry mitigation), syncAll aborts remaining providers once throttled
+    |-- DriveService            -- Google Drive folder sync: rate-limit aware (DriveRateLimitError classification for 429/403 + exp-backoff/Retry-After retries + per-process pacing/budget), pagination cap (truncated flag), stable unsigned thumbnail URLs (hot-link expiry mitigation), syncAll aborts remaining providers once throttled + previewFolder (read-only link check: folder metadata + bounded sample, zero DB writes)
     |-- PaymentService          -- LEGACY Paystack integration (initPaystack/splitPayout unused — settlement runs through EscrowService + WalletService, see Paystack Rail decision 2026-10-14)
     |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
     |-- ExploreService          -- Provider search, filter, sort, cursor pagination + portfolio thumbnails for tile carousel
@@ -77,7 +77,7 @@ Data Stores
 | Services | Business logic: booking, escrow, payment, portfolio, drive, media assets, config, explore, email + growth (early-member, referral, leaderboard, webinar, platform stats) + admin read-only (finance, analytics) | `services/` | Lib, Types, Drizzle |
 | Types | Global TS interfaces: entities, API responses, enums, explore types, email template blocks | `types/` | None |
 | Config | Platform config with DB override capability | `config/` | Types |
-| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks, platform-copy, sanitize-error, error-log-buffer, countdown, referral-cookie, landing-stats, webinars, social-platforms, finance (invoice/CSV/day-key), analytics (day-axis, moving average, insights) | `lib/` | SDK packages |
+| Lib | Third-party wrappers + shared utilities: auth, db, paystack, cloudinary, drive, consent, config-context, toast, url, seo, email-blocks, platform-copy, sanitize-error, error-log-buffer, countdown, referral-cookie, landing-stats, webinars, social-platforms, rate-limit (generic in-memory sliding-window limiter), finance (invoice/CSV/day-key), analytics (day-axis, moving average, insights) | `lib/` | SDK packages |
 | Drizzle | Database schema, migrations, RLS policies | `drizzle/` | Supabase, postgres |
 
 ---
@@ -248,6 +248,37 @@ are the source of truth for render; Drive is only consulted at sync time.
    budget) and returns { synced, errors, rateLimited: true }
 ```
 
+### Google Drive Link Quick Preview Flow (read-only — no DB writes)
+```
+Purpose: let a provider confirm a pasted folder link resolves against Google's API
+(the "API test") BEFORE/without syncing — nothing is written (no portfolio_items,
+no providers.drive_folder_url). Offered by the "Quick preview" button in
+DriveConnectSettings (both live mode on /profile/media and collect mode in
+onboarding step 4).
+1. Client shape-checks the URL (validateFolderUrl) for instant feedback, then
+   POST /api/portfolio/drive/preview { folderUrl }
+2. Route guards: session (401), PROVIDER/ADMIN role (403) — but deliberately NO
+   provider-row requirement (onboarding has no provider row yet; repair-system
+   "collect-and-defer"). Per-user budget: lib/rate-limit.ts sliding window
+   (DRIVE_PREVIEW_MAX_PER_MINUTE, default 10/min → 429 + Retry-After, mirrored
+   by the client "Preview in Ns" cooldown).
+3. DriveService.previewFolder():
+   - validate URL → DriveValidationError (400)
+   - fetchDriveFolderMetadata(id): 1 API call; resolves name + rejects ids that
+     aren't folders (pasted /file/d/… link) with actionable copy
+   - fetchFileList(id, undefined, { pageSize: DRIVE_PREVIEW_MAX_FILES }) — one
+     bounded page (hard-capped at PREVIEW_SAMPLE_MAX=50); both calls ride the
+     shared Drive throttle/retry/classification budget
+   - maps sample → { kind, supported, thumbnailUrl: stable unsigned endpoint }
+4. Response { folderId, folderName, sampleSize, supported, unsupported, sampled,
+   items[], checkedAt } rendered by DriveLinkPreview (thumbnails + video badges
+   + "read-only, nothing saved yet" reassurance; empty / no-supported-formats
+   get explicit guidance).
+Budget layers: (1) shared per-isolate Drive throttle + retries, (2) per-user
+window limiter, (3) bounded sample. Error taxonomy mirrors the sync route:
+400 validation / 429 budget / 502 access / 503 Google rate limit (+Retry-After) / 500.
+```
+
 ### Media Upload (Cloudinary) Flow
 ```
 1. MediaUpload component fetches GET /api/media/status -> { enabled, cloudinaryConfigured, maxFileSizeMb, videoTypes, imageTypes, cleanupEnabled, cleanupOrphanAfterHours }
@@ -405,6 +436,14 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-18 — Drive Link Quick Preview (execute-feature)
+- `lib/rate-limit.ts` (new): generic in-memory sliding-window limiter (`consumeRateWindow(key, {limit, windowMs})`, injectable `now`, denied attempts not recorded, key-isolated, bounded key sweep; `__resetRateWindowsForTests`) — reusable for any per-caller API budget.
+- `lib/drive.ts`: shared `driveFetchJson` retry/classify loop extracted from `fetchFileList` (behavior-preserving); `fetchFileList` gains optional clamped `pageSize` (default 100 unchanged); `fetchDriveFolderMetadata(id)` (1-call metadata lookup, `isFolder` flag); `DRIVE_LIMITS.previewMaxFiles` (DRIVE_PREVIEW_MAX_FILES, default 12) + `previewMaxPerMinute` (DRIVE_PREVIEW_MAX_PER_MINUTE, default 10); `PREVIEW_SAMPLE_MAX` (50 hard cap) + `DRIVE_FOLDER_MIME_TYPE`.
+- `services/DriveService.ts`: `previewFolder(folderUrl)` — validate → folder metadata (rejects non-folder ids) → one bounded page → supported/unsupported/kind split with stable unsigned thumbnails; **zero DB/portfolio writes**; `IDriveService` + preview types exported.
+- `app/api/portfolio/drive/preview/route.ts` (new): POST, session + PROVIDER/ADMIN (no provider-row gate — works during onboarding), per-user window budget (429 + Retry-After), error mapping mirroring the sync route, `Cache-Control: no-store`.
+- UI: `components/profile/DriveLinkPreview.tsx` (new) + "Quick preview" button/cooldown/stale-clear in `DriveConnectSettings` (live + collect modes). Design contract `09-drive-portfolio.html` Part 1 gains the preview affordance + Preview state.
+- Env knobs documented in `.env.example`. +20 tests (rate-limit suite new 8; DriveService suite 40 → 52); 575/575 vitest green. No migrations.
 
 ### 2026-10-18 — Google Drive Limits & Caveats Hardening (no migrations)
 - `lib/drive.ts`: DriveRateLimitError (extends DriveAccessError — back-compat catches), rate-limit classifier (429 + 403-with-rateLimitBody vs plain private-403 vs 404), exp-backoff + jitter retries honouring Retry-After, per-process throttle (min spacing + sliding 60s window), fetchAllFiles pagination cap with truncated flag, buildStableDriveThumbnailUrl / isExpiringDriveThumbnailUrl / driveThumbnailHealSrc. Env knobs: DRIVE_MAX_FILES_PER_FOLDER, DRIVE_FETCH_MAX_RETRIES, DRIVE_FETCH_RETRY_BASE_MS, DRIVE_MIN_REQUEST_INTERVAL_MS, DRIVE_MAX_REQUESTS_PER_MINUTE.

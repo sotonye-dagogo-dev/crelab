@@ -1,7 +1,7 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive sync-model decision)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive quick-preview decision)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -33,6 +33,29 @@
 ---
 
 ## Decisions
+
+## Drive Link Quick Preview: Read-Only, Folder-Only, Env-Budgeted, No Provider-Row Gate
+
+**Decision:** The Drive "Quick preview" affordance is a **read-only** check (`DriveService.previewFolder` + `POST /api/portfolio/drive/preview`): it never writes `portfolio_items` or `providers.drive_folder_url`, accepts **folder links only** (matching what sync accepts; ids resolving to files are rejected with actionable copy), requires a session + PROVIDER/ADMIN role but **no provider row** (onboarding/collect mode must work), and is budgeted in three layers: the shared per-isolate Drive throttle/retries, a per-user sliding-window limiter (429 + Retry-After, mirrored by a client countdown), and a bounded sample (`DRIVE_PREVIEW_MAX_FILES`, hard-capped at 50). Budget knobs are **env-level**, not admin-UI config.
+**Date:** 2026-10-18
+**Made by:** Implementer (execute-feature — "quick preview to ensure users know it should be successful from the get-go / easily test the API without writing to DB; budgets and rate limits considered")
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+- Read-only: the directive's core ask is confidence + an API test without side effects; any write would double as a partial sync with unclear user intent.
+- Folder-only: sync is folder-based (`validateFolderUrl`); previewing single files would promise an integration that doesn't exist.
+- No provider-row gate: repair-system documents that the wizard runs Drive connect before any provider row exists — the sync route's provider-404 must not be inherited by preview.
+- Env-level budget knobs: consistent with the 2026-10-18 Drive decision — these bound third-party API spend (infra), not product behaviour.
+
+**Alternatives Considered:**
+- Caching preview resolutions in DB or `unstable_cache` — rejected: previews are transient; browser/react-query caching suffices and a cache key per pasted URL adds invalidation surface for no user value.
+- Writing a provisional row on preview — rejected: contradicts "without writing to DB" and complicates ACID semantics for a UI affordance.
+- Gating preview behind `features.googleDriveSync` — rejected for now: the sync route and the media-page Drive section don't consult that flag either; gating only preview would be inconsistent (flag currently only hides the dashboard quick action).
+
+**Implications:**
+- Any future Drive-adjacent read endpoints should reuse `lib/rate-limit.ts` and the same three-layer budget story.
+- If preview traffic grows, raise `DRIVE_PREVIEW_MAX_PER_MINUTE` deliberately (it is the per-user blast-radius bound) and revisit a shared-store limiter if serverless isolates make the in-memory window too generous in aggregate.
 
 ## Paystack Rail: Charge → Platform Balance, Payout on Release (Escrow Stays App-Side)
 

@@ -1,9 +1,26 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
 > - last-verified-against-code: 2026-10-18
 
+
+## Session 2026-10-18 — execute-feature: Drive Link Quick Preview
+
+### What
+Directive: add a quick preview to the Google Drive folder-link entry components so users (and we) can confirm a link resolves against Google's API from the get-go — a test of the integration that writes NOTHING to the DB — with budgets and rate limits taken into account. Config/metadata-driven, reusable modular code, non-breaking; QA gate + `update-ai-system.md` at close.
+
+### Verification
+`vitest` → 44 files, **575 passed / 0 failed** (+20: `__tests__/lib/rate-limit.test.ts` new [8], DriveService suite 40 → 52). `tsc --noEmit` → clean. `next lint` → 0 errors (pre-existing warnings only, none in changed files). `npm run build` → green (preview route compiled).
+
+### Key Changes
+- **`lib/rate-limit.ts` (new, reusable):** generic in-memory sliding-window limiter `consumeRateWindow(key, {limit, windowMs})` — injectable `now` for deterministic tests, denied attempts not recorded (waiting callers aren't punished), key isolation, bounded key sweep, `__resetRateWindowsForTests`. Deliberately generic so any route can budget any key without external packages.
+- **`lib/drive.ts`:** the retry/backoff/classification loop extracted into shared `driveFetchJson` (behavior-preserving — all existing messages/semantics unchanged); `fetchFileList` gains an optional clamped `pageSize` (default 100 unchanged); new `fetchDriveFolderMetadata(id)` (1-call lookup → `{id,name,mimeType,isFolder}`); `DRIVE_LIMITS.previewMaxFiles`/`previewMaxPerMinute` (env: `DRIVE_PREVIEW_MAX_FILES=12`, `DRIVE_PREVIEW_MAX_PER_MINUTE=10`) + `PREVIEW_SAMPLE_MAX` hard cap (50) + `DRIVE_FOLDER_MIME_TYPE`.
+- **`services/DriveService.previewFolder`:** validate URL → folder metadata (rejects pasted `/file/d/…` ids that resolve to files, with actionable copy, before any listing call) → one bounded page → `{folderId, folderName, sampleSize, supported, unsupported, sampled, items[{kind,supported,stableThumbnailUrl}], checkedAt}`. Stable UNSIGNED thumbnails only; unsupported files carry no thumb. **Zero DB / PortfolioService calls** (asserted by test).
+- **`app/api/portfolio/drive/preview/route.ts` (new):** POST, session + PROVIDER/ADMIN (role is set at signup, so onboarding works) and deliberately NO provider-row requirement (repair-system "collect-and-defer"); per-user window budget → **429 + Retry-After + retryAfterSeconds**; error taxonomy mirrors the sync route (400 validation / 502 access / 503 Google rate limit / 500); invalid-JSON guard; `Cache-Control: no-store`.
+- **UI:** `components/profile/DriveLinkPreview.tsx` (new) — "Link looks good" card with folder name, ready/skipped counts, thumbnail grid (video play badge, "Skipped" tag, img onError fallback), empty / zero-supported guidance, and an explicit "read-only — nothing saved yet" footer. `DriveConnectSettings` gains a "Quick preview" outlined button (both live and collect modes), client-side shape check, 429/503 → cooldown countdown ("Preview in Ns", capped 120s), and stale-preview clearing on input change. Design contract `ai-system/designs/09-drive-portfolio.html` Part 1 mirrors the affordance (Preview pill/state + button + card).
+- **Budgets/rate limits (3 layers):** (1) shared per-isolate Drive throttle + retries/Retry-After, (2) per-user window limiter at the route, (3) bounded sample (env + hard cap) — so the "test the API" affordance can never outspend the project budget. Budget knobs stay **env-level**, consistent with the 2026-10-18 decision (they bound API spend, not product behaviour).
+- Docs close — system-architecture (DriveService row + new preview flow + Recent Changes), repo-map, dependency-graph, task-queue, dev-history, project-decisions, lessons-learned, test-results, session-log, designs/README; in-progress cleared. No migrations.
 
 ## Session 2026-10-18 — execute-feature: Google Drive Limits & Caveats Hardening
 
