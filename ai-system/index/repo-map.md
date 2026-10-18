@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
-> - last-verified-against-code: 2026-10-16
+> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -148,7 +148,7 @@ crelab/
 │   ├── landing-stats.ts    # Ordered stat items + format helpers (compact/rating/count) with fallbackValue
 │   ├── portfolio.ts        # dedupePortfolioItems, formatAssetLabel (sanitized provider# + date), isVideoItem, assetSerialKey + cover fallback (isImageCoverUrl, coverMimeType, buildCoverFallbackItem, withCoverFallback — covers surface as content, avatars never)
 │   ├── db.ts               # Drizzle + Supabase client
-│   ├── drive.ts            # Google Drive API helpers + validation
+│   ├── drive.ts            # Google Drive API: rate-limit classification + backoff/retry (Retry-After), per-process throttle, pagination cap (truncated), stable unsigned thumbnail URLs + legacy-thumb heal helpers, folder URL validation
 │   ├── email-blocks.ts     # EmailTemplateBlock[] → inline-styled HTML + substituteSampleVars/SAMPLE_EMAIL_VARS/previewVarsFor (platform name + resolved logoUrl; relative URLs resolved via lib/url)
   │   ├── email-templates.ts  # WIRED_EMAIL_TEMPLATES registry (welcome/verifyEmail/emailChanged/bookingConfirmation/paymentReceived/passwordReset/bugReportReceived/bugReportUnderReview/bugReportResolved/webinarRegistration/newsletterSubscription: label + trigger) + isWiredEmailTemplate — code-wired emails are preview/simulate only, never sendable/broadcastable; resolveEmailTemplates/resolveEmailTemplate/resolveEmailConfig merge hardcoded defaults under DB-saved templates (defaults apply when a template was never saved to DB)
 │   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
