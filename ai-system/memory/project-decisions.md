@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-14 — payment tightening: escrow window + Paystack rail)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive sync-model decision)
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -857,3 +857,28 @@ A welcome email on every subscribe call would spam re-submits and double-taps; n
 **Implications:**
 - All future "welcome on opt-in" sends must gate on a newly-granted signal computed at the write site, not on the request reaching the endpoint.
 - New wired templates need only a `WIRED_EMAIL_TEMPLATES` entry + a `DEFAULT_CONFIG` default — the admin send guard is key-based and applies automatically.
+
+
+## Google Drive Sync Model: Cache-to-DB + Stable Unsigned Thumbnails + Bounded Rate-Aware Fetches
+
+**Decision:** The Google Drive integration remains a **sync-to-database** model (never on-demand fetch per visitor): `portfolio_items` rows keyed by `drive_file_id` are the render source of truth, populated by sync-on-connect (`POST /api/portfolio/drive`) and a daily cron (`0 3 * * *`, `DriveService.syncAll`). Fetches are rate-limit aware (DriveRateLimitError classification for 429/403-rateLimit bodies, exp-backoff + jitter retries honouring Retry-After, per-process pacing/budget), bounded (`DRIVE_MAX_FILES_PER_FOLDER` cap → `truncated` flag; syncAll aborts remaining providers once throttled), and thumbnails are stored as the **stable unsigned** `drive.google.com/thumbnail?id=&sz=` endpoint — never the API's signed ~1h-TTL `thumbnailLink` (hot-link expiry trap). Legacy rows with expiring thumbs are healed client-side on first error and by the next cron pass.
+**Date:** 2026-10-18
+**Made by:** Product directive (via execute-feature — "Are these accounted for in our google drive integration?")
+**Supersedes:** Implicit "store whatever the Drive API returns" thumbnail behaviour (dev-history 2026-09-08 `=s220→=s600` upgrade of signed links)
+**Superseded by:** None
+
+**Reason:**
+Google documents strict global limits (20k queries/min per Cloud Project, 1.2k per user/IP) and short-lived signed media links. On-demand fetch per visitor would multiply API spend by traffic and make every portfolio view a rate-limit liability; permanent caching of signed links breaks tiles within the hour. Sync-to-DB + stable unsigned thumbnails + bounded, backoff-aware fetches keeps Google spend proportional to provider count (not visitor count), keeps public pages DB-only, and makes cached URLs permanently safe. The folder's "Anyone with the link" share (required for API-key access) is also what makes the unsigned thumbnail endpoint work.
+
+**Alternatives Considered:**
+- On-demand fetch per visitor — rejected: multiplies quota burn by traffic; public pages would depend on Google availability/latency; contradicts the DB-cache architecture used everywhere else.
+- Proxying thumbnails through our own `/api/drive/thumb/[id]` route — rejected for now: adds an egress bandwidth bill and a hot path; the stable Google endpoint already solves expiry for publicly shared files. Revisit if Google tightens the endpoint.
+- Caching the signed `thumbnailLink` with a TTL column + re-resolve — rejected: schema churn for something the stable endpoint solves for free; cron already re-resolves on every sync.
+- OAuth per-provider instead of API key — out of scope; would change the sharing UX entirely.
+- Removing the daily cron once stable thumbnails exist — rejected: cron remains the reconcile pass (new/deleted Drive files, hide-removed, DB backfill of legacy rows).
+
+**Implications:**
+- Any new Drive-touching code must go through `lib/drive.ts` (`fetchFileList`/`fetchAllFiles`) so it inherits the throttle/retry/cap; direct `fetch` to googleapis is a compliance violation.
+- Never persist `thumbnailLink`/`webContentLink` from the API into DB columns that outlive the request.
+- `syncAll` returning `rateLimited: true` means the shared project budget is being consumed — operators should check the cron response, not re-run in a tight loop.
+- The throttle is per-serverless-isolate; if sync volume grows (many providers), move pacing to a shared store or stagger cron sharding before raising `DRIVE_MAX_REQUESTS_PER_MINUTE`.

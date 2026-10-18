@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Play, Film } from "lucide-react";
 import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
+import { driveThumbnailHealSrc } from "@/lib/drive";
 import { formatAssetLabel } from "@/lib/portfolio";
 import type { IPortfolioItem } from "@/types";
 
@@ -25,13 +26,26 @@ export function ExploreVideoCard({
 }: ExploreVideoCardProps) {
   const [loaded, setLoaded] = useState(false);
   const [thumbError, setThumbError] = useState(false);
+  const [healSrc, setHealSrc] = useState<string | null>(null);
 
   const isVideo = item.mimeType.startsWith("video/");
   const isPdf = item.mimeType === "application/pdf";
-  const fixedThumb = fixLegacyVideoThumbnailUrl(item.thumbnailUrl);
+  const fixedThumb = healSrc ?? fixLegacyVideoThumbnailUrl(item.thumbnailUrl);
   const showThumb = !!fixedThumb && !thumbError;
   // sanitized label never exposes raw id; fallback to provider-agnostic short label when provider info absent
   const sanitizedLabel = formatAssetLabel(item, item.providerName ?? undefined, 1);
+
+  // Legacy Drive rows cached a signed googleusercontent.com thumbnail that
+  // expires (~1h). On failure, retry once with the stable unsigned endpoint
+  // before falling back to the placeholder — heals old rows without a re-sync.
+  const handleThumbError = () => {
+    const heal = driveThumbnailHealSrc(item);
+    if (heal && heal !== fixedThumb) {
+      setHealSrc(heal);
+      return;
+    }
+    setThumbError(true);
+  };
 
   return (
     <div
@@ -45,7 +59,7 @@ export function ExploreVideoCard({
             alt={item.title ?? "Portfolio item"}
             className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
             onLoad={() => setLoaded(true)}
-            onError={() => setThumbError(true)}
+            onError={handleThumbError}
           />
           {!loaded && (
             <div className="absolute inset-0 bg-[var(--color-surface-raised)] animate-pulse" />
@@ -60,7 +74,7 @@ export function ExploreVideoCard({
             preload="metadata"
             className="w-full h-full object-cover"
             poster={fixedThumb ?? undefined}
-            onError={() => setThumbError(true)}
+            onError={handleThumbError}
           />
         </div>
       ) : (

@@ -4,7 +4,7 @@ import { providers } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { DriveService } from "@/services/DriveService";
-import { DriveAccessError, DriveValidationError } from "@/lib/drive";
+import { DriveAccessError, DriveRateLimitError, DriveValidationError } from "@/lib/drive";
 
 export async function POST(req: Request) {
   try {
@@ -60,6 +60,18 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
+    // Rate-limit check must precede DriveAccessError (it's a subclass) so a
+    // throttled request gets a retryable 503 rather than the "private folder" 502.
+    if (err instanceof DriveRateLimitError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Google Drive is rate-limiting requests right now. Please wait a minute and try again — your folder connection is fine.",
+        },
+        { status: 503 },
+      );
+    }
     if (err instanceof DriveValidationError) {
       return NextResponse.json(
         { success: false, error: err.message },

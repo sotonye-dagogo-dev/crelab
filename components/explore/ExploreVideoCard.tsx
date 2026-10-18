@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Play, Image as ImageIcon, Film, ExternalLink } from "lucide-react";
 import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
+import { driveThumbnailHealSrc } from "@/lib/drive";
 import { AssetLightbox } from "@/components/profile/AssetLightbox";
 import type { IExploreCard, IPortfolioItem } from "@/types";
 
@@ -66,6 +67,20 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
       : (provider.portfolioThumbnails ?? []).filter(Boolean).slice(0, 5)
     : [];
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [healPortfolioSrc, setHealPortfolioSrc] = useState<string | null>(null);
+
+  // Legacy Drive rows cached a signed googleusercontent.com thumbnail that
+  // expires (~1h). On failure, retry once with the stable unsigned endpoint
+  // before hiding the image — heals old rows without waiting for a re-sync.
+  const handlePortfolioThumbError = (): boolean => {
+    if (!portfolioItem) return false;
+    const heal = driveThumbnailHealSrc(portfolioItem);
+    if (heal && heal !== thumbnailUrl) {
+      setHealPortfolioSrc(heal);
+      return true;
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (!provider || providerCarouselImages.length <= 1 || prefersReducedMotion) return;
@@ -84,7 +99,7 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
   }, [provider?.id]);
 
   const fixThumb = (u: string | null) => fixLegacyVideoThumbnailUrl(u);
-  const portfolioThumb = fixThumb(portfolioItem?.thumbnailUrl ?? null);
+  const portfolioThumb = healPortfolioSrc ?? fixThumb(portfolioItem?.thumbnailUrl ?? null);
   const providerCarouselSrc = provider ? fixThumb(providerCarouselImages[carouselIndex] ?? null) : null;
   const thumbnailUrl = portfolioThumb ?? providerCarouselSrc ?? fixThumb(provider?.avatarUrl ?? null);
 
@@ -153,6 +168,7 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
                 className={`w-full h-auto object-cover transition-opacity duration-[500ms] ${isLoaded ? "opacity-100" : "opacity-0"}`}
                 onLoad={() => setIsLoaded(true)}
                 onError={(e) => {
+                  if (handlePortfolioThumbError()) return;
                   (e.currentTarget as HTMLImageElement).style.display = "none";
                   setIsLoaded(true);
                 }}
@@ -257,6 +273,7 @@ export function ExploreVideoCard({ provider, portfolioItem, onAssetClick, assetI
               }`}
               onLoad={() => setIsLoaded(true)}
               onError={(e) => {
+                if (handlePortfolioThumbError()) return;
                 (e.currentTarget as HTMLImageElement).style.display = "none";
                 setIsLoaded(true);
               }}

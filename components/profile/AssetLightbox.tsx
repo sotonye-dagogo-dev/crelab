@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { ClDialog } from "@/components/ui";
 import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
+import { buildStableDriveThumbnailUrl, driveThumbnailHealSrc } from "@/lib/drive";
 import { formatAssetLabel } from "@/lib/portfolio";
 import type { IPortfolioItem } from "@/types";
 
@@ -16,6 +18,12 @@ interface AssetLightboxProps {
 }
 
 export function AssetLightbox({ item, providerName, indexOneBased, showSource = true, onClose }: AssetLightboxProps) {
+  // Fallback-chain index for the <img> path (hooks run before the null guard).
+  const [imgFallbackIdx, setImgFallbackIdx] = useState(0);
+  const itemId = item?.id ?? null;
+  useEffect(() => {
+    setImgFallbackIdx(0);
+  }, [itemId]);
   if (!item) return null;
   const isVideo = item.mimeType.startsWith("video/");
   const isPdf = item.mimeType === "application/pdf";
@@ -23,6 +31,21 @@ export function AssetLightbox({ item, providerName, indexOneBased, showSource = 
   const fixedThumb = fixLegacyVideoThumbnailUrl(item.thumbnailUrl);
   const label = formatAssetLabel(item, providerName ?? item.providerName, indexOneBased ?? 1);
   const isDrivePreviewLink = isDrive && item.url.includes("drive.google.com");
+
+  // Drive images: webViewLink is an HTML viewer page — it can never render in an
+  // <img>. Render via the stable unsigned thumbnail endpoint (large size) and fall
+  // back through the legacy cached thumb before giving up.
+  const driveStableBig = isDrive && item.driveFileId ? buildStableDriveThumbnailUrl(item.driveFileId, 2000) : null;
+  const driveHeal = isDrive ? driveThumbnailHealSrc(item) : null;
+  const imgFallbacks = isDrive
+    ? [driveStableBig, driveHeal, fixedThumb].filter(
+        (u, i, arr): u is string => !!u && u !== item.url && arr.indexOf(u) === i,
+      )
+    : fixedThumb && fixedThumb !== item.url
+      ? [fixedThumb]
+      : [];
+  const imgPrimarySrc = isDrive ? (driveStableBig ?? item.url) : item.url;
+  const imgSrc = imgFallbackIdx > 0 ? (imgFallbacks[imgFallbackIdx - 1] ?? imgPrimarySrc) : imgPrimarySrc;
 
   return (
     <ClDialog open={!!item} onClose={onClose}>
@@ -58,11 +81,14 @@ export function AssetLightbox({ item, providerName, indexOneBased, showSource = 
             <iframe src={item.url} className="w-full h-[60vh] border-0 bg-white" title={label} />
           ) : (
             <img
-              src={item.url}
+              key={`${item.id}-img-${imgFallbackIdx}`}
+              src={imgSrc}
               alt={label}
               className="max-h-[65vh] w-auto max-w-full object-contain"
-              onError={(e) => {
-                if (fixedThumb) (e.currentTarget as HTMLImageElement).src = fixedThumb;
+              onError={() => {
+                if (imgFallbackIdx < imgFallbacks.length) {
+                  setImgFallbackIdx(imgFallbackIdx + 1);
+                }
               }}
             />
           )}

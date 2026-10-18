@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
-> - last-verified-against-code: 2026-10-16
+> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,18 @@
 
 ## Last Run
 
-**Date:** 2026-10-16
-**Run by:** execute-feature (provider booking sync + navbar overflow + wallet links)
+**Date:** 2026-10-18
+**Run by:** execute-feature (Google Drive limits/caveats hardening)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 530 | 0 | 0 |
+| Unit (vitest) | 555 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | ESLint (`npm run lint` via next lint) | — | 0 errors | — |
 | Production build (`npm run build`) | — | 0 errors (full route build green) | — |
 
-**Overall Status:** ✅ All 530/530 tests pass (43 files). Typecheck clean. Lint 0 errors. Production build green. New tests this run (+12): `__tests__/lib/nav-overflow.test.ts` (navigation defaults, resolve gating incl. wallet auth/disabled + flag filtering, partition incl. no-lone-straggler + degenerate caps, pixel-fit fallback/fit/cap). Note: `node_modules` was absent in this environment — ran `npm install` first, then all gates.
+**Overall Status:** ✅ All 555/555 tests pass (43 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. DriveService suite grew 15 → 40 (+25): rate-limit classification (429, 403-userRateLimitExceeded retry-then-success, persistent-429 → DriveRateLimitError with exact retry budget, plain-403 → private-folder non-retry, 404), stable-thumbnail builder + expiring-URL detector + heal-src contracts, pagination cap/truncated edge cases, ingest never persists signed googleusercontent links, syncAll throttle-abort (only first provider contacted, rest skipped, `rateLimited` flag) + clean-run parity. Note: `node_modules` was absent in this environment — ran `npm install` first, then all gates.
 
 ---
 
@@ -38,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-18 | 555 | 0 | execute-feature: Google Drive limits/caveats hardening (rate-limit classification + backoff/Retry-After, per-process throttle, pagination cap/truncated, stable unsigned thumbnails, syncAll abort, 503 route mapping, client legacy-thumb heal) (+25 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-16 | 530 | 0 | execute-feature: booking selection shared across grid/sidebar/bottom-bar; navbar overflow "More" dropdown + wallet links (profile + nav, config-driven) (+12 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-15 | 498 | 0 | fix-build: masked cross-origin `Script error.` no longer pops the bug dialog (`isIgnorableCapture` + once-per-mount guard); bug-report form required/optional markers (+5 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-14 | 493 | 0 | execute-feature: webinar count + public webinars layout + payment tightening (see prior Last Run). tsc 0 errors, lint 0 errors, build green |
