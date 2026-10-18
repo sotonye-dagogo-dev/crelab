@@ -1,7 +1,7 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Drive rate-limit/expiry hardening entry)
+> - last-updated-by: fix-build (Session 2026-10-18 — admin team PATCH ISO-string timestamp entry)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
@@ -725,3 +725,44 @@ Route all Drive calls through `lib/drive.ts` — never raw-fetch googleapis. Nev
 
 **Date:** 2026-10-18
 **Status:** Active (fixed; logged for pattern recognition)
+
+---
+
+### `a.toISOString is not a function` on Admin Team Member Save (ISO String Passed to Drizzle `.set()`)
+
+**Symptom:**
+Saving team member changes on `/admin/team` (create is fine; **edit** fails) returns
+`a.toISOString is not a function`, rendered under the "+ Add Social Link" block in
+`TeamMemberModal` (that's simply where the modal displays its `error` state — social
+links are unrelated). The active-toggle PATCH fails the same way.
+
+**Root Cause:**
+`app/api/admin/team/[id]/route.ts` built the update payload with
+`updatedAt: new Date().toISOString()` — an ISO **string** — and passed it to
+`db.update(teamMembers).set(...)`. The `updated_at` column is a Drizzle
+`timestamp({ withTimezone: true })` in default `mode: "date"`
+(`drizzle/schema.ts`), so Drizzle's `PgTimestamp.mapToDriverValue` calls
+`value.toISOString()` on the already-string value → TypeError. Next.js minifies
+the server bundle, so the failing parameter shows as `a`. The payload sets
+`updatedAt` unconditionally, so *every* PATCH (including plain active toggles)
+was broken. Sibling routes (`app/api/admin/team/route.ts` create,
+`.../batch/route.ts`) correctly used `new Date()`.
+
+**Fix Applied:**
+One-line change: `updatedAt: new Date()` (a real `Date` object), matching the
+sibling routes. No schema, client, or contract change — response shape unchanged.
+
+**Prevention:**
+Never pass an ISO string (or any non-`Date`) into Drizzle `.set()`/`.insert()`
+for columns declared in default (`mode: "date"`) — pass `new Date()`. The
+inverse rule (raw `sql` fragments need `toISOString()` + `::timestamptz`) is
+already logged above in the `GET /api/webinars` entry; the two rules are
+complements: **ORM column setters → `Date`; raw SQL binds → ISO string + cast.**
+Search for `toISOString()` inside mutation payloads when reviewing new write routes.
+
+**Files Affected:**
+- `app/api/admin/team/[id]/route.ts` (the fix)
+- `components/admin/TeamMemberModal.tsx` (error display location only — unchanged)
+
+**Date:** 2026-10-18
+**Status:** Active
