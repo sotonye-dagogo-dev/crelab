@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
-> - last-verified-against-code: 2026-10-16
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -179,6 +179,13 @@ Portfolio attach on upload (services/PortfolioService.attachUploadToProvider)
   → drizzle/schema.ts (providers lookup by userId → addItem, idempotent by URL/driveFileId)
   → consumed (best-effort, never fails the upload) by app/api/media/upload + app/api/media/confirm + app/api/media/batch-upload
 
+Drive link quick preview (DriveService.previewFolder — read-only, zero DB)
+  → lib/drive.ts (validateFolderUrl/parseFolderId, fetchDriveFolderMetadata, fetchFileList pageSize, stable thumbnails, error taxonomy + shared throttle)
+  → lib/rate-limit.ts consumeRateWindow (per-user window; 429 + Retry-After → client cooldown)
+  → lib/auth.ts (session + PROVIDER/ADMIN role guard; NO provider-row requirement — onboarding/collect mode works)
+  → consumed by app/api/portfolio/drive/preview/route.ts → components/profile/DriveConnectSettings (Quick preview button, both live + collect modes) → components/profile/DriveLinkPreview (result card)
+  → no edges into lib/db or PortfolioService (the point of the feature: test Google without writing)
+
 Cloudinary flows
   → lib/cloudinary.ts — raw fetch → https://api.cloudinary.com/v1_1/{cloudName}/{image,upload,video}/upload + Admin API (delete by public_id). Reads env at call time: CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET/UPLOAD_PRESET with NEXT_PUBLIC_CLOUDINARY_* fallbacks. No SDK dependency.
   → consumed by app/api/media/upload + app/api/admin/media/[id] + services/MediaAssetService
@@ -207,6 +214,7 @@ Lib Module
   → errors.ts is a leaf module — no dependencies beyond node's Error (imported by WalletService, MilestoneService, and integrations)
   → lib/url.ts is a leaf module — appOrigin() (NEXT_PUBLIC_APP_URL → VERCEL_URL → http://localhost:3000) + resolveAbsoluteUrl() (prefixes relative paths, leaves http/https/`//` unchanged) + resolveUrlForRender() (resolves relative, leaves `{{tokens}}` intact) + resolveRelativeUrlsInHtml() (rewrites relative `img src`/`a href`); consumed by EmailService + app/layout.tsx + lib/email-blocks.ts + components/blog/ContentBlocks.tsx
   → lib/seo.ts → types/index.ts (IPlatformConfig) + lib/url.ts (absolute logo/canonical) — buildSeoMetadata() consumed by app/layout.tsx + per-page generateMetadata
+  → lib/rate-limit.ts is a leaf module — generic in-memory sliding-window limiter (consumeRateWindow(key, {limit, windowMs}), injectable now, denied attempts not recorded, bounded key sweep); consumed by app/api/portfolio/drive/preview
   → lib/email-blocks.ts is a leaf module — blocksToHtml() serializes EmailTemplateBlock[] to inline-styled HTML + substituteSampleVars()/SAMPLE_EMAIL_VARS/previewVarsFor for previews (relative URLs resolved via lib/url resolveRelativeUrlsInHtml); consumed by EmailService + app/admin/email-templates
 
 Email verify flow (verify-email)
@@ -359,7 +367,7 @@ Drizzle
 | shadcn/ui (via Cl* wrappers) | UI primitives (wrapped) | components/ui/ |
 | zod | Schema validation (package.json) | app/api/explore, app/api/admin/*/batch, app/api/webinars, app/api/admin/webinars, app/api/webinars/[id]/register, app/api/bug-report |
 | Cloudinary (via lib/cloudinary.ts raw fetch — no SDK) | Media upload, thumbnail, signed delete | lib/cloudinary.ts, app/api/media/upload, app/api/admin/media/[id] |
-| Google Drive API (raw fetch — no SDK import in lib/drive.ts) | Google Drive portfolio sync | lib/drive.ts, services/DriveService.ts |
+| Google Drive API (raw fetch — no SDK import in lib/drive.ts) | Google Drive portfolio sync + read-only link preview | lib/drive.ts, services/DriveService.ts, app/api/portfolio/drive, app/api/portfolio/drive/preview |
 | @sanity/client, @sanity/image-url (via next-sanity) | Sanity CMS content fetching + image URL builder | lib/sanity.ts, sanity/, app/(public)/blog/ |
 | resend | Transactional email (raw HTTP, no SDK) | services/EmailService.ts |
 | Not yet wired: Paystack SDK, Mux SDK, Flutterwave | — | — |

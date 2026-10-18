@@ -1,8 +1,8 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-14 — webinar count + public webinars layout + payment tightening)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: update-ai-system (Session 2026-10-18 — Drive link quick preview)
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -26,7 +26,7 @@
 - [x] Provider Onboarding Wizard: multi-step (category -> details -> packages -> portfolio -> preview)
 - [x] Provider Profile Page (/profile/[slug]): cover video hero, identity bar, portfolio grid, packages, reviews (components + route)
 - [x] Portfolio Upload: addItem, updateItem, reorder, setHidden, deleteItem (service-layer, no drag-and-drop UI yet)
-- [x] Google Drive Portfolio Sync: URL validation, fetchFileList, fetchAllFiles, ingestFolder, syncAll cron
+- [x] Google Drive Portfolio Sync: URL validation, fetchFileList, fetchAllFiles, ingestFolder, syncAll cron + rate-limit hardening (2026-10-18) + read-only link quick preview (metadata + bounded sample, no DB writes, per-user budget)
 - [x] Provider Dashboard (basic): profile components built (Hero, PortfolioGrid, ServicePackages, ReviewsSection, WorkHistory)
 
 ### Milestone 1.2 — Discovery & Client Side (Week 3)

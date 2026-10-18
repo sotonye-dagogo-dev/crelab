@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats lessons)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive quick-preview lessons)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -30,6 +30,23 @@
 ---
 
 ## Lessons
+
+## "Just a Preview" Endpoints Still Spend the Shared Third-Party Budget — Budget Them in Layers
+
+**Context:** The Drive link quick-preview is a user-facing convenience (1–2 API calls per click), but Google's rate limits are per Cloud Project — an unbounded preview button is a public API meter that any single user could drain, starving the daily sync cron.
+
+**What We Learned:**
+1. Layer the budget instead of trusting one guard: (a) the existing provider-side throttle/retry loop (shared, per-isolate), (b) a per-caller window at the endpoint (`lib/rate-limit.ts` — generic, in-memory, injectable-clock for tests; denied attempts not recorded so waiting isn't punished further), (c) a hard cap on work per call (sample size). Each layer bounds a different blast radius.
+2. Mirror the server's 429/503 `Retry-After` in the UI as a visible countdown — a silent disabled button makes users think the feature is broken and they click harder.
+3. Client-side shape validation before spending a slot: typos fail instantly and cost zero budget; the server re-validates regardless.
+4. A read-only "test" endpoint must have literally no write edges — assert it in tests (no PortfolioService/db calls), don't just trust the code path.
+
+**Apply When:** adding any endpoint that fans out to a rate-limited third party (Drive, Sanity, Paystack, email), or any cheap-looking user-triggered external call.
+
+**Supersedes:** None (complements the 2026-10-18 Drive throttle lesson: classify-then-retry)
+**Superseded by:** None
+
+---
 
 ## Money Movement Must Be Exactly-Once — Deterministic Unique References + Direction-Aware Ordering
 

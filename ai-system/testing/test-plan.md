@@ -2,7 +2,7 @@
 
 > **Metadata**
 > - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: re-verify if new features are added
 
 > **Overview:** Defines what needs to be tested and at what level for Crelab. Referenced by verify-work.md during the quality gate. Updated as new features are added.
@@ -14,7 +14,7 @@
 - [ ] Service layer: BookingService methods (create request, accept, decline)
 - [ ] Service layer: EscrowService state machine transitions
 - [ ] Service layer: PaymentService (paystack ref validation, fee calc)
-- [ ] Service layer: DriveService (URL validation, folder ID parsing, file filter)
+- [ ] Service layer: DriveService (URL validation, folder ID parsing, file filter, rate-limit classification/retry, stable thumbnails; previewFolder read-only mapping with zero DB writes)
 - [ ] Service layer: PortfolioService (CRUD, reorder, hide/show)
 - [ ] Service layer: ReviewService (create, aggregate rating)
 - [ ] Utility functions: kobo formatting, date calculations, slug generation
@@ -26,7 +26,7 @@
 
 - [ ] API routes: Booking CRUD (happy path + error handling)
 - [ ] API routes: Portfolio CRUD (happy path + auth gating)
-- [ ] API routes: Drive sync trigger (auth, validation, error states)
+- [ ] API routes: Drive sync trigger + drive/preview (auth, role guard, no provider-row gate on preview, validation, per-user budget 429, error states)
 - [ ] API routes: Admin config update (auth, validation)
 - [ ] API routes: Webhook handlers (Paystack HMAC verification, idempotency)
 - [ ] Auth flow: registration, login, role assignment, consent recording

@@ -710,6 +710,7 @@
     <!-- State toggle pills -->
     <div class="state-toggles">
       <button class="state-pill active" data-state="disconnected">Disconnected</button>
+      <button class="state-pill" data-state="preview">Preview</button>
       <button class="state-pill" data-state="syncing">Syncing</button>
       <button class="state-pill" data-state="synced">Synced</button>
       <button class="state-pill" data-state="error-private">Error — Private</button>
@@ -727,11 +728,18 @@
     </p>
     <!-- DESIGN.md §reference: platformConfig.features.drive must be enabled. Folder must be shared with 'Anyone with the link'. DriveService reads files via Google Drive Files API v3, key=GOOGLE_API_KEY. No OAuth. -->
 
-    <!-- Input row -->
-    <div class="flex-row" style="gap:10px;margin-bottom:0">
-      <div style="flex:1;min-width:0">
+    <!-- Input row (Quick preview is only active in the Disconnected state — it
+         calls POST /api/portfolio/drive/preview: READ-ONLY, no DB writes,
+         bounded sample (DRIVE_PREVIEW_MAX_FILES) + per-user budget
+         (DRIVE_PREVIEW_MAX_PER_MINUTE → 429 + Retry-After, mirrored as a
+         client cooldown "Preview in Ns"). -->
+    <div class="flex-row" style="gap:10px;margin-bottom:0;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px">
         <input class="cl-input" id="drive-input" type="url" placeholder="https://drive.google.com/drive/folders/..." />
       </div>
+      <button class="cl-btn cl-btn-outlined cl-btn-default" id="preview-btn" style="flex-shrink:0;padding:0 16px">
+        <span id="preview-btn-text">Quick preview</span>
+      </button>
       <button class="cl-btn cl-btn-primary cl-btn-default" id="sync-btn" style="flex-shrink:0;padding:0 16px">
         <span id="sync-btn-text">Sync Folder</span>
       </button>
@@ -759,6 +767,59 @@
           </svg>
           <div style="font-family:var(--font-body);font-size:14px;color:var(--color-text-secondary)">Paste a Drive
             folder link and click Sync to import your portfolio.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- State: Preview — read-only link check (nothing saved yet)         -->
+    <!-- ================================================================ -->
+    <div id="state-preview" class="state-content" style="display:none">
+      <div class="cl-card" style="border-color:var(--color-border);margin-top:var(--space-4);background:var(--color-surface-raised)">
+        <!-- Success header -->
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:var(--space-2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--color-success)" stroke="var(--color-surface)" stroke-width="2" style="margin-top:2px;flex-shrink:0">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          <div style="min-width:0">
+            <div style="font-family:var(--font-body);font-size:13px;font-weight:var(--weight-semibold);color:var(--color-success)">Link looks good</div>
+            <div style="font-family:var(--font-body);font-size:12px;color:var(--color-text-secondary);word-break:break-word">My Reels is publicly reachable.</div>
+          </div>
+        </div>
+
+        <!-- Counts -->
+        <div style="display:flex;flex-wrap:wrap;gap:4px 16px;font-family:var(--font-body);font-size:12px;color:var(--color-text-secondary);margin-bottom:var(--space-3)">
+          <span><strong style="color:var(--color-text-primary)">8</strong> ready to sync</span>
+          <span><strong style="color:var(--color-text-primary)">2</strong> skipped (unsupported format)</span>
+          <span style="color:var(--color-text-tertiary)">First 10 checked (more in folder)</span>
+        </div>
+
+        <!-- Sample thumbnail grid — production renders
+             <img src="https://drive.google.com/thumbnail?id={id}&sz=w600" />
+             (stable UNSIGNED endpoint — never the signed ~1h-TTL thumbnailLink),
+             Video tiles get a play badge, skipped files get an "Skipped" tag. -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:var(--space-3)">
+          <div style="position:relative;aspect-ratio:16/9;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;justify-content:center;color:var(--color-text-tertiary)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+            <span style="position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.65);color:#fff;font-size:9px;padding:2px 5px;border-radius:4px">Video</span>
+          </div>
+          <div style="position:relative;aspect-ratio:16/9;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;justify-content:center;color:var(--color-text-tertiary)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+          </div>
+          <div style="position:relative;aspect-ratio:16/9;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;justify-content:center;color:var(--color-text-tertiary)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+            <span style="position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.65);color:#fff;font-size:9px;padding:2px 5px;border-radius:4px">Video</span>
+          </div>
+          <div style="position:relative;aspect-ratio:16/9;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;justify-content:center;color:var(--color-text-tertiary)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+            <span style="position:absolute;right:4px;top:4px;background:var(--color-error);color:#fff;font-size:9px;padding:2px 5px;border-radius:4px">Skipped</span>
+          </div>
+        </div>
+
+        <!-- Read-only reassurance -->
+        <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:11px;color:var(--color-text-tertiary)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+          Read-only check against Google — nothing has been saved yet. Sync Folder to import these into your portfolio.
         </div>
       </div>
     </div>
@@ -1048,7 +1109,7 @@
   <script>
     (function () {
       /* ---- State management ---- */
-      var states = ['disconnected', 'syncing', 'synced', 'error-private', 'error-empty'];
+      var states = ['disconnected', 'preview', 'syncing', 'synced', 'error-private', 'error-empty'];
       var currentState = 'disconnected';
       var pills = document.querySelectorAll('.state-pill');
       var stateContents = {};
@@ -1058,6 +1119,8 @@
       var inputEl = document.getElementById('drive-input');
       var syncBtn = document.getElementById('sync-btn');
       var syncBtnText = document.getElementById('sync-btn-text');
+      var previewBtn = document.getElementById('preview-btn');
+      var previewBtnText = document.getElementById('preview-btn-text');
       var validationError = document.getElementById('validation-error');
       var portfolioGrid = document.getElementById('portfolio-grid');
       var portfolioEmpty = document.getElementById('portfolio-empty');
@@ -1083,6 +1146,14 @@
           syncBtn.disabled = false;
         }
 
+        // Quick preview mirrors the implementation: only offered while the
+        // user is entering a link (DriveConnectSettings DISCONNECTED state);
+        // success keeps that state and shows the read-only card below.
+        var entering = (state === 'disconnected' || state === 'preview');
+        previewBtn.style.display = entering ? '' : 'none';
+        previewBtn.disabled = !entering;
+        previewBtnText.textContent = (state === 'preview') ? 'Preview again' : 'Quick preview';
+
         // Portfolio grid visibility
         portfolioGrid.style.display = (state === 'synced') ? '' : 'none';
         portfolioEmpty.style.display = (state === 'error-empty') ? '' : 'none';
@@ -1103,6 +1174,18 @@
         var pattern = /drive\.google\.com\/drive\/folders\//;
         return pattern.test(url);
       }
+
+      previewBtn.addEventListener('click', function () {
+        var val = inputEl.value.trim();
+        if (!val || !validateUrl(val)) {
+          validationError.style.display = 'flex';
+          return;
+        }
+        validationError.style.display = 'none';
+        // Read-only check — production calls POST /api/portfolio/drive/preview
+        // and swaps the card in without leaving the entering state.
+        setState('preview');
+      });
 
       syncBtn.addEventListener('click', function () {
         var val = inputEl.value.trim();
@@ -1132,6 +1215,15 @@
 
       inputEl.addEventListener('input', function () {
         validationError.style.display = 'none';
+        // A stale preview never sits under a different link: leaving the
+        // preview display without touching what the user is typing.
+        if (currentState === 'preview') {
+          currentState = 'disconnected';
+          pills.forEach(function (p) { p.classList.toggle('active', p.dataset.state === 'disconnected'); });
+          stateContents['preview'].style.display = 'none';
+          stateContents['disconnected'].style.display = '';
+          previewBtnText.textContent = 'Quick preview';
+        }
       });
 
       /* ---- Media overlay ---- */
