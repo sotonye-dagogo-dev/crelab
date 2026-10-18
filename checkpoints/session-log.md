@@ -1,5 +1,19 @@
 # Session Log
 
+## 2026-10-18 — fix-build (Admin Team Member Save: `a.toISOString is not a function`)
+
+### What
+Fixed the error team members hit when saving their profile edits on `/admin/team`: the update payload passed an ISO **string** (`new Date().toISOString()`) as `updatedAt` into Drizzle's `.set()`, but the `team_members.updated_at` column is a default-mode `timestamp` requiring a `Date` — Drizzle's `PgTimestamp.mapToDriverValue` then called `.toISOString()` on the string and threw (minified param `a`). Because `updatedAt` was set unconditionally, every PATCH (including the active toggle) failed; the error rendered under "+ Add Social Link" only because that's where the modal displays its error state.
+
+### Key Changes
+- `app/api/admin/team/[id]/route.ts` — `updatedAt: new Date().toISOString()` → `updatedAt: new Date()`, matching `app/api/admin/team/route.ts` (create) and `.../batch/route.ts`.
+- `ai-system/repair-system.md` — new error-pattern entry (complements the existing raw-SQL vs ORM-column-setter date rule from the `/api/webinars` entry).
+
+### Status
+Pass — typecheck clean, 575/575 tests pass. Non-breaking: request/response contract unchanged.
+
+---
+
 ## 2026-08-28 — Public Pages + Portfolio Gallery + Media Upload Hardening
 
 ### What

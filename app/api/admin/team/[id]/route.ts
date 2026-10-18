@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const updateData: Record<string, unknown> = {
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date(),
     };
     if (body.name !== undefined) updateData.name = body.name;
     if (body.role !== undefined) updateData.role = body.role;
