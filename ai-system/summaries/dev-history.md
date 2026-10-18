@@ -1,8 +1,30 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
-> - last-verified-against-code: 2026-10-16
+> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-verified-against-code: 2026-10-18
+
+
+## Session 2026-10-18 — execute-feature: Google Drive Limits & Caveats Hardening
+
+### What
+Directive: audit whether Google's documented Drive API limits — rate limits (20k/min per project, 1.2k/min per user; 403 "User Rate Limit Exceeded" / 429), the "hot-link expiry trap" (signed webContentLink/thumbnailLink TTLs), and folder quotas (500k items / depth 100) — are accounted for in the integration; harden end-to-end if not. Also documents the on-demand-vs-cache answer: the platform caches/syncs to DB (sync-on-connect + daily cron), not on-demand fetch per visitor.
+
+### Verification
+`vitest` → 43 files, **555 passed / 0 failed** (+25 in the extended DriveService suite: rate-limit classification, retry/backoff incl. Retry-After, private-403 non-retry, 404 mapping, stable-URL builder + heal helpers, pagination cap/truncated, ingest stable-thumbnail contract, syncAll throttle-abort). `tsc --noEmit` → clean. `next lint` → 0 errors (pre-existing warnings only, none in changed files). `npm run build` → green. Note: `node_modules` was absent in the runner — `npm install` run first.
+
+### Audit Findings (all three caveats were previously unaccounted for)
+1. **Rate limits:** every 403 was misclassified as "Folder is private" (`lib/drive.ts`), so a throttled request produced a misleading 502; no 429 handling, no retries, no Retry-After, no request pacing; `fetchAllFiles` paginated unbounded (a 500k-item folder = ~5,000 back-to-back API calls in one ingest).
+2. **Hot-link expiry:** the signed ~1h-TTL `thumbnailLink` (googleusercontent.com) was persisted permanently in `portfolio_items.thumbnail_url` (with a signature-mutating `=s220→=s600` string swap); daily cron refresh left up to ~24h of broken tiles, and no client fallback existed for legacy rows.
+3. **Folder quotas:** no item cap; depth-100 was already moot (query lists direct children only — no recursion).
+
+### Key Changes
+- **`lib/drive.ts`:** `DriveRateLimitError extends DriveAccessError` (pre-existing catch sites keep working; distinct handling checks it first); classifier separates 429 / 403-with-rate-limit body (rateLimitExceeded, userRateLimitExceeded, quotaExceeded, "too many requests") from plain private-403 and 404; `fetchFileList` retries with exponential backoff + jitter (capped 30s), honours Retry-After, and also retries transient network failures; per-process throttle (`acquireDriveRequestSlot`: min spacing + sliding 60s window, waits rather than rejects; `__resetDriveThrottleForTests`); `fetchAllFiles` returns `{ files, truncated, total }` and stops at `DRIVE_MAX_FILES_PER_FOLDER` (default 500); `buildStableDriveThumbnailUrl` (unsigned `drive.google.com/thumbnail?id=&sz=w600` — safe to cache forever for publicly shared files, which the API-key integration requires), `isExpiringDriveThumbnailUrl`, `driveThumbnailHealSrc` (client one-shot heal). Serverless caveat documented: throttle state is per-isolate; conservative defaults + single daily cron keep the aggregate well under Google's limits.
+- **`services/DriveService.ts`:** ingest stores the stable unsigned thumbnail (signed links never persisted); dead Cloudinary-thumb branch for Drive files removed; `DriveIngestResult.truncated` surfaces the cap; `syncAll` skips all remaining providers once `DriveRateLimitError` occurs (shared project budget) and returns `rateLimited`.
+- **`app/api/portfolio/drive/route.ts`:** rate-limit → **503** with a friendly retry message (checked before the `DriveAccessError` 502 since it's a subclass).
+- **Client healing (non-breaking):** `components/shared/ExploreVideoCard.tsx`, `components/explore/ExploreVideoCard.tsx` (gallery + provider modes) and `components/profile/AssetLightbox.tsx` retry once with the stable endpoint when a legacy signed thumb 400s, then fall back to the existing placeholder; AssetLightbox also renders DRIVE images via the stable large thumbnail (webViewLink is an HTML viewer page and can never render inside `<img>` — previously a guaranteed broken image).
+- **`.env.example`:** five documented `DRIVE_*` knobs (max files, retries, retry base, min interval, per-minute cap).
+- Docs close — system-architecture (DriveService row + rewritten sync flow + Recent Changes), repo-map, task-queue, dev-history, project-decisions, test-results, session-log; in-progress cleared. No migrations (schema untouched — stable thumbnails flow through the existing `thumbnail_url` column; daily cron self-heals legacy rows, clients heal instantly).
 
 
 ## Session 2026-10-16 — execute-feature: Provider Booking Sync + Navbar Overflow + Wallet Links

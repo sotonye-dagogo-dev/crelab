@@ -1,8 +1,8 @@
 # Repair System — Error Knowledge Base
 
 > **Metadata**
-> - last-updated-by: fix-build (Session 2026-10-15 — bug-popup Script-error entry)
-> - last-verified-against-code: 2026-10-15
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive rate-limit/expiry hardening entry)
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: individual entries may be stale if the code has changed around them — verify fix still applies before reusing
 
 > **Overview:** Living knowledge base of errors encountered during Crelab development. Agents must search this before diagnosing new errors and log every fixed bug to prevent recurrence.
@@ -702,3 +702,26 @@ Any new `window.onerror`/`unhandledrejection` consumer must route through `isIgn
 
 **Date:** 2026-10-15
 **Status:** Active
+
+### Drive Sync Fails With "Folder is private" / Thumbnails Break After ~1 Hour
+
+**Symptom:**
+- Providers report Drive sync failing with "Folder is private or sharing settings prevent access" even though sharing is correct — typically during busy periods (cron runs, many providers).
+- Portfolio/explore tiles show broken images after being fine for a while; browser console shows 400s from `lh3.googleusercontent.com/...=s220`-style URLs.
+
+**Root Cause:**
+1. Google reuses HTTP 403 for BOTH permission failures AND rate-limit failures (`rateLimitExceeded`/`userRateLimitExceeded`/`quotaExceeded`); the old handler mapped every 403 to the private-folder message, so throttling masqueraded as a sharing problem. 429s were unmapped.
+2. The API's `thumbnailLink` is a signed googleusercontent URL with ~1h TTL; it was persisted permanently in `portfolio_items.thumbnail_url`, so cached tiles expired within the hour (and the `=s220→=s600` string swap mutated the signature).
+
+**Fix Applied (2026-10-18):**
+- `lib/drive.ts` classifies rate limits from status + body, retries with backoff/Retry-After, paces requests, caps pagination (`truncated`), and `DriveService` stores stable unsigned `drive.google.com/thumbnail?id=&sz=` URLs; syncAll aborts on throttle; route returns retryable 503; clients one-shot-heal legacy thumbs.
+
+**Prevention:**
+Route all Drive calls through `lib/drive.ts` — never raw-fetch googleapis. Never persist `thumbnailLink`/`webContentLink` (or any signed CDN URL) into long-lived columns. Classify third-party 403s by body before mapping them to user-facing errors.
+
+**Files Affected:**
+- `lib/drive.ts`, `services/DriveService.ts`, `app/api/portfolio/drive/route.ts`
+- `components/shared/ExploreVideoCard.tsx`, `components/explore/ExploreVideoCard.tsx`, `components/profile/AssetLightbox.tsx`
+
+**Date:** 2026-10-18
+**Status:** Active (fixed; logged for pattern recognition)

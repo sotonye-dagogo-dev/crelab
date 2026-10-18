@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — booking selection + navbar overflow lessons)
-> - last-verified-against-code: 2026-10-16
+> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats lessons)
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -789,6 +789,23 @@
 3. Mobile never needs the dropdown: the full-screen overlay is already scrollable, so it renders the whole resolved list (wallet included when eligible).
 
 **Apply When:** Any inline link row can outgrow its container — measure, spill into More, keep the math pure.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Never Persist Signed, Short-Lived CDN URLs; Classify Rate Limits by Body, Not Status Alone
+
+**Context:** The Drive integration stored Google's API-provided `thumbnailLink` (a signed googleusercontent.com URL that expires in ~1h) permanently in `portfolio_items.thumbnail_url`, and mapped every 403 to "Folder is private" — so throttled requests looked like sharing misconfigurations, and cached thumbnails silently expired.
+
+**What We Learned:**
+1. When a third-party API returns a media URL, check whether it is signed/expiring before caching it past the request. Prefer building a stable, unsigned endpoint URL from the resource id (Drive's `drive.google.com/thumbnail?id=&sz=`) — anything persisted in a DB column must outlive the session that fetched it.
+2. Google (and others) reuse 403 for BOTH permission and rate-limit failures — classify by response body reasons (`rateLimitExceeded`/`userRateLimitExceeded`/`quotaExceeded`) and 429, not status code alone; a rate-limit 403 must retry/backoff and surface retryable 5xx, never a "fix your sharing settings" 502.
+3. Bound every unbounded pagination loop against the provider's documented item quota (`maxFiles` + `truncated` flag beats 5,000 sequential API calls), and abort multi-entity batch work once the shared budget starts throttling — continuing only burns more of the same global limit.
+4. For already-persisted bad URLs, ship a client-side one-shot heal (retry once with the stable URL before the placeholder) so legacy rows recover instantly, while the next background sync repairs the DB — no migration, no downtime.
+
+**Apply When:** Integrating any file/CDN API (Drive, S3 presign, Cloudflare, Mux) — persist stable URLs only, classify provider errors from bodies, cap pagination, abort batches on budget exhaustion.
 
 **Supersedes:** None
 **Superseded by:** None

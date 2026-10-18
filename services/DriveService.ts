@@ -1,16 +1,17 @@
 import { db } from "@/lib/db";
-import { portfolioItems, providers } from "@/drizzle/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { providers } from "@/drizzle/schema";
+import { eq, and } from "drizzle-orm";
 import {
   validateFolderUrl,
   parseFolderId,
   fetchAllFiles,
   isSupportedMimeType,
   getSupportedMimeType,
+  buildStableDriveThumbnailUrl,
   DriveAccessError,
+  DriveRateLimitError,
   DriveValidationError,
 } from "@/lib/drive";
-import { generateVideoThumbnail } from "@/lib/cloudinary";
 import { PortfolioService } from "@/services/PortfolioService";
 import type { IPortfolioItem } from "@/types";
 
@@ -19,12 +20,14 @@ export interface DriveIngestResult {
   updated: number;
   hidden: number;
   total: number;
+  /** True when the folder held more files than the per-ingest cap (DRIVE_MAX_FILES_PER_FOLDER) allowed. */
+  truncated: boolean;
 }
 
 export interface IDriveService {
   validateFolderUrl(url: string): boolean;
   ingestFolder(providerId: string, folderUrl: string): Promise<DriveIngestResult>;
-  syncAll(): Promise<{ synced: number; errors: string[] }>;
+  syncAll(): Promise<{ synced: number; errors: string[]; rateLimited: boolean }>;
 }
 
 export class DriveService implements IDriveService {
@@ -45,15 +48,16 @@ export class DriveService implements IDriveService {
       throw new DriveValidationError("Could not extract folder ID from URL");
     }
 
-    let driveFiles;
+    let driveResult;
     try {
-      driveFiles = await fetchAllFiles(folderId);
+      driveResult = await fetchAllFiles(folderId);
     } catch (err) {
       if (err instanceof DriveAccessError) throw err;
       throw new DriveAccessError(
         `Failed to fetch files: ${err instanceof Error ? err.message : "Unknown error"}`,
       );
     }
+    const { files: driveFiles, truncated } = driveResult;
 
     const supportedFiles = driveFiles.filter((f) =>
       isSupportedMimeType(f.mimeType),
@@ -75,16 +79,11 @@ export class DriveService implements IDriveService {
       const existing = existingByDriveId.get(file.id);
 
       const mimeType = getSupportedMimeType(file.mimeType) ?? file.mimeType;
-      // Tightened end-to-end: prefer Drive's own thumbnailLink (already CDN-cached), but ensure
-      // it is not the low-res "=s220" variant alone — upgrade to =s600 when possible for portfolio quality.
-      // For video without thumbnailLink, fall back to Cloudinary thumb helper only if URL is Cloudinary; else keep null and let UI render video element.
-      let thumbnailUrl: string | null = file.thumbnailLink
-        ? file.thumbnailLink.replace(/=s\d+$/, "=s600")
-        : null;
-      if (!thumbnailUrl && mimeType.startsWith("video/")) {
-        const isCloudinaryUrl = file.webViewLink.includes("res.cloudinary.com");
-        thumbnailUrl = isCloudinaryUrl ? generateVideoThumbnail(file.webViewLink) : null;
-      }
+      // Hot-link expiry trap: the API's thumbnailLink is a signed googleusercontent.com
+      // URL that expires within the hour — caching it permanently breaks tiles later.
+      // Store the stable, unsigned thumbnail endpoint instead (public-share required
+      // for API-key access anyway), so the URL never goes stale in the DB.
+      const thumbnailUrl = buildStableDriveThumbnailUrl(file.id);
 
       if (existing) {
         await PortfolioService.updateItem(existing.id, {
@@ -115,10 +114,10 @@ export class DriveService implements IDriveService {
       }
     }
 
-    return { added, updated, hidden, total: supportedFiles.length };
+    return { added, updated, hidden, total: supportedFiles.length, truncated };
   }
 
-  async syncAll(): Promise<{ synced: number; errors: string[] }> {
+  async syncAll(): Promise<{ synced: number; errors: string[]; rateLimited: boolean }> {
     const allProviders = await db
       .select()
       .from(providers)
@@ -130,21 +129,37 @@ export class DriveService implements IDriveService {
       );
 
     let synced = 0;
+    let rateLimited = false;
     const errors: string[] = [];
 
     for (const provider of allProviders) {
       if (!provider.driveFolderUrl) continue;
 
+      // Rate limits apply globally to the Cloud Project — once Google starts
+      // throttling, continuing through the remaining providers would only burn
+      // more of the (shared) budget. Skip the rest; the next cron run picks up.
+      if (rateLimited) {
+        errors.push(
+          `${provider.displayName}: skipped — Google Drive rate limit was reached earlier in this run`,
+        );
+        continue;
+      }
+
       try {
         await this.ingestFolder(provider.id, provider.driveFolderUrl);
         synced++;
       } catch (err) {
+        if (err instanceof DriveRateLimitError) {
+          rateLimited = true;
+          errors.push(`${provider.displayName}: ${err.message}`);
+          continue;
+        }
         errors.push(
           `${provider.displayName}: ${err instanceof Error ? err.message : "Unknown error"}`,
         );
       }
     }
 
-    return { synced, errors };
+    return { synced, errors, rateLimited };
   }
 }

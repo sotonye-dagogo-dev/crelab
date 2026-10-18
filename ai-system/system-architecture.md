@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — provider booking sync + navbar overflow + wallet links)
-> - last-verified-against-code: 2026-10-16
+> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-verified-against-code: 2026-10-18
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -27,7 +27,7 @@ Service Layer (services/)
     |-- BookingService          -- Booking lifecycle (REQUESTED -> RELEASED/REFUNDED, now stores paymentMode + validates milestone config)
     |-- EscrowService           -- Escrow state machine (PENDING -> HELD -> IN_PROGRESS -> RELEASED/DISPUTED, now uses real client email + BOOKING_PAYMENT metadata)
     |-- PortfolioService        -- Portfolio CRUD, reorder, hide/show + attachUploadToProvider (best-effort portfolio attach on every media upload/confirm, idempotent)
-    |-- DriveService            -- Google Drive folder sync, validate, ingest
+    |-- DriveService            -- Google Drive folder sync: rate-limit aware (DriveRateLimitError classification for 429/403 + exp-backoff/Retry-After retries + per-process pacing/budget), pagination cap (truncated flag), stable unsigned thumbnail URLs (hot-link expiry mitigation), syncAll aborts remaining providers once throttled
     |-- PaymentService          -- LEGACY Paystack integration (initPaystack/splitPayout unused — settlement runs through EscrowService + WalletService, see Paystack Rail decision 2026-10-14)
     |-- PlatformConfigService   -- Config CRUD with DB override + cached reads
     |-- ExploreService          -- Provider search, filter, sort, cursor pagination + portfolio thumbnails for tile carousel
@@ -226,14 +226,26 @@ Data Stores
 
 ### Google Drive Portfolio Sync Flow
 ```
+Sync model: CACHE-TO-DB (not on-demand). portfolio_items rows keyed by drive_file_id
+are the source of truth for render; Drive is only consulted at sync time.
 1. Provider pastes public Drive folder URL
-2. POST /api/portfolio/drive -> DriveService.ingestFolder()
-3. Parse folder ID from URL, fetch file list via Google Drive Files API v3
+2. POST /api/portfolio/drive -> DriveService.ingestFolder()  (DriveRateLimitError -> 503 retryable)
+3. Parse folder ID from URL; fetch file list via Google Drive Files API v3 with:
+   - rate-limit classification (429 / 403 rateLimitExceeded|userRateLimitExceeded|quotaExceeded
+     -> DriveRateLimitError; plain 403 stays "private folder")
+   - exponential backoff + jitter retries honouring Retry-After (DRIVE_FETCH_MAX_RETRIES/RETRY_BASE_MS)
+   - per-process pacing: min spacing + sliding 60s window cap (DRIVE_MIN_REQUEST_INTERVAL_MS /
+     DRIVE_MAX_REQUESTS_PER_MINUTE; serverless caveat: per-isolate budget, defaults conservative)
+   - pagination cap DRIVE_MAX_FILES_PER_FOLDER (Drive folders hold up to 500k items) -> truncated flag
 4. Filter supported mimeTypes (mp4, jpg, png, pdf)
-5. Generate Cloudinary thumbnails for video files
+5. Thumbnails: stable UNSIGNED drive.google.com/thumbnail?id=&sz=w600 endpoint (buildStableDriveThumbnailUrl)
+   — the API's thumbnailLink is a signed ~1h-TTL googleusercontent URL; caching it breaks tiles later.
+   Client renderers one-shot-heal legacy expiring thumbs (driveThumbnailHealSrc) on image error.
 6. Upsert into portfolio_items with source=DRIVE, drive_file_id
 7. Previously synced items not in current list -> hidden (not deleted)
-8. Daily cron: DriveService.syncAll() for all providers with drive_folder_url
+8. Daily cron (03:00 UTC): DriveService.syncAll() for all active+verified providers with
+   drive_folder_url; on DriveRateLimitError the run ABORTS remaining providers (shared project
+   budget) and returns { synced, errors, rateLimited: true }
 ```
 
 ### Media Upload (Cloudinary) Flow
@@ -393,6 +405,13 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-18 — Google Drive Limits & Caveats Hardening (no migrations)
+- `lib/drive.ts`: DriveRateLimitError (extends DriveAccessError — back-compat catches), rate-limit classifier (429 + 403-with-rateLimitBody vs plain private-403 vs 404), exp-backoff + jitter retries honouring Retry-After, per-process throttle (min spacing + sliding 60s window), fetchAllFiles pagination cap with truncated flag, buildStableDriveThumbnailUrl / isExpiringDriveThumbnailUrl / driveThumbnailHealSrc. Env knobs: DRIVE_MAX_FILES_PER_FOLDER, DRIVE_FETCH_MAX_RETRIES, DRIVE_FETCH_RETRY_BASE_MS, DRIVE_MIN_REQUEST_INTERVAL_MS, DRIVE_MAX_REQUESTS_PER_MINUTE.
+- `services/DriveService.ts`: ingest stores stable unsigned thumbnails (kills hot-link expiry trap); ingest result gains `truncated`; syncAll aborts remaining providers on rate limit (`rateLimited` flag).
+- `app/api/portfolio/drive/route.ts`: rate-limit → 503 (retryable), distinct from private-folder 502.
+- Client healing: shared + explore ExploreVideoCard + AssetLightbox one-shot-retry legacy signed thumbs (AssetLightbox also renders Drive images via stable endpoint — webViewLink never worked in `<img>`).
+- +28 tests (40 total in DriveService suite); 555/555 vitest green.
 
 ### 2026-10-16 — Provider Booking Sync + Navbar Overflow + Wallet Links (no migrations)
 - **Booking selection sync (`/profile/[slug]`)** — `ProfileClient` now owns `selectedPackage` for the full portfolio content: `ServicePackages` grid + desktop `BookingSidebar` (`hidden lg:block`) + `BookingBottomBar` (breakpoint widened `md:hidden → lg:hidden`, restoring the tablet continue path). `page.tsx` `ProfileContent` is a thin server wrapper (no function props cross the boundary). `BookingSidebar` rows are tier-sorted like the grid and keyboard-operable (`<button role="radio" aria-checked>`); stateless `BookingSidebarDisplay` kept untouched for external consumers.
