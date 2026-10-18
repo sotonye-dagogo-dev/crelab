@@ -3,6 +3,7 @@ import {
   buildInvoiceData,
   buildInvoiceNumber,
   csvCell,
+  normalizeBookingFilters,
   normalizeTransactionFilters,
   toDayKey,
   transactionsToCsv,
@@ -96,5 +97,50 @@ describe("toDayKey", () => {
     expect(toDayKey("2026-10-16T05:00:00.000Z")).toBe("2026-10-16");
     expect(toDayKey(null)).toBeNull();
     expect(toDayKey("garbage")).toBeNull();
+  });
+});
+
+describe("normalizeBookingFilters", () => {
+  it("applies safe defaults for empty input", () => {
+    const f = normalizeBookingFilters({});
+    expect(f).toEqual({
+      q: "",
+      status: "",
+      escrowState: "",
+      paymentMode: "",
+      from: null,
+      to: null,
+      page: 1,
+      pageSize: 20,
+    });
+  });
+
+  it("accepts only known enum values and caps page size", () => {
+    const f = normalizeBookingFilters({
+      status: "held",
+      escrowState: "BOGUS",
+      paymentMode: "milestone",
+      page: "-3",
+      pageSize: "5000",
+      q: "  studio  ",
+    });
+    expect(f.status).toBe("HELD");
+    expect(f.escrowState).toBe("");
+    expect(f.paymentMode).toBe("MILESTONE");
+    expect(f.page).toBe(1);
+    expect(f.pageSize).toBe(100);
+    expect(f.q).toBe("studio");
+  });
+
+  it("rejects unparseable dates", () => {
+    const f = normalizeBookingFilters({ from: "not-a-date", to: "2026-12-31" });
+    expect(f.from).toBeNull();
+    expect(f.to).toBe("2026-12-31");
+  });
+
+  it("handles array-valued params (Next.js repeated query keys)", () => {
+    const f = normalizeBookingFilters({ status: ["released", "x"], page: ["2"] });
+    expect(f.status).toBe("RELEASED");
+    expect(f.page).toBe(2);
   });
 });

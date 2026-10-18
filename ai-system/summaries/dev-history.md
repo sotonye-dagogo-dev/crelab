@@ -1,9 +1,26 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
 > - last-verified-against-code: 2026-10-18
 
+
+## Session 2026-10-18 — execute-feature: Admin Finance Bookings + Media Drive Work
+
+### What
+Directive: (1) the admin finance page observes bookings + the payments involving them, with optional Release/Refund actions that follow the non-admin EscrowService flow and write BOTH a general audit entry and per-transaction audit entries; (2) fix the duplicated Google Drive link input in admin MediaUpload and restore the Drive quick-preview there; (3) the admin media page surfaces Google-Drive-integrated portfolio items in a read-only observation tab. Config/metadata-driven, modular, non-breaking; QA gate + `update-ai-system.md` at close.
+
+### Verification
+`vitest` → 47 files, **596 passed / 0 failed** (+21: FinanceService suite new 10; MediaUpload component suite new 4; PortfolioService drive cases new 3; `normalizeBookingFilters` +4). `tsc --noEmit` → clean. `next lint` → 0 errors (pre-existing warnings only, none in changed files). `npm run build` → green. Note: `npm install` run first in this environment; `vitest.config.ts` gained `esbuild: { jsx: "automatic" }` (Next components omit the React import, so the classic JSX transform failed every component test).
+
+### Key Changes
+- **`lib/finance.ts`:** pure `normalizeBookingFilters()` (+ `BOOKING_STATUSES`/`ESCROW_STATES`) — pageSize capped at 100, enum/date validation, array-param friendly.
+- **`services/FinanceService.ts`:** `listBookings()` (bookings + client/provider/package joins, single-IN-query payment aggregation, filters + pagination), `getBookingDetail()` (booking + payments + wallet ledger + merged newest-first audit), and `adminSettleBooking(bookingId, adminId, outcome)` — the admin money action reuses `EscrowService.settleRelease`/`refundBookingFunds` (identical state machine + exactly-once guarantees as the user flow), then writes dual-level audit: general `escrow.release.admin`/`escrow.refund.admin` on `bookings`, plus one `payment.release`/`payment.refund` entry per payment that actually transitioned HELD→outcome. Guards: 404 unknown booking; DISPUTED → rejected (the Disputes page owns that money); no HELD payments → 409; nothing transitioned → 409 "already completed" with **no audit row**.
+- **Routes (new):** `GET /api/admin/finance/bookings`, `GET /api/admin/finance/bookings/[id]`, `POST .../[id]/release`, `POST .../[id]/refund` (ADMIN); `GET /api/admin/media/drive` (ADMIN, read-only DRIVE portfolio rows); `app/api/admin/audit-log` gains an additive `entityId` pass-through (list + count).
+- **`app/admin/finance/page.tsx`:** Transactions|Bookings segmented tabs; booking filter card (q/status/escrowState/paymentMode/from/to); `bookingColumns` with status+escrow badges and Detail/Release/Refund (the latter two gated on held payments); booking detail modal (payments, wallet ledger, merged audit trail, Invoice button reusing the invoice modal); `TxnAuditSection` in the transaction modal (txn + parent booking audit via `?entityId=`, merged/deduped); `ClConfirmDialog` + `runSettle()` POST → toast + `admin-finance-*` invalidations; CSV export hidden on the bookings view.
+- **Drive link de-duplication:** shared `hooks/useDrivePreview.ts` owns the preview state machine (cooldown countdown, 429/503 Retry-After backoff, `validateFolderUrl` fast check, stale-clear). `DriveConnectSettings` refactored onto it (behaviour unchanged); `MediaUpload`'s second duplicate link block removed, Quick-preview button + `DriveLinkPreview` + clear-on-change restored on the first block.
+- **`app/admin/media/page.tsx` + `PortfolioService.listDriveItems()`:** Uploads|Google Drive source tabs with counts; the Drive tab is observation-only (thumb/title/driveFileId/mime/provider/synced/visibility + View/Folder links, client search, explanatory footnote) — Backfill/Dry-run/Cleanup stay hidden there because delete/reconcile/cleanup only apply to Cloudinary assets. Stable unsigned thumbnails via `fixLegacyVideoThumbnailUrl`.
+- Docs close — system-architecture (FinanceService row + admin media route + Recent Changes), repo-map, dependency-graph, task-queue, project-plan, project-decisions (new decision: admin settlement reuses EscrowService with dual-level audit), lessons-learned (2 new: dual-audit money actions; vitest automatic JSX runtime + mock-queue discipline), test-results, test-plan, session-log; in-progress cleared. No migrations.
 
 ## Session 2026-10-18 — execute-feature: Drive Link Quick Preview
 

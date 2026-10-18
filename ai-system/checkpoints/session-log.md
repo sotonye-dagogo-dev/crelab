@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,29 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-18 — Admin Finance Bookings/Payments + Media Fixes (execute-feature)
+
+**Directive:** (1) The admin finance page observes bookings + payments involving them, with optional actions following the non-admin EscrowService flow that write BOTH a general audit-log entry and transaction-level (payments entity) audit entries; (2) fix the duplicated Google Drive link input in admin `MediaUpload` and restore the Drive quick-preview on the paste-link tab; (3) the admin media page gains a read-only observation view of Google-Drive-integrated portfolio items. Config/metadata-driven, modular, non-breaking; QA gate + `update-ai-system.md` at close.
+
+**Planning pass (Step 1):** read task-queue, system-architecture (finance + media + Drive flow), the drafted plan in `checkpoints/in-progress.md`; decomposed into A–E; self-check passed; **Go**. Decisions: admin actions call `EscrowService.settleRelease`/`refundBookingFunds` (never re-implement money movement); dual-level audit (general `escrow.*.admin` on `bookings` + one `payment.*` entry per payment that actually transitioned); DISPUTED bookings reject with a pointer to the Disputes page; no-HELD and already-settled settle attempts throw 409 without writing audit; the Drive admin tab is view-only (delete/reconcile/cleanup only apply to Cloudinary assets); preview logic extracted to a shared `useDrivePreview` hook rather than duplicated.
+
+**Completed:**
+1. **`lib/finance.ts`** — `BOOKING_STATUSES`, `ESCROW_STATES`, pure `normalizeBookingFilters()` (pageSize capped at 100, enum/date validation, array-param friendly).
+2. **`services/FinanceService.ts`** — `listBookings()` (bookings + client/provider/package joins, filters, payment aggregation via a single IN query, pagination), `getBookingDetail()` (booking + payments + wallet ledger + merged newest-first audit trail), `adminSettleBooking()` (guards: 404 unknown booking, 400 DISPUTED, 409 no HELD payments, 409 already-completed with no audit; money via EscrowService, then general audit `escrow.release.admin`/`escrow.refund.admin` on `bookings` + per-payment `payment.release`/`payment.refund` on `payments`).
+3. **API routes (new)** — `GET /api/admin/finance/bookings` (list), `GET /api/admin/finance/bookings/[id]` (detail), `POST .../[id]/release`, `POST .../[id]/refund` (all ADMIN); `GET /api/admin/media/drive` (ADMIN → `PortfolioService.listDriveItems()`).
+4. **`app/api/admin/audit-log/route.ts`** — additive `entityId` pass-through in list + count (drives the per-transaction/per-booking audit views).
+5. **`app/admin/finance/page.tsx`** — Transactions|Bookings segmented tabs; booking filter card (q/status/escrowState/paymentMode/from/to); `bookingColumns` (badges, parties, amount, payment mode, booking id, Detail/Release/Refund gated on held payments); booking detail modal (payments, wallet ledger, merged audit trail, Invoice reuse); `TxnAuditSection` fetches `?entityId=` for the transaction + parent booking and merges/dedupes; `ClConfirmDialog` + `runSettle()` POSTs to release/refund, toasts, invalidates `admin-finance-*` keys; CSV export hidden on the bookings view.
+6. **Drive preview de-duplication** — new `hooks/useDrivePreview.ts` (cooldown/429/503 backoff + `validateFolderUrl` state machine); `DriveConnectSettings` refactored onto it (behaviour unchanged); `MediaUpload` loses the second duplicate link block and gains Quick-preview button + `DriveLinkPreview` + stale-clear on change (hook aliased as `runDrivePreview`/`clearDrivePreview`/`isDriveFolderLink`).
+7. **`services/PortfolioService.ts`** — `listDriveItems(limit, hard cap 1000)` (`portfolio_items.source = "DRIVE"` + providers left join, `fixLegacyVideoThumbnailUrl`).
+8. **`app/admin/media/page.tsx`** — Uploads|Google Drive source tabs (segmented switcher with counts); Drive tab: explanatory card, client search, `driveColumns` (thumb w/ fallback, title/driveFileId/mime, provider, synced date, visibility, View/Folder links), read-only footnote; Backfill/Dry-run/Cleanup hidden on the Drive tab.
+9. **Tests (+21)** — `__tests__/services/FinanceService.test.ts` (new, 10: list/aggregate/filters, detail merge + sorted audit, settle happy paths, 404/DISPUTED/no-HELD/already-settled guards, no-audit-when-nothing-transitioned), `__tests__/components/MediaUpload.test.tsx` (new, jsdom: single link input, preview affordance, onChange, tab click), `__tests__/services/PortfolioService.test.ts` (new, 3: DRIVE rows mapping), `__tests__/lib/finance.test.ts` (+`normalizeBookingFilters` describe).
+10. **QA —** `vitest` **596/596** (47 files); `tsc --noEmit` clean; `next lint` 0 errors (pre-existing warnings only, none in changed files); `next build` green; `npm install` run in this environment. Fixed mid-run: `vitest.config.ts` gains `esbuild: { jsx: "automatic" }` (Next components don't import React — the classic JSX transform broke every component test with `React is not defined` inside the source file), over-queued `db.select` mock leakage across tests, constructor-safe `EscrowService` mock.
+11. **Docs —** system-architecture (FinanceService row, admin media route line, Recent Changes), repo-map, dependency-graph (FinanceService edges + audit/useDrivePreview/listDriveItems blocks), task-queue, project-plan, dev-history, project-decisions (new decision), lessons-learned (2 new entries), test-results, test-plan, this log; both in-progress files cleared. No migrations.
+
+**Chains:** `sync-context.md` close (this entry); `update-ai-system.md` deep sync inline per directive.
+
+**Residual risks:** admin settlement actions are role-gated but carry no feature flag (consistent with the rest of the admin panel); settle-then-audit is two steps, so a crash between them loses the audit row but not the money (`escrowState`/payment `status` remain the durable reconciliation source); per-payment audit writes are N+1 `AuditService.log` calls (fine at admin-action volumes); the Drive tab materialises up to 1000 items and searches client-side (fine at current provider counts — revisit with server pagination if portfolios grow).
 
 ## Session 2026-10-18 — Drive Link Quick Preview (execute-feature)
 

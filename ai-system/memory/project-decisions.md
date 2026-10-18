@@ -1,7 +1,7 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Drive quick-preview decision)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -905,3 +905,25 @@ Google documents strict global limits (20k queries/min per Cloud Project, 1.2k p
 - Never persist `thumbnailLink`/`webContentLink` from the API into DB columns that outlive the request.
 - `syncAll` returning `rateLimited: true` means the shared project budget is being consumed — operators should check the cron response, not re-run in a tight loop.
 - The throttle is per-serverless-isolate; if sync volume grows (many providers), move pacing to a shared store or stagger cron sharding before raising `DRIVE_MAX_REQUESTS_PER_MINUTE`.
+
+## Admin Finance Settlement Actions Reuse EscrowService with Dual-Level Audit
+
+**Decision:** Admin Release/Refund actions on bookings route through `FinanceService.adminSettleBooking()`, which calls the existing `EscrowService.settleRelease`/`refundBookingFunds` money paths and then writes audit entries at two levels — a general entry on the booking (`escrow.release.admin`/`escrow.refund.admin`) plus one `payment.release`/`payment.refund` entry per payment that actually transitioned. The `payments` entity audit already carries the per-transaction rows written by the non-admin flow; admin actions mirror that schema, with the `.admin` suffix distinguishing who acted.
+**Date:** 2026-10-18
+**Made by:** Product directive (via execute-feature — "both general and per-transaction audit entries")
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The non-admin flow already solved exactly-once settlement, dispute exclusions, and wallet ledger writes; duplicating that in admin routes would fork the state machine. Observability wants both "who settled this booking" (booking-level, filterable in the admin audit-log page) and "which transaction moved" (payment-level, shown inline on the transaction/detail modals via the additive `?entityId=` audit filter) — one row cannot serve both views honestly.
+
+**Alternatives Considered:**
+- Admin route writing `escrow_state` + wallet rows directly — rejected: forks the money state machine and bypasses EscrowService's guards.
+- Only a general booking audit entry — rejected: the payments feed's per-transaction audit would silently lack admin actions; the directive explicitly asks for per-transaction entries.
+- Per-payment entries for every payment regardless of transition — rejected: would log payments that didn't move (noise + false evidence); entries are written only for HELD→outcome transitions, and a no-op settle throws 409 without any audit.
+- A dedicated admin settlement service — deferred: unnecessary indirection while `adminSettleBooking` is the only caller; revisit if settlement variants multiply.
+
+**Implications:**
+- Any future admin money action must call the corresponding EscrowService/PaymentService method — never mutate financial columns directly.
+- Admin action names on the general audit trail carry the `.admin` suffix so user-initiated and admin-initiated entries stay distinguishable in the same log.
+- The `?entityId=` audit filter is the standard way to render entity-scoped audit trails; reuse it rather than inventing new audit endpoints.

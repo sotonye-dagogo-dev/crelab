@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ClButton, ClInput } from "@/components/ui";
 import { Cloud, CheckCircle, AlertCircle, Eye } from "lucide-react";
 import { validateFolderUrl } from "@/lib/drive";
 import { DriveLinkPreview } from "@/components/profile/DriveLinkPreview";
-import type { DrivePreviewResult } from "@/services/DriveService";
-
-/** Client-side mirror of the server's per-user preview budget (429 -> Retry-After). */
-const PREVIEW_FALLBACK_COOLDOWN_SECONDS = 15;
-const PREVIEW_COOLDOWN_CAP_SECONDS = 120;
+import { useDrivePreview } from "@/hooks/useDrivePreview";
 
 type DriveState =
   | "DISCONNECTED"
@@ -49,83 +45,17 @@ export function DriveConnectSettings({
     total: number;
   } | null>(null);
 
-  // Quick preview (read-only API check — no DB writes).
-  const [previewing, setPreviewing] = useState(false);
-  const [preview, setPreview] = useState<DrivePreviewResult | null>(null);
-  const [previewError, setPreviewError] = useState("");
-  const [previewCooldown, setPreviewCooldown] = useState(0);
+  // Quick preview (read-only API check — no DB writes) via shared hook.
+  const {
+    previewing,
+    preview,
+    previewError,
+    previewCooldown,
+    runPreview,
+    clearPreview,
+  } = useDrivePreview();
 
-  useEffect(() => {
-    if (previewCooldown <= 0) return;
-    const t = setTimeout(() => setPreviewCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [previewCooldown]);
-
-  const clearPreview = () => {
-    setPreview(null);
-    setPreviewError("");
-  };
-
-  const handlePreview = async () => {
-    const url = folderUrl.trim();
-    if (!url || previewing || previewCooldown > 0) return;
-
-    // Fast client-side shape check so a typo fails instantly and doesn't
-    // spend any of the per-user API budget (server re-validates anyway).
-    if (!validateFolderUrl(url)) {
-      setPreview(null);
-      setPreviewError("That doesn't look like a public Google Drive folder link.");
-      return;
-    }
-
-    setPreviewing(true);
-    setPreviewError("");
-    setPreview(null);
-
-    try {
-      const res = await fetch("/api/portfolio/drive/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folderUrl: url }),
-      });
-
-      let json: {
-        success?: boolean;
-        error?: string;
-        data?: DrivePreviewResult;
-        retryAfterSeconds?: number;
-      } | null = null;
-      try {
-        json = await res.json();
-      } catch {
-        json = null;
-      }
-
-      if (!res.ok) {
-        if (res.status === 429 || res.status === 503) {
-          const retry = Number(json?.retryAfterSeconds);
-          const seconds =
-            Number.isFinite(retry) && retry > 0
-              ? Math.min(Math.ceil(retry), PREVIEW_COOLDOWN_CAP_SECONDS)
-              : PREVIEW_FALLBACK_COOLDOWN_SECONDS;
-          setPreviewCooldown(seconds);
-        }
-        setPreviewError(json?.error ?? "Preview failed. Please try again.");
-        return;
-      }
-
-      if (json?.data) {
-        setPreview(json.data);
-      } else {
-        setPreviewError("Preview failed. Please try again.");
-      }
-    } catch {
-      setPreviewError("Network error. Please try again.");
-    } finally {
-      setPreviewing(false);
-    }
-  };
-
+  const handlePreview = () => runPreview(folderUrl);
   const handleSync = async () => {
     if (!folderUrl.trim()) return;
 
