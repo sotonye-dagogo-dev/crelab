@@ -13,7 +13,7 @@ This directory contains design-system reference files used during AI-assisted de
 | `06-provider-profile.html` | Provider profile hero, portfolio grid, packages, booking sidebar |
 | `07-booking-drawer.html` | Booking flow drawer with escrow summary |
 | `08-escrow-timeline.html` | Escrow state machine timeline visualization |
-| `09-drive-portfolio.html` | Google Drive portfolio sync integration |
+| `09-drive-portfolio.html` | Google Drive portfolio sync integration (connect panel with read-only Quick preview state, profile display grid) |
 | `10-admin-panel.html` | Admin panel dashboard layout |
 | `11-blog.html` | Blog listing and article detail pages |
 | `12-provider-dashboard.html` | Provider dashboard with analytics |

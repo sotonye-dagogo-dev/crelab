@@ -9,6 +9,8 @@ import {
   driveThumbnailHealSrc,
   fetchFileList,
   fetchAllFiles,
+  fetchDriveFolderMetadata,
+  PREVIEW_SAMPLE_MAX,
   __resetDriveThrottleForTests,
   DriveAccessError,
   DriveRateLimitError,
@@ -558,5 +560,281 @@ describe("DriveService — syncAll aborts on Google rate limits", () => {
     const service = new DriveService();
     const result = await service.syncAll();
     expect(result).toEqual({ synced: 1, errors: [], rateLimited: false });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Quick preview — bounded, read-only link check (no DB writes) + its budget.
+// ---------------------------------------------------------------------------
+
+function folderMetaPayload(id = "folder-1", mimeType = "application/vnd.google-apps.folder") {
+  return { id, name: "My Reels", mimeType };
+}
+
+/** URL-aware fetch stub: `/files/<id>?` → metadata, `/files?` → folder listing. */
+function driveResponder(meta: unknown, list: unknown) {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/files/")) return jsonResponse(meta);
+    return jsonResponse(list);
+  });
+}
+
+describe("lib/drive — fetchFileList pageSize + fetchDriveFolderMetadata", () => {
+  beforeEach(() => {
+    vi.stubEnv("GOOGLE_API_KEY", "test-key");
+    vi.stubEnv("DRIVE_FETCH_RETRY_BASE_MS", "0");
+    vi.stubEnv("DRIVE_MIN_REQUEST_INTERVAL_MS", "0");
+    vi.stubEnv("DRIVE_MAX_REQUESTS_PER_MINUTE", "0");
+    vi.stubEnv("DRIVE_FETCH_MAX_RETRIES", "0");
+    __resetDriveThrottleForTests();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("passes a clamped pageSize through to the API (default 100)", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(filePayload(["f1"])));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const calls = fetchMock.mock.calls as unknown[][];
+
+    await fetchFileList("folder-1", undefined, { pageSize: 12 });
+    let url = new URL(String(calls[0][0]));
+    expect(url.searchParams.get("pageSize")).toBe("12");
+
+    await fetchFileList("folder-1");
+    url = new URL(String(calls[1][0]));
+    expect(url.searchParams.get("pageSize")).toBe("100");
+
+    // Out-of-range values clamp to the API-safe [1, 100] band
+    await fetchFileList("folder-1", undefined, { pageSize: 9_999 });
+    url = new URL(String(calls[2][0]));
+    expect(url.searchParams.get("pageSize")).toBe("100");
+
+    await fetchFileList("folder-1", undefined, { pageSize: 0 });
+    url = new URL(String(calls[3][0]));
+    expect(url.searchParams.get("pageSize")).toBe("1");
+  });
+
+  it("fetchDriveFolderMetadata maps a folder id (isFolder=true)", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(folderMetaPayload()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const meta = await fetchDriveFolderMetadata("folder-1");
+    expect(meta).toEqual({
+      id: "folder-1",
+      name: "My Reels",
+      mimeType: "application/vnd.google-apps.folder",
+      isFolder: true,
+    });
+    const url = new URL(String((fetchMock.mock.calls as unknown[][])[0][0]));
+    expect(url.pathname).toContain("/files/folder-1");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetchDriveFolderMetadata flags a non-folder id (isFolder=false)", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(folderMetaPayload("file-1", "video/mp4")),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const meta = await fetchDriveFolderMetadata("file-1");
+    expect(meta.isFolder).toBe(false);
+  });
+
+  it("fetchDriveFolderMetadata maps 404 to not-found and 403 to private", async () => {
+    const notFound = vi.fn(async () =>
+      jsonResponse({ error: { code: 404 } }, { status: 404 }),
+    );
+    vi.stubGlobal("fetch", notFound);
+    await expect(fetchDriveFolderMetadata("x")).rejects.toThrow(
+      "Folder not found or not accessible",
+    );
+
+    const forbidden = vi.fn(async () =>
+      jsonResponse({ error: { code: 403, message: "nope" } }, { status: 403 }),
+    );
+    vi.stubGlobal("fetch", forbidden);
+    await expect(fetchDriveFolderMetadata("x")).rejects.toThrow(
+      "Folder is private or sharing settings prevent access",
+    );
+  });
+
+  it("fetchDriveFolderMetadata maps 429 to DriveRateLimitError", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response("Too Many Requests", {
+        status: 429,
+        headers: { "retry-after": "0" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(fetchDriveFolderMetadata("x")).rejects.toThrow(DriveRateLimitError);
+  });
+});
+
+describe("DriveService — previewFolder (read-only, bounded, no DB)", () => {
+  beforeEach(() => {
+    vi.stubEnv("GOOGLE_API_KEY", "test-key");
+    vi.stubEnv("DRIVE_FETCH_RETRY_BASE_MS", "0");
+    vi.stubEnv("DRIVE_MIN_REQUEST_INTERVAL_MS", "0");
+    vi.stubEnv("DRIVE_MAX_REQUESTS_PER_MINUTE", "0");
+    vi.stubEnv("DRIVE_FETCH_MAX_RETRIES", "0");
+    __resetDriveThrottleForTests();
+    portfolioMock.getAllByProvider.mockClear();
+    portfolioMock.addItem.mockClear();
+    dbMock.select.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  const FOLDER_URL = "https://drive.google.com/drive/folders/folder-1";
+
+  it("returns a sample without ever touching the DB or portfolio service", async () => {
+    const fetchMock = driveResponder(folderMetaPayload(), {
+      files: [
+        { id: "f-1", name: "clip.mp4", mimeType: "video/mp4", webViewLink: "https://drive.google.com/file/d/f-1/view", thumbnailLink: null },
+        { id: "f-2", name: "notes.txt", mimeType: "text/plain", webViewLink: "https://drive.google.com/file/d/f-2/view", thumbnailLink: null },
+        { id: "f-3", name: "poster.png", mimeType: "image/png", webViewLink: "https://drive.google.com/file/d/f-3/view", thumbnailLink: null },
+      ],
+      nextPageToken: null,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await new DriveService().previewFolder(FOLDER_URL);
+
+    expect(result.folderId).toBe("folder-1");
+    expect(result.folderName).toBe("My Reels");
+    expect(result.sampleSize).toBe(3);
+    expect(result.supported).toBe(2);
+    expect(result.unsupported).toBe(1);
+    expect(result.sampled).toBe(false);
+    expect(Date.parse(result.checkedAt)).not.toBeNaN();
+
+    // Kind + stable-thumbnail contracts (never the signed API thumbnailLink)
+    expect(result.items[0].kind).toBe("video");
+    expect(result.items[0].thumbnailUrl).toBe(
+      "https://drive.google.com/thumbnail?id=f-1&sz=w600",
+    );
+    expect(result.items[1].supported).toBe(false);
+    expect(result.items[1].kind).toBe("other");
+    expect(result.items[1].thumbnailUrl).toBeNull();
+    expect(result.items[2].kind).toBe("image");
+    expect(result.items[2].thumbnailUrl).toBe(
+      "https://drive.google.com/thumbnail?id=f-3&sz=w600",
+    );
+
+    // THE contract: preview never writes — no portfolio reads/writes, no DB.
+    expect(portfolioMock.getAllByProvider).not.toHaveBeenCalled();
+    expect(portfolioMock.addItem).not.toHaveBeenCalled();
+    expect(portfolioMock.updateItem).not.toHaveBeenCalled();
+    expect(dbMock.select).not.toHaveBeenCalled();
+
+    // Budget: exactly 2 Drive API calls (metadata + one bounded page).
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("flags sampled=true when the folder holds more files than the sample", async () => {
+    const fetchMock = driveResponder(folderMetaPayload(), {
+      files: filePayload(["f1", "f2"]).files,
+      nextPageToken: "more",
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await new DriveService().previewFolder(FOLDER_URL);
+    expect(result.sampled).toBe(true);
+    expect(result.sampleSize).toBe(2);
+  });
+
+  it("bounds the listing page by DRIVE_PREVIEW_MAX_FILES and the hard cap", async () => {
+    const fetchMock = driveResponder(folderMetaPayload(), {
+      files: [],
+      nextPageToken: null,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("DRIVE_PREVIEW_MAX_FILES", "5");
+
+    await new DriveService().previewFolder(FOLDER_URL);
+    let url = new URL(String(fetchMock.mock.calls[1][0]));
+    expect(url.searchParams.get("pageSize")).toBe("5");
+
+    // Env can't push a single preview past PREVIEW_SAMPLE_MAX (spend bound).
+    vi.stubEnv("DRIVE_PREVIEW_MAX_FILES", "9999");
+    await new DriveService().previewFolder(FOLDER_URL);
+    url = new URL(String(fetchMock.mock.calls[3][0]));
+    expect(url.searchParams.get("pageSize")).toBe(String(PREVIEW_SAMPLE_MAX));
+  });
+
+  it("reports an empty folder honestly (0 supported, no items)", async () => {
+    const fetchMock = driveResponder(folderMetaPayload(), {
+      files: [],
+      nextPageToken: null,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await new DriveService().previewFolder(FOLDER_URL);
+    expect(result).toMatchObject({
+      sampleSize: 0,
+      supported: 0,
+      unsupported: 0,
+      sampled: false,
+      items: [],
+    });
+    expect(portfolioMock.addItem).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed URLs before spending any API budget", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(new DriveService().previewFolder("https://example.com")).rejects.toThrow(
+      DriveValidationError,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a link that resolves to a file, not a folder", async () => {
+    const fetchMock = driveResponder(
+      folderMetaPayload("file-1", "video/mp4"),
+      { files: [], nextPageToken: null },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const err = await new DriveService()
+      .previewFolder(FOLDER_URL)
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(DriveValidationError);
+    expect((err as Error).message).toContain("not a folder");
+    // Metadata only — the listing call must never fire for a non-folder
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates private folders as DriveAccessError and rate limits as DriveRateLimitError", async () => {
+    const privateMock = vi.fn(async () =>
+      jsonResponse({ error: { code: 403, message: "forbidden" } }, { status: 403 }),
+    );
+    vi.stubGlobal("fetch", privateMock);
+    const privateErr = await new DriveService()
+      .previewFolder(FOLDER_URL)
+      .catch((e: unknown) => e);
+    expect(privateErr).toBeInstanceOf(DriveAccessError);
+    expect(privateErr).not.toBeInstanceOf(DriveRateLimitError);
+
+    const rateMock = vi.fn(async () =>
+      new Response("Too Many Requests", {
+        status: 429,
+        headers: { "retry-after": "0" },
+      }),
+    );
+    vi.stubGlobal("fetch", rateMock);
+    await expect(new DriveService().previewFolder(FOLDER_URL)).rejects.toThrow(
+      DriveRateLimitError,
+    );
   });
 });

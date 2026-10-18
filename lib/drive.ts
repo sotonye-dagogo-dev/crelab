@@ -108,7 +108,21 @@ export const DRIVE_LIMITS = {
   get maxRequestsPerMinute(): number {
     return envInt("DRIVE_MAX_REQUESTS_PER_MINUTE", 600);
   },
+  /** Sample size for the read-only link preview (1–2 API calls per preview). */
+  get previewMaxFiles(): number {
+    return envInt("DRIVE_PREVIEW_MAX_FILES", 12);
+  },
+  /** Per-user preview attempts per minute (server-side; UI mirrors a cooldown). */
+  get previewMaxPerMinute(): number {
+    return envInt("DRIVE_PREVIEW_MAX_PER_MINUTE", 10);
+  },
 };
+
+/** Hard ceiling for the preview sample regardless of env (bounds API spend). */
+export const PREVIEW_SAMPLE_MAX = 50;
+
+/** Google's mimeType for a folder — a pasted /file/d/… link must be rejected. */
+export const DRIVE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
 const RETRY_DELAY_CAP_MS = 30_000;
 const SLIDING_WINDOW_MS = 60_000;
@@ -243,6 +257,7 @@ export function driveThumbnailHealSrc(item: {
 export async function fetchFileList(
   folderId: string,
   pageToken?: string | undefined,
+  opts?: { pageSize?: number | undefined },
 ): Promise<DriveFileListResult> {
   const apiKey = process.env.GOOGLE_API_KEY;
 
@@ -250,11 +265,13 @@ export async function fetchFileList(
     throw new Error("GOOGLE_API_KEY is not configured");
   }
 
+  const pageSize = Math.min(Math.max(Math.round(opts?.pageSize ?? 100), 1), 100);
+
   const params = new URLSearchParams({
     q: `'${folderId}' in parents and trashed=false`,
     fields: "files(id,name,mimeType,webViewLink,thumbnailLink),nextPageToken",
     orderBy: "name_natural",
-    pageSize: "100",
+    pageSize: String(pageSize),
     key: apiKey,
   });
 
@@ -263,6 +280,71 @@ export async function fetchFileList(
   }
 
   const url = `https://www.googleapis.com/drive/v3/files?${params.toString()}`;
+  const data = await driveFetchJson(url);
+
+  return {
+    files: ((data.files ?? []) as Record<string, unknown>[]).map((f) => ({
+      id: f.id as string,
+      name: f.name as string,
+      mimeType: f.mimeType as string,
+      webViewLink: f.webViewLink as string,
+      thumbnailLink: (f.thumbnailLink as string) ?? null,
+    })),
+    nextPageToken:
+      typeof data.nextPageToken === "string" ? data.nextPageToken : null,
+  };
+}
+
+export interface DriveFolderMetadata {
+  id: string;
+  name: string;
+  mimeType: string;
+  /** True when the id really resolves to a folder (guards pasted /file/d/… links). */
+  isFolder: boolean;
+}
+
+/**
+ * Single metadata lookup for a Drive id (1 API call, same throttle/retry/classify
+ * budget as list calls). Used by the read-only link preview to confirm the link
+ * resolves and to fetch the folder's display name before listing anything.
+ */
+export async function fetchDriveFolderMetadata(
+  folderId: string,
+): Promise<DriveFolderMetadata> {
+  const apiKey = process.env.GOOGLE_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("GOOGLE_API_KEY is not configured");
+  }
+
+  const params = new URLSearchParams({
+    fields: "id,name,mimeType",
+    key: apiKey,
+  });
+
+  const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(folderId)}?${params.toString()}`;
+  const data = await driveFetchJson(url);
+
+  if (!data.id) {
+    throw new DriveAccessError("Folder not found or not accessible");
+  }
+
+  const mimeType = typeof data.mimeType === "string" ? data.mimeType : "";
+  return {
+    id: data.id as string,
+    name: typeof data.name === "string" ? data.name : "",
+    mimeType,
+    isFolder: mimeType === DRIVE_FOLDER_MIME_TYPE,
+  };
+}
+
+/**
+ * Shared Drive API fetch: throttle slot + retry/backoff/classification loop.
+ * Error semantics are identical for every Drive endpoint (list, metadata, …):
+ * 429 / rate-limit-403 -> DriveRateLimitError after the retry budget, plain
+ * 403 -> private access, 404 -> not found, transient network failures retried.
+ */
+async function driveFetchJson(url: string): Promise<Record<string, unknown>> {
   const maxRetries = DRIVE_LIMITS.maxRetries;
   let attempt = 0;
 
@@ -284,17 +366,7 @@ export async function fetchFileList(
     }
 
     if (res.ok) {
-      const data = await res.json();
-      return {
-        files: (data.files ?? []).map((f: Record<string, unknown>) => ({
-          id: f.id as string,
-          name: f.name as string,
-          mimeType: f.mimeType as string,
-          webViewLink: f.webViewLink as string,
-          thumbnailLink: (f.thumbnailLink as string) ?? null,
-        })),
-        nextPageToken: data.nextPageToken ?? null,
-      };
+      return (await res.json()) as Record<string, unknown>;
     }
 
     const body = await res.text().catch(() => "");

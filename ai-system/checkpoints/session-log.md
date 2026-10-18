@@ -1,7 +1,7 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Google Drive limits/caveats hardening)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: append-only — never modify past entries
 
@@ -10,6 +10,27 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-18 — Drive Link Quick Preview (execute-feature)
+
+**Directive:** In the Google Drive link-entry components, add a quick preview so users (and we) can confirm from the get-go that a folder link resolves — an easy way to test the API without writing to the DB. Budgets and rate limits must be taken into account. Config/metadata-driven, reusable modular code, non-breaking; QA gate + `update-ai-system.md` at close.
+
+**Planning pass (Step 1):** read task-queue, system-architecture (Drive flow), repair-system (Drive pitfalls), design-system, project-context, project-decisions (2026-10-18 env-knob decision). Decomposed into T1–T7 in `checkpoints/in-progress.md`; self-check passed; **Go**. Decisions taken: preview is read-only (no `portfolio_items` / `providers.drive_folder_url` writes), folder-only (sync parity; non-folder ids rejected with actionable copy), no provider-row gate (onboarding collect mode — repair-system "collect-and-defer"), budget knobs stay env-level (spend-bound, per the 2026-10-18 decision), no `features.googleDriveSync` gate (the sync route and media-page section don't consult it either — consistency).
+
+**Completed:**
+1. **`lib/rate-limit.ts` (new, reusable) —** generic in-memory sliding-window limiter `consumeRateWindow(key, {limit, windowMs})`: injectable `now`, denied attempts not recorded, key isolation, bounded key sweep, test reset hook. Leaf module, no deps.
+2. **`lib/drive.ts` —** behavior-preserving refactor: retry/backoff/classify loop extracted to shared `driveFetchJson` (all existing messages/semantics unchanged); `fetchFileList` optional clamped `pageSize` (default 100 unchanged); `fetchDriveFolderMetadata` (1-call `files/<id>` lookup → `{id,name,mimeType,isFolder}`); `DRIVE_LIMITS.previewMaxFiles`/`previewMaxPerMinute` (`DRIVE_PREVIEW_MAX_FILES`=12, `DRIVE_PREVIEW_MAX_PER_MINUTE`=10), `PREVIEW_SAMPLE_MAX`=50 hard cap, `DRIVE_FOLDER_MIME_TYPE`. Documented in `.env.example`.
+3. **`services/DriveService.previewFolder` —** validate → metadata (rejects pasted `/file/d/…` that resolve to files BEFORE any listing call) → one bounded page → `{folderId, folderName, sampleSize, supported, unsupported, sampled, items[{kind,supported,stableThumbnailUrl}], checkedAt}`; stable unsigned thumbs only, no thumb for unsupported types; **zero DB/PortfolioService calls** (asserted in tests); `IDriveService` + preview types exported.
+4. **`app/api/portfolio/drive/preview/route.ts` (new) —** POST; session + PROVIDER/ADMIN (role set at signup → onboarding OK); NO provider-row requirement; per-user window budget → 429 + `Retry-After` + `retryAfterSeconds`; error taxonomy mirrors sync route (400/502/503/500, subclass check first); invalid-JSON guard; `Cache-Control: no-store`.
+5. **UI —** `components/profile/DriveLinkPreview.tsx` (new): "Link looks good" card — folder name, ready/skipped counts, thumbnail grid (video play badge, "Skipped" tag, `onError` fallback), empty/zero-supported guidance, "read-only — nothing saved yet" footer. `DriveConnectSettings`: "Quick preview" outlined button (live + collect modes), client-side shape check (saves budget), 429/503 → countdown cooldown ("Preview in Ns", cap 120s), stale preview cleared on input change/disconnect.
+6. **Design contract —** `ai-system/designs/09-drive-portfolio.html` Part 1 gains the preview button, Preview state pill/state card (mock grid + prod thumbnail comment), input-change stale-clear; designs/README row updated.
+7. **Tests —** `__tests__/lib/rate-limit.test.ts` (new, 8); DriveService suite 40 → 52 (+12: pageSize clamp passthrough incl. bounds; metadata mapping isFolder/404/403/429; preview zero-DB contract + stable-thumb/unsupported split, sampled flag, env + hard-cap bounds, empty folder, invalid URL pre-API (zero fetches), non-folder id (metadata only), private-vs-rate-limit propagation, exact 2-call budget).
+8. **QA —** `vitest` **575/575** (44 files); `tsc --noEmit` clean; `next lint` 0 errors (pre-existing warnings only, none in changed files); `next build` green (preview route compiled). `node_modules` absent in the runner — `npm ci` run first.
+9. **Docs —** system-architecture (DriveService row, new "Google Drive Link Quick Preview Flow" section, lib row, Recent Changes), repo-map, dependency-graph (new module block + leaf note + third-party row), task-queue, dev-history, project-decisions (new decision entry), lessons-learned (layered-budget lesson), test-results, test-plan, project-plan, designs/README, this log; in-progress cleared. No migrations.
+
+**Chains:** `sync-context.md` mid-work + close (this entry); `update-ai-system.md` deep sync inline per directive.
+
+**Residual risks:** per-user window + Drive throttle state are per-serverless-isolate (aggregate risk stays low at default 10/min/user vs 600/min isolate cap — a burst of concurrent previewers degrades to *waiting*, not failing; revisit with a shared-store limiter if usage grows); `drive.google.com/thumbnail` sample thumbs rely on the folder's "Anyone with the link" share (already required for API-key access); preview shows only the first `DRIVE_PREVIEW_MAX_FILES` entries (`sampled` flag is honest about this — totals come from the real sync); no feature-flag kill-switch on the preview route specifically (consistent with the sync route; platform-wide switch remains `GOOGLE_API_KEY` removal).
 
 ## Session 2026-10-18 — Google Drive Limits & Caveats Hardening (execute-feature)
 

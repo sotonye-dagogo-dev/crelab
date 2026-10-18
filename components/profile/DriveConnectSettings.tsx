@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ClButton, ClInput } from "@/components/ui";
-import { Cloud, CheckCircle, AlertCircle } from "lucide-react";
+import { Cloud, CheckCircle, AlertCircle, Eye } from "lucide-react";
 import { validateFolderUrl } from "@/lib/drive";
+import { DriveLinkPreview } from "@/components/profile/DriveLinkPreview";
+import type { DrivePreviewResult } from "@/services/DriveService";
+
+/** Client-side mirror of the server's per-user preview budget (429 -> Retry-After). */
+const PREVIEW_FALLBACK_COOLDOWN_SECONDS = 15;
+const PREVIEW_COOLDOWN_CAP_SECONDS = 120;
 
 type DriveState =
   | "DISCONNECTED"
@@ -42,6 +48,83 @@ export function DriveConnectSettings({
     hidden: number;
     total: number;
   } | null>(null);
+
+  // Quick preview (read-only API check — no DB writes).
+  const [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState<DrivePreviewResult | null>(null);
+  const [previewError, setPreviewError] = useState("");
+  const [previewCooldown, setPreviewCooldown] = useState(0);
+
+  useEffect(() => {
+    if (previewCooldown <= 0) return;
+    const t = setTimeout(() => setPreviewCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [previewCooldown]);
+
+  const clearPreview = () => {
+    setPreview(null);
+    setPreviewError("");
+  };
+
+  const handlePreview = async () => {
+    const url = folderUrl.trim();
+    if (!url || previewing || previewCooldown > 0) return;
+
+    // Fast client-side shape check so a typo fails instantly and doesn't
+    // spend any of the per-user API budget (server re-validates anyway).
+    if (!validateFolderUrl(url)) {
+      setPreview(null);
+      setPreviewError("That doesn't look like a public Google Drive folder link.");
+      return;
+    }
+
+    setPreviewing(true);
+    setPreviewError("");
+    setPreview(null);
+
+    try {
+      const res = await fetch("/api/portfolio/drive/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderUrl: url }),
+      });
+
+      let json: {
+        success?: boolean;
+        error?: string;
+        data?: DrivePreviewResult;
+        retryAfterSeconds?: number;
+      } | null = null;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+
+      if (!res.ok) {
+        if (res.status === 429 || res.status === 503) {
+          const retry = Number(json?.retryAfterSeconds);
+          const seconds =
+            Number.isFinite(retry) && retry > 0
+              ? Math.min(Math.ceil(retry), PREVIEW_COOLDOWN_CAP_SECONDS)
+              : PREVIEW_FALLBACK_COOLDOWN_SECONDS;
+          setPreviewCooldown(seconds);
+        }
+        setPreviewError(json?.error ?? "Preview failed. Please try again.");
+        return;
+      }
+
+      if (json?.data) {
+        setPreview(json.data);
+      } else {
+        setPreviewError("Preview failed. Please try again.");
+      }
+    } catch {
+      setPreviewError("Network error. Please try again.");
+    } finally {
+      setPreviewing(false);
+    }
+  };
 
   const handleSync = async () => {
     if (!folderUrl.trim()) return;
@@ -109,6 +192,9 @@ export function DriveConnectSettings({
 
   const handleInputChange = (value: string) => {
     setFolderUrl(value);
+    // The preview describes the previous URL — drop it so a stale result
+    // never sits under a different link.
+    clearPreview();
     if (state === "SYNCED") {
       setState("DISCONNECTED");
       onStateChange?.("DISCONNECTED");
@@ -120,6 +206,7 @@ export function DriveConnectSettings({
     setState("DISCONNECTED");
     setError("");
     setResult(null);
+    clearPreview();
     onStateChange?.("DISCONNECTED");
     onUrlChange?.("");
   };
@@ -135,8 +222,8 @@ export function DriveConnectSettings({
 
       <p className="text-[13px] text-[var(--color-text-secondary)] mb-4">
         {mode === "collect"
-          ? "Connect a publicly accessible Google Drive folder to auto-sync your portfolio. We'll pull it in once your profile is published. Supported formats: MP4, WebM, MOV, AVI, JPEG, PNG, WebP, PDF."
-          : "Connect a Google Drive folder to automatically sync your portfolio. Supported formats: MP4, WebM, MOV, AVI, JPEG, PNG, WebP, PDF."}
+          ? "Connect a publicly accessible Google Drive folder to auto-sync your portfolio. We'll pull it in once your profile is published. Use Quick preview to confirm the link works first. Supported formats: MP4, WebM, MOV, AVI, JPEG, PNG, WebP, PDF."
+          : "Connect a Google Drive folder to automatically sync your portfolio. Use Quick preview to confirm the link works before syncing. Supported formats: MP4, WebM, MOV, AVI, JPEG, PNG, WebP, PDF."}
       </p>
 
       {state === "DISCONNECTED" && (
@@ -149,23 +236,43 @@ export function DriveConnectSettings({
           {error && (
             <p className="text-[12px] text-[var(--color-error)]">{error}</p>
           )}
-          {mode === "collect" ? (
+          <div className="flex flex-wrap gap-2">
+            {mode === "collect" ? (
+              <ClButton
+                variant="primary"
+                onClick={handleCollect}
+                disabled={!folderUrl.trim()}
+              >
+                Save folder
+              </ClButton>
+            ) : (
+              <ClButton
+                variant="primary"
+                onClick={handleSync}
+                disabled={!folderUrl.trim()}
+              >
+                Connect & Sync
+              </ClButton>
+            )}
             <ClButton
-              variant="primary"
-              onClick={handleCollect}
-              disabled={!folderUrl.trim()}
+              variant="outlined"
+              onClick={handlePreview}
+              disabled={!folderUrl.trim() || previewCooldown > 0}
+              loading={previewing}
+              title="Check the link against Google without saving anything"
             >
-              Save folder
+              <span className="inline-flex items-center gap-1.5">
+                <Eye size={15} strokeWidth={1.8} />
+                {previewCooldown > 0
+                  ? `Preview in ${previewCooldown}s`
+                  : "Quick preview"}
+              </span>
             </ClButton>
-          ) : (
-            <ClButton
-              variant="primary"
-              onClick={handleSync}
-              disabled={!folderUrl.trim()}
-            >
-              Connect & Sync
-            </ClButton>
+          </div>
+          {previewError && (
+            <p className="text-[12px] text-[var(--color-error)]">{previewError}</p>
           )}
+          {preview && <DriveLinkPreview result={preview} />}
         </div>
       )}
 
