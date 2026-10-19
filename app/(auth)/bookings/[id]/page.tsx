@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { bookings, payments, providers, servicePackages, user } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth";
+import { MockDataService } from "@/services/MockDataService";
 import { BookingDetailClient } from "./BookingDetailClient";
 import type { IBooking, IPayment } from "@/types";
 
@@ -70,11 +72,63 @@ async function getBookingDetail(id: string) {
   };
 }
 
+async function getSessionUser() {
+  try {
+    const session = await requireAuth();
+    return session.user;
+  } catch {
+    if (MockDataService.isEnabled()) {
+      return MockDataService.getMockSession().user;
+    }
+    throw new Error("Unauthorized");
+  }
+}
+
+/**
+ * Who is looking at this booking? ADMIN always passes; otherwise the viewer
+ * must be the booking's client or its provider — anything else is treated as
+ * "not found" (no existence leak). Fails CLOSED if the provider row can't be
+ * read: an unreadable provider record must not open the booking to strangers.
+ */
+async function resolveViewerRole(
+  sessionUser: { id: string; role?: string | null },
+  booking: IBooking,
+): Promise<"CLIENT" | "PROVIDER" | "ADMIN" | null> {
+  const role = sessionUser.role ?? "CLIENT";
+  if (role === "ADMIN") return "ADMIN";
+  if (sessionUser.id === booking.clientId) return "CLIENT";
+
+  try {
+    const rows = await db
+      .select({ id: providers.id })
+      .from(providers)
+      .where(
+        and(eq(providers.id, booking.providerId), eq(providers.userId, sessionUser.id)),
+      );
+    if (rows.length > 0) return "PROVIDER";
+  } catch {
+    return null;
+  }
+
+  // Mock/demo mode: the mock session user won't own real rows — still show the
+  // booking so the demo stays walkable (matches the API routes' bypass).
+  if (MockDataService.isEnabled()) return "CLIENT";
+
+  return null;
+}
+
 export default async function BookingDetailPage({ params }: Props) {
   const { id } = await params;
   const data = await getBookingDetail(id);
 
   if (!data) notFound();
 
-  return <BookingDetailClient data={data} />;
+  const sessionUser = await getSessionUser();
+  const viewerRole = await resolveViewerRole(sessionUser, data.booking);
+
+  // Nobody outside the booking (and admins) may see it at all — a guessed id
+  // must 404 the same way a missing booking does.
+  if (!viewerRole) notFound();
+
+  return <BookingDetailClient data={data} viewerRole={viewerRole} />;
 }

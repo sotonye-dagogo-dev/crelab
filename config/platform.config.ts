@@ -209,6 +209,7 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
   },
   dashboard: {
     availabilityLookaheadDays: 30,
+    paymentHistoryDays: 0,
   },
   firstHundred: {
     enabled: true,

@@ -28,7 +28,7 @@ export class BookingStateError extends Error {
   }
 }
 
-function validateTransition(
+export function validateTransition(
   current: BookingStatus,
   target: BookingStatus,
 ): void {
@@ -74,6 +74,7 @@ export interface IBookingService {
   }): Promise<IBooking>;
   acceptRequest(id: string): Promise<IBooking>;
   declineRequest(id: string): Promise<IBooking>;
+  cancelBooking(id: string, clientId: string): Promise<IBooking>;
   getById(id: string): Promise<IBooking | null>;
   getByClient(clientId: string): Promise<IBooking[]>;
   getByProvider(providerId: string): Promise<IBooking[]>;
@@ -151,8 +152,9 @@ export class BookingService implements IBookingService {
     const [row] = await db
       .update(bookings)
       .set({ status: BookingStatus.ACCEPTED, updatedAt: new Date() })
-      .where(eq(bookings.id, id))
+      .where(and(eq(bookings.id, id), eq(bookings.status, existing.status)))
       .returning();
+    if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.ACCEPTED);
 
     return mapBooking(row);
   }
@@ -165,10 +167,55 @@ export class BookingService implements IBookingService {
     const [row] = await db
       .update(bookings)
       .set({ status: BookingStatus.DECLINED, updatedAt: new Date() })
-      .where(eq(bookings.id, id))
+      .where(and(eq(bookings.id, id), eq(bookings.status, existing.status)))
       .returning();
+    if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.DECLINED);
 
     return mapBooking(row);
+  }
+
+  /**
+   * Client cancels a booking that never moved money (REQUESTED / ACCEPTED).
+   * A HELD booking is refused with guidance instead of a silent transition —
+   * returning held funds is exclusively `EscrowService.refundBookingFunds`
+   * territory (dispute / admin refund), so no money path can be bypassed here.
+   */
+  async cancelBooking(id: string, clientId: string): Promise<IBooking> {
+    const existing = await this.getById(id);
+    if (!existing) throw new Error("Booking not found");
+    if (existing.clientId !== clientId) {
+      throw new Error("Only the client can cancel this booking");
+    }
+    if (existing.status === BookingStatus.HELD) {
+      throw new Error(
+        "This booking is already paid and held in escrow — raise a dispute or contact support to have the funds returned",
+      );
+    }
+    validateTransition(existing.status, BookingStatus.CANCELLED);
+
+    const [row] = await db
+      .update(bookings)
+      .set({ status: BookingStatus.CANCELLED, updatedAt: new Date() })
+      .where(and(eq(bookings.id, id), eq(bookings.status, existing.status)))
+      .returning();
+    if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.CANCELLED);
+
+    return mapBooking(row);
+  }
+
+  /** Conditional-update loser: another actor moved the booking mid-flight. */
+  private async assertConcurrentChange(
+    id: string,
+    attemptedFrom: BookingStatus,
+    attemptedTo: BookingStatus,
+  ): Promise<IBooking> {
+    const current = await this.getById(id);
+    if (current && current.status === attemptedTo) return current; // someone else did it first
+    throw new BookingStateError(
+      `Booking changed state before it could be ${attemptedTo.toLowerCase()} — refresh and try again`,
+      attemptedFrom,
+      attemptedTo,
+    );
   }
 
   async getById(id: string): Promise<IBooking | null> {

@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
-> - last-verified-against-code: 2026-10-18
+> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment visibility end-to-end)
+> - last-verified-against-code: 2026-10-19
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -33,6 +33,30 @@
 ---
 
 ## Decisions
+
+## Booking Lifecycle Visibility: REQUESTED → ACCEPTED → Pay (Flow Kept, Surface Built)
+
+**Decision:** Bookings continue to be created as `REQUESTED`; the provider explicitly accepts (`acceptRequest`) before the client can pay into escrow (`/pay` gate on `ACCEPTED` — unchanged). This session did NOT flip `createRequest` to ACCEPTED; instead it built the missing lifecycle surface (accept/decline/cancel/start routes + detail-page action matrix + shared pay hook/panel) so the PRD flow ("On acceptance, client is prompted to pay into escrow") is actually reachable. Cancelling is only offered while `REQUESTED`; a `HELD` booking is refused for cancel with dispute/support guidance (only `EscrowService.refundBookingFunds` moves money). The legacy DIRECT-mode "Add Payment" button (a wallet top-up that never settled the booking — residual since 2026-08-20) is removed in favour of the real `/pay` escrow path used by all non-MILESTONE bookings.
+**Date:** 2026-10-19
+**Made by:** Implementer (execute-feature — "payments and bookings must be visible end to end... all designed actions available")
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+- PRD line 183 and PROMPTS OD-8/OD-11 all specify an explicit provider accept step with client-side "Pay Now" after acceptance — flipping creation to ACCEPTED would erase the provider's review/decline affordance the designs call for.
+- The payment gate on ACCEPTED was never the bug; the bug was that nothing could ever reach ACCEPTED (accept had zero callers). Fixing the gate instead would have silently auto-accepted every request.
+- A unified non-MILESTONE pay path (`useBookingPayment` + `BookingPayPanel`) means drawer and detail page can never diverge on money handling, and the top-up "payment" that left bookings unpaid is gone.
+- Cancelling a HELD booking is refused because money has already moved into escrow — the only legal money-return path is the dispute/refund flow (exactly-once guarantees live in EscrowService).
+
+**Alternatives Considered:**
+- Flipping `createRequest` to ACCEPTED (auto-accept) — rejected: removes the designed provider review/decline step and the client "awaiting response" state.
+- Keeping the DIRECT top-up alongside the pay panel — rejected: two payment UIs on one page, and the top-up never held escrow (the original "payment exists in DB but booking looks unpaid" confusion).
+- Letting clients cancel at any pre-release state — rejected: after escrow hold only the dispute/refund path may move money.
+
+**Implications:**
+- Any future booking surface (messaging, notifications, mobile) must render via `lib/booking-status.ts` groupings and the `/bookings/[id]` action matrix rather than inventing its own status buckets.
+- Provider-accept notifications (Phase 2 messaging) should hook `AuditService` `booking.accept`/`booking.decline` entries written by the new routes.
+- MILESTONE bookings intentionally bypass `BookingPayPanel` (fund-per-milestone flow unchanged).
 
 ## Drive Link Quick Preview: Read-Only, Folder-Only, Env-Budgeted, No Provider-Row Gate
 

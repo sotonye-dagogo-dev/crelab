@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatKobo } from "@/lib/currency";
 import { ClBadge } from "@/components/ui";
+import { bookingCardAffordance } from "@/lib/booking-status";
 import type { IDashboardPipelineColumn, IDashboardBooking } from "@/types";
 
 const columnCountTones: Record<string, string> = {
@@ -9,6 +10,9 @@ const columnCountTones: Record<string, string> = {
   confirmed: "bg-[var(--color-escrow-progress)] text-[var(--color-text-inverse)]",
   "in-progress": "bg-[var(--color-info)] text-[var(--color-text-inverse)]",
   completed: "bg-[var(--color-success)] text-[var(--color-text-inverse)]",
+  attention: "bg-[var(--color-error)] text-[var(--color-text-inverse)]",
+  refunded: "bg-[var(--color-error)] text-[var(--color-text-inverse)]",
+  cancelled: "bg-[var(--color-border-mid)] text-[var(--color-text-inverse)]",
 };
 
 function bookingBadgeVariant(status: string) {
@@ -33,6 +37,16 @@ function bookingBadgeVariant(status: string) {
 
 function BookingCard({ item, side }: { item: IDashboardBooking; side: "provider" | "client" }) {
   const counterpart = side === "provider" ? item.clientName : item.providerName;
+  // Per-state affordance per the OD-8 / OD-11 specs — the label tells the
+  // viewer what the card opens, and the "Pay Now" client card deep-links
+  // straight to the pay panel on the detail page.
+  const affordance = bookingCardAffordance(item.booking.status, side);
+  const cardHref =
+    side === "client" &&
+    item.booking.status === "ACCEPTED" &&
+    item.booking.paymentMode !== "MILESTONE"
+      ? `/bookings/${item.booking.id}?action=pay`
+      : `/bookings/${item.booking.id}`;
   const date = item.booking.serviceDate
     ? new Date(item.booking.serviceDate).toLocaleDateString("en-NG", {
         month: "short",
@@ -43,7 +57,7 @@ function BookingCard({ item, side }: { item: IDashboardBooking; side: "provider"
 
   return (
     <Link
-      href={`/bookings/${item.booking.id}`}
+      href={cardHref}
       className="mb-3 block rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-4 no-underline transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-[var(--color-border-mid)]"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -65,7 +79,15 @@ function BookingCard({ item, side }: { item: IDashboardBooking; side: "provider"
         >
           {formatKobo(item.booking.total)}
         </span>
-        <span className="text-[12px] text-[var(--color-text-tertiary)]">View →</span>
+        <span
+          className={`text-[12px] ${
+            affordance.kind === "link"
+              ? "text-[var(--color-accent)] font-medium"
+              : "text-[var(--color-text-tertiary)]"
+          }`}
+        >
+          {affordance.label}
+        </span>
       </div>
     </Link>
   );
