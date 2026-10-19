@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { ClButton, ClBadge, ClBackButton } from "@/components/ui";
-import { Check, Plus } from "lucide-react";
+import { ClButton, ClBadge, ClBackButton, ClConfirmDialog } from "@/components/ui";
+import { Check, CheckCircle2, Clock, PlayCircle, XCircle } from "lucide-react";
 import { EscrowTimeline } from "@/components/booking/EscrowTimeline";
 import { MilestoneTimeline } from "@/components/booking/MilestoneTimeline";
 import { DisputeModal } from "@/components/booking/DisputeModal";
-import { useAuth } from "@/hooks/useAuth";
+import { BookingPayPanel } from "./BookingPayPanel";
 import { useToast } from "@/lib/toast";
 import { buildProviderSlug } from "@/lib/slug";
 import type { IBooking, IPayment, IBookingMilestone } from "@/types";
@@ -27,6 +27,12 @@ interface BookingDetailData {
 
 interface BookingDetailClientProps {
   data: BookingDetailData;
+  /**
+   * Derived SERVER-side from the session (client / provider / admin) so a
+   * stranger who guesses a booking id can never see another party's actions
+   * (and the admin keeps a working view).
+   */
+  viewerRole: "CLIENT" | "PROVIDER" | "ADMIN";
 }
 
 function statusBadgeVariant(status: string) {
@@ -52,19 +58,18 @@ function statusBadgeVariant(status: string) {
   }
 }
 
-export function BookingDetailClient({ data }: BookingDetailClientProps) {
-  const { user } = useAuth();
+export function BookingDetailClient({ data, viewerRole }: BookingDetailClientProps) {
   const { toast } = useToast();
   const [showDispute, setShowDispute] = useState(false);
   const [milestones, setMilestones] = useState<IBookingMilestone[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [releasing, setReleasing] = useState(false);
-  const [addingPayment, setAddingPayment] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<"decline" | "cancel" | null>(null);
 
-  const viewerRole =
-    user?.id === data.client?.id ? "CLIENT" : "PROVIDER";
-  const isClient = viewerRole === "CLIENT";
-  const isProvider = viewerRole === "PROVIDER";
+  // ADMIN acts through the provider-side controls (server allows it too).
+  const effectiveRole = viewerRole === "ADMIN" ? "PROVIDER" : viewerRole;
+  const isClient = effectiveRole === "CLIENT";
+  const isProvider = effectiveRole === "PROVIDER";
 
   const handleConfirmRelease = useCallback(async () => {
     setReleasing(true);
@@ -152,11 +157,75 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
   }, []);
 
   const isMilestoneMode = data.booking.paymentMode === "MILESTONE";
-  const isDirectMode = data.booking.paymentMode === "DIRECT";
+
+  const showPayPanel =
+    isClient &&
+    data.booking.status === "ACCEPTED" &&
+    !isMilestoneMode;
+
+  /**
+   * Shared lifecycle action caller (accept / decline / cancel / start). All
+   * four routes: `requireAuth` → 404 → actor assert → service call → audit
+   * log. Failures come back as a human-readable `error` we always surface —
+   * never swallow, and reload so the badge/timeline reflect the server truth.
+   */
+  const runBookingAction = useCallback(
+    async (action: "accept" | "decline" | "cancel" | "start", label: string) => {
+      setActionLoading(action);
+      try {
+        const res = await fetch(`/api/bookings/${data.booking.id}/${action}`, {
+          method: "POST",
+        });
+        const json = await res.json().catch(() => null);
+        if (json?.success) {
+          toast(label, "success");
+          window.location.reload();
+        } else {
+          toast(
+            json?.error ?? "Could not update the booking — please try again.",
+            "error",
+          );
+        }
+      } catch {
+        toast("Could not reach the server — please check your connection and try again.", "error");
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    [data.booking.id, toast],
+  );
+
+  const handleAccept = useCallback(
+    () => void runBookingAction("accept", "Booking accepted — the client can now pay."),
+    [runBookingAction],
+  );
+  const handleDeclineConfirmed = useCallback(() => {
+    setPendingConfirm(null);
+    void runBookingAction("decline", "Booking declined.");
+  }, [runBookingAction]);
+  const handleCancelConfirmed = useCallback(() => {
+    setPendingConfirm(null);
+    void runBookingAction("cancel", "Booking cancelled.");
+  }, [runBookingAction]);
+  const handleStart = useCallback(
+    () => void runBookingAction("start", "Work marked as started."),
+    [runBookingAction],
+  );
 
   useEffect(() => {
     if (isMilestoneMode) fetchMilestones();
   }, [isMilestoneMode, fetchMilestones]);
+
+  // `?action=pay` (redirected here from the create flow) scrolls straight to
+  // the pay panel so the client lands on the next real step.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "pay") {
+      document
+        .getElementById("pay-panel")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -183,12 +252,10 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
         {data.provider && (
           <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 mb-5">
             <p className="text-[12px] text-[var(--color-text-tertiary)] mb-1">
-              {viewerRole === "CLIENT" ? "Provider" : "Client"}
+              {isClient ? "Provider" : "Client"}
             </p>
             <p className="text-[14px] text-[var(--color-text-primary)] font-medium">
-              {viewerRole === "CLIENT"
-                ? data.provider.displayName
-                : data.client?.name ?? "Unknown"}
+              {isClient ? data.provider.displayName : data.client?.name ?? "Unknown"}
             </p>
           </div>
         )}
@@ -231,6 +298,128 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
           </div>
         )}
 
+        {/* ── Pay panel: client + ACCEPTED + non-milestone (the money path). ── */}
+        {showPayPanel && (
+          <BookingPayPanel
+            booking={data.booking}
+            providerName={data.provider?.displayName ?? null}
+          />
+        )}
+
+        {/* ── Lifecycle action matrix (per PRD: accept/decline before pay). ── */}
+
+        {isClient && data.booking.status === "REQUESTED" && (
+          <div className="mt-5 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock size={15} strokeWidth={2} color="var(--color-text-tertiary)" />
+              <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                Awaiting provider response
+              </p>
+            </div>
+            <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">
+              {data.provider?.displayName ?? "The provider"} hasn&apos;t responded yet. Once they
+              accept, you can pay into escrow from this page.
+            </p>
+            <ClButton
+              variant="outlined"
+              disabled={actionLoading !== null}
+              onClick={() => setPendingConfirm("cancel")}
+            >
+              Cancel Request
+            </ClButton>
+          </div>
+        )}
+
+        {isClient &&
+          (data.booking.status === "DECLINED" || data.booking.status === "CANCELLED") && (
+            <div className="mt-5 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <XCircle size={15} strokeWidth={2} color="var(--color-text-tertiary)" />
+                <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                  {data.booking.status === "DECLINED" ? "Declined by the provider" : "Cancelled"}
+                </p>
+              </div>
+              <p className="text-[13px] text-[var(--color-text-secondary)]">
+                {data.booking.status === "DECLINED"
+                  ? "The provider couldn't take this booking. Nothing was charged — you can book someone else any time."
+                  : "This booking was cancelled. Nothing was charged."}
+              </p>
+            </div>
+          )}
+
+        {isProvider && data.booking.status === "REQUESTED" && (
+          <div className="mt-5 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock size={15} strokeWidth={2} color="var(--color-warning)" />
+              <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                New booking request
+              </p>
+            </div>
+            <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">
+              Review the scope above. Accepting lets the client pay into escrow; declining closes
+              the request at no cost to either of you.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <ClButton
+                variant="primary"
+                loading={actionLoading === "accept"}
+                disabled={actionLoading !== null}
+                onClick={handleAccept}
+              >
+                <CheckCircle2 size={15} strokeWidth={2} className="mr-1.5" />
+                Accept Booking
+              </ClButton>
+              <ClButton
+                variant="outlined"
+                disabled={actionLoading !== null}
+                onClick={() => setPendingConfirm("decline")}
+              >
+                <XCircle size={15} strokeWidth={2} className="mr-1.5" />
+                Decline
+              </ClButton>
+            </div>
+          </div>
+        )}
+
+        {isProvider && data.booking.status === "ACCEPTED" && (
+          <div className="mt-5 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock size={15} strokeWidth={2} color="var(--color-text-tertiary)" />
+              <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                Waiting for client payment
+              </p>
+            </div>
+            <p className="text-[13px] text-[var(--color-text-secondary)]">
+              {data.client?.name ?? "The client"} can now pay into escrow — you&apos;ll be notified
+              as soon as the funds are held and the work can begin.
+            </p>
+          </div>
+        )}
+
+        {isProvider && data.booking.status === "HELD" && !isMilestoneMode && (
+          <div className="mt-5 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <PlayCircle size={15} strokeWidth={2} color="var(--color-accent)" />
+              <p className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                Funds are held in escrow
+              </p>
+            </div>
+            <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">
+              The client&apos;s payment is secured. Mark the work as started once you begin — they
+              release the funds when they approve the delivery.
+            </p>
+            <ClButton
+              variant="primary"
+              loading={actionLoading === "start"}
+              disabled={actionLoading !== null}
+              onClick={handleStart}
+            >
+              <PlayCircle size={15} strokeWidth={2} className="mr-1.5" />
+              Start Work
+            </ClButton>
+          </div>
+        )}
+
         {isMilestoneMode ? (
           <MilestoneTimeline
             milestones={milestones}
@@ -246,42 +435,32 @@ export function BookingDetailClient({ data }: BookingDetailClientProps) {
           <EscrowTimeline
             booking={data.booking}
             payment={data.payment}
-            viewerRole={viewerRole}
+            viewerRole={effectiveRole}
             releaseLoading={releasing}
             onConfirmRelease={handleConfirmRelease}
             onRaiseDispute={() => setShowDispute(true)}
           />
         )}
 
-        {isDirectMode && isClient && (
-          <div className="mt-5">
-            <ClButton
-              variant="primary"
-              fullWidth
-              loading={addingPayment}
-              onClick={async () => {
-                setAddingPayment(true);
-                try {
-                  const res = await fetch("/api/wallet/topup/card", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ amountKobo: data.booking.total }),
-                  });
-                  const json = await res.json();
-                  if (json.success) {
-                    window.location.href = json.data.authorizationUrl;
-                  }
-                } catch {
-                } finally {
-                  setAddingPayment(false);
-                }
-              }}
-            >
-              <Plus size={14} strokeWidth={2} />
-              Add Payment
-            </ClButton>
-          </div>
-        )}
+        <ClConfirmDialog
+          open={pendingConfirm === "decline"}
+          title="Decline this booking?"
+          message="The client will be told the request was declined, and nothing is charged. This can't be undone — they'd need to book again."
+          confirmLabel="Decline Booking"
+          loading={actionLoading === "decline"}
+          onConfirm={handleDeclineConfirmed}
+          onCancel={() => setPendingConfirm(null)}
+        />
+
+        <ClConfirmDialog
+          open={pendingConfirm === "cancel"}
+          title="Cancel this request?"
+          message="The provider will be told the request was cancelled, and nothing is charged. This can't be undone."
+          confirmLabel="Cancel Booking"
+          loading={actionLoading === "cancel"}
+          onConfirm={handleCancelConfirmed}
+          onCancel={() => setPendingConfirm(null)}
+        />
 
         <div className="mt-5 flex justify-end">
           <ClBackButton

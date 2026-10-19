@@ -42,14 +42,18 @@ export function PaymentHistory({ records }: { records: IClientPaymentRecord[] })
             <p className="mt-0.5 text-[12px] text-[var(--color-text-secondary)]">
               {record.packageLabel}
             </p>
+            {record.stage && (
+              <p className="mt-0.5 text-[11px] font-medium text-[var(--color-warning)]">
+                {record.stage} — not yet settled
+              </p>
+            )}
             <p className="mt-0.5 text-[11px] text-[var(--color-text-tertiary)]">
               {new Date(record.createdAt).toLocaleDateString("en-NG", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
               })}
-              {" · "}
-              {record.paystackRef.slice(0, 12)}
+              {record.paystackRef ? ` · ${record.paystackRef.slice(0, 12)}` : ""}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -60,7 +64,7 @@ export function PaymentHistory({ records }: { records: IClientPaymentRecord[] })
               {formatKobo(record.amount)}
             </span>
             <ClBadge variant={statusVariant(record.status)}>
-              {record.status.replace("_", " ")}
+              {record.stage ? "PENDING" : record.status.replace("_", " ")}
             </ClBadge>
           </div>
         </Link>

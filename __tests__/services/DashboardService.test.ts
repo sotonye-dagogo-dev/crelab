@@ -3,9 +3,27 @@ import { DashboardService } from "@/services/DashboardService";
 import { BookingStatus } from "@/types";
 
 describe("DashboardService — Pipeline Column Definitions", () => {
-  it("provider pipeline has Requested, Confirmed, In Progress, Completed columns", () => {
+  it("provider pipeline has Requested, Confirmed, In Progress, Completed, then attention/closed columns", () => {
     const keys = DashboardService.PROVIDER_COLUMNS.map((c) => c.key);
-    expect(keys).toEqual(["requested", "confirmed", "in-progress", "completed"]);
+    expect(keys).toEqual([
+      "requested",
+      "confirmed",
+      "in-progress",
+      "completed",
+      "attention",
+      "refunded",
+      "cancelled",
+    ]);
+  });
+
+  it("provider columns cover every BookingStatus exactly once", () => {
+    const seen = new Map<string, number>();
+    for (const col of DashboardService.PROVIDER_COLUMNS) {
+      for (const s of col.statuses) seen.set(s, (seen.get(s) ?? 0) + 1);
+    }
+    for (const s of Object.values(BookingStatus)) {
+      expect(seen.get(s), `provider coverage for ${s}`).toBe(1);
+    }
   });
 
   it("every provider column status is a valid BookingStatus", () => {
@@ -22,9 +40,26 @@ describe("DashboardService — Pipeline Column Definitions", () => {
     expect(completed.statuses).toEqual([BookingStatus.RELEASED]);
   });
 
-  it("client pipeline has Pending Acceptance, Confirmed, In Progress, Completed", () => {
+  it("client pipeline has Pending Acceptance, Confirmed, In Progress, Completed, then attention/closed columns", () => {
     const keys = DashboardService.CLIENT_COLUMNS.map((c) => c.key);
-    expect(keys).toEqual(["pending", "confirmed", "in-progress", "completed"]);
+    expect(keys).toEqual([
+      "pending",
+      "confirmed",
+      "in-progress",
+      "completed",
+      "attention",
+      "cancelled",
+    ]);
+  });
+
+  it("client columns cover every BookingStatus exactly once", () => {
+    const seen = new Map<string, number>();
+    for (const col of DashboardService.CLIENT_COLUMNS) {
+      for (const s of col.statuses) seen.set(s, (seen.get(s) ?? 0) + 1);
+    }
+    for (const s of Object.values(BookingStatus)) {
+      expect(seen.get(s), `client coverage for ${s}`).toBe(1);
+    }
   });
 
   it("client completed column holds RELEASED and REFUNDED", () => {

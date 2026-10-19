@@ -433,6 +433,11 @@ export interface IMediaAsset {
 export interface IDashboardConfig {
   /** Number of days shown in the provider availability calendar */
   availabilityLookaheadDays: number;
+  /**
+   * Client payment-history window in days. 0 (default) = no cutoff — history
+   * is capped by row count only, never silently truncated by age.
+   */
+  paymentHistoryDays: number;
 }
 
 /* ── Growth: founding-100, referrals, leaderboard, countdown, bug report,

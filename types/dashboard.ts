@@ -128,6 +128,11 @@ export interface IClientPaymentRecord {
   paystackRef: string;
   /** ISO 8601 */
   createdAt: string;
+  /**
+   * Present ONLY on derived rows (a charge was initiated but no `payments`
+   * row settled yet) — the UI shows this instead of implying money moved.
+   */
+  stage?: string;
 }
 
 export interface IClientDashboard {

@@ -1942,3 +1942,36 @@ verified via `git stash`), no regressions.
 **Residual risks:** dropdown is client-measured — first paint may briefly show the static first-N partition before ResizeObserver corrects it (no layout break, links remain reachable); hidden measurer adds ~10 off-screen spans (negligible).
 
 **Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).
+
+## Session 2026-10-19 — Booking & payment visibility end-to-end (execute-feature)
+
+**Directive:** payments and bookings must be visible on client/provider dashboards end to end (records exist in DB but users saw nothing while admin saw them), with all designed lifecycle actions available; config-driven, reusable, non-breaking; install node modules, full QA; close with update-ai-system.
+
+**Planning pass:** read task-queue, system-architecture, PRD (booking flow line 183), PROMPTS OD-8/OD-11, repair-system pitfalls (silent catch, server→client serialization, ClButton traps); decomposed into lifecycle-api / pay-surface / scoping / dashboard-rework / config / tests / QA / docs. Architecture impact = none structural (additive routes/libs + one config key, zero migrations). Scope check passed.
+
+**Root causes (verified, not assumed):**
+1. `BookingService.createRequest` starts bookings `REQUESTED`; `acceptRequest`/`declineRequest` had ZERO callers; no accept/decline/cancel/start routes existed anywhere — the booking sat REQUESTED forever.
+2. `/api/bookings/[id]/pay` gates on `ACCEPTED` → with no way to reach ACCEPTED, payment was literally unreachable (and `BookingDrawer.tsx` — which attempted pay — was never mounted: dead code).
+3. Booking detail page had only Confirm Release + Dispute (no pay/accept/decline/cancel/start) and NO ownership check; `/bookings` list was unscoped (every user saw every booking — privacy leak).
+4. `DashboardService` had bare `catch {}` (silent empty dashboards on any query error); kanban dropped DISPUTED/REFUNDED/DECLINED/CANCELLED entirely; client payment history = `payments` rows only + hard 90-day cut → in-flight or old charges invisible.
+
+**Completed:**
+1. **Lifecycle made reachable:** `acceptRequest`/`declineRequest` made race-safe (conditional update + `assertConcurrentChange`); new `cancelBooking` (client-owned; HELD refused with dispute/support guidance — only `EscrowService.refundBookingFunds` moves money); new `EscrowService.startBooking` (HELD→IN_PROGRESS conditional); exported `validateTransition` + `LEGAL_TRANSITIONS`; 4 new routes `app/api/bookings/[id]/{accept,decline,cancel,start}/route.ts` (requireAuth → 404 → actor assert → service → `AuditService.log` → `bookingActionErrorResponse`).
+2. **Shared money path:** new `hooks/useBookingPayment.ts` (wallet + card; handlers-before-resume; server-verify-only success; hosted new-tab fallback + 30×4s poll; 3-min popup watchdog; refs defeat stale closures; terminal outcome always releases loading); `BookingDrawer` refactored onto it (+ new "awaiting provider" step so a fresh REQUESTED booking no longer fires a doomed checkout); new `BookingPayPanel` on the detail page (breakdown from booking row, wallet balance fetch, escrow notice, `?action=pay` scroll).
+3. **Detail action matrix:** `BookingDetailClient` full matrix (client: Pay Now / cancel-REQUESTED / awaiting / declined-cancelled notes; provider: Review+Accept/Decline, awaiting-payment note, Start Work) with `ClConfirmDialog` for terminal actions; legacy DIRECT "Add Payment" (wallet top-up that never paid the booking — logged residual since 2026-08-20) replaced by the real pay panel.
+4. **Access control:** new `lib/booking-access.ts` (`getProviderIdForUser` fails closed, `resolveBookingViewer`, `assertProviderActor`/`assertClientActor` — ADMIN passes, mock mode stays browsable) + `lib/booking-action-errors.ts` (401/403/404/400/500 mapping, no internal leak). Both `/bookings` list and `/bookings/[id]` scoped server-side (list: clientId OR provider.userId, ADMIN+mock see all; detail: viewerRole else `notFound()`).
+5. **Dashboard truthfulness:** new pure `lib/booking-status.ts` (status sets, `countByStatuses`, `BOOKING_STATUS_GROUPS` + `groupBookingRows` with `other` overflow so NO booking drops off, `paymentStageFor`, `mergePaymentHistory`, `bookingCardAffordance` per OD-8/OD-11). `DashboardService`: silent catches → `console.error` + fallback; provider/client columns append `attention`/`refunded`/`cancelled` (every BookingStatus covered exactly once, test-enforced); stats derived from booking rows (no column-index coupling); payment history loses the 90-day cut (`dashboard.paymentHistoryDays` config, 0 = full) and gains derived `stage`-labelled rows for charge-initiated bookings with no `payments` row; `spent30d` counts settled only.
+6. **UI:** `PipelineKanban` tones for new columns + per-state affordance labels (client ACCEPTED card deep-links `?action=pay`); `PaymentHistory` renders `stage — not yet settled` + PENDING badge for derived rows.
+7. **Config:** `IDashboardConfig.paymentHistoryDays` (default 0), `platform.config.ts`, admin `/admin/config` field with hint.
+8. **Tests:** new `__tests__/lib/booking-status.test.ts` (+12: full-status coverage invariants, grouping, merge, affordances) + `__tests__/lib/booking-access.test.ts` (+16: viewer resolution incl. fail-closed + mock bypass, both actor asserts); `DashboardService.test.ts` column expectations extended with exactly-once coverage.
+9. **QA gate:** `npm install`; vitest **629/629** (49 files; 596 → 629 = +28 new +5 updated); `tsc --noEmit` clean; `next lint` 0 errors, no warnings in touched files; `next build` exit 0.
+
+**Files created (9):** lib/booking-status.ts, lib/booking-access.ts, lib/booking-action-errors.ts, hooks/useBookingPayment.ts, BookingPayPanel.tsx, 4 API routes, 2 test files. **Edited (12):** BookingService, EscrowService, BookingDrawer, BookingDetailClient, bookings/[id]/page, bookings/page, DashboardService, PipelineKanban, PaymentHistory, admin/config/page, platform.config, types (index + dashboard), DashboardService.test.
+
+**Assumptions:** ADMIN viewing `/bookings/[id]` gets provider-side controls (server allows admin acts); DIRECT-mode bookings use the same `/pay` escrow path as ESCROW (top-up removed as it never settled the booking); cancelling is only offered pre-acceptance (REQUESTED) — HELD/IN_PROGRESS go through dispute/support; mock/demo sessions stay fully browsable (matches API-route bypass). No `memory/project-decisions.md` structural change beyond the logged decision entry below.
+
+**Chains:** `sync-context.md` close (this entry); `update-ai-system.md` deep sync inline per directive (system-architecture, repo-map, dependency-graph, architecture-history, task-queue, project-decisions, lessons-learned, in-progress.md cleared). No migrations.
+
+**Residual risks:** webhook remains the primary finalizer — a client who pays and closes the tab before `/pay/verify` polls out shows a derived "Awaiting payment confirmation" row until the webhook settles it (visible now, was invisible before); `startBooking` is manual-button + (existing) cron path — no new automation added; BookingDrawer is still unmounted (kept correct for future wiring).
+
+**Next Task:** Phase 2 backlog — in-platform messaging (still open in task-queue).

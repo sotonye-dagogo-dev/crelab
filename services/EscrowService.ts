@@ -13,7 +13,7 @@ import type {
   IPayment,
   IDispute,
 } from "@/types";
-import { BookingService } from "@/services/BookingService";
+import { BookingService, validateTransition } from "@/services/BookingService";
 
 export const LEGAL_ESCROW_TRANSITIONS: Record<EscrowState, EscrowState[]> = {
   [EscrowState.PENDING]: [EscrowState.HELD],
@@ -93,6 +93,11 @@ export interface IEscrowService {
   onPaystackSuccess(reference: string): Promise<boolean>;
   /** Exactly-once ACCEPTED→HELD transition + payment-row creation. Returns true when this call held the funds. */
   holdBookingFunds(bookingId: string, paystackRef: string, releaseDeadline: Date): Promise<boolean>;
+  /**
+   * Provider (or admin) marks a paid booking as started: conditional HELD→IN_PROGRESS.
+   * No money moves — settlement still only happens through settleRelease/refundBookingFunds.
+   */
+  startBooking(bookingId: string): Promise<IBooking>;
   /** Pay the provider out of held funds (exactly once — see settleRelease). */
   settleRelease(bookingId: string): Promise<void>;
   /** Return held funds to the payer (exactly once — see refundBookingFunds). */
@@ -234,6 +239,37 @@ export class EscrowService implements IEscrowService {
       });
       return true;
     });
+  }
+
+  /**
+   * Start work on a paid booking (provider "Start Work" action). The flip is
+   * conditional on `HELD` so a concurrent cron `setInProgress` / double click
+   * collapses to one transition, and because no wallet or payment row is
+   * touched here, a failure can never strand money — only the release deadline
+   * governs settlement (unchanged).
+   */
+  async startBooking(bookingId: string): Promise<IBooking> {
+    const booking = await new BookingService().getById(bookingId);
+    if (!booking) throw new Error("Booking not found");
+    // Shared state machine — HELD → IN_PROGRESS is the only legal path in.
+    validateTransition(booking.status, BookingStatus.IN_PROGRESS);
+
+    const [row] = await db
+      .update(bookings)
+      .set({
+        status: "IN_PROGRESS",
+        escrowState: "IN_PROGRESS",
+        updatedAt: new Date(),
+      })
+      .where(and(eq(bookings.id, bookingId), eq(bookings.status, "HELD")))
+      .returning();
+
+    if (!row) {
+      const current = await new BookingService().getById(bookingId);
+      if (current?.status === "IN_PROGRESS") return current; // concurrent start won the race
+      throw new Error("Booking is no longer awaiting work start");
+    }
+    return new BookingService().getById(bookingId) as Promise<IBooking>;
   }
 
   /**
