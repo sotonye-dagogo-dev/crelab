@@ -19,6 +19,8 @@ interface BookingsListClientProps {
     label: string;
     bookings: BookingRow[];
   }[];
+  /** Role-aware action offered on the empty state ("no bookings yet"). */
+  emptyCta?: { label: string; href: string };
 }
 
 function statusBadgeVariant(status: string) {
@@ -41,7 +43,7 @@ function statusBadgeVariant(status: string) {
   }
 }
 
-export function BookingsListClient({ groups }: BookingsListClientProps) {
+export function BookingsListClient({ groups, emptyCta }: BookingsListClientProps) {
   const visibleGroups = groups.filter((g) => g.bookings.length > 0);
 
   if (visibleGroups.length === 0) {
@@ -55,6 +57,15 @@ export function BookingsListClient({ groups }: BookingsListClientProps) {
             <p className="text-[14px] text-[var(--color-text-secondary)]">
               No bookings yet
             </p>
+            {emptyCta && (
+              <Link
+                href={emptyCta.href}
+                className="inline-flex items-center gap-1 mt-3 text-[13px] font-medium text-[var(--color-accent)] hover:underline"
+              >
+                {emptyCta.label}
+                <ChevronRight size={13} strokeWidth={2.5} aria-hidden="true" />
+              </Link>
+            )}
           </div>
         </div>
       </div>

@@ -115,5 +115,16 @@ export default async function BookingsPage() {
     bookings: allBookings.filter((b) => group.statuses.includes(b.booking.status)),
   }));
 
-  return <BookingsListClient groups={grouped} />;
+  // Role-aware empty-state action: a client with no bookings should be able to
+  // find someone to book; a provider should complete the profile that gets
+  // them booked. Admins get no CTA (the empty list is just empty).
+  const role = sessionUser.role ?? "CLIENT";
+  const emptyCta =
+    role === "PROVIDER"
+      ? { label: "Complete your profile", href: "/profile" }
+      : role === "CLIENT"
+        ? { label: "Explore creators", href: "/explore" }
+        : undefined;
+
+  return <BookingsListClient groups={grouped} emptyCta={emptyCta} />;
 }

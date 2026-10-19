@@ -18,3 +18,4 @@ export { ClConfirmDialog } from "./ClConfirmDialog";
 export { ClBackButton } from "./ClBackButton";
 export { ClDataTable, type ClColumn } from "./ClDataTable";
 export { ClPagination } from "./ClPagination";
+export { ClInfoTip } from "./ClInfoTip";

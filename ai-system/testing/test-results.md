@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
-> - last-verified-against-code: 2026-10-18
+> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
+> - last-verified-against-code: 2026-10-19
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,18 @@
 
 ## Last Run
 
-**Date:** 2026-10-18
-**Run by:** execute-feature (Admin finance bookings + media fixes)
+**Date:** 2026-10-19
+**Run by:** execute-feature (Booking & payment flow integrity + guidance affordances)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 596 | 0 | 0 |
+| Unit (vitest) | 676 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | ESLint (`npm run lint` via next lint) | — | 0 errors | — |
-| Production build (`npm run build`) | — | 0 errors (finance bookings + media drive routes compiled) | — |
+| Production build (`npm run build`) | — | 0 errors (reconcile + guidance routes/components compiled) | — |
 
-**Overall Status:** ✅ All 596/596 tests pass (47 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. New: `__tests__/services/FinanceService.test.ts` (10: list joins/aggregation/filters incl. invalid-filter normalisation, detail merge + newest-first audit, settle release/refund happy paths, 404/DISPUTED/no-HELD/already-settled guards, no audit when nothing transitioned), `__tests__/components/MediaUpload.test.tsx` (jsdom: single Drive link input after dedupe, Quick-preview button presence, input onChange, tab switch), `__tests__/services/PortfolioService.test.ts` (3: DRIVE rows mapping + provider join), `__tests__/lib/finance.test.ts` (+4 in new `normalizeBookingFilters` describe). `vitest.config.ts` gains `esbuild: { jsx: "automatic" }` — Next.js components don't import React, so the classic JSX transform failed component tests with `React is not defined` inside the source file. Prior run: 575/575 (2026-10-18, Drive link quick preview).
+**Overall Status:** ✅ All 676/676 tests pass (53 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. New: `__tests__/lib/payment-flow.test.ts` (HoldResult classification incl. retryable/terminal/duplicate/already-held, ref parse round-trip, terminal-only de-dupe recording, hold-failure copy), `__tests__/lib/booking-guidance.test.ts` (exhaustive status×side coverage, null-for-panel states, config override + "" hide), `__tests__/lib/hints.test.ts` (defaults merge, "" hide, token fill `{{feeRate}}`/`{{escrowWindow}}`/`{{name}}`), `__tests__/components/ClInfoTip.test.tsx` (render, a11y roles, open/close). Platform-name compliance: `CRELLAB-` payment-ref literals allowlisted as infrastructure identifiers (reasons recorded; rule stays strict). Prior run: 629/629 (2026-10-19, booking & payment visibility end-to-end).
 
 ---
 
@@ -38,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-19 | 676 | 0 | execute-feature: booking & payment flow integrity (truthful verify HoldResult mapping, terminal-only webhook de-dupe, ref-attribution fallback, reconcileBooking + cron sweep + page self-heal + admin reconcile) + guidance affordances (bookingNextStep/NextStepBanner, release + provider-cancel confirm dialogs, provider cancel) + platform tips (ClInfoTip, lib/hints, admin Guidance section) (+47 tests, 4 new files). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-18 | 596 | 0 | execute-feature: admin finance bookings (list/detail/settle via EscrowService + dual-level audit, 4 routes, entityId audit filter, Transactions\|Bookings tabs) + MediaUpload dedupe + useDrivePreview + admin media Drive tab (+21 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-18 | 575 | 0 | execute-feature: Drive link quick preview (rate-limit window limiter, folder metadata + bounded sample, zero-DB preview route with per-user budget, UI card + cooldown) (+20 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-18 | 555 | 0 | execute-feature: Google Drive limits/caveats hardening (rate-limit classification + backoff/Retry-After, per-process throttle, pagination cap/truncated, stable unsigned thumbnails, syncAll abort, 503 route mapping, client legacy-thumb heal) (+25 tests). tsc 0 errors, lint 0 errors, build green |

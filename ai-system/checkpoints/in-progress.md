@@ -1,6 +1,7 @@
-# In-Progress — (clear)
+# In-Progress — No active session
 
-No active work. Last session 2026-10-19 (booking & payment visibility end-to-end) closed
-with full QA gate green (629/629 vitest, tsc clean, lint 0 errors in touched files,
-build green) and update-ai-system deep sync complete. See
-`ai-system/checkpoints/session-log.md`.
+> **Status:** No session in progress. Last session completed 2026-10-19 — see
+> `checkpoints/session-log.md` (Booking & Payment Flow Integrity + Guidance Affordances).
+
+When starting a new session, replace this file with the planning-pass draft
+(directive, root causes, scope decomposition, QA gate plan) per `execute-feature.md` Step 1.

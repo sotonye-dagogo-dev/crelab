@@ -25,6 +25,51 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       );
     }
 
+    // Pre-flight: a previous card checkout may have actually gone through even
+    // though the booking is still ACCEPTED (webhook not yet delivered / verify
+    // hold did not land). Starting a NEW Paystack checkout here would double
+    // charge the client. `reconcileBooking` is processor-verified — it either
+    // confirms the charge never happened (safe to proceed), finishes the hold
+    // (report success), or reports a real charge that is still in flight /
+    // needs review (block and surface an honest message).
+    const existingRef = booking.paystackRef;
+    if (existingRef && !existingRef.startsWith("WALLET-")) {
+      const escrow = new EscrowService();
+      const preflight = await escrow.reconcileBooking(bookingId, {
+        actorId: session.user.id,
+        audit: true,
+      });
+
+      if (preflight.alreadyHeld || preflight.held) {
+        // Earlier attempt succeeded (and now finished holding) — report success
+        // instead of charging again.
+        return NextResponse.json({
+          success: true,
+          data: { method: "ALREADY_HELD", held: true, bookingStatus: preflight.bookingStatus },
+        });
+      }
+
+      if (preflight.outcome === "charge_pending" || preflight.outcome === "unverifiable") {
+        // A charge is still settling (or the processor is unreachable) — must
+        // not start a second one. The client UI retries / polls on this.
+        return NextResponse.json(
+          { success: false, error: "Your previous payment is still processing — please wait a moment and try again, or contact support if this persists.", reason: preflight.outcome },
+          { status: 409 },
+        );
+      }
+
+      if (preflight.outcome !== "not_charged" && preflight.outcome !== "no_reference") {
+        // amount_mismatch / attribution_mismatch / not_payable / duplicate_charge
+        // — the service already audited it; block and tell the truth.
+        return NextResponse.json(
+          { success: false, error: preflight.detail ?? "Your previous payment could not be applied to this booking — support has been notified.", reason: preflight.outcome },
+          { status: 409 },
+        );
+      }
+      // "not_charged" or "no_reference" → no successful charge on record: safe
+      // to start a fresh checkout below.
+    }
+
     // Wallet direct path (tightened ACID): debit immediately, set HELD without Paystack
     if (useWallet) {
       const walletService = new WalletService();

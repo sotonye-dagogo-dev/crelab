@@ -1,6 +1,8 @@
 "use client";
 
-import { ClButton } from "@/components/ui";
+import { ClButton, ClInfoTip } from "@/components/ui";
+import { usePlatformConfig } from "@/lib/config-context";
+import { resolveHint } from "@/lib/hints";
 
 interface WalletBalanceCardProps {
   balanceKobo: number;
@@ -19,10 +21,19 @@ export function WalletBalanceCard({
   onTopUp,
   onWithdraw,
 }: WalletBalanceCardProps) {
+  const platformConfig = usePlatformConfig();
+  const balanceHint = resolveHint("walletBalance", platformConfig);
+  const withdrawHint = resolveHint("walletWithdraw", platformConfig);
+
   return (
     <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-6">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] mb-1">
+      <p className="inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] mb-1">
         Available Balance
+        {balanceHint && (
+          <ClInfoTip label="About your wallet balance">
+            {balanceHint}
+          </ClInfoTip>
+        )}
       </p>
       <p
         className="font-[family-name:var(--font-display)] font-extrabold text-[32px] leading-tight text-[var(--color-accent)]"
@@ -48,14 +59,21 @@ export function WalletBalanceCard({
         )}
       </div>
 
-      <div className="flex gap-3 mt-6">
+      <div className="flex gap-3 mt-6 items-center">
         <ClButton variant="primary" onClick={onTopUp}>
           Top Up
         </ClButton>
         {isProvider && onWithdraw && (
-          <ClButton variant="outlined" onClick={onWithdraw}>
-            Withdraw
-          </ClButton>
+          <span className="inline-flex items-center gap-1.5">
+            <ClButton variant="outlined" onClick={onWithdraw}>
+              Withdraw
+            </ClButton>
+            {withdrawHint && (
+              <ClInfoTip label="About withdrawals">
+                {withdrawHint}
+              </ClInfoTip>
+            )}
+          </span>
         )}
       </div>
     </div>

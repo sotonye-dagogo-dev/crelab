@@ -42,6 +42,12 @@ export interface IDashboardStat {
   label: string;
   sub?: string;
   subTone?: DashboardStatTone;
+  /**
+   * Optional info-tip key (see lib/hints.ts HintKey) — when present and the
+   * hint resolves, StatCard renders a ClInfoTip next to the label explaining
+   * what the stat means (e.g. "dashboardEscrow" on the earnings/escrow stat).
+   */
+  hintKey?: string;
 }
 
 export interface IPortfolioPerformanceRow {

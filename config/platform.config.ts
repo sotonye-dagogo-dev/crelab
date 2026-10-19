@@ -211,6 +211,20 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
     availabilityLookaheadDays: 30,
     paymentHistoryDays: 0,
   },
+  // Info-icon tooltip copy (ClInfoTip placements). Built-in defaults live in
+  // lib/hints.ts; an entry in `copy` overrides the default for that key, and an
+  // empty string hides that tip. Tokens: {{name}}, {{feeRate}}, {{escrowWindow}}.
+  hints: {
+    enabled: true,
+    copy: {},
+  },
+  // "Who acts next" guidance banner on the booking detail page. Copy overrides
+  // are keyed `${status}:${side}` (e.g. "ACCEPTED:client") and edited via the
+  // raw config JSON — the admin UI exposes the toggle only.
+  bookingFlow: {
+    enabled: true,
+    copy: {},
+  },
   firstHundred: {
     enabled: true,
     limit: 100,

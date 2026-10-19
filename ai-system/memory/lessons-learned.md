@@ -31,6 +31,22 @@
 
 ## Lessons
 
+## A Verify Endpoint That Always Succeeds Is Worse Than None — Success Must Report What Actually Happened
+
+**Context:** `/api/bookings/[id]/pay/verify` returned `verified:true` regardless of whether `EscrowService` actually held the funds. Clients saw "payment successful" while the booking stayed `ACCEPTED` + `escrowState PENDING` with no `payments` row — the exact "paid but stuck at stage 1" alpha report. The webhook compounded it by recording the de-dupe `payments` row unconditionally, so Paystack never retried the refused hold.
+
+**What We Learned:**
+1. The success contract of a verification endpoint is the ACTION it triggers, not the upstream call it wraps. Verify must classify the hold outcome and report it truthfully: held → success; retryable → an explicit `hold_pending` the client can retry; terminal → an honest 409 with user-facing copy. A boolean "the processor said OK" is not a result.
+2. De-dupe/idempotency rows must be written only for TERMINAL outcomes. Recording the row after a failed hold permanently swallows the processor's retries — the charge exists, the hold never happens, forever. Retryable outcomes must surface as 5xx so the processor retries.
+3. Processor references regenerated on every checkout create unattributable charges. Embed the entity id in the reference (`CRELLAB-{bookingId}-{unixMillis}`) and resolve attribution with a layered fallback (exact ref → metadata hint → parsed id) — recoverable with zero schema change.
+4. Money-path failures need a repair vocabulary, not `console.error`: one pure classification (retryable / terminal / duplicate / already-held) shared by webhook, verify, pay, cron, page and admin; an idempotent `reconcileBooking`; a bounded cron sweep; a rate-limited silent page self-heal; and an explicit admin action. Four callers, one primitive.
+5. Design-system §UX-3 is money-adjacent safety: a destructive money action (Confirm Release) without a confirmation dialog is the same class of bug as a sticky loading state — both can cause irreversible financial mistakes.
+
+**Apply When:** building any endpoint whose name implies success ("verify", "confirm", "sync", "settle"); when a webhook writes idempotency rows; when processor refs are generated per attempt; when adding a new money-moving action (ask: what does the caller see when the hold fails, and who repairs it?).
+
+**Supersedes:** None
+**Superseded by:** None
+
 ## A Bare `catch {}` on a Data Query Is an "Invisible Data" Bug Factory — Log, Then Fall Back
 
 **Context:** `DashboardService.getProviderDashboard`/`getClientDashboard` wrapped their queries in `catch {}` with no logging. Any single failed join (or config lookup) silently produced an EMPTY dashboard — users reported "bookings exist in the DB but I see nothing" while the admin finance page (different query path) showed the same rows fine.
