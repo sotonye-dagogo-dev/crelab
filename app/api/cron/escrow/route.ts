@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { EscrowService } from "@/services/EscrowService";
+import { JobQueueService } from "@/services/JobQueueService";
 
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
@@ -19,71 +20,28 @@ export async function GET(req: Request) {
     );
   }
 
-  const escrowService = new EscrowService();
-  const results: Record<string, unknown> = {};
-
-  // Safety net first: re-check bookings that are still ACCEPTED + PENDING with
-  // a stored card reference after the grace period — the "charged but never
-  // held" state the webhook/verify failures used to leave behind — and hold
-  // them when Paystack confirms the charge succeeded. Bounded + processor
-  // verified, so it can never hold funds for an unpaid checkout.
+  // Vercel Hobby runs this once per day — drain any DB-queued intra-day jobs
+  // first (e.g. escrow sweeps enqueued at hold time for +6h/+12h/+24h), then
+  // run the full idempotent sweep as the bulk safety net.
+  let queueResult: Awaited<ReturnType<JobQueueService["drainDueJobs"]>> | null = null;
   try {
-    const reconcileResult = await escrowService.reconcileStuckHolds();
-    results.reconcileStuckHolds = reconcileResult;
+    queueResult = await new JobQueueService().drainDueJobs({ limit: 50 });
   } catch (err) {
-    results.reconcileStuckHolds = {
-      scanned: 0,
-      held: 0,
-      alreadyHeld: 0,
-      needsReview: 0,
+    queueResult = {
+      claimed: 0,
+      completed: 0,
+      failed: 0,
       skipped: 0,
-      errors: [err instanceof Error ? err.message : "Unknown error in reconcileStuckHolds"],
+      errors: [err instanceof Error ? err.message : "Unknown error draining job queue"],
     };
   }
 
-  try {
-    const inProgressResult = await escrowService.setInProgress();
-    results.setInProgress = inProgressResult;
-  } catch (err) {
-    results.setInProgress = {
-      processed: 0,
-      errors: [
-        err instanceof Error ? err.message : "Unknown error in setInProgress",
-      ],
-    };
-  }
-
-  try {
-    const autoReleaseResult = await escrowService.autoRelease();
-    results.autoRelease = autoReleaseResult;
-  } catch (err) {
-    results.autoRelease = {
-      processed: 0,
-      errors: [
-        err instanceof Error ? err.message : "Unknown error in autoRelease",
-      ],
-    };
-  }
-
-  const reconcileResult = results.reconcileStuckHolds as { held: number; errors: string[] } | undefined;
-  const inProgressResult = results.setInProgress as { processed: number; errors: string[] } | undefined;
-  const autoReleaseResult = results.autoRelease as { processed: number; errors: string[] } | undefined;
-
-  const totalProcessed =
-    (reconcileResult?.held ?? 0) +
-    (inProgressResult?.processed ?? 0) +
-    (autoReleaseResult?.processed ?? 0);
-
-  const totalErrors = [
-    ...(reconcileResult?.errors ?? []),
-    ...(inProgressResult?.errors ?? []),
-    ...(autoReleaseResult?.errors ?? []),
-  ];
+  const sweep = await new EscrowService().runFullSweep();
 
   return NextResponse.json({
-    success: totalErrors.length === 0,
-    processed: totalProcessed,
-    errors: totalErrors,
-    details: results,
+    success: sweep.totalErrors.length === 0 && (queueResult?.errors.length ?? 0) === 0,
+    processed: sweep.totalProcessed + (queueResult?.completed ?? 0),
+    errors: [...sweep.totalErrors, ...(queueResult?.errors ?? [])],
+    details: { queue: queueResult, sweep: sweep.results },
   });
 }

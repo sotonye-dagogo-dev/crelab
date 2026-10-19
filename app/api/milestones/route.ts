@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
             { status: 400 },
           );
         }
-        const result = await milestoneService.createMilestones(bookingId, milestones);
+        const result = await milestoneService.createMilestones(bookingId, milestones, session.user.id);
         return NextResponse.json({ success: true, data: result });
       }
 

@@ -34,11 +34,68 @@ export const WIRED_EMAIL_TEMPLATES: Record<
   },
   bookingConfirmation: {
     label: "Booking Confirmation",
-    trigger: "Sent to the client when a booking is confirmed.",
+    trigger:
+      "Sent to the client when they submit a booking request (and to the provider as the new-request notice via bookingRequestReceived).",
+  },
+  bookingRequestReceived: {
+    label: "Booking Request — Provider Notice",
+    trigger: "Sent to the provider when a client submits a new booking request.",
+  },
+  bookingAccepted: {
+    label: "Booking Accepted",
+    trigger: "Sent to the client when the provider accepts their booking request.",
+  },
+  bookingDeclined: {
+    label: "Booking Declined",
+    trigger: "Sent to the client when the provider declines their booking request.",
+  },
+  bookingCancelled: {
+    label: "Booking Cancelled",
+    trigger: "Sent to both the client and provider when a booking is cancelled.",
+  },
+  bookingStarted: {
+    label: "Work Started",
+    trigger: "Sent to the client when the provider starts work on a paid booking.",
   },
   paymentReceived: {
-    label: "Payment Received",
-    trigger: "Sent to the client when a payment is received for a booking.",
+    label: "Payment Received (Funds in Escrow)",
+    trigger: "Sent to the client when their payment is confirmed and held in escrow.",
+  },
+  paymentReleased: {
+    label: "Payment Released",
+    trigger: "Sent to the provider when escrowed funds are released to their wallet.",
+  },
+  paymentRefunded: {
+    label: "Payment Refunded",
+    trigger: "Sent to the client when escrowed funds are refunded to them.",
+  },
+  disputeOpened: {
+    label: "Dispute Opened",
+    trigger: "Sent to both parties when a dispute is raised on a booking.",
+  },
+  disputeResolved: {
+    label: "Dispute Resolved",
+    trigger: "Sent to both parties when an admin resolves a dispute (released or refunded).",
+  },
+  walletTopup: {
+    label: "Wallet Top-up",
+    trigger: "Sent when a wallet top-up (card or bank) is credited.",
+  },
+  withdrawalRequested: {
+    label: "Withdrawal Requested",
+    trigger: "Sent when a withdrawal transfer is initiated successfully.",
+  },
+  milestoneFunded: {
+    label: "Milestone Funded",
+    trigger: "Sent to the provider when the client funds a milestone.",
+  },
+  milestoneSubmitted: {
+    label: "Milestone Submitted",
+    trigger: "Sent to the client when the provider submits a milestone for review.",
+  },
+  milestoneApproved: {
+    label: "Milestone Approved",
+    trigger: "Sent to the provider when a milestone is approved (manual or auto) and paid out.",
   },
   passwordReset: {
     label: "Password Reset",

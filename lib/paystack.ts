@@ -144,6 +144,9 @@ export function verifyWebhookSignature(
     .createHmac("sha512", secretKey)
     .update(rawBody)
     .digest("hex");
+  // Length guard: timingSafeEqual THROWS on mismatched buffer lengths, which
+  // would turn a malformed signature header into a 500 instead of a clean 401.
+  if (signature.length !== hash.length) return false;
   return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature));
 }
 

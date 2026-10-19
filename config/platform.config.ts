@@ -680,6 +680,244 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
         ],
         enabled: true,
       },
+      bookingRequestReceived: {
+        name: "Booking Request Received",
+        subject: "New booking request from {{clientName}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">New booking request</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;"><strong style="color:#F2F2F2;">{{clientName}}</strong> has requested a booking for <strong style="color:#F2F2F2;">{{packageName}}</strong> ({{amount}}) on {{bookingDate}}.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">Review Request</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      bookingAccepted: {
+        name: "Booking Accepted",
+        subject: "Your booking with {{providerName}} was accepted",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Booking accepted</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;"><strong style="color:#F2F2F2;">{{providerName}}</strong> accepted your booking for <strong style="color:#F2F2F2;">{{packageName}}</strong> ({{amount}}) on {{bookingDate}}. You can now complete payment to lock the funds in escrow.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View &amp; Pay</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      bookingDeclined: {
+        name: "Booking Declined",
+        subject: "Your booking with {{providerName}} was declined",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Booking declined</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;"><strong style="color:#F2F2F2;">{{providerName}}</strong> declined the booking request for <strong style="color:#F2F2F2;">{{packageName}}</strong>. No payment was taken — you can explore other creators or try different dates.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Booking</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      bookingCancelled: {
+        name: "Booking Cancelled",
+        subject: "Booking cancelled — {{providerName}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Booking cancelled</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">The booking for <strong style="color:#F2F2F2;">{{packageName}}</strong> with <strong style="color:#F2F2F2;">{{providerName}}</strong> has been cancelled. If any payment was held, our team will ensure it is returned.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Booking</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      bookingStarted: {
+        name: "Work Started",
+        subject: "Work has started on your booking — {{providerName}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Work in progress</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;"><strong style="color:#F2F2F2;">{{providerName}}</strong> has started work on your <strong style="color:#F2F2F2;">{{packageName}}</strong> booking. Your payment stays safely in escrow until you confirm the work is complete.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Booking</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      paymentReleased: {
+        name: "Payment Released",
+        subject: "You've been paid {{amount}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Payment released</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Great news — <strong style="color:#F2F2F2;">{{amount}}</strong> from the booking with <strong style="color:#F2F2F2;">{{clientName}}</strong> has been released to your wallet. You can withdraw it any time.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Booking</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      paymentRefunded: {
+        name: "Payment Refunded",
+        subject: "Your payment of {{amount}} has been refunded",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Payment refunded</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Your payment of <strong style="color:#F2F2F2;">{{amount}}</strong> for the booking with <strong style="color:#F2F2F2;">{{providerName}}</strong> has been refunded. Wallet payments return to your balance immediately; card payments return to your bank within a few business days.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Booking</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      disputeOpened: {
+        name: "Dispute Opened",
+        subject: "A dispute has been opened for your booking",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Dispute opened</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">A dispute has been raised for the booking between <strong style="color:#F2F2F2;">{{clientName}}</strong> and <strong style="color:#F2F2F2;">{{providerName}}</strong>. The escrowed funds are frozen while our team reviews — neither party needs to do anything right now.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Booking</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      disputeResolved: {
+        name: "Dispute Resolved",
+        subject: "Your dispute has been resolved",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Dispute resolved</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">The dispute for the booking between <strong style="color:#F2F2F2;">{{clientName}}</strong> and <strong style="color:#F2F2F2;">{{providerName}}</strong> has been resolved — the escrowed funds were <strong style="color:#F2F2F2;">{{outcomeLabel}}</strong>.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Booking</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      walletTopup: {
+        name: "Wallet Top-up",
+        subject: "Your wallet was topped up — {{amount}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Wallet topped up</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">We've received your wallet top-up of <strong style="color:#F2F2F2;">{{amount}}</strong>. The funds are available in your wallet now.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{walletUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">Open Wallet</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      withdrawalRequested: {
+        name: "Withdrawal Requested",
+        subject: "Withdrawal request received — {{amount}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Withdrawal requested</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">We've received your request to withdraw <strong style="color:#F2F2F2;">{{amount}}</strong>. The transfer to your bank is on its way — you'll see it settle within a few business days.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{walletUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">Open Wallet</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      milestoneFunded: {
+        name: "Milestone Funded",
+        subject: "Milestone funded — {{milestoneTitle}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Milestone funded</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">The client funded the milestone <strong style="color:#F2F2F2;">{{milestoneTitle}}</strong> ({{amount}}). The funds are held in escrow — deliver the work, then submit it for review.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Milestone</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      milestoneSubmitted: {
+        name: "Milestone Submitted",
+        subject: "Milestone ready for your review — {{milestoneTitle}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Ready for review</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">The milestone <strong style="color:#F2F2F2;">{{milestoneTitle}}</strong> ({{amount}}) has been submitted. Review the work and approve to release payment, or raise a dispute if something's off. Unreviewed milestones auto-approve after the review window.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">Review Milestone</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
+      milestoneApproved: {
+        name: "Milestone Approved",
+        subject: "Milestone approved — {{milestoneTitle}}",
+        bodyHtml: `<div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+<div style="text-align:center;margin-bottom:32px;">
+<img src="{{logoUrl}}" alt="{{name}}" style="height:32px;border-radius:8px;" />
+<h1 style="font-family:Syne,sans-serif;font-size:22px;font-weight:800;color:#E8FF47;margin:16px 0 0;">Milestone approved</h1>
+</div>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">Hi {{userName}},</p>
+<p style="font-size:14px;color:#9A9A9A;line-height:1.6;">The milestone <strong style="color:#F2F2F2;">{{milestoneTitle}}</strong> was approved — <strong style="color:#F2F2F2;">{{amount}}</strong> (net of fees) has been released to your wallet.</p>
+<div style="text-align:center;margin:32px 0;">
+<a href="{{bookingUrl}}" style="display:inline-block;padding:12px 24px;background:#E8FF47;color:#0A0A0A;text-decoration:none;font-weight:600;font-size:14px;border-radius:8px;">View Milestone</a>
+</div>
+<p style="font-size:12px;color:#5C5C5C;text-align:center;margin-top:32px;">{{name}} — Get hired for your creativity, not your follower count.</p>
+</div>`,
+        enabled: true,
+      },
     },
   },
   devCredit: {

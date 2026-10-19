@@ -20,6 +20,15 @@ import type {
   IDispute,
 } from "@/types";
 import { BookingService, validateTransition } from "@/services/BookingService";
+import { JobQueueService } from "@/services/JobQueueService";
+import {
+  notifyBookingStarted,
+  notifyDisputeOpened,
+  notifyDisputeResolved,
+  notifyFundsHeld,
+  notifyFundsRefunded,
+  notifyFundsReleased,
+} from "@/lib/lifecycle-emails";
 
 export const LEGAL_ESCROW_TRANSITIONS: Record<EscrowState, EscrowState[]> = {
   [EscrowState.PENDING]: [EscrowState.HELD],
@@ -189,6 +198,12 @@ export interface IEscrowService {
   setInProgress(): Promise<{ processed: number; errors: string[] }>;
   clientConfirmRelease(bookingId: string, clientId: string): Promise<IBooking>;
   autoRelease(): Promise<{ processed: number; errors: string[] }>;
+  /** Full idempotent safety sweep (reconcile stuck holds → in-progress → auto-release). */
+  runFullSweep(): Promise<{
+    results: Record<string, unknown>;
+    totalProcessed: number;
+    totalErrors: string[];
+  }>;
   raiseDispute(
     bookingId: string,
     clientId: string,
@@ -639,7 +654,7 @@ export class EscrowService implements IEscrowService {
     paystackRef: string,
     releaseDeadline: Date,
   ): Promise<boolean> {
-    return db.transaction(async (tx) => {
+    const held = await db.transaction(async (tx) => {
       const [flipped] = await tx
         .update(bookings)
         .set({
@@ -663,6 +678,24 @@ export class EscrowService implements IEscrowService {
       });
       return true;
     });
+
+    if (held) {
+      // Post-commit side effects (never inside the money transaction):
+      // audit trail, client "funds in escrow" email, and queued follow-up
+      // escrow sweeps (+6h/+12h/+24h) so the Hobby daily-cron limit never
+      // delays stuck-hold repair.
+      void AuditService.log({
+        userId: null,
+        action: "escrow.held",
+        entity: "bookings",
+        entityId: bookingId,
+        newValue: { paystackRef, releaseDeadline: releaseDeadline.toISOString() },
+      }).catch(() => {});
+      void notifyFundsHeld(bookingId);
+      void new JobQueueService().enqueueEscrowFollowUps(bookingId);
+    }
+
+    return held;
   }
 
   /**
@@ -693,6 +726,7 @@ export class EscrowService implements IEscrowService {
       if (current?.status === "IN_PROGRESS") return current; // concurrent start won the race
       throw new Error("Booking is no longer awaiting work start");
     }
+    void notifyBookingStarted(bookingId);
     return new BookingService().getById(bookingId) as Promise<IBooking>;
   }
 
@@ -722,6 +756,7 @@ export class EscrowService implements IEscrowService {
 
     const walletService = new WalletService();
     for (const payment of held) {
+      let newlyReleased = false;
       try {
         await walletService.creditFromEscrowRelease(
           booking.providerId,
@@ -736,10 +771,23 @@ export class EscrowService implements IEscrowService {
         // on HELD (idempotent), so running it here is what completes the retry
         // instead of leaving the payment stuck in HELD.
       }
-      await db
+      const [flipped] = await db
         .update(payments)
         .set({ status: "RELEASED" })
-        .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")));
+        .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")))
+        .returning({ id: payments.id });
+      if (flipped) newlyReleased = true;
+
+      if (newlyReleased) {
+        void AuditService.log({
+          userId: null,
+          action: "escrow.released",
+          entity: "bookings",
+          entityId: bookingId,
+          newValue: { paymentId: payment.id, netKobo: payment.netAmount, feeKobo: payment.fee },
+        }).catch(() => {});
+        void notifyFundsReleased(bookingId, payment.netAmount);
+      }
     }
   }
 
@@ -785,10 +833,21 @@ export class EscrowService implements IEscrowService {
           // unique violation = a previous attempt already refunded — fall
           // through to the flip, which is conditional on HELD anyway.
         }
-        await db
+        const [flippedWallet] = await db
           .update(payments)
           .set({ status: "REFUNDED" })
-          .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")));
+          .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")))
+          .returning({ id: payments.id });
+        if (flippedWallet) {
+          void AuditService.log({
+            userId: null,
+            action: "escrow.refunded",
+            entity: "bookings",
+            entityId: bookingId,
+            newValue: { paymentId: payment.id, amountKobo: payment.amount, funding: "WALLET" },
+          }).catch(() => {});
+          void notifyFundsRefunded(bookingId);
+        }
         continue;
       }
 
@@ -798,6 +857,15 @@ export class EscrowService implements IEscrowService {
         .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")))
         .returning({ id: payments.id });
       if (!flipped) continue;
+
+      void AuditService.log({
+        userId: null,
+        action: "escrow.refunded",
+        entity: "bookings",
+        entityId: bookingId,
+        newValue: { paymentId: payment.id, amountKobo: payment.amount, funding: "CARD" },
+      }).catch(() => {});
+      void notifyFundsRefunded(bookingId);
 
       try {
         await refund(payment.paystackRef);
@@ -964,6 +1032,68 @@ export class EscrowService implements IEscrowService {
     return { processed, errors };
   }
 
+  /**
+   * The complete escrow safety sweep, shared by the daily Vercel cron
+   * (`/api/cron/escrow`) and the DB-backed `escrow_sweep` job handler. Every
+   * step is idempotent and individually error-isolated so one failing stage
+   * never skips the rest.
+   */
+  async runFullSweep(): Promise<{
+    results: Record<string, unknown>;
+    totalProcessed: number;
+    totalErrors: string[];
+  }> {
+    const results: Record<string, unknown> = {};
+
+    try {
+      results.reconcileStuckHolds = await this.reconcileStuckHolds();
+    } catch (err) {
+      results.reconcileStuckHolds = {
+        scanned: 0,
+        held: 0,
+        alreadyHeld: 0,
+        needsReview: 0,
+        skipped: 0,
+        errors: [err instanceof Error ? err.message : "Unknown error in reconcileStuckHolds"],
+      };
+    }
+
+    try {
+      results.setProgress = await this.setInProgress();
+    } catch (err) {
+      results.setProgress = {
+        processed: 0,
+        errors: [err instanceof Error ? err.message : "Unknown error in setInProgress"],
+      };
+    }
+
+    try {
+      results.autoRelease = await this.autoRelease();
+    } catch (err) {
+      results.autoRelease = {
+        processed: 0,
+        errors: [err instanceof Error ? err.message : "Unknown error in autoRelease"],
+      };
+    }
+
+    const reconcileResult = results.reconcileStuckHolds as { held: number; errors: string[] } | undefined;
+    const inProgressResult = results.setProgress as { processed: number; errors: string[] } | undefined;
+    const autoReleaseResult = results.autoRelease as { processed: number; errors: string[] } | undefined;
+
+    const totalProcessed =
+      (reconcileResult?.held ?? 0) +
+      (inProgressResult?.processed ?? 0) +
+      (autoReleaseResult?.processed ?? 0);
+
+    const totalErrors = [
+      ...(reconcileResult?.errors ?? []),
+      ...(inProgressResult?.errors ?? []),
+      ...(autoReleaseResult?.errors ?? []),
+    ];
+
+    return { results, totalProcessed, totalErrors };
+  }
+
   async raiseDispute(
     bookingId: string,
     clientId: string,
@@ -1008,6 +1138,15 @@ export class EscrowService implements IEscrowService {
         })
         .returning();
     });
+
+    void AuditService.log({
+      userId: clientId,
+      action: "escrow.dispute.opened",
+      entity: "bookings",
+      entityId: bookingId,
+      newValue: { disputeId: dispute.id, reason },
+    }).catch(() => {});
+    void notifyDisputeOpened(bookingId);
 
     return mapDispute(dispute);
   }
@@ -1067,6 +1206,16 @@ export class EscrowService implements IEscrowService {
         .from(disputes)
         .where(eq(disputes.id, disputeId));
     });
+
+    void AuditService.log({
+      userId: adminId,
+      action: "escrow.dispute.resolved",
+      entity: "bookings",
+      entityId: dispute.bookingId,
+      oldValue: { disputeOutcome: dispute.outcome },
+      newValue: { disputeId, outcome, adminNotes: adminNotes ?? null },
+    }).catch(() => {});
+    void notifyDisputeResolved(dispute.bookingId, outcome);
 
     return mapDispute(rows[0]);
   }

@@ -2,6 +2,13 @@ import { db } from "@/lib/db";
 import { bookings, providers, servicePackages } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { AuditService } from "@/services/AuditService";
+import {
+  notifyBookingAccepted,
+  notifyBookingCancelled,
+  notifyBookingCreated,
+  notifyBookingDeclined,
+} from "@/lib/lifecycle-emails";
 import type { IBooking } from "@/types";
 import { BookingStatus, PaymentMode } from "@/types";
 
@@ -144,6 +151,15 @@ export class BookingService implements IBookingService {
       })
       .returning();
 
+    void notifyBookingCreated(row.id);
+    void AuditService.log({
+      userId: data.clientId,
+      action: "booking.created",
+      entity: "bookings",
+      entityId: row.id,
+      newValue: { providerId: data.providerId, packageId: data.packageId, total: totalKobo, paymentMode: requestedMode },
+    }).catch(() => {});
+
     return mapBooking(row);
   }
 
@@ -159,6 +175,7 @@ export class BookingService implements IBookingService {
       .returning();
     if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.ACCEPTED);
 
+    void notifyBookingAccepted(id);
     return mapBooking(row);
   }
 
@@ -174,6 +191,7 @@ export class BookingService implements IBookingService {
       .returning();
     if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.DECLINED);
 
+    void notifyBookingDeclined(id);
     return mapBooking(row);
   }
 
@@ -215,6 +233,16 @@ export class BookingService implements IBookingService {
       .where(and(eq(bookings.id, id), eq(bookings.status, existing.status)))
       .returning();
     if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.CANCELLED);
+
+    void notifyBookingCancelled(id);
+    void AuditService.log({
+      userId: actor.id,
+      action: "booking.cancelled",
+      entity: "bookings",
+      entityId: id,
+      oldValue: { status: existing.status },
+      newValue: { status: BookingStatus.CANCELLED },
+    }).catch(() => {});
 
     return mapBooking(row);
   }

@@ -89,6 +89,25 @@ export interface IDashboardQuickAction {
   variant: "primary" | "outlined" | "accent-outlined" | "ghost";
 }
 
+export interface IProviderPaymentRecord {
+  id: string;
+  bookingId: string;
+  clientId: string;
+  clientName: string;
+  packageLabel: string;
+  /** Money in kobo */
+  amount: number;
+  /** Money in kobo */
+  fee: number;
+  /** Money in kobo */
+  netAmount: number;
+  status: string;
+  paystackRef: string;
+  createdAt: string;
+  /** Present when the charge started but the payment row isn't final yet. */
+  stage?: string;
+}
+
 export interface IProviderDashboard {
   role: "PROVIDER";
   profile: {
@@ -103,6 +122,8 @@ export interface IProviderDashboard {
   completeness: IProfileCompleteness;
   stats: IDashboardStat[];
   pipeline: IDashboardPipelineColumn[];
+  /** Booking-level payment history (escrow holds/releases) for this provider. */
+  paymentHistory: IProviderPaymentRecord[];
   portfolioPerformance: IPortfolioPerformanceRow[];
   portfolioGallery: {
     id: string;

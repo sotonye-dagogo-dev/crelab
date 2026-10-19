@@ -956,6 +956,7 @@ export type {
   IDashboardQuickAction,
   IProviderDashboard,
   IClientPaymentRecord,
+  IProviderPaymentRecord,
   IClientDashboard,
 } from "./dashboard";
 
