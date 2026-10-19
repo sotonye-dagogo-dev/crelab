@@ -1,8 +1,8 @@
 # Architecture History
 
 > **Metadata**
-> - last-updated-by: update-ai-system
-> - last-verified-against-code: 2026-07-28
+> - last-updated-by: update-ai-system (Session 2026-10-19)
+> - last-verified-against-code: 2026-10-19
 > - staleness-policy: historical entries do not go stale — only the current architecture (in system-architecture.md) needs re-verification
 
 > **Overview:** Chronological record of how Crelab's system architecture has evolved.
@@ -10,6 +10,20 @@
 ---
 
 ## History
+
+### 2026-10-19 — Booking Lifecycle + Payment Path Consolidation
+
+**State:**
+The booking state machine gained its missing edges and a single client-side money path. Four new lifecycle routes (`/api/bookings/[id]/{accept,decline,cancel,start}`) make the PRD flow (REQUESTED → provider accept → client pays into escrow) reachable for the first time — accept/decline existed as service methods but had zero callers. Race-safe conditional updates (`assertConcurrentChange`, `EscrowService.startBooking`) protect every transition; `validateTransition`/`LEGAL_TRANSITIONS` are now exported for reuse.
+
+Access control was centralised in `lib/booking-access.ts` (viewer resolution + actor asserts, ADMIN-pass, fail-closed, mock-mode bypass) and applied to both the bookings list and detail pages (previously unscoped — every user saw every booking). Errors map through `lib/booking-action-errors.ts` with no internal leakage.
+
+Client money movement collapsed into one hook (`hooks/useBookingPayment.ts`) shared by the booking drawer and the new `BookingPayPanel` — server-verify-only success, hosted new-tab fallback, popup watchdog, ref-based race guards. The broken DIRECT "Add Payment" wallet-topup (a documented residual since 2026-08-20) was removed in favor of the real `/pay` escrow path.
+
+Dashboards moved from "silently empty" to truthful: pure `lib/booking-status.ts` owns status groupings with exhaustive-coverage tests, kanban columns cover every status (attention/refunded/cancelled appended), stats derive from rows, and payment history drops the 90-day cut (config `dashboard.paymentHistoryDays`, default 0) while gaining derived `stage`-labelled rows for charge-initiated bookings with no settled payment.
+
+**Rationale:**
+Fixing "records exist but users see nothing" required lifecycle wiring + scoping + truthful aggregation simultaneously — any one alone would have left a visible gap (payable-but-unreachable, visible-but-unpayable, or rendered-but-not-yours).
 
 ### 2026-07-04 — Initial Architecture
 

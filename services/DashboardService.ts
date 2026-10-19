@@ -28,6 +28,12 @@ import type {
 } from "@/types";
 import { BookingStatus } from "@/types";
 import { ExploreSort } from "@/types";
+import {
+  ACTIVE_BOOKING_STATUSES,
+  countByStatuses,
+  mergePaymentHistory,
+  paymentStageFor,
+} from "@/lib/booking-status";
 
 interface DashboardBookingRow {
   booking: IBooking;
@@ -51,6 +57,11 @@ export class DashboardService implements IDashboardService {
     { key: "confirmed", label: "Confirmed", statuses: [BookingStatus.HELD] },
     { key: "in-progress", label: "In Progress", statuses: [BookingStatus.IN_PROGRESS] },
     { key: "completed", label: "Completed", statuses: [BookingStatus.RELEASED] },
+    // Attention + closed states — previously dropped, so those bookings were
+    // invisible to the provider even though the DB row existed.
+    { key: "attention", label: "Needs Attention", statuses: [BookingStatus.DISPUTED] },
+    { key: "refunded", label: "Refunded", statuses: [BookingStatus.REFUNDED] },
+    { key: "cancelled", label: "Cancelled", statuses: [BookingStatus.DECLINED, BookingStatus.CANCELLED] },
   ];
 
   static readonly CLIENT_COLUMNS: { key: string; label: string; statuses: BookingStatus[] }[] = [
@@ -58,6 +69,8 @@ export class DashboardService implements IDashboardService {
     { key: "confirmed", label: "Confirmed", statuses: [BookingStatus.HELD] },
     { key: "in-progress", label: "In Progress", statuses: [BookingStatus.IN_PROGRESS] },
     { key: "completed", label: "Completed", statuses: [BookingStatus.RELEASED, BookingStatus.REFUNDED] },
+    { key: "attention", label: "Needs Attention", statuses: [BookingStatus.DISPUTED] },
+    { key: "cancelled", label: "Cancelled", statuses: [BookingStatus.DECLINED, BookingStatus.CANCELLED] },
   ];
 
   /* ── Provider Dashboard ── */
@@ -97,6 +110,12 @@ export class DashboardService implements IDashboardService {
       const escrowKobo = walletRow?.escrowKobo ?? 0;
       const totalEarnedKobo = walletRow?.totalEarnedKobo ?? 0;
 
+      // Derived from the booking ROWS (not column indexes) so reordering or
+      // adding kanban columns can never skew the headline numbers.
+      const bookingStatusRows = bookingsRows.map((r) => r.booking);
+      const requestedCount = countByStatuses(bookingStatusRows, [BookingStatus.REQUESTED]);
+      const acceptedCount = countByStatuses(bookingStatusRows, [BookingStatus.ACCEPTED]);
+
       const stats: IDashboardStat[] = [
         {
           value: String(provider.profileViews),
@@ -111,10 +130,10 @@ export class DashboardService implements IDashboardService {
           label: "Portfolio Plays",
         },
         {
-          value: String(pipeline[0].bookings.length + pipeline[1].bookings.length),
-          rawValue: pipeline[0].bookings.length + pipeline[1].bookings.length,
+          value: String(requestedCount + acceptedCount),
+          rawValue: requestedCount + acceptedCount,
           label: "Booking Requests",
-          sub: `${pipeline[0].bookings.length} pending`,
+          sub: `${requestedCount} awaiting review`,
           subTone: "warning",
         },
         {
@@ -156,7 +175,10 @@ export class DashboardService implements IDashboardService {
         availability: await this.getAvailability(provider.id),
         quickActions: this.buildQuickActions(platformConfig),
       };
-    } catch {
+    } catch (err) {
+      // Never swallow: a silent catch turns a real failure into an empty
+      // dashboard and hides the bug from operators.
+      console.error("[DashboardService] getProviderDashboard failed:", err);
       if (MockDataService.isEnabled()) {
         return MockDataService.getMockProviderDashboard(userId);
       }
@@ -178,10 +200,13 @@ export class DashboardService implements IDashboardService {
 
   async getClientDashboard(userId: string): Promise<IClientDashboard> {
     try {
+      const platformConfig = await PlatformConfigService.get();
+      const historyWindowDays = platformConfig.dashboard?.paymentHistoryDays ?? 0;
+
       const [bookingsRows, paymentRows, walletRow, exploreCards] =
         await Promise.all([
           this.queryBookingsByClient(userId),
-          this.queryPaymentsByClient(userId),
+          this.queryPaymentsByClient(userId, historyWindowDays),
           this.queryWallet(userId),
           this.queryExploreCards(),
         ]);
@@ -191,30 +216,56 @@ export class DashboardService implements IDashboardService {
         DashboardService.CLIENT_COLUMNS,
       );
 
-      const paymentHistory: IClientPaymentRecord[] = paymentRows.map((r) => ({
+      const settled: IClientPaymentRecord[] = paymentRows.map((r) => ({
         id: r.paymentId,
         bookingId: r.bookingId,
         providerId: r.providerId ?? "",
         providerName: r.providerName ?? "Unknown Provider",
         packageLabel: r.packageLabel ?? "Standard Package",
-        amount: r.amount,
-        fee: r.fee,
-        netAmount: r.netAmount,
+        amount: Number(r.amount),
+        fee: Number(r.fee),
+        netAmount: Number(r.netAmount),
         status: r.status,
         paystackRef: r.paystackRef ?? "",
         createdAt: r.createdAt.toISOString(),
       }));
 
-      const activeCount =
-        pipeline
-          .filter((c) => c.key !== "completed")
-          .reduce((acc, c) => acc + c.bookings.length, 0);
-      const inProgressCount =
-        pipeline.find((c) => c.key === "in-progress")?.bookings.length ?? 0;
+      // Bookings that started a charge (Paystack ref stored) but never got a
+      // `payments` row — the money is in flight or needs review. They used to
+      // vanish entirely from the history; now they show with a stage label.
+      const settledBookingIds = new Set(settled.map((p) => p.bookingId));
+      const initiated: IClientPaymentRecord[] = bookingsRows
+        .filter(
+          (r) => r.booking.paystackRef && !settledBookingIds.has(r.booking.id),
+        )
+        .map((r) => ({
+          id: `charge:${r.booking.id}`,
+          bookingId: r.booking.id,
+          providerId: r.booking.providerId,
+          providerName: r.providerName || "Unknown Provider",
+          packageLabel: r.packageLabel || "Standard Package",
+          amount: Number(r.booking.total),
+          fee: Number(r.booking.fee),
+          netAmount: Number(r.booking.total) - Number(r.booking.fee),
+          status: r.booking.status,
+          paystackRef: r.booking.paystackRef ?? "",
+          createdAt: r.booking.createdAt,
+          stage: paymentStageFor(r.booking.status),
+        }));
 
-      const spent30dKobo = paymentHistory
+      const paymentHistory = mergePaymentHistory(settled, initiated, 50);
+
+      const bookingStatusRows = bookingsRows.map((r) => r.booking);
+      const activeCount = countByStatuses(bookingStatusRows, ACTIVE_BOOKING_STATUSES);
+      const inProgressCount = countByStatuses(bookingStatusRows, [
+        BookingStatus.IN_PROGRESS,
+      ]);
+
+      // "Total Spent" must count money that actually settled — never derived
+      // in-flight rows, which can be cancelled or refunded later.
+      const spent30dKobo = settled
         .filter((p) => new Date(p.createdAt).getTime() >= Date.now() - 30 * 86400000)
-        .reduce((acc, p) => acc + p.amount, 0);
+        .reduce((acc, p) => acc + Number(p.amount), 0);
 
       const stats: IDashboardStat[] = [
         {
@@ -232,10 +283,10 @@ export class DashboardService implements IDashboardService {
           subTone: "tertiary",
         },
         {
-          value: String(pipeline.reduce((acc, c) => acc + c.bookings.length, 0)),
-          rawValue: pipeline.reduce((acc, c) => acc + c.bookings.length, 0),
+          value: String(bookingStatusRows.length),
+          rawValue: bookingStatusRows.length,
           label: "Total Bookings",
-          sub: `${pipeline.find((c) => c.key === "completed")?.bookings.length ?? 0} completed`,
+          sub: `${countByStatuses(bookingStatusRows, [BookingStatus.RELEASED])} completed`,
           subTone: "accent",
         },
       ];
@@ -247,7 +298,9 @@ export class DashboardService implements IDashboardService {
         paymentHistory,
         discover: exploreCards,
       };
-    } catch {
+    } catch (err) {
+      // Never swallow — an empty dashboard must not hide a real failure.
+      console.error("[DashboardService] getClientDashboard failed:", err);
       if (MockDataService.isEnabled()) {
         return MockDataService.getMockClientDashboard(userId);
       }
@@ -325,7 +378,8 @@ export class DashboardService implements IDashboardService {
       }
 
       return slots;
-    } catch {
+    } catch (err) {
+      console.error("[DashboardService] getAvailability failed:", err);
       if (MockDataService.isEnabled()) {
         return MockDataService.getMockAvailability(providerId);
       }
@@ -438,8 +492,18 @@ export class DashboardService implements IDashboardService {
     return rows.reduce((acc, r) => acc + Number(r.net ?? 0), 0);
   }
 
-  private async queryPaymentsByClient(clientId: string) {
-    const since = new Date(Date.now() - 90 * 86400000);
+  /**
+   * Settled payment rows for a client. `windowDays` comes from config
+   * (`dashboard.paymentHistoryDays`); 0 = no age cutoff — history is capped by
+   * row count only, so an older payment can't silently disappear.
+   */
+  private async queryPaymentsByClient(clientId: string, windowDays = 0) {
+    const conditions = [eq(bookings.clientId, clientId)];
+    if (windowDays > 0) {
+      conditions.push(
+        gte(payments.createdAt, new Date(Date.now() - windowDays * 86400000)),
+      );
+    }
     return db
       .select({
         paymentId: payments.id,
@@ -458,12 +522,7 @@ export class DashboardService implements IDashboardService {
       .innerJoin(bookings, eq(bookings.id, payments.bookingId))
       .leftJoin(providers, eq(providers.id, bookings.providerId))
       .leftJoin(servicePackages, eq(servicePackages.id, bookings.packageId))
-      .where(
-        and(
-          eq(bookings.clientId, clientId),
-          gte(payments.createdAt, since),
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(sql`${payments.createdAt} DESC`)
       .limit(50);
   }

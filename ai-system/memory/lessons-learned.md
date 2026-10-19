@@ -1,8 +1,8 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
-> - last-verified-against-code: 2026-10-18
+> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment visibility end-to-end)
+> - last-verified-against-code: 2026-10-19
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Practical knowledge accumulated during Crelab development. Tracks development process insights and architectural wisdom. Uses supersedes/superseded-by links for evolving practices.
@@ -30,6 +30,35 @@
 ---
 
 ## Lessons
+
+## A Bare `catch {}` on a Data Query Is an "Invisible Data" Bug Factory — Log, Then Fall Back
+
+**Context:** `DashboardService.getProviderDashboard`/`getClientDashboard` wrapped their queries in `catch {}` with no logging. Any single failed join (or config lookup) silently produced an EMPTY dashboard — users reported "bookings exist in the DB but I see nothing" while the admin finance page (different query path) showed the same rows fine.
+
+**What We Learned:**
+1. `catch {}` without `console.error` converts a transient/one-query failure into a permanent-looking product bug with zero forensic trail. Every catch that shapes user-visible data MUST log the error with context before any fallback.
+2. The complementary invariant: **status coverage must be exhaustive and test-enforced.** The kanban columns simply omitted DISPUTED/REFUNDED/DECLINED/CANCELLED, so those bookings were invisible even when every query succeeded. Keep the canonical groupings in a pure lib (`lib/booking-status.ts`) with a test asserting every `BookingStatus` is covered exactly once, plus an `other` overflow bucket so unknown future statuses never drop off a surface.
+3. "Pay reachable" bugs are usually lifecycle bugs one layer up: `/pay` gating on ACCEPTED was correct; nothing could ever CALL accept. When a money action is unreachable, trace the full state chain (who transitions the status, and is that caller wired?) before touching the gate.
+
+**Apply When:** building any aggregation/query that feeds a dashboard, list, or kanban; when adding a new enum status; when a user reports "the record exists but the page is empty".
+
+**Supersedes:** None
+**Superseded by:** None
+
+## One Money Path Per Surface — Shared Hook, Server-Verify-Only Success, Terminal-Outcome Loading Release
+
+**Context:** Two surfaces needed to pay a booking (the booking drawer and the booking detail page). The drawer had an inline ~80-line Paystack popup/verify implementation; the detail page had none (plus a broken DIRECT "top-up" that never settled the booking).
+
+**What We Learned:**
+1. Extract the money path into ONE hook (`useBookingPayment`) before building the second surface. Popup handler registration order, hosted new-tab fallback, poll loop, watchdog, and the "never trust the popup callback — confirmation comes from server `/pay/verify`" rule then cannot diverge between surfaces.
+2. Guard against double-charges with refs (`isPayingRef`, `paidRef`, active-booking-id ref read inside async continuations) — React state alone loses races across awaits.
+3. `isPaying` must cover the WHOLE lifecycle (including an in-flight popup/hosted tab) to block competing charges, BUT every terminal outcome (verified failure, watchdog timeout, HTTP error) must release it or the user can never retry. Loadings that "stick true on failure" are a payment-flow outage.
+4. Never let a UI affordance imply money moved when it didn't: derived in-flight rows get an explicit `stage` label ("Awaiting payment confirmation — not yet settled") and stats count settled rows only.
+
+**Apply When:** adding any second payment/checkout surface; touching Paystack popup code; building flows where a sticky loading state could block a retry of a money action.
+
+**Supersedes:** None
+**Superseded by:** None
 
 ## Admin Money Actions Must Reuse the Service Money Path — and Audit at Two Levels
 

@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClSheet, ClButton, ClDialog, ClTextarea } from "@/components/ui";
 import { usePlatformConfig } from "@/lib/config-context";
 import { useToast } from "@/lib/toast";
+import { useBookingPayment } from "@/hooks/useBookingPayment";
 import { resolvePaymentNotice } from "@/lib/payment-notices";
-import { X, Check, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { X, Check, ChevronRight, Clock } from "lucide-react";
 import type { IServicePackage, IProvider } from "@/types";
 
-export type BookingStep = "details" | "payment" | "confirmation";
+export type BookingStep = "details" | "payment" | "confirmation" | "awaiting";
 
 interface BookingDrawerProps {
   open: boolean;
@@ -38,6 +40,9 @@ export function BookingDrawer({
   const platformConfig = usePlatformConfig();
   const { toast } = useToast();
   const paystackRef = useRef<HTMLDivElement>(null);
+  // Shared money path (popup + hosted fallback + server-side verify) — the same
+  // hook the booking detail pay panel uses, so the two can never diverge.
+  const { payWithCard, isPaying, paid, reset: resetPayment } = useBookingPayment();
 
   const subtotal = selectedPackage.price;
   const feeKobo = Math.round(subtotal * platformConfig.feeRate);
@@ -56,8 +61,9 @@ export function BookingDrawer({
       setScopeNotes("");
       setBookingId(null);
       setCreatedFor(null);
+      resetPayment();
     }
-  }, [step, onClose]);
+  }, [step, onClose, resetPayment]);
 
   const handleConfirmExit = useCallback(() => {
     setShowExitDialog(false);
@@ -66,16 +72,13 @@ export function BookingDrawer({
     setScopeNotes("");
     setBookingId(null);
     setCreatedFor(null);
+    resetPayment();
     onClose();
-  }, [onClose]);
+  }, [onClose, resetPayment]);
 
   const handleSubmitDetails = useCallback(async () => {
-    if (!serviceDate || isSubmitting) return;
+    if (!serviceDate || isSubmitting || isPaying) return;
     setIsSubmitting(true);
-    // Popup path hands the outcome to Paystack's async callbacks — the button
-    // must stay in its loading state until those fire (else a second click can
-    // init a competing charge). Everything else resolves within this call.
-    let keepLoading = false;
     try {
       const detailsKey = `${provider.id}|${selectedPackage.id}|${serviceDate}|${scopeNotes.trim()}`;
       // Reuse a booking created by an earlier failed attempt only when the
@@ -99,144 +102,34 @@ export function BookingDrawer({
         currentBookingId = json.data.id as string;
         setBookingId(currentBookingId);
         setCreatedFor(detailsKey);
-      }
-
-      const payRes = await fetch("/api/bookings/" + currentBookingId + "/pay", {
-        method: "POST",
-      });
-      const payJson = await payRes.json().catch(() => null);
-      if (!payJson?.success) throw new Error(payJson?.error ?? "Failed to start payment");
-
-      // Wallet path — funds moved server-side synchronously; nothing to verify.
-      if (payJson.data?.method === "WALLET") {
-        setStep("confirmation");
+        // A brand-new booking starts REQUESTED — payment becomes possible only
+        // after the provider accepts (per the booking flow), so show the
+        // waiting state instead of firing a checkout that must be rejected.
+        setStep("awaiting");
         return;
       }
 
-      const { accessCode, reference, authorizationUrl } = (payJson.data ?? {}) as {
-        accessCode?: string;
-        reference?: string;
-        authorizationUrl?: string;
-      };
-      if (!accessCode && !authorizationUrl) {
-        throw new Error("Payment could not be started — please try again");
-      }
-
-      // Server-side verify before ANY confirmation is shown — the popup callback
-      // and our own 200 are not proof that money moved ("Payment Truthfulness").
-      interface VerifyOutcome {
-        done: boolean;
-        retry: boolean;
-        message?: string;
-      }
-      const checkVerify = async (ref: string): Promise<VerifyOutcome> => {
-        const verifyRes = await fetch(
-          `/api/bookings/${currentBookingId}/pay/verify?reference=${encodeURIComponent(ref)}`,
-        );
-        const v = await verifyRes.json().catch(() => null);
-        if (v?.success && v?.data?.verified) return { done: true, retry: false };
-
-        if (v?.success) {
-          const status = v.data?.status as string | undefined;
-          if (status === "pending") return { done: false, retry: true };
-          if (status === "failed") {
-            return { done: false, retry: false, message: "Payment failed — you haven't been charged. Please try again." };
-          }
-          return { done: false, retry: false, message: "Payment was not completed — you haven't been charged. You can try again." };
-        }
-
-        const error = (v?.error as string | undefined) ?? "";
-        // Transient processor/network errors are worth retrying; ownership,
-        // mismatch and validation failures are definitive.
-        if (verifyRes.status >= 500 || /could not verify/i.test(error)) {
-          return { done: false, retry: true, message: error || undefined };
-        }
-        return { done: false, retry: false, message: error || "Payment could not be verified — check your Bookings page or try again." };
-      };
-
-      interface PaystackPopInstance {
-        resume: (code: string) => void;
-        on: (event: string, cb: (resp?: { reference?: string }) => void) => void;
-      }
-      const PaystackPop = (window as unknown as Record<string, unknown>).PaystackPop as unknown as
-        | (new () => PaystackPopInstance)
-        | undefined;
-
-      if (PaystackPop && accessCode) {
-        const release = () => setIsSubmitting(false);
-        const handler = new PaystackPop();
-        // Handlers registered BEFORE resume so a fast success can't be missed.
-        handler.on("success", (resp) => {
-          void (async () => {
-            try {
-              const outcome = await checkVerify(resp?.reference ?? reference ?? "");
-              if (outcome.done) {
-                setStep("confirmation");
-              } else {
-                toast(outcome.message ?? "Payment could not be verified — check your Bookings page or try again.", "error");
-              }
-            } catch {
-              toast("Payment could not be verified — check your Bookings page or try again.", "error");
-            } finally {
-              release();
-            }
-          })();
-        });
-        handler.on("cancel", () => {
-          toast("Payment cancelled — you can try again whenever you're ready.", "info");
-          release();
-        });
-        handler.on("error", () => {
-          toast("Something went wrong with the payment. Please try again.", "error");
-          release();
-        });
-        handler.resume(accessCode);
-        keepLoading = true; // only once the popup is genuinely in flight
-        return; // released by the handlers above
-      }
-
-      if (authorizationUrl && reference) {
-        // No popup library — open the hosted checkout in a NEW tab so the drawer
-        // and entered details stay intact, then poll until Paystack settles it
-        // (the webhook finalizes server-side regardless).
-        const opened = window.open(authorizationUrl, "_blank", "noopener,noreferrer");
-        if (!opened) {
-          // Pop-up blocked — last resort: full-page redirect (callback_url lands
-          // on /bookings where status is rendered server-side).
-          window.location.assign(authorizationUrl);
-          return;
-        }
-
-        const MAX_ATTEMPTS = 30;
-        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-          await new Promise((resolve) => setTimeout(resolve, 4000));
-          const outcome = await checkVerify(reference);
-          if (outcome.done) {
-            setStep("confirmation");
-            return;
-          }
-          if (!outcome.retry) {
-            toast(outcome.message ?? "Payment was not completed — you can try again.", "info");
-            return;
-          }
-        }
-        toast(
-          "We couldn't confirm the payment yet. It completes automatically once confirmed — check your Bookings page in a few minutes.",
-          "info",
-        );
-        return;
-      }
-
-      throw new Error("Payment could not be started — please try again");
+      // The shared hook owns checkout + verification + toasts; it keeps its own
+      // loading state (`isPaying`) for the whole lifecycle, including an
+      // in-flight popup, so a second competing charge can never start. Note the
+      // booking is REQUESTED at this point — the server answers "must be
+      // ACCEPTED" until the provider accepts, which the confirm-step copy below
+      // already sets expectations for.
+      await payWithCard(currentBookingId);
     } catch (err) {
       toast(
         err instanceof Error ? err.message : "Something went wrong — please try again",
         "error",
       );
     } finally {
-      if (!keepLoading) setIsSubmitting(false);
+      setIsSubmitting(false);
     }
-  }, [serviceDate, scopeNotes, provider.id, clientId, selectedPackage.id, bookingId, createdFor, isSubmitting, toast]);
+  }, [serviceDate, scopeNotes, provider.id, clientId, selectedPackage.id, bookingId, createdFor, isSubmitting, isPaying, payWithCard, toast]);
+
+  // Server-verified payment → confirmation step (never the popup callback alone).
+  useEffect(() => {
+    if (paid) setStep("confirmation");
+  }, [paid]);
 
   const minDate = new Date().toISOString().split("T")[0];
 
@@ -252,6 +145,7 @@ export function BookingDrawer({
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)]">
               {step === "details" && "Book " + provider.displayName}
+              {step === "awaiting" && "Request Sent"}
               {step === "payment" && "Complete Payment"}
               {step === "confirmation" && "Booking Confirmed"}
             </h2>
@@ -370,11 +264,58 @@ export function BookingDrawer({
                   variant="primary"
                   fullWidth
                   disabled={!serviceDate}
-                  loading={isSubmitting}
+                  loading={isSubmitting || isPaying}
                   onClick={handleSubmitDetails}
                 >
                   Continue to Payment
                 </ClButton>
+              </motion.div>
+            )}
+
+            {step === "awaiting" && (
+              <motion.div
+                key="awaiting"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="text-center py-6"
+              >
+                <div className="w-16 h-16 rounded-full bg-[rgba(250,204,21,0.15)] flex items-center justify-center mx-auto mb-4">
+                  <Clock size={26} strokeWidth={2} color="var(--color-warning)" />
+                </div>
+
+                <h3 className="font-[family-name:var(--font-display)] font-bold text-[18px] text-[var(--color-text-primary)] mb-2">
+                  Waiting for {provider.displayName} to accept
+                </h3>
+                <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mb-6">
+                  Your booking request has been sent. Once it&apos;s accepted you can pay
+                  into escrow — we&apos;ll keep it visible on your dashboard the whole way.
+                </p>
+
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href={`/bookings/${bookingId ?? ""}`}
+                    className="inline-flex h-10 items-center justify-center rounded-[8px] bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-text-inverse)] no-underline transition-colors duration-150 hover:bg-[var(--color-accent-dim)]"
+                  >
+                    View Booking
+                  </Link>
+                  <ClButton
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => {
+                      onClose();
+                      setStep("details");
+                      setServiceDate("");
+                      setScopeNotes("");
+                      setBookingId(null);
+                      setCreatedFor(null);
+                      resetPayment();
+                    }}
+                  >
+                    Done
+                  </ClButton>
+                </div>
               </motion.div>
             )}
 
@@ -460,6 +401,9 @@ export function BookingDrawer({
                     setStep("details");
                     setServiceDate("");
                     setScopeNotes("");
+                    setBookingId(null);
+                    setCreatedFor(null);
+                    resetPayment();
                   }}
                 >
                   Done

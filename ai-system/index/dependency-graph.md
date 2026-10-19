@@ -1,8 +1,8 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
-> - last-verified-against-code: 2026-10-18
+> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment visibility end-to-end)
+> - last-verified-against-code: 2026-10-19
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
 > **Overview:** Maps how modules depend on each other. Agents use this to understand the impact of changes.
@@ -52,6 +52,20 @@ Payment Notices (lib/payment-notices.ts)
   → lib/platform-copy.ts (fillConfigCopy: {{name}}/{{feeRate}}/{{escrowWindow}} token fill at render boundary)
   → consumed by components/shared/PaymentNoticeBlock.tsx, components/wallet/WithdrawModal, BookingDrawer,
     app/(public)/terms + app/(public)/how-it-works, app/admin/config (editor fields via ConfigField textarea)
+
+Booking visibility layer (2026-10-19)
+  → lib/booking-status.ts (pure: status sets, groupBookingRows, mergePaymentHistory,
+    bookingCardAffordance) ← consumed by DashboardService, PipelineKanban, PaymentHistory,
+    bookings list grouping; unit-tested for exhaustive BookingStatus coverage
+  → lib/booking-access.ts (resolveBookingViewer / assertProviderActor / assertClientActor;
+    getProviderIdForUser fails CLOSED on db error; MockDataService bypass keeps demo browsable)
+    ← consumed by /bookings page, /bookings/[id] page, all 4 lifecycle API routes
+  → lib/booking-action-errors.ts (401/403/404/400/500 mapping, no internal leak) ← lifecycle routes
+  → hooks/useBookingPayment.ts (ONE money path: BookingDrawer + BookingPayPanel; server
+    /pay/verify is the only success source; refs for race-safety) → /api/bookings/[id]/pay|pay/verify
+  → services/BookingService (acceptRequest/declineRequest race-safe, cancelBooking; exports
+    validateTransition) + services/EscrowService.startBooking (HELD→IN_PROGRESS conditional)
+  → app/api/bookings/[id]/{accept,decline,cancel,start} (actor assert → service → AuditService)
 
 EscrowService settlement (services/EscrowService.ts)
   → services/WalletService (creditFromEscrowRelease / refundEscrowToClient / reverseBookingDebit — deterministic

@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
-> - last-verified-against-code: 2026-10-18
+> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment visibility end-to-end)
+> - last-verified-against-code: 2026-10-19
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -186,10 +186,24 @@ Data Stores
 
 ### Booking & Payment Flow
 ```
-1. Client selects package -> booking created (ACCEPTED, paymentMode ESCROW;
+1. Client selects package -> booking created REQUESTED (paymentMode ESCROW;
    MILESTONE bookings are funded milestone-by-milestone and are rejected by the
    full-amount pay route so they can't be double-funded)
-2. Client pays:
+1b. Provider lifecycle (explicit — accept had zero callers before 2026-10-19,
+   which made payment unreachable): POST /api/bookings/[id]/accept|decline
+   (provider-or-admin actor assert; race-safe conditional updates via
+   assertConcurrentChange) -> ACCEPTED | DECLINED; client may cancel while
+   REQUESTED (POST .../cancel; HELD is refused — only refundBookingFunds moves
+   money); provider starts work on HELD (POST .../start -> EscrowService
+   .startBooking, HELD->IN_PROGRESS). All four write AuditService
+   booking.accept|decline|cancel|start. Access: lib/booking-access.ts
+   (resolveBookingViewer / assertProviderActor / assertClientActor — ADMIN
+   passes, mock mode browsable, everything else 404/403). Surfaces: the detail
+   page action matrix (/bookings/[id]) + Pay Now affordance on dashboard cards
+   (?action=pay deep link).
+2. Client pays (only from ACCEPTED; MILESTONE excluded):
+   Shared client money path = hooks/useBookingPayment.ts (one implementation
+   for BookingDrawer + BookingPayPanel):
    a. Wallet -> /api/bookings/[id]/pay?useWallet -> debitForBooking (atomic, throws
       InsufficientBalance) -> EscrowService.holdBookingFunds() with a WALLET-* ref;
       any hold failure reverses the debit (WalletService.reverseBookingDebit)
@@ -359,6 +373,7 @@ Provider slugs are `{name-slugified}--{first-8-chars-of-provider-id}` (`lib/slug
 | EMAIL_VERIFICATION | `emailVerification.bannerEnabled` — dismissible verify nudge with resend for signed-in unverified users (`VerifyEmailBanner`, root layout); never a hard gate | platform.config.ts | { bannerEnabled: true } |
 | FEATURES (growth flags) | `features.referralsEnabled` + `features.webinarsEnabled` — gate the Navbar/Footer Referrals/Leaderboard & Webinars links and the referral/webinar surfaces (referral discovery: navbar, footer, profile card, dashboard `ReferralBanner`, leaderboard CTA) | platform.config.ts | both `true` |
 | NAVIGATION | `navigation` — desktop navbar overflow (`maxDesktopLinks`, `moreLabel`) + wallet link (`showWalletInNav`, `walletLabel`, `walletHref`); drives `NavbarOverflowNav` (ResizeObserver spill into "More ▾") + profile Wallet entry; admin-editable in `/admin/config` Navigation section | platform.config.ts | { maxDesktopLinks: 5, moreLabel: 'More', showWalletInNav: true, walletHref: '/wallet' } |
+| DASHBOARD | `dashboard.availabilityLookaheadDays` (provider availability calendar span) + `dashboard.paymentHistoryDays` (client payment-history age window; **0 = full history**, capped by row count only) — both admin-editable in `/admin/config` Features | platform.config.ts | { availabilityLookaheadDays: 30, paymentHistoryDays: 0 } |
 
 All config points have hardcoded fallback values in `config/platform.config.ts` with DB override capability via `PlatformConfigService`. UI references consume these through `ConfigContext`.
 
@@ -436,6 +451,15 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-19 — Booking & Payment Visibility End-to-End (execute-feature, no migrations)
+- Lifecycle made reachable: 4 new routes `app/api/bookings/[id]/{accept,decline,cancel,start}/route.ts` (requireAuth -> 404 -> `lib/booking-access.ts` actor assert -> service -> `AuditService.log` -> `lib/booking-action-errors.ts` mapping); `BookingService.acceptRequest`/`declineRequest` race-safe (conditional update + `assertConcurrentChange`), new `cancelBooking` (client-owned; HELD refused), new `EscrowService.startBooking` (HELD->IN_PROGRESS conditional), `validateTransition` exported.
+- Shared money path: new `hooks/useBookingPayment.ts` (wallet + card; handlers-before-resume; server-verify-only success; hosted new-tab fallback + poll; 3-min popup watchdog; refs defeat stale closures; terminal outcome always releases loading). `BookingDrawer` refactored onto it (+ "awaiting provider" step for fresh REQUESTED bookings). New `BookingPayPanel` on `/bookings/[id]` (breakdown from booking row, wallet balance, escrow notice, `?action=pay` scroll) replaces the broken DIRECT "Add Payment" top-up (never settled the booking).
+- Detail action matrix in `BookingDetailClient` (client: Pay/cancel-REQUESTED/awaiting/declined notes; provider: Accept/Decline, awaiting-payment note, Start Work; `ClConfirmDialog` for terminal actions).
+- Access scoping: `/bookings` list = clientId OR provider.userId (ADMIN + mock see all, unknown role matches nothing); `/bookings/[id]` = server-derived viewerRole else notFound() (no existence leak).
+- `lib/booking-status.ts` (pure): status sets, `countByStatuses`, `BOOKING_STATUS_GROUPS` + `groupBookingRows` (`other` overflow — no booking drops off), `paymentStageFor`, `mergePaymentHistory`, `bookingCardAffordance` (OD-8/OD-11). `DashboardService`: silent catches -> `console.error`; kanban columns append `attention`/`refunded`/`cancelled` (every BookingStatus covered exactly once, test-enforced); stats derived from rows; payment history loses the 90-day cut (`dashboard.paymentHistoryDays` config, 0 = full) and gains derived `stage`-labelled charge-initiated rows; `spent30d` counts settled only.
+- UI: `PipelineKanban` tones + per-state affordance labels (client ACCEPTED deep-links `?action=pay`); `PaymentHistory` renders `stage — not yet settled` + PENDING badge.
+- Config: `IDashboardConfig.paymentHistoryDays` (default 0) + admin editor field. +28 tests; 629/629 vitest, tsc clean, lint clean, build green. No migrations.
 
 ### 2026-10-18 — Admin Finance Bookings + Media Drive Work (no migrations)
 - `lib/finance.ts`: pure `normalizeBookingFilters()` (+ `BOOKING_STATUSES`/`ESCROW_STATES`) — pageSize capped at 100, enum/date validation, array-param friendly.
