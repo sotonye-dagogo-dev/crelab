@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const action = searchParams.get("action") ?? undefined;
     const entity = searchParams.get("entity") ?? undefined;
+    const entityId = searchParams.get("entityId") ?? undefined;
     const page = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
     const pageSize = Math.min(
       MAX_PAGE_SIZE,
@@ -26,10 +27,11 @@ export async function GET(req: NextRequest) {
       AuditService.list({
         action,
         entity,
+        entityId,
         limit: pageSize,
         offset: (page - 1) * pageSize,
       }),
-      AuditService.count({ action, entity }),
+      AuditService.count({ action, entity, entityId }),
     ]);
 
     return NextResponse.json({

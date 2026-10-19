@@ -1,7 +1,7 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: overwritten on every test run — always current
 
@@ -12,17 +12,17 @@
 ## Last Run
 
 **Date:** 2026-10-18
-**Run by:** execute-feature (Drive link quick preview)
+**Run by:** execute-feature (Admin finance bookings + media fixes)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 575 | 0 | 0 |
+| Unit (vitest) | 596 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | ESLint (`npm run lint` via next lint) | — | 0 errors | — |
-| Production build (`npm run build`) | — | 0 errors (full route build green incl. /api/portfolio/drive/preview) | — |
+| Production build (`npm run build`) | — | 0 errors (finance bookings + media drive routes compiled) | — |
 
-**Overall Status:** ✅ All 575/575 tests pass (44 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. New: `__tests__/lib/rate-limit.test.ts` (8: under-limit allow + remaining, over-limit deny + retryAfter, denied attempts not recorded, window expiry, key isolation, disabled limits, countdown math, reset). DriveService suite 40 → 52 (+12: clamped pageSize passthrough, folder-metadata mapping incl. isFolder + 404/403/429, previewFolder zero-DB/no-portfolio contract + stable thumbs + unsupported split, sampled flag, env + hard-cap bounds, empty folder, invalid URL pre-API, non-folder id rejection before listing, private-vs-rate-limit propagation). Prior run: 555/555 (2026-10-18, Drive limits hardening). Note: `node_modules` was absent in this environment — ran `npm ci` first, then all gates.
+**Overall Status:** ✅ All 596/596 tests pass (47 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. New: `__tests__/services/FinanceService.test.ts` (10: list joins/aggregation/filters incl. invalid-filter normalisation, detail merge + newest-first audit, settle release/refund happy paths, 404/DISPUTED/no-HELD/already-settled guards, no audit when nothing transitioned), `__tests__/components/MediaUpload.test.tsx` (jsdom: single Drive link input after dedupe, Quick-preview button presence, input onChange, tab switch), `__tests__/services/PortfolioService.test.ts` (3: DRIVE rows mapping + provider join), `__tests__/lib/finance.test.ts` (+4 in new `normalizeBookingFilters` describe). `vitest.config.ts` gains `esbuild: { jsx: "automatic" }` — Next.js components don't import React, so the classic JSX transform failed component tests with `React is not defined` inside the source file. Prior run: 575/575 (2026-10-18, Drive link quick preview).
 
 ---
 
@@ -38,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-18 | 596 | 0 | execute-feature: admin finance bookings (list/detail/settle via EscrowService + dual-level audit, 4 routes, entityId audit filter, Transactions\|Bookings tabs) + MediaUpload dedupe + useDrivePreview + admin media Drive tab (+21 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-18 | 575 | 0 | execute-feature: Drive link quick preview (rate-limit window limiter, folder metadata + bounded sample, zero-DB preview route with per-user budget, UI card + cooldown) (+20 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-18 | 555 | 0 | execute-feature: Google Drive limits/caveats hardening (rate-limit classification + backoff/Retry-After, per-process throttle, pagination cap/truncated, stable unsigned thumbnails, syncAll abort, 503 route mapping, client legacy-thumb heal) (+25 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-16 | 530 | 0 | execute-feature: booking selection shared across grid/sidebar/bottom-bar; navbar overflow "More" dropdown + wallet links (profile + nav, config-driven) (+12 tests). tsc 0 errors, lint 0 errors, build green |

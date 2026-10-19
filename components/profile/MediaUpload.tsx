@@ -14,8 +14,11 @@ import {
   X,
   Loader2,
   Clock,
+  Eye,
 } from "lucide-react";
 import { isMediaFileAllowed, isValidMediaUrl } from "@/lib/media";
+import { DriveLinkPreview } from "@/components/profile/DriveLinkPreview";
+import { useDrivePreview } from "@/hooks/useDrivePreview";
 
 type AcceptKind = "video" | "image" | "both";
 type PreviewKind = "video" | "image" | "link";
@@ -108,6 +111,17 @@ export function MediaUpload({
   // Multiple upload state
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+
+  // Drive quick preview (shared state machine — 429 cooldown handled for us).
+  const {
+    previewing,
+    preview,
+    previewError,
+    previewCooldown,
+    runPreview: runDrivePreview,
+    clearPreview: clearDrivePreview,
+    isPreviewable: isDriveFolderLink,
+  } = useDrivePreview();
 
   useEffect(() => {
     fetch("/api/media/status")
@@ -533,8 +547,9 @@ export function MediaUpload({
     setPreviewKind("link");
     setError("");
     setUploads([]);
+    clearDrivePreview();
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [onChange]);
+  }, [onChange, clearDrivePreview]);
 
   if (statusError) {
     return (
@@ -689,11 +704,36 @@ export function MediaUpload({
               <ClInput
                 placeholder="https://drive.google.com/... or any public link"
                 value={linkInput}
-                onChange={(e) => setLinkInput(e.target.value)}
+                onChange={(e) => {
+                  setLinkInput(e.target.value);
+                  // The preview describes the previous URL — drop it so a stale
+                  // result never sits under a different link.
+                  clearDrivePreview();
+                }}
               />
-              <ClButton variant="outlined" size="sm" type="button" onClick={handleLink}>
-                Use this link
-              </ClButton>
+              <div className="flex flex-wrap gap-2">
+                <ClButton variant="outlined" size="sm" type="button" onClick={handleLink}>
+                  Use this link
+                </ClButton>
+                {isDriveFolderLink(linkInput) && (
+                  <ClButton
+                    variant="ghost"
+                    size="sm"
+                    type="button"
+                    onClick={() => runDrivePreview(linkInput)}
+                    disabled={previewCooldown > 0}
+                    loading={previewing}
+                    title="Check the link against Google without saving anything"
+                  >
+                    <Eye size={14} strokeWidth={1.8} className="mr-1" />
+                    {previewCooldown > 0 ? `Preview in ${previewCooldown}s` : "Quick preview"}
+                  </ClButton>
+                )}
+              </div>
+              {previewError && (
+                <p className="text-[12px] text-[var(--color-error)]">{previewError}</p>
+              )}
+              {preview && <DriveLinkPreview result={preview} />}
             </div>
           )}
 
@@ -845,19 +885,6 @@ export function MediaUpload({
                   )}
                 </div>
               )}
-            </div>
-          )}
-
-          {(!canUpload || tab === "link") && (
-            <div className="flex flex-col gap-2">
-              <ClInput
-                placeholder="https://drive.google.com/... or any public link"
-                value={linkInput}
-                onChange={(e) => setLinkInput(e.target.value)}
-              />
-              <ClButton variant="outlined" size="sm" type="button" onClick={handleLink}>
-                Use this link
-              </ClButton>
             </div>
           )}
 

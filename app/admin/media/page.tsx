@@ -18,9 +18,11 @@ import {
   Upload,
   Wrench,
   Search,
+  Cloud,
 } from "lucide-react";
 import { MediaUpload } from "@/components/profile/MediaUpload";
 import type { IMediaAsset } from "@/types";
+import type { IDrivePortfolioItemRow } from "@/services/PortfolioService";
 
 interface CleanupResult {
   enabled: boolean;
@@ -85,6 +87,10 @@ export default function AdminMediaPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "video" | "image">("all");
+  // "uploads" = Cloudinary media_assets library; "drive" = Drive-integrated
+  // portfolio items (portfolio_items.source = DRIVE) — observation only.
+  const [sourceTab, setSourceTab] = useState<"uploads" | "drive">("uploads");
+  const [driveSearch, setDriveSearch] = useState("");
 
   // Reconcile state
   const [reconcileAsset, setReconcileAsset] = useState<IMediaAsset | null>(null);
@@ -103,6 +109,29 @@ export default function AdminMediaPage() {
       throw new Error(json.error ?? "Failed to load media assets");
     },
   });
+
+  const {
+    data: driveItems = [],
+    isLoading: driveLoading,
+    isError: driveError,
+  } = useQuery<IDrivePortfolioItemRow[]>({
+    queryKey: ["admin-media-drive"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/media/drive");
+      const json = await res.json();
+      if (json.success) return json.data ?? [];
+      throw new Error(json.error ?? "Failed to load Drive items");
+    },
+    enabled: sourceTab === "drive",
+  });
+
+  const filteredDrive = useMemo(() => {
+    if (!driveSearch.trim()) return driveItems;
+    const q = driveSearch.trim().toLowerCase();
+    return driveItems.filter((d) =>
+      `${d.title ?? ""} ${d.url} ${d.providerName ?? ""} ${d.driveFileId ?? ""} ${d.mimeType}`.toLowerCase().includes(q),
+    );
+  }, [driveItems, driveSearch]);
 
   const { data: mediaStatus } = useQuery<MediaStatus>({
     queryKey: ["media-status-admin"],
@@ -455,6 +484,122 @@ export default function AdminMediaPage() {
     },
   ];
 
+  const driveColumns: ClColumn<IDrivePortfolioItemRow>[] = [
+    {
+      key: "preview",
+      header: "Preview",
+      cell: (d) => {
+        const kind = d.mimeType.startsWith("video/")
+          ? "video"
+          : d.mimeType.startsWith("image/")
+            ? "image"
+            : "other";
+        return (
+          <div className="w-14 h-14 rounded-[8px] overflow-hidden bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
+            {d.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={d.thumbnailUrl}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const t = e.currentTarget as HTMLImageElement;
+                  t.style.display = "none";
+                  const fallback = t.nextElementSibling as HTMLElement | null;
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div
+              className="w-full h-full flex items-center justify-center"
+              style={{ display: d.thumbnailUrl ? "none" : "flex" }}
+            >
+              {kind === "video" ? (
+                <Film size={18} strokeWidth={1.5} color="var(--color-accent)" />
+              ) : kind === "image" ? (
+                <ImageIcon size={18} strokeWidth={1.5} color="var(--color-text-tertiary)" />
+              ) : (
+                <Cloud size={18} strokeWidth={1.5} color="var(--color-text-tertiary)" />
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "item",
+      header: "Item",
+      cell: (d) => (
+        <div className="min-w-0 max-w-[220px]">
+          <div className="text-[12px] text-[var(--color-text-primary)] truncate" title={d.title ?? undefined}>
+            {d.title ?? "Untitled"}
+          </div>
+          <div className="text-[10px] font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)] truncate" title={d.driveFileId ?? undefined}>
+            {d.driveFileId ?? "—"}
+          </div>
+          <div className="text-[10px] text-[var(--color-text-tertiary)]">{d.mimeType}</div>
+        </div>
+      ),
+    },
+    {
+      key: "provider",
+      header: "Provider",
+      cell: (d) => (
+        <span className="text-[12px] text-[var(--color-text-secondary)] truncate max-w-[140px] block">
+          {d.providerName ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "synced",
+      header: "Synced",
+      hideOnMobile: true,
+      cell: (d) => (
+        <span className="text-[12px] text-[var(--color-text-secondary)]">
+          {new Date(d.createdAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: "visible",
+      header: "Visible",
+      hideOnMobile: true,
+      cell: (d) =>
+        d.visible ? (
+          <ClBadge variant="success"><CheckCircle size={11} /> Visible</ClBadge>
+        ) : (
+          <ClBadge variant="default">Hidden</ClBadge>
+        ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (d) => (
+        <div className="flex items-center gap-2">
+          <a
+            href={d.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[12px] text-[var(--color-accent)] no-underline"
+          >
+            <Eye size={13} strokeWidth={1.8} /> View
+          </a>
+          {d.driveFolderUrl && (
+            <a
+              href={d.driveFolderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[12px] text-[var(--color-text-secondary)] no-underline"
+            >
+              <Cloud size={13} strokeWidth={1.8} /> Folder
+            </a>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
@@ -472,6 +617,7 @@ export default function AdminMediaPage() {
             <ClBadge variant="warning">{counts.eligible} orphan eligible</ClBadge>
           </div>
         </div>
+        {sourceTab === "uploads" && (
         <div className="flex flex-wrap gap-2">
           <ClButton variant="outlined" size="default" onClick={() => runBackfill(true)} loading={runningBackfill}>
             <Link2 size={15} strokeWidth={1.8} />
@@ -491,7 +637,74 @@ export default function AdminMediaPage() {
             Run cleanup
           </ClButton>
         </div>
+        )}
       </div>
+
+      {/* Source switch: Cloudinary uploads vs Drive-integrated items */}
+      <div className="inline-flex rounded-[8px] border border-[var(--color-border)] overflow-hidden mb-5">
+        {([
+          { v: "uploads", label: `Uploads (${assets.length})` },
+          { v: "drive", label: `Google Drive (${driveItems.length})` },
+        ] as const).map((t) => (
+          <button
+            key={t.v}
+            onClick={() => setSourceTab(t.v)}
+            className={`px-4 h-9 text-[12px] font-semibold cursor-pointer border-none inline-flex items-center gap-1.5 ${
+              sourceTab === t.v
+                ? "bg-[var(--color-accent)] text-[var(--color-text-inverse)]"
+                : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+            }`}
+          >
+            {t.v === "drive" && <Cloud size={13} strokeWidth={1.8} />}
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {sourceTab === "drive" ? (
+        <div>
+          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 mb-4">
+            <div className="text-[13px] text-[var(--color-text-secondary)]">
+              Portfolio items synced from providers&apos; Google Drive folders. These files live in Google
+              Drive — the platform only mirrors them, so only view actions are available here (delete,
+              reconcile and orphan cleanup apply to Cloudinary uploads). Re-sync happens from each
+              provider&apos;s Drive connect panel or the scheduled sync.
+            </div>
+            <div className="relative flex-1 mt-3">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
+              <input
+                value={driveSearch}
+                onChange={(e) => setDriveSearch(e.target.value)}
+                placeholder="Search title, provider, file id, mime..."
+                className="w-full h-9 pl-9 pr-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[13px] text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
+              />
+            </div>
+          </div>
+
+          {driveError ? (
+            <div className="text-[13px] text-[var(--color-error)]">Failed to load Drive items.</div>
+          ) : driveLoading ? (
+            <div className="text-[var(--color-text-secondary)] text-[14px]">Loading Drive items...</div>
+          ) : (
+            <ClDataTable
+              columns={driveColumns}
+              rows={filteredDrive}
+              rowKey={(d) => d.id}
+              pageSize={10}
+              emptyState={
+                <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
+                  No Google Drive items synced yet. Providers connect a Drive folder from their media
+                  page (or during onboarding) and the items appear here after sync.
+                </div>
+              }
+            />
+          )}
+          <div className="mt-3 flex items-center gap-2 text-[11px] text-[var(--color-text-tertiary)]">
+            <Link2 size={12} /> Showing {filteredDrive.length} of {driveItems.length} Drive items · read-only view
+          </div>
+        </div>
+      ) : (
+      <div>
 
       {/* Admin upload */}
       <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 mb-6">
@@ -593,6 +806,8 @@ export default function AdminMediaPage() {
       <div className="mt-3 flex items-center gap-2 text-[11px] text-[var(--color-text-tertiary)]">
         <Link2 size={12} /> Showing {filtered.length} of {assets.length} assets · Grace threshold: {thresholdHours}h
       </div>
+      </div>
+      )}
 
       <ClConfirmDialog
         open={assetToDelete !== null}

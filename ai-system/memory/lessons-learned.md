@@ -1,7 +1,7 @@
 # Lessons Learned
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Drive quick-preview lessons)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -30,6 +30,40 @@
 ---
 
 ## Lessons
+
+## Admin Money Actions Must Reuse the Service Money Path — and Audit at Two Levels
+
+**Context:** The admin finance page needed optional Release/Refund actions on bookings. A tempting build is a route that flips `escrow_state` and moves wallet balances itself, with one audit row.
+
+**What We Learned:**
+1. Never re-implement money movement in an admin route — call the same service methods the non-admin flow uses (`EscrowService.settleRelease` / `refundBookingFunds`). One state machine, one set of exactly-once guarantees, and admin mistakes stay bounded by the same guards users are.
+2. Audit at BOTH levels: a general entry on the parent entity (`bookings`, `escrow.release.admin`/`escrow.refund.admin`) for "who did what to this booking", and one entry per payment that actually transitioned (`payments`, `payment.release`/`payment.refund`) so the transaction feed's per-row audit is truthful. Write per-payment rows only for transitions that happened — never a blanket entry per payment.
+3. Guard before you act, idempotently: unknown booking → 404; DISPUTED → reject with a pointer to the dispute flow (that page owns the money); no HELD payments → 409; nothing transitioned → 409 "already completed" with **no audit row** (a double-click must not double-log).
+4. Settle-then-audit is two steps; a crash between them loses the row, not the money. `escrowState` + payment `status` remain the durable reconciliation source — the audit trail is evidence, not state.
+
+**Apply When:** Adding any privileged mutation to financial flows — wrap the existing service method, dual-audit, and make the guards idempotent.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Component Tests Need the Automatic JSX Runtime — Next Components Don't Import React
+
+**Context:** Adding the first `.tsx` component test failed every case with `ReferenceError: React is not defined` pointing inside the production component (not the test) — Next.js uses the automatic JSX runtime, so components omit `import React`, but vitest's esbuild transform defaults to the classic runtime.
+
+**What We Learned:**
+1. Configure the test runner to match the app's JSX runtime once, centrally: in `vitest.config.ts`, `esbuild: { jsx: "automatic" }`. Importing React in the test file does not fix the component's own compiled output.
+2. A "React is not defined" from a *source* file is a tooling/config mismatch, not a missing import — don't sprinkle `import React` through the codebase.
+3. When mocking Drizzle query chains, size `mockReturnValueOnce` queues to the exact number of `db.select` calls each code path consumes: `vi.clearAllMocks()` in `beforeEach` does NOT drain leftover once-queues, and a leaked queue shifts every subsequent select (subtle wrong-row assertions instead of loud failures).
+4. `vi.fn(function ServiceName(...))` — not an arrow — when a test constructs the mock with `new`, so the constructor-safe mock survives `vi.clearAllMocks()`.
+
+**Apply When:** Creating the first component test, enabling JSX in a new test environment, or writing query-chain mocks that span multiple tests.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
 
 ## "Just a Preview" Endpoints Still Spend the Shared Third-Party Budget — Budget Them in Layers
 

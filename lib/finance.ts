@@ -116,6 +116,51 @@ export function normalizeTransactionFilters(query: Record<string, string | strin
   };
 }
 
+/** Booking statuses an admin can act on financially (funds currently held). */
+export const BOOKING_STATUSES = [
+  "REQUESTED", "ACCEPTED", "DECLINED", "CANCELLED",
+  "HELD", "IN_PROGRESS", "RELEASED", "DISPUTED", "REFUNDED",
+] as const;
+
+export const ESCROW_STATES = [
+  "PENDING", "HELD", "IN_PROGRESS", "RELEASED", "DISPUTED", "REFUNDED",
+] as const;
+
+/** Normalises the admin bookings query params with safe fallbacks. */
+export function normalizeBookingFilters(query: Record<string, string | string[] | undefined>): {
+  q: string;
+  status: string;
+  escrowState: string;
+  paymentMode: string;
+  from: string | null;
+  to: string | null;
+  page: number;
+  pageSize: number;
+} {
+  const first = (v: string | string[] | undefined): string =>
+    Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
+  const page = Math.max(1, Number.parseInt(first(query.page) || "1", 10) || 1);
+  const rawSize = Number.parseInt(first(query.pageSize) || "20", 10) || 20;
+  const pageSize = Math.min(100, Math.max(1, rawSize));
+  const statusRaw = first(query.status).trim().toUpperCase();
+  const escrowRaw = first(query.escrowState).trim().toUpperCase();
+  const modeRaw = first(query.paymentMode).trim().toUpperCase();
+  const fromRaw = first(query.from).trim();
+  const toRaw = first(query.to).trim();
+  const from = fromRaw && !Number.isNaN(Date.parse(fromRaw)) ? fromRaw : null;
+  const to = toRaw && !Number.isNaN(Date.parse(toRaw)) ? toRaw : null;
+  return {
+    q: first(query.q).trim().slice(0, 120),
+    status: (BOOKING_STATUSES as readonly string[]).includes(statusRaw) ? statusRaw : "",
+    escrowState: (ESCROW_STATES as readonly string[]).includes(escrowRaw) ? escrowRaw : "",
+    paymentMode: ["ESCROW", "MILESTONE", "DIRECT"].includes(modeRaw) ? modeRaw : "",
+    from,
+    to,
+    page,
+    pageSize,
+  };
+}
+
 /** Escapes a single CSV cell. */
 export function csvCell(value: string | number | null | undefined): string {
   const s = value === null || value === undefined ? "" : String(value);
