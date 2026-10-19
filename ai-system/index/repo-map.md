@@ -1,7 +1,7 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
@@ -60,15 +60,15 @@ crelab/
 │   │   ├── countdown/      # Countdown widget editor (list add/remove/reorder, datetime, icon allowlist, areas, live preview)
 │   │   ├── disputes/       # Dispute resolution dashboard
 │   │   ├── email-templates/ # Admin-editable email templates (Visual/HTML/Preview tabs)
-│   │   ├── finance/        # Finance & transactions (lifetime KPIs, unified payments+wallet feed w/ filters, invoice modal w/ print/download, CSV export)
+│   │   ├── finance/        # Finance & transactions (Transactions|Bookings tabs: lifetime KPIs, unified payments+wallet feed w/ filters, invoice modal w/ print/download, CSV export; bookings list + detail modal + Release/Refund settle actions)
 │   │   ├── analytics/      # Platform analytics (KPI grid w/ deltas, SVG trend/breakdown charts w/ tooltips, insights feed, top providers, CSV export)
-  │   │   ├── media/          # Media asset manager (filters, preview, upload, reconcile orphan → portfolio/avatar/cover, backfill orphans bulk + dry-run, cleanup dry-run)
+  │   │   ├── media/          # Media asset manager (Uploads|Google Drive source tabs: filters, preview, upload, reconcile orphan → portfolio/avatar/cover, backfill orphans bulk + dry-run, cleanup dry-run; Drive tab = read-only observation)
 │   │   ├── providers/      # Provider review queue
 │   │   ├── users/          # User management (search, role, verify, delete)
 │   │   └── webinars/       # Webinar manager (CRUD, status/publish toggle, registration counts)
 │   └── api/                 # Route handlers
 │       ├── account/        # User account (consent, delete, export)
-  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send (test + broadcast + recipientIds batch), /admin/email/recipients (batch picker source: search/role/consent/limit/offset), /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all, /admin/finance/summary, /admin/finance/transactions, /admin/finance/invoice, /admin/analytics)
+  │       ├── admin/          # Admin CRUD endpoints (+ /admin/media, /admin/media/[id], /admin/media/reconcile, /admin/media/backfill (bulk owner-matched rescue + dry-run), /admin/email/send (test + broadcast + recipientIds batch), /admin/email/recipients (batch picker source: search/role/consent/limit/offset), /admin/users, /admin/users/[id], /admin/blog-posts, /admin/blog-posts/[id], /admin/webinars, /admin/webinars/[id], /admin/providers?all, /admin/finance/summary, /admin/finance/transactions, /admin/finance/invoice, /admin/finance/bookings, /admin/finance/bookings/[id] (+ [id]/release, [id]/refund — admin settle via EscrowService + dual audit), /admin/media/drive, /admin/analytics)
 │       ├── auth/           # Better Auth handler + self-assignable role endpoint
 │       ├── bug-report/     # Bug report submission (re-sanitises + stores error_context)
 │       ├── cron/           # Cron endpoints (drive-sync, escrow, milestones, media-cleanup)
@@ -91,7 +91,7 @@ crelab/
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog, ClBackButton, ClDataTable, ClPagination)
 │   ├── explore/            # ExploreFilterBar, ExploreGrid (scroll-stable, no layout anim), ExploreVideoCard (persistent VIDEO tag + halo, ordered display: avatar → portfolioThumbnails carousel on 3.5s interval → initials fallback; no img remount on tick; mount-on-view video), PortfolioGallery (scroll-stable)
-│   ├── profile/            # ProviderHero, PortfolioGrid (with dedup + AssetLightbox video/pdf playback), ServicePackages, MediaUpload, DrivePortfolioSection, DriveConnectSettings (+ Quick preview), DriveLinkPreview, AssetLightbox, etc.
+│   ├── profile/            # ProviderHero, PortfolioGrid (with dedup + AssetLightbox video/pdf playback), ServicePackages, MediaUpload (Drive link dedupe + Quick preview via useDrivePreview), DrivePortfolioSection, DriveConnectSettings (+ Quick preview), DriveLinkPreview, AssetLightbox, etc.
 │   ├── booking/            # BookingDrawer, EscrowTimeline, DisputeModal
 │   ├── blog/               # ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks
 │   ├── admin/              # AdminSidebar, AdminShell, CategoryModal, ConfigField, TeamMemberModal (avatar direct-upload + platform select w/ custom option), BatchOperations, EmailTemplateBlocksEditor, ContentBlocksEditor, ImageUploadField
@@ -109,7 +109,7 @@ crelab/
 │   ├── DriveService.ts
 │   ├── EarlyMemberService.ts # Founding-100 rank (ROW_NUMBER over user.createdAt, cached)
 │   ├── EscrowService.ts
-│   ├── FinanceService.ts   # Read-only admin money views: lifetime summary, unified payments+wallet feed (bounded merge), invoice projection (deterministic numbers, no rows created)
+│   ├── FinanceService.ts   # Admin money surfaces: lifetime summary, unified payments+wallet feed (bounded merge), invoice projection (deterministic numbers, no rows created), bookings list/detail + adminSettleBooking (EscrowService reuse, dual-level audit)
 │   ├── AnalyticsService.ts # Read-only admin overview: windowed KPIs + deltas, daily series + 7d average, breakdowns, top providers, platform counters, auto insights
   │   ├── EmailService.ts       # Resend transactional emails (isResendConfigured guard + preview fallback + verify/email-changed/sendTemplate + webinar registration + newsletter welcome)
 │   ├── ExploreService.ts   # Provider search + portfolioThumbnails (carousel payload)
@@ -142,7 +142,7 @@ crelab/
 │   ├── consent.ts          # NDPR consent capture server action│   ├── countdown.ts        # Countdown math + expiry/area selection (pure, hydration-safe inputs)
 │   ├── countdown-icons.ts  # Curated lucide icon allowlist for countdown widgets (§15)
 │   ├── currency.ts         # Money helpers: nairaToKobo, formatNaira, formatKobo
-│   ├── finance.ts          # Invoice builder/numbering, transaction filter normaliser, CSV + day-key helpers (pure, tested)
+│   ├── finance.ts          # Invoice builder/numbering, transaction + booking filter normalisers (normalizeBookingFilters), CSV + day-key helpers (pure, tested)
 │   ├── analytics.ts        # Day-axis fill, moving average, pct-change, auto insight commentary (pure, tested)
 │   ├── error-log-buffer.ts # Console ring buffer (last 60 entries) captured for error reports
 │   ├── landing-stats.ts    # Ordered stat items + format helpers (compact/rating/count) with fallbackValue
@@ -174,7 +174,8 @@ crelab/
 │   ├── schema.ts           # Drizzle schema (single source of truth for DB shape)
 │   └── migrations/         # Generated SQL migrations
 ├── hooks/
-│   └── useAuth.ts          # Client-side auth hook (signIn, signInWithGoogle, signOut, signUp, refresh — verification mail is server-sent via the auth hook)
+│   ├── useAuth.ts          # Client-side auth hook (signIn, signInWithGoogle, signOut, signUp, refresh — verification mail is server-sent via the auth hook)
+│   └── useDrivePreview.ts  # Shared Drive folder-link preview state (validateFolderUrl, cooldown countdown, 429/503 backoff, stale-clear) — DriveConnectSettings + MediaUpload
 ├── scripts/                 # Database seeding + utility scripts
 │   ├── seed.ts             # DB seed: creates users via Better Auth API + inserts all seed data
 │   ├── seed-rollback.ts    # Rollback: deletes all seed data in FK-safe reverse order
@@ -194,7 +195,7 @@ crelab/
 | `app/` | Next.js 15 App Router: route groups for public, auth, admin, and API | `layout.tsx`, `page.tsx`, `sitemap.ts`, `robots.ts`, route handlers |
 | `checkpoints/` | Session tracking: in-progress and session logs | `in-progress.md`, `session-log.md` |
 | `testing/` | Test results tracking | `test-results.md` |
-| `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager, email templates, blog templates, blog posts, user management, countdown widgets, webinars, bug-report triage, finance & transactions, platform analytics | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx`, `blog-posts/page.tsx`, `countdown/page.tsx`, `webinars/page.tsx`, `bug-reports/page.tsx`, `finance/page.tsx`, `analytics/page.tsx` |
+| `app/admin/` | Admin panel: config editor, category manager, provider queue, disputes, media asset manager (Uploads + read-only Google Drive tab), email templates, blog templates, blog posts, user management, countdown widgets, webinars, bug-report triage, finance (Transactions | Bookings: booking list/detail + Release/Refund settle), platform analytics | `page.tsx`, `layout.tsx`, `media/page.tsx`, `users/page.tsx`, `blog-templates/page.tsx`, `blog-posts/page.tsx`, `countdown/page.tsx`, `webinars/page.tsx`, `bug-reports/page.tsx`, `finance/page.tsx`, `analytics/page.tsx` |
 | `components/ui/` | Cl* wrappers isolating shadcn/ui from feature code | `ClButton.tsx`, `ClCard.tsx`, `ClInput.tsx`, `ClConfirmDialog.tsx`, `ClBackButton.tsx`, `ClDataTable.tsx`, `ClPagination.tsx` |
 | `components/explore/` | Explore feed: filter bar, masonry grid, video cards (ordered display: avatar → carousel → initials), portfolio gallery | ExploreFilterBar, ExploreGrid, ExploreVideoCard, PortfolioGallery |
 | `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings, media upload | ProviderHero, PortfolioGrid, ServicePackages, MediaUpload |
@@ -210,7 +211,7 @@ crelab/
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
 | `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `payment-notices.ts`, `wallet-recipients.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `finance.ts`, `analytics.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts`, `platform-copy.ts`, `sanitize-error.ts`, `error-log-buffer.ts`, `countdown.ts`, `countdown-icons.ts`, `referral-cookie.ts`, `landing-stats.ts`, `webinars.ts`, `social-platforms.ts`, `rate-limit.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (tables incl. `referral_codes`, `referral_events`, `webinars`, `webinar_registrations`, `bug_reports.error_context`), `migrations/` (journal tracks 0000–0002; 0003+ are standalone SQL applied by hand — incl. `0007_referrals_and_error_context.sql`, NOT yet applied) |
-| `hooks/` | Custom React hooks | `useAuth.ts` |
+| `hooks/` | Custom React hooks | `useAuth.ts`, `useDrivePreview.ts` |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
 | `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `services/ReferralService.test.ts`, `services/LeaderboardService.test.ts`, `services/WebinarService.test.ts`, `services/TeamService.test.ts`, `services/BlogPostService.test.ts` (adminList expects DB + fallback merge), `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `platform-name-compliance.test.ts`, `lib/finance.test.ts`, `lib/analytics.test.ts`, `lib/config-helpers.test.ts`, `lib/payment-notices.test.ts`, `lib/email-blocks.test.ts`, `lib/email-templates.test.ts`, `lib/countdown.test.ts`, `lib/early-member.test.ts`, `lib/error-log-buffer.test.ts`, `lib/sanitize-error.test.ts`, `lib/social-platforms.test.ts` |
 

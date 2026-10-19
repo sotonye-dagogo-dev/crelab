@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { portfolioItems, providers } from "@/drizzle/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, desc } from "drizzle-orm";
 import { fixLegacyVideoThumbnailUrl } from "@/lib/cloudinary";
 import type { IPortfolioItem } from "@/types";
 import { PortfolioItemSource } from "@/types";
@@ -21,6 +21,21 @@ export interface IPortfolioService {
   reorder(providerId: string, orderedIds: string[]): Promise<void>;
   setHidden(id: string, visible: boolean): Promise<IPortfolioItem>;
   deleteItem(id: string): Promise<void>;
+}
+
+/** Admin-observation row for Drive-integrated portfolio items. */
+export interface IDrivePortfolioItemRow {
+  id: string;
+  providerId: string;
+  providerName: string | null;
+  driveFolderUrl: string | null;
+  title: string | null;
+  url: string;
+  thumbnailUrl: string | null;
+  mimeType: string;
+  driveFileId: string | null;
+  visible: boolean;
+  createdAt: string;
 }
 
 function mapItem(row: typeof portfolioItems.$inferSelect): IPortfolioItem {
@@ -213,6 +228,49 @@ export class PortfolioService {
 
   static async deleteItem(id: string): Promise<void> {
     await db.delete(portfolioItems).where(eq(portfolioItems.id, id));
+  }
+
+  /**
+   * Admin observation list of Drive-integrated portfolio items
+   * (source = DRIVE) with their provider context. Bounded read — no Drive API
+   * calls, no mutations; the files themselves live in Google Drive so the
+   * admin media page only offers view-only actions for these rows.
+   */
+  static async listDriveItems(limit = 500): Promise<IDrivePortfolioItemRow[]> {
+    const capped = Math.min(Math.max(1, limit), 1000);
+    const rows = await db
+      .select({
+        id: portfolioItems.id,
+        providerId: portfolioItems.providerId,
+        providerName: providers.displayName,
+        driveFolderUrl: providers.driveFolderUrl,
+        title: portfolioItems.title,
+        url: portfolioItems.url,
+        thumbnailUrl: portfolioItems.thumbnailUrl,
+        mimeType: portfolioItems.mimeType,
+        driveFileId: portfolioItems.driveFileId,
+        visible: portfolioItems.visible,
+        createdAt: portfolioItems.createdAt,
+      })
+      .from(portfolioItems)
+      .leftJoin(providers, eq(providers.id, portfolioItems.providerId))
+      .where(eq(portfolioItems.source, "DRIVE"))
+      .orderBy(desc(portfolioItems.createdAt))
+      .limit(capped);
+
+    return rows.map((r) => ({
+      id: r.id,
+      providerId: r.providerId,
+      providerName: r.providerName ?? null,
+      driveFolderUrl: r.driveFolderUrl ?? null,
+      title: r.title ?? null,
+      url: r.url,
+      thumbnailUrl: fixLegacyVideoThumbnailUrl(r.thumbnailUrl),
+      mimeType: r.mimeType,
+      driveFileId: r.driveFileId ?? null,
+      visible: r.visible,
+      createdAt: r.createdAt.toISOString(),
+    }));
   }
 }
 

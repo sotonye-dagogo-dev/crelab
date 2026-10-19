@@ -10,8 +10,16 @@ import {
 } from "@/drizzle/schema";
 import { and, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { AuditService, type AuditLogEntry } from "@/services/AuditService";
+import { EscrowService } from "@/services/EscrowService";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
-import { buildInvoiceData, normalizeTransactionFilters, toDayKey, type IInvoiceData } from "@/lib/finance";
+import {
+  buildInvoiceData,
+  normalizeBookingFilters,
+  normalizeTransactionFilters,
+  toDayKey,
+  type IInvoiceData,
+} from "@/lib/finance";
 
 export interface IFinanceSummary {
   /** Money in kobo */
@@ -52,6 +60,62 @@ export interface ITransactionList {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+export interface IAdminBookingRow {
+  id: string;
+  status: string;
+  escrowState: string;
+  paymentMode: string;
+  /** Money in kobo */
+  subtotalKobo: number;
+  /** Money in kobo */
+  feeKobo: number;
+  /** Money in kobo */
+  totalKobo: number;
+  clientName: string | null;
+  clientEmail: string | null;
+  providerName: string | null;
+  packageLabel: string | null;
+  /** Status of the most recent payment row, if any. */
+  paymentStatus: string | null;
+  /** Count of payments currently in HELD state (funds actionable). */
+  heldPayments: number;
+  paystackRef: string | null;
+  serviceDate: string | null;
+  /** ISO 8601 */
+  createdAt: string;
+}
+
+export interface IBookingList {
+  rows: IAdminBookingRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface IBookingFinanceDetail {
+  booking: IAdminBookingRow;
+  payments: {
+    id: string;
+    amountKobo: number;
+    feeKobo: number;
+    netAmountKobo: number;
+    status: string;
+    paystackRef: string;
+    createdAt: string;
+  }[];
+  walletTransactions: {
+    id: string;
+    type: string;
+    amountKobo: number;
+    direction: string;
+    reference: string;
+    createdAt: string;
+  }[];
+  /** Audit entries for the booking itself AND each of its payments (merged). */
+  auditTrail: AuditLogEntry[];
 }
 
 const SEARCH_CAP = 500;
@@ -262,6 +326,314 @@ export class FinanceService {
       pageSize: f.pageSize,
       totalPages,
     };
+  }
+
+  /* ── Bookings (financial view for the admin finance page) ── */
+
+  async listBookings(rawQuery: Record<string, string | string[] | undefined>): Promise<IBookingList> {
+    const f = normalizeBookingFilters(rawQuery);
+    const fromDate = f.from ? new Date(f.from) : null;
+    const toDate = f.to ? new Date(new Date(f.to).getTime() + 86399999) : null;
+
+    const conds = [];
+    if (fromDate) conds.push(gte(bookings.createdAt, fromDate));
+    if (toDate) conds.push(lte(bookings.createdAt, toDate));
+    if (f.status) conds.push(eq(bookings.status, f.status as never));
+    if (f.escrowState) conds.push(eq(bookings.escrowState, f.escrowState as never));
+    if (f.paymentMode) conds.push(eq(bookings.paymentMode, f.paymentMode as never));
+    if (f.q) {
+      conds.push(
+        or(
+          ilike(bookings.id, `%${f.q}%`),
+          ilike(user.name, `%${f.q}%`),
+          ilike(user.email, `%${f.q}%`),
+          ilike(providers.displayName, `%${f.q}%`),
+          ilike(servicePackages.label, `%${f.q}%`),
+        ),
+      );
+    }
+
+    const bRows = await db
+      .select({
+        id: bookings.id,
+        status: bookings.status,
+        escrowState: bookings.escrowState,
+        paymentMode: bookings.paymentMode,
+        subtotal: bookings.subtotal,
+        fee: bookings.fee,
+        total: bookings.total,
+        paystackRef: bookings.paystackRef,
+        serviceDate: bookings.serviceDate,
+        createdAt: bookings.createdAt,
+        clientName: user.name,
+        clientEmail: user.email,
+        providerName: providers.displayName,
+        packageLabel: servicePackages.label,
+      })
+      .from(bookings)
+      .leftJoin(user, eq(user.id, bookings.clientId))
+      .leftJoin(providers, eq(providers.id, bookings.providerId))
+      .leftJoin(servicePackages, eq(servicePackages.id, bookings.packageId))
+      .where(conds.length > 0 ? and(...conds) : undefined)
+      .orderBy(desc(bookings.createdAt))
+      .limit(SEARCH_CAP);
+
+    // Aggregate payment state per booking from a single bounded query.
+    const ids = bRows.map((b) => b.id);
+    const payByBooking = new Map<string, { latestStatus: string | null; held: number; latestRef: string | null }>();
+    if (ids.length > 0) {
+      const pRows = await db
+        .select({
+          id: payments.id,
+          bookingId: payments.bookingId,
+          status: payments.status,
+          paystackRef: payments.paystackRef,
+          createdAt: payments.createdAt,
+        })
+        .from(payments)
+        .where(sql`${payments.bookingId} IN (${sql.join(ids.map((b) => sql`${b}`), sql`, `)})`)
+        .orderBy(desc(payments.createdAt));
+      for (const p of pRows) {
+        const entry = payByBooking.get(p.bookingId) ?? { latestStatus: null, held: 0, latestRef: null };
+        if (entry.latestStatus === null) {
+          entry.latestStatus = p.status;
+          entry.latestRef = p.paystackRef;
+        }
+        if (p.status === "HELD") entry.held += 1;
+        payByBooking.set(p.bookingId, entry);
+      }
+    }
+
+    const rows: IAdminBookingRow[] = bRows.map((b) => {
+      const pay = payByBooking.get(b.id);
+      return {
+        id: b.id,
+        status: b.status,
+        escrowState: b.escrowState,
+        paymentMode: b.paymentMode,
+        subtotalKobo: b.subtotal,
+        feeKobo: b.fee,
+        totalKobo: b.total,
+        clientName: b.clientName ?? null,
+        clientEmail: b.clientEmail ?? null,
+        providerName: b.providerName ?? null,
+        packageLabel: b.packageLabel ?? null,
+        paymentStatus: pay?.latestStatus ?? null,
+        heldPayments: pay?.held ?? 0,
+        paystackRef: pay?.latestRef ?? b.paystackRef ?? null,
+        serviceDate: b.serviceDate ? b.serviceDate.toISOString() : null,
+        createdAt: b.createdAt.toISOString(),
+      };
+    });
+
+    const total = rows.length;
+    const totalPages = Math.max(1, Math.ceil(total / f.pageSize));
+    const page = Math.min(f.page, totalPages);
+    const start = (page - 1) * f.pageSize;
+
+    return {
+      rows: rows.slice(start, start + f.pageSize),
+      total,
+      page,
+      pageSize: f.pageSize,
+      totalPages,
+    };
+  }
+
+  /** Booking + its payments + related wallet ledger + merged audit trail. */
+  async getBookingDetail(bookingId: string): Promise<IBookingFinanceDetail | null> {
+    const [bRow] = await db
+      .select({
+        id: bookings.id,
+        status: bookings.status,
+        escrowState: bookings.escrowState,
+        paymentMode: bookings.paymentMode,
+        subtotal: bookings.subtotal,
+        fee: bookings.fee,
+        total: bookings.total,
+        paystackRef: bookings.paystackRef,
+        serviceDate: bookings.serviceDate,
+        createdAt: bookings.createdAt,
+        clientName: user.name,
+        clientEmail: user.email,
+        providerName: providers.displayName,
+        packageLabel: servicePackages.label,
+      })
+      .from(bookings)
+      .leftJoin(user, eq(user.id, bookings.clientId))
+      .leftJoin(providers, eq(providers.id, bookings.providerId))
+      .leftJoin(servicePackages, eq(servicePackages.id, bookings.packageId))
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+    if (!bRow) return null;
+
+    const [pRows, wRows] = await Promise.all([
+      db
+        .select({
+          id: payments.id,
+          amount: payments.amount,
+          fee: payments.fee,
+          netAmount: payments.netAmount,
+          status: payments.status,
+          paystackRef: payments.paystackRef,
+          createdAt: payments.createdAt,
+        })
+        .from(payments)
+        .where(eq(payments.bookingId, bookingId))
+        .orderBy(desc(payments.createdAt)),
+      db
+        .select({
+          id: walletTransactions.id,
+          type: walletTransactions.type,
+          amountKobo: walletTransactions.amountKobo,
+          direction: walletTransactions.direction,
+          reference: walletTransactions.reference,
+          createdAt: walletTransactions.createdAt,
+        })
+        .from(walletTransactions)
+        .where(eq(walletTransactions.relatedBookingId, bookingId))
+        .orderBy(desc(walletTransactions.createdAt))
+        .limit(100),
+    ]);
+
+    // Merged audit trail: booking-level + one lookup per payment id.
+    const auditTrail: AuditLogEntry[] = [];
+    try {
+      const [bookingAudit, ...paymentAudits] = await Promise.all([
+        AuditService.list({ entity: "bookings", entityId: bookingId, limit: 50 }),
+        ...pRows.map((p) => AuditService.list({ entity: "payments", entityId: p.id, limit: 25 })),
+      ]);
+      auditTrail.push(...bookingAudit, ...paymentAudits.flat());
+      auditTrail.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
+    } catch (err) {
+      console.error(`[finance] audit trail load failed for booking ${bookingId}`, err);
+    }
+
+    const booking: IAdminBookingRow = {
+      id: bRow.id,
+      status: bRow.status,
+      escrowState: bRow.escrowState,
+      paymentMode: bRow.paymentMode,
+      subtotalKobo: bRow.subtotal,
+      feeKobo: bRow.fee,
+      totalKobo: bRow.total,
+      clientName: bRow.clientName ?? null,
+      clientEmail: bRow.clientEmail ?? null,
+      providerName: bRow.providerName ?? null,
+      packageLabel: bRow.packageLabel ?? null,
+      paymentStatus: pRows[0]?.status ?? null,
+      heldPayments: pRows.filter((p) => p.status === "HELD").length,
+      paystackRef: pRows[0]?.paystackRef ?? bRow.paystackRef ?? null,
+      serviceDate: bRow.serviceDate ? bRow.serviceDate.toISOString() : null,
+      createdAt: bRow.createdAt.toISOString(),
+    };
+
+    return {
+      booking,
+      payments: pRows.map((p) => ({
+        id: p.id,
+        amountKobo: p.amount,
+        feeKobo: p.fee,
+        netAmountKobo: p.netAmount,
+        status: p.status,
+        paystackRef: p.paystackRef,
+        createdAt: p.createdAt.toISOString(),
+      })),
+      walletTransactions: wRows.map((w) => ({
+        id: w.id,
+        type: w.type,
+        amountKobo: w.amountKobo,
+        direction: w.direction,
+        reference: w.reference,
+        createdAt: w.createdAt.toISOString(),
+      })),
+      auditTrail,
+    };
+  }
+
+  /* ── Admin settlement actions (same EscrowService money paths as the
+     non-admin flow — never a custom money path — plus dual-level audit:
+       • general:    audit_log entity "bookings"  (who did what to the booking)
+       • per-txn:    audit_log entity "payments"  (one entry per payment that
+                     actually transitioned, keyed by payment id)            ── */
+
+  async adminSettleBooking(
+    bookingId: string,
+    adminId: string,
+    outcome: "RELEASED" | "REFUNDED",
+  ): Promise<{ bookingId: string; outcome: string; settledPayments: string[] }> {
+    const [booking] = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+    if (!booking) throw new Error("Booking not found");
+    if (booking.escrowState === "DISPUTED") {
+      throw new Error(
+        "This booking is disputed — resolve it from the Disputes page instead of settling directly.",
+      );
+    }
+
+    const heldBefore = await db
+      .select({ id: payments.id })
+      .from(payments)
+      .where(and(eq(payments.bookingId, bookingId), eq(payments.status, "HELD")));
+    if (heldBefore.length === 0) {
+      throw new Error("No held payments on this booking — nothing to settle");
+    }
+    const heldIds = new Set(heldBefore.map((p) => p.id));
+
+    const escrow = new EscrowService();
+    if (outcome === "RELEASED") await escrow.settleRelease(bookingId);
+    else await escrow.refundBookingFunds(bookingId);
+
+    // Only payments that actually transitioned get per-transaction audit rows
+    // (idempotent re-runs and races produce an empty set → single 409 below).
+    const after = await db
+      .select({ id: payments.id, status: payments.status })
+      .from(payments)
+      .where(eq(payments.bookingId, bookingId));
+    const settled = after.filter(
+      (p) => heldIds.has(p.id) && p.status === outcome,
+    );
+
+    if (settled.length === 0) {
+      throw new Error(
+        "Settlement was already completed by another process — no payments transitioned",
+      );
+    }
+
+    // General trail: one booking-level entry naming the admin and payments.
+    await AuditService.log({
+      userId: adminId,
+      action: outcome === "RELEASED" ? "escrow.release.admin" : "escrow.refund.admin",
+      entity: "bookings",
+      entityId: bookingId,
+      oldValue: { status: booking.status, escrowState: booking.escrowState },
+      newValue: {
+        status: outcome === "RELEASED" ? "RELEASED" : "REFUNDED",
+        paymentIds: settled.map((p) => p.id),
+        actor: "admin",
+      },
+    }).catch((err) => {
+      console.error(`[finance] booking-level audit failed for ${bookingId}`, err);
+    });
+
+    // Transaction trail: one entry per payment, keyed by payment id.
+    for (const p of settled) {
+      await AuditService.log({
+        userId: adminId,
+        action: outcome === "RELEASED" ? "payment.release" : "payment.refund",
+        entity: "payments",
+        entityId: p.id,
+        oldValue: { status: "HELD" },
+        newValue: { status: p.status, bookingId, actor: "admin" },
+      }).catch((err) => {
+        console.error(`[finance] payment-level audit failed for ${p.id}`, err);
+      });
+    }
+
+    return { bookingId, outcome, settledPayments: settled.map((p) => p.id) };
   }
 
   /* ── Invoice (read-only projection over existing payment + booking rows) ── */

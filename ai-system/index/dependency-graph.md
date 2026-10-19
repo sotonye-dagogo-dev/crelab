@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Drive link quick preview)
+> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
 > - last-verified-against-code: 2026-10-18
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -323,9 +323,24 @@ Platform-name copy (lib/platform-copy.ts)
   → leaf module — PLATFORM_NAME_TOKEN (`{{name}}`) + fillPlatformName(text, name); display copy resolves from config.name at render time
 
 FinanceService (services/FinanceService.ts)
-  → lib/db.ts + drizzle/schema.ts (payments, bookings, wallet_transactions, wallets, user, providers, service_packages) — reads only, no migrations
-  → lib/finance.ts (pure: buildInvoiceData/buildInvoiceNumber, normalizeTransactionFilters, transactionsToCsv, toDayKey) + PlatformConfigService (`finance` config for invoice identity)
+  → lib/db.ts + drizzle/schema.ts (payments, bookings, wallet_transactions, wallets, user, providers, service_packages) — reads only, no migrations; adminSettleBooking's writes go through EscrowService, never direct column flips
+  → lib/finance.ts (pure: buildInvoiceData/buildInvoiceNumber, normalizeTransactionFilters, normalizeBookingFilters, transactionsToCsv, toDayKey) + PlatformConfigService (`finance` config for invoice identity)
   → consumed by app/api/admin/finance/summary (GET KPIs) + app/api/admin/finance/transactions (GET unified feed) + app/api/admin/finance/invoice (GET projection) + app/admin/finance/page.tsx (KPI cards, filter bar, ClDataTable + ClPagination, detail modal → InvoicePreview)
+  → listBookings/getBookingDetail consumed by app/api/admin/finance/bookings (+ [id]) → app/admin/finance/page.tsx Bookings tab (filter card, booking columns, detail modal)
+  → adminSettleBooking → services/EscrowService.settleRelease/refundBookingFunds (money-path reuse — the non-admin state machine, never re-implemented) + services/AuditService.log ×2 levels (general entity "bookings" escrow.release.admin/escrow.refund.admin; per-payment entity "payments" payment.release/payment.refund for each HELD→outcome transition) → consumed by POST /api/admin/finance/bookings/[id]/release|refund
+
+Admin audit per-entity view (app/api/admin/audit-log ?entityId=)
+  → services/AuditService.list/count (additive entityId pass-through — filter by entity + id without new endpoints)
+  → consumed by app/admin/finance/page.tsx (TxnAuditSection: transaction audit + parent booking audit, merged/deduped) and any future entity-scoped audit trail
+
+Drive link preview state (hooks/useDrivePreview.ts)
+  → lib/drive.ts (validateFolderUrl) + components/profile/DriveLinkPreview.tsx; owns cooldown countdown, 429/503 Retry-After backoff, stale-clear on input change
+  → consumed by components/profile/DriveConnectSettings.tsx (refactor, same behaviour) + components/profile/MediaUpload.tsx (admin/onboarding paste-link tab)
+  → edge call: POST /api/portfolio/drive/preview (server budget owner — see the preview-route block above)
+
+Drive items admin observation (app/api/admin/media/drive → PortfolioService.listDriveItems)
+  → reads portfolio_items.source = "DRIVE" + providers left join; stable unsigned thumbs via fixLegacyVideoThumbnailUrl; NO mutations (delete/reconcile/cleanup apply to Cloudinary only)
+  → consumed by app/admin/media/page.tsx "Google Drive" source tab (read-only columns + client search)
 
 AnalyticsService (services/AnalyticsService.ts)
   → lib/db.ts + drizzle/schema.ts (bookings, payments, providers, reviews, user, disputes, portfolio_items, referral_events, webinars, webinar_registrations) — bounded group-bys only
