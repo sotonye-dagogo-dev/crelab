@@ -726,7 +726,7 @@ export class MockDataService {
       { value: "1,247", rawValue: 1247, label: "Profile Views", sub: "+12% vs last week", subTone: "success" as const },
       { value: "3,892", rawValue: 3892, label: "Portfolio Plays", sub: "+8% vs last week", subTone: "success" as const },
       { value: "14", rawValue: 14, label: "Booking Requests", sub: "3 pending", subTone: "warning" as const },
-      { value: "₦248,500", rawValue: 24850000, label: "Earnings (30d)", sub: "₦42,500 in escrow", subTone: "held" as const },
+      { value: "₦248,500", rawValue: 24850000, label: "Earnings (30d)", sub: "₦42,500 in escrow", subTone: "held" as const, hintKey: "dashboardEscrow" },
     ];
 
     return {

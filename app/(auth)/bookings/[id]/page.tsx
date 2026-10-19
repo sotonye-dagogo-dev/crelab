@@ -4,6 +4,8 @@ import { bookings, payments, providers, servicePackages, user } from "@/drizzle/
 import { and, eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth";
 import { MockDataService } from "@/services/MockDataService";
+import { EscrowService } from "@/services/EscrowService";
+import { consumeRateWindow } from "@/lib/rate-limit";
 import { BookingDetailClient } from "./BookingDetailClient";
 import type { IBooking, IPayment } from "@/types";
 
@@ -117,9 +119,58 @@ async function resolveViewerRole(
   return null;
 }
 
+/**
+ * Self-heal a "charged but never held" booking when its own page is viewed.
+ *
+ * The webhook + cron are the primary finalizers, but a stuck booking (ACCEPTED
+ * + escrow PENDING + a stored card reference, untouched for over a minute) can
+ * otherwise sit forever with the client staring at "awaiting payment" while
+ * their card was charged. Viewing the booking is the highest-signal moment to
+ * retry the hold — processor-verified, rate-limited per viewer, and bounded by
+ * a timeout so a slow Paystack call can never stall the page render.
+ */
+async function maybeReconcileStuckBooking(
+  data: { booking: IBooking },
+  viewerId: string,
+): Promise<void> {
+  const { booking } = data;
+  if (booking.status !== "ACCEPTED") return;
+  if (booking.escrowState !== "PENDING") return;
+  if (booking.paymentMode === "MILESTONE") return;
+  if (!booking.paystackRef || booking.paystackRef.startsWith("WALLET-")) return;
+
+  // Only retry once the booking has actually been sitting still — a fresh
+  // ACCEPTED (provider just accepted, checkout not started) has nothing charged.
+  const ageMs = Date.now() - new Date(booking.updatedAt).getTime();
+  if (ageMs < 60_000) return;
+
+  const budget = consumeRateWindow(`booking-reconcile:${viewerId}`, {
+    limit: 5,
+    windowMs: 60_000,
+  });
+  if (!budget.allowed) return;
+
+  try {
+    const escrow = new EscrowService();
+    const work = escrow.reconcileBooking(booking.id, {
+      actorId: viewerId,
+      audit: true,
+    });
+    const timeout = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), 8_000),
+    );
+    await Promise.race([work, timeout]);
+  } catch (err) {
+    console.error(
+      `[escrow] booking-detail self-heal failed for booking ${booking.id}:`,
+      err,
+    );
+  }
+}
+
 export default async function BookingDetailPage({ params }: Props) {
   const { id } = await params;
-  const data = await getBookingDetail(id);
+  let data = await getBookingDetail(id);
 
   if (!data) notFound();
 
@@ -129,6 +180,12 @@ export default async function BookingDetailPage({ params }: Props) {
   // Nobody outside the booking (and admins) may see it at all — a guessed id
   // must 404 the same way a missing booking does.
   if (!viewerRole) notFound();
+
+  await maybeReconcileStuckBooking(data, sessionUser.id);
+
+  // Re-read after the self-heal so the page renders the post-hold truth (the
+  // reconcile may have moved ACCEPTED → HELD).
+  data = (await getBookingDetail(id)) ?? data;
 
   return <BookingDetailClient data={data} viewerRole={viewerRole} />;
 }

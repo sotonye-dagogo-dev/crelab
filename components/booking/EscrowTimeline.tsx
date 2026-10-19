@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ClButton } from "@/components/ui";
+import { ClButton, ClInfoTip } from "@/components/ui";
+import { usePlatformConfig } from "@/lib/config-context";
+import { resolveHint } from "@/lib/hints";
 import { Check } from "lucide-react";
 import type { IBooking, IPayment } from "@/types";
 
@@ -41,6 +43,9 @@ export function EscrowTimeline({
 }: EscrowTimelineProps) {
   const [countdown, setCountdown] = useState("");
   const [isDesktop, setIsDesktop] = useState(true);
+  const platformConfig = usePlatformConfig();
+  const releaseWindowHint = resolveHint("releaseWindow", platformConfig);
+  const disputeHint = resolveHint("bookingDispute", platformConfig);
 
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 768);
@@ -201,8 +206,13 @@ export function EscrowTimeline({
           Payment Timeline
         </h3>
         {countdown && (
-          <span className="text-[12px] font-medium text-[var(--color-warning)] font-mono">
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-warning)] font-mono">
             {countdown}
+            {releaseWindowHint && (
+              <ClInfoTip label="About the release window">
+                {releaseWindowHint}
+              </ClInfoTip>
+            )}
           </span>
         )}
       </div>
@@ -240,17 +250,24 @@ export function EscrowTimeline({
       </div>
 
       {viewerRole === "CLIENT" && currentState === "IN_PROGRESS" && (
-        <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex gap-3">
+        <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex gap-3 items-center">
           <ClButton variant="primary" size="sm" loading={releaseLoading} onClick={onConfirmRelease}>
             Confirm Release
           </ClButton>
-          <ClButton
-            variant="outlined"
-            size="sm"
-            onClick={onRaiseDispute}
-          >
-            Raise Dispute
-          </ClButton>
+          <span className="inline-flex items-center gap-1.5">
+            <ClButton
+              variant="outlined"
+              size="sm"
+              onClick={onRaiseDispute}
+            >
+              Raise Dispute
+            </ClButton>
+            {disputeHint && (
+              <ClInfoTip label="About disputes" placement="bottom">
+                {disputeHint}
+              </ClInfoTip>
+            )}
+          </span>
         </div>
       )}
 

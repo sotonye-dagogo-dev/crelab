@@ -45,6 +45,10 @@ const HOSTED_POLL_ATTEMPTS = 30;
 const HOSTED_POLL_INTERVAL_MS = 4000;
 /** Watchdog for a popup handoff whose events never arrive (3 minutes). */
 const POPUP_WATCHDOG_MS = 3 * 60 * 1000;
+/** How many extra times to poll verify when the charge is real but the
+ *  ACCEPTED→HELD transition has not landed yet ("hold_pending"). */
+const HOLD_PENDING_RETRIES = 5;
+const HOLD_PENDING_INTERVAL_MS = 3000;
 
 export interface IUseBookingPayment {
   /** Pay from the wallet balance (synchronous server-side debit + escrow hold). */
@@ -132,39 +136,68 @@ export function useBookingPayment(): IUseBookingPayment {
     async (reference: string): Promise<VerifyOutcome> => {
       const activeId = activeBookingIdRef.current;
       if (!activeId) return { done: false, retry: false };
-      const res = await fetch(
-        `/api/bookings/${activeId}/pay/verify?reference=${encodeURIComponent(reference)}`,
-      );
-      const json = await res.json().catch(() => null);
-      if (json?.success && json?.data?.verified) return { done: true, retry: false };
 
-      if (json?.success) {
-        const status = json.data?.status as string | undefined;
-        if (status === "pending") return { done: false, retry: true };
-        if (status === "failed") {
+      // "hold_pending" means the charge is real but the server-side escrow hold
+      // has not converged yet (replica lag / concurrent writer). It is NOT a
+      // failure and NOT yet a success — poll again after a short delay, a
+      // bounded number of times, before giving up with a truthful message.
+      for (let attempt = 0; attempt <= HOLD_PENDING_RETRIES; attempt++) {
+        const res = await fetch(
+          `/api/bookings/${activeId}/pay/verify?reference=${encodeURIComponent(reference)}`,
+        );
+        const json = await res.json().catch(() => null);
+        if (json?.success && json?.data?.verified) return { done: true, retry: false };
+
+        const reason = json?.data?.reason as string | undefined;
+
+        if (json?.success && reason === "hold_pending") {
+          if (attempt < HOLD_PENDING_RETRIES) {
+            await new Promise((resolve) => setTimeout(resolve, HOLD_PENDING_INTERVAL_MS));
+            continue;
+          }
+          return {
+            done: false,
+            retry: true,
+            message:
+              "Your payment was received but is still being secured in escrow. It will complete automatically — check your Bookings page in a few minutes.",
+          };
+        }
+
+        if (json?.success) {
+          const status = json.data?.status as string | undefined;
+          if (status === "pending") return { done: false, retry: true };
+          if (status === "failed") {
+            return {
+              done: false,
+              retry: false,
+              message: "Payment failed — you haven't been charged. Please try again.",
+            };
+          }
           return {
             done: false,
             retry: false,
-            message: "Payment failed — you haven't been charged. Please try again.",
+            message: "Payment was not completed — you haven't been charged. You can try again.",
           };
+        }
+
+        const error = (json?.error as string | undefined) ?? "";
+        // Transient processor/network errors are worth retrying; ownership,
+        // mismatch and validation failures are definitive.
+        if (res.status >= 500 || /could not verify/i.test(error)) {
+          return { done: false, retry: true, message: error || undefined };
         }
         return {
           done: false,
           retry: false,
-          message: "Payment was not completed — you haven't been charged. You can try again.",
+          message: error || "Payment could not be verified — check your Bookings page or try again.",
         };
       }
 
-      const error = (json?.error as string | undefined) ?? "";
-      // Transient processor/network errors are worth retrying; ownership,
-      // mismatch and validation failures are definitive.
-      if (res.status >= 500 || /could not verify/i.test(error)) {
-        return { done: false, retry: true, message: error || undefined };
-      }
       return {
         done: false,
-        retry: false,
-        message: error || "Payment could not be verified — check your Bookings page or try again.",
+        retry: true,
+        message:
+          "Your payment was received but is still being secured in escrow. It will complete automatically — check your Bookings page in a few minutes.",
       };
     },
     [],
@@ -215,8 +248,10 @@ export function useBookingPayment(): IUseBookingPayment {
         }
 
         // Defensive: the server can settle from the wallet — treat it as an
-        // immediate success rather than an error.
-        if (json.data?.method === "WALLET") {
+        // immediate success rather than an error. It can also report that a
+        // previous card charge already succeeded and was finalized into escrow
+        // ("ALREADY_HELD") — same terminal success, no second charge needed.
+        if (json.data?.method === "WALLET" || json.data?.method === "ALREADY_HELD") {
           markPaid();
           return "paid";
         }

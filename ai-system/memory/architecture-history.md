@@ -11,6 +11,18 @@
 
 ## History
 
+### 2026-10-19 — Escrow Hold Integrity + Guidance Layer
+
+**State:**
+The escrow hold path gained a truthful result vocabulary and a repair architecture. Where `onPaystackSuccess` previously returned a bare boolean (and `/pay/verify` reported `verified:true` even when the hold failed), every surface now consumes an exhaustive `HoldResult` classified in pure `lib/payment-flow.ts` (held / already_held / duplicate_charge / hold_lost_race [retryable] / not_payable / no_booking). The webhook records the de-dupe `payments` row only on terminal outcomes (retryable → 500 so Paystack retries) and attributes charges through layered resolution — exact ref → `metadata.bookingId` → UUID parsed from the `CRELLAB-{bookingId}-{millis}` reference — which makes `initiate()`'s per-checkout ref overwrite harmless without any schema change. Non-retryable failures are audited.
+
+`EscrowService.reconcileBooking` is the single repair primitive (processor-verify → idempotent hold → `escrow.reconcile` audit), driven by four callers: `/pay` pre-flight, the cron `reconcileStuckHolds` sweep (every 6h, grace-bounded), a rate-limited silent booking-page self-heal, and an explicit admin finance action. `BookingService.cancelBooking` now accepts a provider actor pre-payment.
+
+Guidance became a layer: pure `lib/booking-guidance.ts` (`bookingNextStep` — who acts next, exhaustive, null when a dedicated panel owns the state) feeding `NextStepBanner` on panel-less states; `ClInfoTip` joined the Cl* primitive set with `lib/hints.ts` driving eight config-managed tips (token-filled, "" hides) across pay panel, escrow timeline, wallet, dashboard stat and admin finance; the `bookingFlow`/`hints` config blocks gained admin "Guidance" editor fields.
+
+**Rationale:**
+A verification endpoint that reports success when the money action failed is worse than no endpoint — it converts a transient hold failure into a permanent-looking product bug with no forensic trail and no repair path. Truthful classification + terminal-only idempotency rows + layered ref attribution + one reconcile primitive (with cron/page/admin callers) closes the class of bug rather than the instance. Guidance is config-driven so copy and toggles stay admin-manageable without code.
+
 ### 2026-10-19 — Booking Lifecycle + Payment Path Consolidation
 
 **State:**

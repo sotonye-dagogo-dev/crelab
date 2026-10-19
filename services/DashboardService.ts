@@ -142,6 +142,7 @@ export class DashboardService implements IDashboardService {
           label: "Earnings (30d)",
           sub: `₦${((escrowKobo / 100).toLocaleString("en-NG"))} in escrow`,
           subTone: "held",
+          hintKey: "dashboardEscrow",
         },
       ];
 

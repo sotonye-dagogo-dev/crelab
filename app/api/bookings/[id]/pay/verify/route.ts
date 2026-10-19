@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { BookingService } from "@/services/BookingService";
 import { EscrowService } from "@/services/EscrowService";
 import { verifyTransaction } from "@/lib/paystack";
+import { holdFailureMessage, isHoldPending, parseBookingIdFromRef } from "@/lib/payment-flow";
 
 /**
  * Verifies a booking card payment on the client's callback (popup success or
@@ -38,7 +39,16 @@ async function handleVerify(
     if (reference.startsWith("WALLET-")) {
       return NextResponse.json({ success: false, error: "Not a card payment" }, { status: 400 });
     }
-    if (!booking.paystackRef || booking.paystackRef !== reference) {
+    // A charge reference must be attributable to THIS booking. The stored
+    // `paystackRef` is the primary key, but `initiate()` regenerates it on every
+    // checkout attempt — so a charge made under an EARLIER attempt (popup kept
+    // alive, double-click) would be wrongly rejected by a strict equality check.
+    // The id embedded in the reference (`CRELLAB-{bookingId}-{millis}`) is the
+    // stable attribution; accept it as a fallback so verify still finalizes.
+    const referenceMatches =
+      booking.paystackRef === reference ||
+      parseBookingIdFromRef(reference) === bookingId;
+    if (!referenceMatches) {
       return NextResponse.json({ success: false, error: "Reference does not match this booking" }, { status: 400 });
     }
 
@@ -62,6 +72,7 @@ async function handleVerify(
     }
 
     let verifiedOk = false;
+    let holdPending = false;
     if (verified.status === "success") {
       if (verified.amountKobo !== booking.total) {
         // Charged amount ≠ booked amount — never settle a mismatch silently.
@@ -76,8 +87,28 @@ async function handleVerify(
       }
 
       const escrowService = new EscrowService();
-      await escrowService.onPaystackSuccess(reference); // idempotent — false = webhook already held it
-      verifiedOk = true;
+      const hold = await escrowService.onPaystackSuccess(reference, { bookingId });
+      if (hold.held || hold.alreadyHeld) {
+        // The money is now (or already was) in escrow — the only honest
+        // "verified" signal. This is what the client's "Payment received"
+        // confirmation must be gated on.
+        verifiedOk = true;
+      } else if (isHoldPending(hold)) {
+        // Charge is real but the ACCEPTED→HELD transition did not land yet
+        // (replica lag / concurrent writer). Do NOT report failure (the charge
+        // succeeded) and do NOT report success (nothing is held) — signal the
+        // client to poll again.
+        holdPending = true;
+      } else {
+        // Permanent refusal (not payable / duplicate charge / no booking) —
+        // the service already logged + audited it. Report the truth and never
+        // "verified".
+        return NextResponse.json({
+          success: false,
+          error: holdFailureMessage(hold) ?? "Payment could not be applied to this booking — support has been notified",
+          data: { status: verified.status, verified: false, reason: hold.reason ?? "hold_failed" },
+        }, { status: 409 });
+      }
     }
 
     const fresh = await bookingService.getById(bookingId);
@@ -87,7 +118,11 @@ async function handleVerify(
         status: verified.status,
         verified: verifiedOk,
         bookingStatus: fresh?.status ?? booking.status,
-        ...(verifiedOk ? {} : { reason: "not_completed" }),
+        ...(verifiedOk
+          ? {}
+          : holdPending
+            ? { reason: "hold_pending" }
+            : { reason: "not_completed" }),
       },
     });
   } catch (err) {

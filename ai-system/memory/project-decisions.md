@@ -34,6 +34,29 @@
 
 ## Decisions
 
+## Escrow Hold Integrity: Truthful Verify, Terminal-Only De-Dupe, Ref-Attribution Fallback, Reconcile Vocabulary
+
+**Decision:** Every surface that reports a payment outcome reports what ACTUALLY happened to the escrow hold, and every hold failure has a repair path. Concretely: (1) `/pay/verify` maps the `HoldResult` — held → `verified:true`; retryable failure → `hold_pending` (success + reason, client retries); terminal failure → 409 with user-facing copy; amount mismatch → 409. `verified:true` on a failed hold no longer exists. (2) The Paystack webhook records the de-dupe `payments` row ONLY on terminal outcomes; retryable hold failures return 500 so Paystack retries (recording the row unconditionally permanently swallowed retries). (3) Charge attribution is layered — `resolveBookingId`/`resolveBookingForRef(ref, hint)`: exact `paystackRef` match → explicit `metadata.bookingId` hint → UUID parsed from the `CRELLAB-{bookingId}-{millis}` reference — so `initiate()`'s per-checkout ref overwrite can no longer strand a charge, with zero schema change. (4) Every non-retryable hold failure is audited (`escrow.hold.failed` / `escrow.hold.duplicate`). (5) `reconcileBooking(bookingId)` is the single repair primitive (processor-verify → amount/metadata checks → idempotent hold → `escrow.reconcile` audit), driven by four callers: `/pay` pre-flight, the cron `reconcileStuckHolds` sweep (every 6h, grace-bounded), a rate-limited silent booking-page self-heal, and an explicit admin finance action. (6) Retryable-vs-terminal classification lives in pure `lib/payment-flow.ts` (`classifyHoldOutcome`) so webhook/verify/pay/cron/page/admin can never disagree.
+**Date:** 2026-10-19
+**Made by:** Implementer (per execute-feature directive)
+**Supersedes:** The Session-33 bare-boolean `onPaystackSuccess` (false-on-failure with no classification, no audit, no repair path). Extends — does not replace — the 2026-08-20 "Payment Truthfulness: Verify, Don't Assume" invariant (that one owns the wallet top-up return path; this one owns the escrow booking-hold path).
+**Superseded by:** None
+
+**Reason:**
+Alpha symptom: client paid, provider accepted, booking stuck at stage 1 (`ACCEPTED` + `escrowState PENDING`, no payment row) while the UI said success. Root causes were all "success implied, failure swallowed": verify lied, the webhook de-dupe row made the lie permanent, and the regenerated refs made the charge unattributable.
+
+**Alternatives Considered:**
+- Add a `paystack_ref_history` table to keep every ref — rejected: the booking id is already embedded in the reference format; a layered parse recovers attribution with no migration.
+- Make `/pay/verify` throw on any hold failure — rejected: the client cannot distinguish "retry in a moment" from "this will never work"; user-facing verify must surface the retryable/terminal split that the webhook encodes as 500/200.
+- Auto-retry holds inline inside the webhook until success — rejected: unbounded latency inside the webhook; Paystack's own retry (500) plus the reconcile sweep is the bounded path.
+
+**Implications:**
+- New payment surfaces must map `HoldResult` (never a bare boolean) and must not record de-dupe rows for retryable outcomes.
+- Any future repair/reconcile path calls `reconcileBooking` — never a bespoke hold attempt.
+- References that embed an entity id (like `CRELLAB-{bookingId}-{millis}`) are a cheap attribution primitive; the platform-name compliance test allowlists them as infrastructure identifiers, not display copy.
+
+---
+
 ## Booking Lifecycle Visibility: REQUESTED → ACCEPTED → Pay (Flow Kept, Surface Built)
 
 **Decision:** Bookings continue to be created as `REQUESTED`; the provider explicitly accepts (`acceptRequest`) before the client can pay into escrow (`/pay` gate on `ACCEPTED` — unchanged). This session did NOT flip `createRequest` to ACCEPTED; instead it built the missing lifecycle surface (accept/decline/cancel/start routes + detail-page action matrix + shared pay hook/panel) so the PRD flow ("On acceptance, client is prompted to pay into escrow") is actually reachable. Cancelling is only offered while `REQUESTED`; a `HELD` booking is refused for cancel with dispute/support guidance (only `EscrowService.refundBookingFunds` moves money). The legacy DIRECT-mode "Add Payment" button (a wallet top-up that never settled the booking — residual since 2026-08-20) is removed in favour of the real `/pay` escrow path used by all non-MILESTONE bookings.
@@ -951,3 +974,26 @@ The non-admin flow already solved exactly-once settlement, dispute exclusions, a
 - Any future admin money action must call the corresponding EscrowService/PaymentService method — never mutate financial columns directly.
 - Admin action names on the general audit trail carry the `.admin` suffix so user-initiated and admin-initiated entries stay distinguishable in the same log.
 - The `?entityId=` audit filter is the standard way to render entity-scoped audit trails; reuse it rather than inventing new audit endpoints.
+
+---
+
+## ClInfoTip: Design-System Info-Tooltip Primitive (Logged §4 Exception Before Build)
+
+**Decision:** Add `ClInfoTip` to the `Cl*` catalog (`components/ui/ClInfoTip.tsx`, exported from `components/ui/index.ts`) as the design system's first tooltip/info-tip primitive. It renders a focusable info-icon `<button>` (accessible via `aria-label`) with a token-styled tooltip shown on BOTH hover and focus-within, driven by pure CSS state (`group-hover`/`group-focus-within`) — no JS listeners, no popover library, no new dependency. Placement is `top` (default) or `bottom`.
+**Date:** 2026-10-19
+**Made by:** execute-feature (payment/booking tightening — "info-icon tooltips... config driven, non-breaking")
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Several money-path surfaces (pay panel, escrow timeline, wallet balance, finance stats, admin audit trail) need to explain *why* a number or action is what it is. The only affordance available until now was a native `title` attribute — invisible on touch, unstyled, inconsistent with design tokens, and unusable for keyboard users. Per §4, extending the catalog is the default answer when the catalog genuinely lacks something; this was logged BEFORE wider adoption (placements) per the universal-component-check skill.
+
+**Alternatives Considered:**
+- Native `title` attributes everywhere — rejected: unstyled, inaccessible on touch/keyboard, breaks the token system.
+- A third-party tooltip/popover library (e.g. Radix Tooltip) — rejected: adds a dependency for ~40 lines of CSS-state UI; the catalog's other primitives are dependency-free.
+- A one-off bespoke tooltip component at each call site — rejected: exactly the §4 violation the catalog rule exists to prevent.
+
+**Implications:**
+- `ClInfoTip` is the ONLY tooltip/info-tip primitive — future "info icon" needs use it, never a bespoke `title` or a new popover.
+- Tooltip copy itself is config-driven (`hints` in platform config, resolved via `lib/hints.ts`) — the primitive is presentational only; it never hardcodes business copy.
+- Listed in the design-system component catalog as part of this session's doc sync.

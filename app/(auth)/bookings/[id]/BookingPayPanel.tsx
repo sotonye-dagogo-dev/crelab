@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ClButton } from "@/components/ui";
+import Link from "next/link";
+import { ClButton, ClInfoTip } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { usePlatformConfig } from "@/lib/config-context";
 import { useBookingPayment } from "@/hooks/useBookingPayment";
 import { resolvePaymentNotice } from "@/lib/payment-notices";
+import { resolveHint } from "@/lib/hints";
 import { formatKobo } from "@/lib/currency";
-import { CreditCard, ShieldCheck, Wallet } from "lucide-react";
+import { ArrowRight, CreditCard, ShieldCheck, Wallet } from "lucide-react";
 import type { IBooking } from "@/types";
 
 interface BookingPayPanelProps {
@@ -58,6 +60,9 @@ export function BookingPayPanel({ booking, providerName }: BookingPayPanelProps)
   const walletBalanceLoaded = walletBalanceKobo !== null;
   const walletCanCover = walletBalanceKobo !== null && walletBalanceKobo >= booking.total;
   const escrowNotice = resolvePaymentNotice(platformConfig, "escrowExplainer");
+  // Config-driven info tips (null when disabled/hidden via hints config).
+  const feeHint = resolveHint("bookingFee", platformConfig);
+  const escrowHint = resolveHint("bookingEscrow", platformConfig);
 
   return (
     <div
@@ -71,6 +76,11 @@ export function BookingPayPanel({ booking, providerName }: BookingPayPanelProps)
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-muted)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-accent)]">
           <ShieldCheck size={12} strokeWidth={2.5} />
           Escrow protected
+          {escrowHint && (
+            <ClInfoTip label="How escrow protects you" placement="bottom">
+              {escrowHint}
+            </ClInfoTip>
+          )}
         </span>
       </div>
 
@@ -88,7 +98,14 @@ export function BookingPayPanel({ booking, providerName }: BookingPayPanelProps)
           </span>
         </div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[13px] text-[var(--color-text-secondary)]">Service Fee</span>
+          <span className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-text-secondary)]">
+            Service Fee
+            {feeHint && (
+              <ClInfoTip label="About the service fee">
+                {feeHint}
+              </ClInfoTip>
+            )}
+          </span>
           <span className="text-[13px] text-[var(--color-text-tertiary)] tabular-nums">
             {formatKobo(booking.fee)}
           </span>
@@ -132,7 +149,15 @@ export function BookingPayPanel({ booking, providerName }: BookingPayPanelProps)
 
       {walletEnabled && walletBalanceLoaded && !walletCanCover && (
         <p className="mt-2 text-[12px] text-[var(--color-text-tertiary)]">
-          Top up your wallet from the Wallet page, or pay by card instead.
+          Wallet balance too low for this booking.{" "}
+          <Link
+            href="/wallet"
+            className="inline-flex items-center gap-0.5 text-[var(--color-accent)] font-medium hover:underline"
+          >
+            Top up your wallet
+            <ArrowRight size={11} strokeWidth={2.5} aria-hidden="true" />
+          </Link>{" "}
+          or pay by card instead.
         </p>
       )}
 

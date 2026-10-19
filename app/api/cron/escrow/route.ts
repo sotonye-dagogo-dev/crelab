@@ -22,6 +22,25 @@ export async function GET(req: Request) {
   const escrowService = new EscrowService();
   const results: Record<string, unknown> = {};
 
+  // Safety net first: re-check bookings that are still ACCEPTED + PENDING with
+  // a stored card reference after the grace period — the "charged but never
+  // held" state the webhook/verify failures used to leave behind — and hold
+  // them when Paystack confirms the charge succeeded. Bounded + processor
+  // verified, so it can never hold funds for an unpaid checkout.
+  try {
+    const reconcileResult = await escrowService.reconcileStuckHolds();
+    results.reconcileStuckHolds = reconcileResult;
+  } catch (err) {
+    results.reconcileStuckHolds = {
+      scanned: 0,
+      held: 0,
+      alreadyHeld: 0,
+      needsReview: 0,
+      skipped: 0,
+      errors: [err instanceof Error ? err.message : "Unknown error in reconcileStuckHolds"],
+    };
+  }
+
   try {
     const inProgressResult = await escrowService.setInProgress();
     results.setInProgress = inProgressResult;
@@ -46,14 +65,17 @@ export async function GET(req: Request) {
     };
   }
 
+  const reconcileResult = results.reconcileStuckHolds as { held: number; errors: string[] } | undefined;
   const inProgressResult = results.setInProgress as { processed: number; errors: string[] } | undefined;
   const autoReleaseResult = results.autoRelease as { processed: number; errors: string[] } | undefined;
 
   const totalProcessed =
+    (reconcileResult?.held ?? 0) +
     (inProgressResult?.processed ?? 0) +
     (autoReleaseResult?.processed ?? 0);
 
   const totalErrors = [
+    ...(reconcileResult?.errors ?? []),
     ...(inProgressResult?.errors ?? []),
     ...(autoReleaseResult?.errors ?? []),
   ];

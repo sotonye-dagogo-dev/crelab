@@ -40,6 +40,8 @@ const configFields = [
   { key: "features.emailNotifications", label: "Email Notifications", type: "toggle" as const, section: "Features" },
   { key: "dashboard.availabilityLookaheadDays", label: "Availability Calendar Days", type: "number" as const, section: "Features", unit: "days" },
   { key: "dashboard.paymentHistoryDays", label: "Payment History Window", type: "number" as const, section: "Features", unit: "days", hint: "0 = show full history (capped by row count only)." },
+  { key: "hints.enabled", label: "Info Tooltips", type: "toggle" as const, section: "Guidance", hint: "Shows info-icon tooltips (fees, escrow, release window, disputes, wallet, audit trail) across money-path pages. Copy overrides live in the raw config JSON under `hints.copy` (empty string hides one tip)." },
+  { key: "bookingFlow.enabled", label: "Next-Step Guidance Banner", type: "toggle" as const, section: "Guidance", hint: "\"Who acts next?\" banner on the booking detail page for states without their own action panel. Copy overrides live in the raw config JSON under `bookingFlow.copy`, keyed `${status}:${side}` (empty string hides one state)." },
   { key: "emailConfig.fromName", label: "Email From Name", type: "text" as const, section: "Email" },
   { key: "emailConfig.fromEmail", label: "Email From Address", type: "text" as const, section: "Email", hint: "Resend recommends a real address on a subdomain (e.g. hello@mail.yourdomain.com), not a \"no-reply\" address — recipients need a reply path to build trust and report spam. The subdomain must be verified in Resend." },
   { key: "emailVerification.bannerEnabled", label: "Verify-Email Banner", type: "toggle" as const, section: "Email", hint: "Shows a dismissible reminder with resend to signed-in users whose email is unverified." },
@@ -300,7 +302,7 @@ export default function ConfigPage() {
     }
   }, [data, toast]);
 
-  const sections = ["Branding", "Fees & Escrow", "Features", "Email", "Media", "Growth", "Navigation"] as const;
+  const sections = ["Branding", "Fees & Escrow", "Features", "Guidance", "Email", "Media", "Growth", "Navigation"] as const;
 
   if (isLoading) {
     return (
