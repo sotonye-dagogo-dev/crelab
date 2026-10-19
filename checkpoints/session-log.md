@@ -193,3 +193,44 @@ verified/used everywhere with pagination, responsiveness and overflow handling.
 ### Status
 Pass — typecheck clean, 233 tests pass (15 new), lint has no new warnings, production
 build passes.
+---
+
+## 2026-10-19 — Payments/emails well-roundedness + financial compliance + Vercel Hobby cron fix
+
+### Summary
+Closed three gaps from the payment-expansion directive: providers now see booking-level
+payment history on their dashboard, every booking/payment/milestone/wallet lifecycle
+event dispatches an admin-configurable email, and a deep money-path audit fixed the
+overdraft / double-credit / replay classes of bugs. The Vercel Hobby "daily cron only"
+deployment block was resolved with a DB-backed job queue that preserves the 6-hour
+escrow-sweep cadence via throttled opportunistic drains plus a daily bulk drain.
+
+### Key Changes
+- `drizzle/schema.ts` + `drizzle/migrations/0008_scheduled_jobs.sql` — `scheduled_jobs`
+  table (unique dedupe_key, status machine, attempts/backoff).
+- `services/JobQueueService.ts` (new) — idempotent enqueue, `FOR UPDATE SKIP LOCKED`
+  claim via raw SQL, `escrow_sweep` handler (dynamic import breaks the EscrowService
+  cycle), `drainDueJobs` + throttled `maybeDrainOnRequest`.
+- `app/api/cron/escrow/route.ts` + `vercel.json` — daily cron `1 1 * * *`, queue drained
+  in bulk before `runFullSweep()`; `app/api/wallet/balance` hooks the opportunistic drain.
+- `services/WalletService.ts` — guarded debits (no overdraft possible), read-back
+  balanceAfter everywhere, deterministic `MILESTONE-RELEASE-{id}` ref, new
+  `reverseMilestoneDebit`, topup webhook de-dupe race fixed.
+- `services/MilestoneService.ts` — ownership check on create, conditional status flips,
+  compensating reversal on lost fund race, emails + audit on fund/submit/approve/dispute.
+- `services/BookingService.ts` / `services/EscrowService.ts` — lifecycle emails + audit
+  entries post-commit (create/accept/decline/cancel/start/hold/release/refund/dispute).
+- `lib/lifecycle-emails.ts` (new) — fire-and-forget dispatch, config-gated, never blocks
+  money paths; 14 new wired templates in `config/platform.config.ts` + registry.
+- `services/DashboardService.ts` + `app/(auth)/dashboard/components/ProviderPaymentHistory.tsx`
+  (new) — provider "Payments & Earnings" card (payments ⋈ bookings ⋈ clients ⋈ packages).
+- Fixes: paystack webhook signature length guard (401 not 500), webhook event inserts
+  `ON CONFLICT DO NOTHING`, `splitPayout` template-literal bug.
+- `package.json` — `@testing-library/dom@^10` devDependency (missing peer of
+  @testing-library/react 16; fixed pre-existing untyped `screen`/`fireEvent` in tsc).
+- Tests: `__tests__/lib/paystack-signature.test.ts`, `__tests__/services/JobQueueService.test.ts`,
+  lifecycle-template completeness additions in `__tests__/lib/email-templates.test.ts`.
+
+### Status
+Pass — vitest 688/688, tsc clean, lint warnings pre-existing only, production build
+succeeds. `0008_scheduled_jobs.sql` must be migrated before deploy.

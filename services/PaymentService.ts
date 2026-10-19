@@ -29,7 +29,7 @@ export class PaymentService {
     if (!payment) throw new Error("Payment not found for booking");
 
     const res = await fetch(
-      "https://api.paystack.co/transaction/split/${payment.paystackRef}",
+      `https://api.paystack.co/transaction/split/${payment.paystackRef}`,
       {
         method: "POST",
         headers: {

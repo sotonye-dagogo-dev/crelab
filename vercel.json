@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/escrow",
-      "schedule": "1 */6 * * *"
+      "schedule": "1 1 * * *"
     },
     {
       "path": "/api/cron/milestones",

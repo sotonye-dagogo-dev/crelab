@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         id: crypto.randomUUID(),
         paystackRef: ref,
         eventType: "charge.success",
-      });
+      }).onConflictDoNothing();
 
       return NextResponse.json({ success: true });
     }
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
         id: crypto.randomUUID(),
         paystackRef: ref,
         eventType: "charge.success",
-      });
+      }).onConflictDoNothing();
 
       return NextResponse.json({ success: true });
     }
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
       id: crypto.randomUUID(),
       paystackRef: ref,
       eventType: "charge.success",
-    });
+    }).onConflictDoNothing();
 
     return NextResponse.json({ success: true });
   }
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
       id: crypto.randomUUID(),
       paystackRef,
       eventType: "transfer.success",
-    });
+    }).onConflictDoNothing();
 
     return NextResponse.json({ success: true });
   }
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
       id: crypto.randomUUID(),
       paystackRef,
       eventType: event.event,
-    });
+    }).onConflictDoNothing();
 
     const [withdrawalTxn] = await db
       .select()

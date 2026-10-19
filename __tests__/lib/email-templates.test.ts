@@ -63,6 +63,49 @@ describe("lib/email-templates — wired email templates", () => {
   });
 });
 
+describe("lib/email-templates — booking/payment lifecycle templates", () => {
+  const LIFECYCLE_KEYS = [
+    "bookingRequestReceived",
+    "bookingAccepted",
+    "bookingDeclined",
+    "bookingCancelled",
+    "bookingStarted",
+    "paymentReceived",
+    "paymentReleased",
+    "paymentRefunded",
+    "disputeOpened",
+    "disputeResolved",
+    "walletTopup",
+    "withdrawalRequested",
+    "milestoneFunded",
+    "milestoneSubmitted",
+    "milestoneApproved",
+  ];
+
+  it("registers every booking/payment lifecycle template as wired", () => {
+    for (const key of LIFECYCLE_KEYS) {
+      expect(isWiredEmailTemplate(key), `${key} not wired`).toBe(true);
+    }
+  });
+
+  it("ships an enabled default for every lifecycle template", () => {
+    const templates = DEFAULT_CONFIG.emailConfig?.templates ?? {};
+    for (const key of LIFECYCLE_KEYS) {
+      expect(templates, `${key} missing from defaults`).toHaveProperty(key);
+      expect(templates[key]?.enabled, `${key} not enabled`).toBe(true);
+      expect(templates[key]?.subject, `${key} has no subject`).toBeTruthy();
+      expect(templates[key]?.bodyHtml, `${key} has no body`).toBeTruthy();
+    }
+  });
+
+  it("every wired template key has a default template (admin can always edit it)", () => {
+    const templates = DEFAULT_CONFIG.emailConfig?.templates ?? {};
+    for (const key of Object.keys(WIRED_EMAIL_TEMPLATES)) {
+      expect(templates, `wired template ${key} has no default`).toHaveProperty(key);
+    }
+  });
+});
+
 describe("lib/email-templates — template resolution fallbacks", () => {
   it("keeps hardcoded defaults for templates not saved into the config/DB", () => {
     // Simulate a DB config that was saved before verifyEmail existed in code.
