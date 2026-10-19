@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { WalletService } from "@/services/WalletService";
+import { JobQueueService } from "@/services/JobQueueService";
 
 export async function GET(_req: NextRequest) {
   try {
     const session = await requireAuth();
+
+    // Warm-traffic opportunistic drain of DB-queued jobs (escrow sweeps).
+    // Fire-and-forget + throttled inside the service — never delays or fails
+    // the balance read.
+    void new JobQueueService().maybeDrainOnRequest().catch(() => {});
+
     const walletService = new WalletService();
     const balance = await walletService.getBalance(session.user.id);
 

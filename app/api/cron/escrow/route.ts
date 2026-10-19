@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { EscrowService } from "@/services/EscrowService";
+import { JobQueueService } from "@/services/JobQueueService";
 
 export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
@@ -19,49 +20,28 @@ export async function GET(req: Request) {
     );
   }
 
-  const escrowService = new EscrowService();
-  const results: Record<string, unknown> = {};
-
+  // Vercel Hobby runs this once per day — drain any DB-queued intra-day jobs
+  // first (e.g. escrow sweeps enqueued at hold time for +6h/+12h/+24h), then
+  // run the full idempotent sweep as the bulk safety net.
+  let queueResult: Awaited<ReturnType<JobQueueService["drainDueJobs"]>> | null = null;
   try {
-    const inProgressResult = await escrowService.setInProgress();
-    results.setInProgress = inProgressResult;
+    queueResult = await new JobQueueService().drainDueJobs({ limit: 50 });
   } catch (err) {
-    results.setInProgress = {
-      processed: 0,
-      errors: [
-        err instanceof Error ? err.message : "Unknown error in setInProgress",
-      ],
+    queueResult = {
+      claimed: 0,
+      completed: 0,
+      failed: 0,
+      skipped: 0,
+      errors: [err instanceof Error ? err.message : "Unknown error draining job queue"],
     };
   }
 
-  try {
-    const autoReleaseResult = await escrowService.autoRelease();
-    results.autoRelease = autoReleaseResult;
-  } catch (err) {
-    results.autoRelease = {
-      processed: 0,
-      errors: [
-        err instanceof Error ? err.message : "Unknown error in autoRelease",
-      ],
-    };
-  }
-
-  const inProgressResult = results.setInProgress as { processed: number; errors: string[] } | undefined;
-  const autoReleaseResult = results.autoRelease as { processed: number; errors: string[] } | undefined;
-
-  const totalProcessed =
-    (inProgressResult?.processed ?? 0) +
-    (autoReleaseResult?.processed ?? 0);
-
-  const totalErrors = [
-    ...(inProgressResult?.errors ?? []),
-    ...(autoReleaseResult?.errors ?? []),
-  ];
+  const sweep = await new EscrowService().runFullSweep();
 
   return NextResponse.json({
-    success: totalErrors.length === 0,
-    processed: totalProcessed,
-    errors: totalErrors,
-    details: results,
+    success: sweep.totalErrors.length === 0 && (queueResult?.errors.length ?? 0) === 0,
+    processed: sweep.totalProcessed + (queueResult?.completed ?? 0),
+    errors: [...sweep.totalErrors, ...(queueResult?.errors ?? [])],
+    details: { queue: queueResult, sweep: sweep.results },
   });
 }

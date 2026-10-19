@@ -139,6 +139,16 @@ const ALLOWLIST: AllowlistEntry[] = [
     reason: "Paystack payment reference prefix and fallback client e-mail",
   },
   {
+    file: "lib/payment-flow.ts",
+    allowed: ["CRELLAB-"],
+    reason: "Booking payment reference prefix (BOOKING_REF_PREFIX) + doc comment — infrastructure identifier parsed back to a booking id, never display copy",
+  },
+  {
+    file: "app/api/bookings/[id]/pay/verify/route.ts",
+    allowed: ["CRELLAB-{bookingId}-{millis}"],
+    reason: "Doc comment describing the payment reference format parsed by parseBookingIdFromRef",
+  },
+  {
     file: "services/PaymentService.ts",
     allowed: ["CRELLAB-PAY-"],
     reason: "Paystack payment reference prefix",

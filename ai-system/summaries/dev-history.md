@@ -1,9 +1,27 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-18 — Admin finance bookings + media fixes)
-> - last-verified-against-code: 2026-10-18
+> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
+> - last-verified-against-code: 2026-10-19
 
+
+## Session 2026-10-19 — execute-feature: Booking & Payment Flow Integrity + Guidance Affordances
+
+### What
+Directive: the payment/booking flow must be tight end to end — a client can pay and a provider can accept, but the payment stays at stage 1 instead of "held in escrow"; every lifecycle action must be exposed to the right user (with confirmation dialogs for destructive actions); both sides need "who acts next" indicators (cancel/dispute always reachable); plus platform-wide CTAs and info-icon tooltips. Config/metadata-driven, reusable, non-breaking; full QA gate + `update-ai-system.md` at close.
+
+### Verification
+`vitest` → 53 files, **676 passed / 0 failed** (+47: new suites `lib/payment-flow`, `lib/booking-guidance`, `lib/hints`, `components/ClInfoTip`). `tsc --noEmit` → clean. `next lint` → 0 errors (pre-existing warnings only, none in changed files). `npm run build` → green. Mid-gate fix: the platform-name compliance test flagged the new `CRELLAB-` payment-reference literals; allowlisted `lib/payment-flow.ts` + the verify-route doc comment with infrastructure-identifier reasons (the rule itself stays strict).
+
+### Key Changes
+- **Root causes (all code-verified):** `/pay/verify` returned `verified:true` even when the escrow hold failed (the exact reported symptom); the webhook recorded the de-dupe `payments` row unconditionally, permanently swallowing Paystack retries of refused holds; `EscrowService.initiate` overwrote `bookings.paystackRef` on every checkout, stranding charges made under earlier refs; hold failures were `console.error` only (no audit, no repair, no cron, no admin action); no "who acts next" component and Confirm Release had no dialog (§UX-3); the cancel route was client-only; no tooltip primitive existed.
+- **`lib/payment-flow.ts` (new, pure):** `BOOKING_REF_PREFIX` (`CRELLAB-{bookingId}-{unixMillis}` — the booking id is embedded in the ref), `parseBookingIdFromRef`, exhaustive `classifyHoldOutcome` → `HoldResult` (`no_booking`/`already_held`/held/`duplicate_charge`/`hold_lost_race` [retryable]/`not_payable`), `shouldRecordChargeEvent` (terminal outcomes only), `holdFailureMessage`, `isHoldPending`. Every surface (webhook/verify/pay/cron/page/admin) shares this one classification.
+- **`services/EscrowService.ts`:** `resolveBookingForRef(ref, hint)` layered attribution (exact ref → explicit metadata hint → parsed UUID — no schema change needed to survive the ref overwrite); `onPaystackSuccess(ref, {bookingId}) → HoldResult`; `logHoldFailure` audits non-retryable failures; `reconcileBooking(bookingId, opts)` — processor-verify → amount/metadata checks → idempotent hold → `escrow.reconcile` audit (+ `escrow.payment_row_missing` anomaly audit); `reconcileStuckHolds({limit, graceMs})` bounded sweep.
+- **Truthful verify + safe pay:** `/pay/verify` maps the hold outcome (held → success; retryable → `hold_pending` so the client retries; terminal → 409 with user-facing copy; amount mismatch → 409; already-HELD fast path). `/pay` pre-flight reconciles an existing ref first: `ALREADY_HELD` success, `charge_pending`/`unverifiable` → 409 (no double charge), new checkout otherwise. `useBookingPayment` retries `hold_pending` (5×3s) and treats `ALREADY_HELD` as paid.
+- **Webhook + self-heal:** webhook records the de-dupe row only on terminal outcomes (retryable → 500, Paystack retries) and attributes via `metadata.bookingId` fallback. Cron `/api/cron/escrow` runs `reconcileStuckHolds` first (grace 120s; schedule raised to `1 */6 * * *`); the booking-detail page silently self-heals stuck bookings (rate-limited 5/60s per user via `consumeRateWindow`, 8s timeout, never blocks render). Admin: new `POST /api/admin/finance/bookings/[id]/reconcile` + finance-modal "Reconcile escrow" action with confirm dialog.
+- **Flow affordances:** `lib/booking-guidance.ts` (`bookingNextStep` exhaustive; null = a dedicated panel owns the state) + `bookingFlow` config block (`${status}:${side}` copy overrides, "" hides) + `NextStepBanner` on panel-less states; `BookingDetailClient` gains Confirm-Release and provider-cancel confirmation dialogs, a provider cancel CTA, and a provider terminal panel; `BookingService.cancelBooking` + `/cancel` route accept a provider actor pre-payment (HELD still refused with dispute guidance).
+- **Platform guidance:** new `ClInfoTip` primitive (hover/focus/click tooltip, a11y, both themes; §4 entry logged in project-decisions before adoption); `lib/hints.ts` (`DEFAULT_HINTS` ×8, `resolveHint` with token fill + ""=hide, `IHintsConfig`) with an admin "Guidance" section; placements: BookingPayPanel (fee + escrow tips + "Top up your wallet →" CTA), EscrowTimeline (release-window + dispute tips), WalletBalanceCard, dashboard escrow stat (`hintKey` on `IDashboardStat`), admin finance audit trail; bookings empty state is role-aware (client → /explore, provider → /profile).
+- Docs close — system-architecture (Recent Changes + booking/escrow flow), repo-map, dependency-graph (payment-flow/guidance/hints/ClInfoTip blocks), task-queue, project-plan, project-decisions (new decision: truthful verify / terminal-only de-dupe / ref-attribution fallback / reconcile vocabulary), lessons-learned (verify-must-report-what-happened lesson), test-results, test-plan, session-log; in-progress cleared. No migrations.
 
 ## Session 2026-10-18 — execute-feature: Admin Finance Bookings + Media Drive Work
 

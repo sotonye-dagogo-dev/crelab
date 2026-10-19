@@ -5,6 +5,7 @@ import { ClButton, ClBadge, ClBackButton, ClConfirmDialog } from "@/components/u
 import { Check, CheckCircle2, Clock, PlayCircle, XCircle } from "lucide-react";
 import { EscrowTimeline } from "@/components/booking/EscrowTimeline";
 import { MilestoneTimeline } from "@/components/booking/MilestoneTimeline";
+import { NextStepBanner } from "@/components/booking/NextStepBanner";
 import { DisputeModal } from "@/components/booking/DisputeModal";
 import { BookingPayPanel } from "./BookingPayPanel";
 import { useToast } from "@/lib/toast";
@@ -64,7 +65,9 @@ export function BookingDetailClient({ data, viewerRole }: BookingDetailClientPro
   const [milestones, setMilestones] = useState<IBookingMilestone[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [releasing, setReleasing] = useState(false);
-  const [pendingConfirm, setPendingConfirm] = useState<"decline" | "cancel" | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<
+    "decline" | "cancel" | "release" | "provider-cancel" | null
+  >(null);
 
   // ADMIN acts through the provider-side controls (server allows it too).
   const effectiveRole = viewerRole === "ADMIN" ? "PROVIDER" : viewerRole;
@@ -72,6 +75,7 @@ export function BookingDetailClient({ data, viewerRole }: BookingDetailClientPro
   const isProvider = effectiveRole === "PROVIDER";
 
   const handleConfirmRelease = useCallback(async () => {
+    setPendingConfirm(null);
     setReleasing(true);
     try {
       const res = await fetch(
@@ -94,6 +98,11 @@ export function BookingDetailClient({ data, viewerRole }: BookingDetailClientPro
       setReleasing(false);
     }
   }, [data.booking.id, toast]);
+
+  /** Releasing pays the provider irreversibly — always confirm first. */
+  const requestConfirmRelease = useCallback(() => {
+    setPendingConfirm("release");
+  }, []);
 
   const fetchMilestones = useCallback(async () => {
     try {
@@ -206,6 +215,10 @@ export function BookingDetailClient({ data, viewerRole }: BookingDetailClientPro
   const handleCancelConfirmed = useCallback(() => {
     setPendingConfirm(null);
     void runBookingAction("cancel", "Booking cancelled.");
+  }, [runBookingAction]);
+  const handleProviderCancelConfirmed = useCallback(() => {
+    setPendingConfirm(null);
+    void runBookingAction("cancel", "Booking cancelled — the client has been notified.");
   }, [runBookingAction]);
   const handleStart = useCallback(
     () => void runBookingAction("start", "Work marked as started."),
@@ -389,10 +402,20 @@ export function BookingDetailClient({ data, viewerRole }: BookingDetailClientPro
                 Waiting for client payment
               </p>
             </div>
-            <p className="text-[13px] text-[var(--color-text-secondary)]">
+            <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">
               {data.client?.name ?? "The client"} can now pay into escrow — you&apos;ll be notified
               as soon as the funds are held and the work can begin.
             </p>
+            {/* The provider needs a way out of an accepted-but-unpaid booking
+                they can no longer deliver — nothing has been charged, so this
+                is a plain status transition (confirmed, like the client's). */}
+            <ClButton
+              variant="outlined"
+              disabled={actionLoading !== null}
+              onClick={() => setPendingConfirm("provider-cancel")}
+            >
+              Cancel Booking
+            </ClButton>
           </div>
         )}
 
@@ -437,8 +460,23 @@ export function BookingDetailClient({ data, viewerRole }: BookingDetailClientPro
             payment={data.payment}
             viewerRole={effectiveRole}
             releaseLoading={releasing}
-            onConfirmRelease={handleConfirmRelease}
+            onConfirmRelease={requestConfirmRelease}
             onRaiseDispute={() => setShowDispute(true)}
+          />
+        )}
+
+        {/* ── "Who acts next" banner: only for states/sides with no panel
+             (guidance returns null when a panel already exists, and the
+             admin toggle/copy overrides resolve inside the banner). ── */}
+        {!isMilestoneMode && (
+          <NextStepBanner
+            status={data.booking.status}
+            side={isClient ? "client" : "provider"}
+            ctx={{
+              milestone: isMilestoneMode,
+              clientName: data.client?.name ?? null,
+              providerName: data.provider?.displayName ?? null,
+            }}
           />
         )}
 
@@ -459,6 +497,28 @@ export function BookingDetailClient({ data, viewerRole }: BookingDetailClientPro
           confirmLabel="Cancel Booking"
           loading={actionLoading === "cancel"}
           onConfirm={handleCancelConfirmed}
+          onCancel={() => setPendingConfirm(null)}
+        />
+
+        <ClConfirmDialog
+          open={pendingConfirm === "provider-cancel"}
+          title="Cancel this booking?"
+          message={`${data.client?.name ?? "The client"} will be told the booking was cancelled, and nothing is charged since no payment has been held yet. This can't be undone — they'd need to book again.`}
+          confirmLabel="Cancel Booking"
+          loading={actionLoading === "cancel"}
+          onConfirm={handleProviderCancelConfirmed}
+          onCancel={() => setPendingConfirm(null)}
+        />
+
+        {/* Releasing pays the provider irreversibly — confirm before the money
+            moves (design-system UX-3: every destructive action confirms). */}
+        <ClConfirmDialog
+          open={pendingConfirm === "release"}
+          title="Release the escrow payment?"
+          message={`Releasing pays ${data.provider?.displayName ?? "the provider"} for this booking and can't be undone. Only confirm if you're happy with the delivered work — otherwise raise a dispute instead.`}
+          confirmLabel="Release Payment"
+          loading={releasing}
+          onConfirm={handleConfirmRelease}
           onCancel={() => setPendingConfirm(null)}
         />
 

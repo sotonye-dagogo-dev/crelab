@@ -694,3 +694,33 @@ export const webinarRegistrationsRelations = relations(webinarRegistrations, ({ 
   webinar: one(webinars, { fields: [webinarRegistrations.webinarId], references: [webinars.id] }),
   user: one(user, { fields: [webinarRegistrations.userId], references: [user.id] }),
 }));
+
+/* ── Scheduled job queue (Vercel Hobby: crons are daily-only, so intra-day
+      work is enqueued here and drained by the daily cron bulk run and by a
+      throttled opportunistic drain on warm authenticated traffic) ── */
+
+export const scheduledJobStatusEnum = pgEnum("scheduled_job_status", [
+  "PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED",
+]);
+
+export const scheduledJobs = pgTable(
+  "scheduled_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type").notNull(),
+    runAt: timestamp("run_at", { withTimezone: true }).notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    status: scheduledJobStatusEnum("status").notNull().default("PENDING"),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    lastError: text("last_error"),
+    /** Idempotency key — enqueuing the same logical job twice is a no-op. */
+    dedupeKey: text("dedupe_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("scheduled_jobs_dedupe_key_idx").on(t.dedupeKey),
+    index("scheduled_jobs_due_idx").on(t.status, t.runAt),
+  ],
+);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/paystack";
 import { DuplicateWebhookError } from "@/lib/errors";
 import { EscrowService } from "@/services/EscrowService";
+import { shouldRecordChargeEvent } from "@/lib/payment-flow";
 import { WalletService } from "@/services/WalletService";
 import { db } from "@/lib/db";
 import { wallets, processedWebhookEvents, walletTransactions } from "@/drizzle/schema";
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
         id: crypto.randomUUID(),
         paystackRef: ref,
         eventType: "charge.success",
-      });
+      }).onConflictDoNothing();
 
       return NextResponse.json({ success: true });
     }
@@ -93,17 +94,33 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: "duplicate" });
       }
 
-      // Process BEFORE recording: onPaystackSuccess is idempotent, so a retry
-      // after a partial failure re-runs safely, while recording first would
-      // permanently swallow a charge that never actually got held.
+      // Process BEFORE recording: `onPaystackSuccess` is idempotent, so a retry
+      // after a partial failure re-runs safely. The de-dupe row is written ONLY
+      // for terminal outcomes — recording a refused hold would tell Paystack the
+      // event is done and permanently strand the charge outside escrow. A
+      // retryable outcome answers 5xx (no record) so Paystack's own retry can
+      // finish the hold; permanent failures are recorded + audited by the
+      // service (refund review) and answer 200 so they aren't retried forever.
       const escrowService = new EscrowService();
-      await escrowService.onPaystackSuccess(ref);
+      const outcome = await escrowService.onPaystackSuccess(ref, {
+        bookingId: typeof metadata.bookingId === "string" ? metadata.bookingId : null,
+      });
+
+      if (!shouldRecordChargeEvent(outcome)) {
+        console.warn(
+          `[paystack-webhook] charge.success ref=${ref} not finalized (reason=${outcome.reason ?? "retry"}) — asking Paystack to retry`,
+        );
+        return NextResponse.json(
+          { success: false, error: "Escrow hold not finalized — retry" },
+          { status: 500 },
+        );
+      }
 
       await db.insert(processedWebhookEvents).values({
         id: crypto.randomUUID(),
         paystackRef: ref,
         eventType: "charge.success",
-      });
+      }).onConflictDoNothing();
 
       return NextResponse.json({ success: true });
     }
@@ -117,19 +134,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: "duplicate" });
     }
 
+    // Fallback branch: no recognised metadata. Only attempt an escrow hold when
+    // the reference actually resolves to a booking (exact or parsed id) — a
+    // wallet top-up or other unattributed charge must not be recorded as a
+    // failed booking hold. Anything else is recorded as processed, as before.
+    const escrowService = new EscrowService();
+    const attributed = await escrowService.resolveBookingForRef(ref, null);
+    if (attributed) {
+      const outcome = await escrowService.onPaystackSuccess(ref);
+      if (!shouldRecordChargeEvent(outcome)) {
+        return NextResponse.json(
+          { success: false, error: "Escrow hold not finalized — retry" },
+          { status: 500 },
+        );
+      }
+    }
+
     await db.insert(processedWebhookEvents).values({
       id: crypto.randomUUID(),
       paystackRef: ref,
       eventType: "charge.success",
-    });
-
-    const escrowService = new EscrowService();
-    escrowService.onPaystackSuccess(ref).catch((err) => {
-      console.error(
-        `[paystack-webhook] Error processing charge.success for ref ${ref}:`,
-        err,
-      );
-    });
+    }).onConflictDoNothing();
 
     return NextResponse.json({ success: true });
   }
@@ -154,7 +179,7 @@ export async function POST(req: NextRequest) {
       id: crypto.randomUUID(),
       paystackRef,
       eventType: "transfer.success",
-    });
+    }).onConflictDoNothing();
 
     return NextResponse.json({ success: true });
   }
@@ -178,7 +203,7 @@ export async function POST(req: NextRequest) {
       id: crypto.randomUUID(),
       paystackRef,
       eventType: event.event,
-    });
+    }).onConflictDoNothing();
 
     const [withdrawalTxn] = await db
       .select()

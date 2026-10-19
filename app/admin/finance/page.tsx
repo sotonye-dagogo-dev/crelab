@@ -8,12 +8,15 @@ import {
   ClCard,
   ClConfirmDialog,
   ClDataTable,
+  ClInfoTip,
   ClModal,
   ClPagination,
   type ClColumn,
 } from "@/components/ui";
 import { InvoicePreview } from "@/components/admin/InvoicePreview";
 import { transactionsToCsv, type IInvoiceData } from "@/lib/finance";
+import { resolveHint } from "@/lib/hints";
+import { usePlatformConfig } from "@/lib/config-context";
 import { useToast } from "@/lib/toast";
 import { Download, ReceiptText, RotateCcw, Search, ScrollText, Undo2, HandCoins } from "lucide-react";
 
@@ -159,6 +162,8 @@ function AuditTrailList({ entries, emptyText }: { entries: IAuditEntry[]; emptyT
 
 /** Merged booking-level + per-transaction audit trail for the selected txn. */
 function TxnAuditSection({ txn }: { txn: ITxn }) {
+  const platformConfig = usePlatformConfig();
+  const auditHint = resolveHint("financeAudit", platformConfig);
   const ids = useMemo(() => {
     const list = [txn.id];
     if (txn.bookingId) list.push(txn.bookingId);
@@ -189,6 +194,11 @@ function TxnAuditSection({ txn }: { txn: ITxn }) {
       <div className="flex items-center gap-1.5 mb-1.5">
         <ScrollText size={13} strokeWidth={1.8} className="text-[var(--color-text-tertiary)]" />
         <span className="text-[12px] font-semibold text-[var(--color-text-secondary)]">Audit trail</span>
+        {auditHint && (
+          <ClInfoTip label="About the audit trail">
+            {auditHint}
+          </ClInfoTip>
+        )}
         {isLoading && <span className="text-[11px] text-[var(--color-text-tertiary)]">Loading…</span>}
       </div>
       <AuditTrailList
@@ -201,6 +211,8 @@ function TxnAuditSection({ txn }: { txn: ITxn }) {
 
 export default function AdminFinancePage() {
   const { toast } = useToast();
+  const platformConfig = usePlatformConfig();
+  const financeAuditHint = resolveHint("financeAudit", platformConfig);
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [kind, setKind] = useState("ALL");
@@ -227,6 +239,8 @@ export default function AdminFinancePage() {
   const [bookingDetailId, setBookingDetailId] = useState<string | null>(null);
   const [settleConfirm, setSettleConfirm] = useState<{ outcome: "RELEASED" | "REFUNDED"; booking: IBookingRow } | null>(null);
   const [runningSettle, setRunningSettle] = useState(false);
+  const [reconcileConfirm, setReconcileConfirm] = useState<IBookingRow | null>(null);
+  const [runningReconcile, setRunningReconcile] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -341,6 +355,44 @@ export default function AdminFinancePage() {
       toast(err instanceof Error ? err.message : `${outcome} failed`, "error");
     } finally {
       setRunningSettle(false);
+    }
+  };
+
+  /** Friendly message for each reconcile outcome (see ReconcileOutcome). */
+  const RECONCILE_MESSAGES: Record<string, string> = {
+    held: "Charge confirmed — funds moved into escrow (audit logged).",
+    already_held: "Funds are already held in escrow — nothing to do.",
+    not_charged: "Processor reports no successful charge — safe to start a fresh checkout.",
+    charge_pending: "The charge is still processing at the processor — check again shortly.",
+    unverifiable: "Could not reach the payment processor — try again shortly.",
+    no_reference: "No stored charge reference — nothing has been charged for this booking.",
+    amount_mismatch: "Charged amount does not match the booking — flagged for refund review.",
+    attribution_mismatch: "Charge metadata belongs to a different payment — flagged for refund review.",
+    not_payable: "Booking left the payable state before the hold — flagged for refund review.",
+    duplicate_charge: "A second charge landed on an already-funded booking — flagged for refund review.",
+  };
+
+  const runReconcile = async () => {
+    if (!reconcileConfirm) return;
+    setRunningReconcile(true);
+    try {
+      const res = await fetch(
+        `/api/admin/finance/bookings/${reconcileConfirm.id}/reconcile`,
+        { method: "POST" },
+      );
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? "Reconcile failed");
+      const outcome = json.data?.outcome as string | undefined;
+      toast(RECONCILE_MESSAGES[outcome ?? ""] ?? `Reconcile finished (${outcome ?? "unknown"})`, json.data?.needsReview ? "error" : "success");
+      setReconcileConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-finance-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-finance-txns"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-finance-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-finance-booking-detail"] });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Reconcile failed", "error");
+    } finally {
+      setRunningReconcile(false);
     }
   };
 
@@ -894,7 +946,14 @@ export default function AdminFinancePage() {
             </div>
 
             <div>
-              <div className="text-[12px] font-semibold text-[var(--color-text-secondary)] mb-1.5">Audit trail (booking + payments)</div>
+              <div className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-text-secondary)] mb-1.5">
+                Audit trail (booking + payments)
+                {financeAuditHint && (
+                  <ClInfoTip label="About the audit trail">
+                    {financeAuditHint}
+                  </ClInfoTip>
+                )}
+              </div>
               <AuditTrailList entries={bookingDetailQuery.data.auditTrail} />
             </div>
 
@@ -931,6 +990,20 @@ export default function AdminFinancePage() {
                 <ReceiptText size={14} strokeWidth={2} className="mr-1" />
                 Invoice
               </ClButton>
+              {/* Stuck-charge repair: a card was charged (paystackRef exists) but
+                  the booking never left ACCEPTED — surface the explicit, audited
+                  reconcile action so an admin can finish the hold. */}
+              {bookingDetailQuery.data.booking.status === "ACCEPTED" &&
+                bookingDetailQuery.data.payments.length === 0 && (
+                  <ClButton
+                    variant="outlined"
+                    size="default"
+                    onClick={() => setReconcileConfirm(bookingDetailQuery.data!.booking)}
+                  >
+                    <RotateCcw size={14} strokeWidth={2} className="mr-1" />
+                    Reconcile escrow
+                  </ClButton>
+                )}
               {bookingDetailQuery.data.booking.heldPayments > 0 && (
                 <>
                   <ClButton
@@ -968,6 +1041,16 @@ export default function AdminFinancePage() {
         loading={runningSettle}
         onConfirm={runSettle}
         onCancel={() => setSettleConfirm(null)}
+      />
+
+      <ClConfirmDialog
+        open={reconcileConfirm !== null}
+        title="Reconcile escrow for this booking"
+        message={`Check the stored charge for booking ${reconcileConfirm?.id} against the payment processor and, if the charge succeeded, finalize the escrow hold. This will not charge the client again — it only repairs the hold if the money already moved. The action is recorded in the audit trail.`}
+        confirmLabel="Reconcile now"
+        loading={runningReconcile}
+        onConfirm={runReconcile}
+        onCancel={() => setReconcileConfirm(null)}
       />
     </div>
   );

@@ -22,6 +22,7 @@ import type {
   IDashboardAvailabilitySlot,
   IPortfolioPerformanceRow,
   IClientPaymentRecord,
+  IProviderPaymentRecord,
   IProfileCompleteness,
   IBooking,
   IExploreCard,
@@ -87,14 +88,29 @@ export class DashboardService implements IDashboardService {
         platformConfig.categories.find((c) => c.slug === provider.categorySlug)?.label ??
         provider.categorySlug;
 
-      const [bookingsRows, portfolioRows, pkgRows, walletRow, earningsRow] =
+      const [bookingsRows, portfolioRows, pkgRows, walletRow, earningsRow, providerPaymentRows] =
         await Promise.all([
           this.queryBookingsByProvider(provider.id),
           this.queryPortfolioByProvider(provider.id),
           this.countPackagesByProvider(provider.id),
           this.queryWallet(userId),
           this.queryEarnings30d(provider.id),
+          this.queryPaymentsByProvider(provider.id),
         ]);
+
+      const paymentHistory: IProviderPaymentRecord[] = providerPaymentRows.map((r) => ({
+        id: r.paymentId,
+        bookingId: r.bookingId,
+        clientId: r.clientId ?? "",
+        clientName: r.clientName ?? "Unknown Client",
+        packageLabel: r.packageLabel ?? "Standard Package",
+        amount: Number(r.amount),
+        fee: Number(r.fee),
+        netAmount: Number(r.netAmount),
+        status: r.status,
+        paystackRef: r.paystackRef ?? "",
+        createdAt: r.createdAt.toISOString(),
+      }));
 
       const completeness = this.computeCompleteness(
         provider,
@@ -142,6 +158,7 @@ export class DashboardService implements IDashboardService {
           label: "Earnings (30d)",
           sub: `₦${((escrowKobo / 100).toLocaleString("en-NG"))} in escrow`,
           subTone: "held",
+          hintKey: "dashboardEscrow",
         },
       ];
 
@@ -170,6 +187,7 @@ export class DashboardService implements IDashboardService {
         completeness,
         stats,
         pipeline,
+        paymentHistory,
         portfolioPerformance: this.buildPortfolioPerformance(portfolioRows),
         portfolioGallery,
         availability: await this.getAvailability(provider.id),
@@ -188,6 +206,7 @@ export class DashboardService implements IDashboardService {
         completeness: { percent: 0, completedItems: 0, totalItems: 0, items: [] },
         stats: [],
         pipeline: [],
+        paymentHistory: [],
         portfolioPerformance: [],
         portfolioGallery: [],
         availability: [],
@@ -523,6 +542,35 @@ export class DashboardService implements IDashboardService {
       .leftJoin(providers, eq(providers.id, bookings.providerId))
       .leftJoin(servicePackages, eq(servicePackages.id, bookings.packageId))
       .where(and(...conditions))
+      .orderBy(sql`${payments.createdAt} DESC`)
+      .limit(50);
+  }
+
+  /**
+   * Settled payment rows for a provider (mirror of the client query) — gives
+   * providers booking-level visibility of money held/released for their work,
+   * not just the wallet ledger.
+   */
+  private async queryPaymentsByProvider(providerId: string) {
+    return db
+      .select({
+        paymentId: payments.id,
+        bookingId: bookings.id,
+        clientId: user.id,
+        clientName: user.name,
+        packageLabel: servicePackages.label,
+        amount: payments.amount,
+        fee: payments.fee,
+        netAmount: payments.netAmount,
+        status: payments.status,
+        paystackRef: payments.paystackRef,
+        createdAt: payments.createdAt,
+      })
+      .from(payments)
+      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .leftJoin(user, eq(user.id, bookings.clientId))
+      .leftJoin(servicePackages, eq(servicePackages.id, bookings.packageId))
+      .where(eq(bookings.providerId, providerId))
       .orderBy(sql`${payments.createdAt} DESC`)
       .limit(50);
   }

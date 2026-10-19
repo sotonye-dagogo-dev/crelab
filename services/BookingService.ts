@@ -2,6 +2,13 @@ import { db } from "@/lib/db";
 import { bookings, providers, servicePackages } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { AuditService } from "@/services/AuditService";
+import {
+  notifyBookingAccepted,
+  notifyBookingCancelled,
+  notifyBookingCreated,
+  notifyBookingDeclined,
+} from "@/lib/lifecycle-emails";
 import type { IBooking } from "@/types";
 import { BookingStatus, PaymentMode } from "@/types";
 
@@ -74,7 +81,10 @@ export interface IBookingService {
   }): Promise<IBooking>;
   acceptRequest(id: string): Promise<IBooking>;
   declineRequest(id: string): Promise<IBooking>;
-  cancelBooking(id: string, clientId: string): Promise<IBooking>;
+  cancelBooking(
+    id: string,
+    actor: { id: string; role?: string | null; providerId?: string | null },
+  ): Promise<IBooking>;
   getById(id: string): Promise<IBooking | null>;
   getByClient(clientId: string): Promise<IBooking[]>;
   getByProvider(providerId: string): Promise<IBooking[]>;
@@ -141,6 +151,15 @@ export class BookingService implements IBookingService {
       })
       .returning();
 
+    void notifyBookingCreated(row.id);
+    void AuditService.log({
+      userId: data.clientId,
+      action: "booking.created",
+      entity: "bookings",
+      entityId: row.id,
+      newValue: { providerId: data.providerId, packageId: data.packageId, total: totalKobo, paymentMode: requestedMode },
+    }).catch(() => {});
+
     return mapBooking(row);
   }
 
@@ -156,6 +175,7 @@ export class BookingService implements IBookingService {
       .returning();
     if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.ACCEPTED);
 
+    void notifyBookingAccepted(id);
     return mapBooking(row);
   }
 
@@ -171,21 +191,35 @@ export class BookingService implements IBookingService {
       .returning();
     if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.DECLINED);
 
+    void notifyBookingDeclined(id);
     return mapBooking(row);
   }
 
   /**
-   * Client cancels a booking that never moved money (REQUESTED / ACCEPTED).
-   * A HELD booking is refused with guidance instead of a silent transition —
-   * returning held funds is exclusively `EscrowService.refundBookingFunds`
-   * territory (dispute / admin refund), so no money path can be bypassed here.
+   * Cancel a booking that never moved money (REQUESTED / ACCEPTED).
+   *
+   * Either the client who owns the booking or the provider it was booked with
+   * may cancel it at this stage (e.g. the provider can no longer deliver, the
+   * client went quiet before paying) — the route already gates both actors, so
+   * the service only needs to enforce the money rule: a HELD booking is
+   * refused with guidance instead of a silent transition, because returning
+   * held funds is exclusively `EscrowService.refundBookingFunds` territory
+   * (dispute / admin refund) and no money path can be bypassed here.
    */
-  async cancelBooking(id: string, clientId: string): Promise<IBooking> {
+  async cancelBooking(
+    id: string,
+    actor: { id: string; role?: string | null; providerId?: string | null },
+  ): Promise<IBooking> {
     const existing = await this.getById(id);
     if (!existing) throw new Error("Booking not found");
-    if (existing.clientId !== clientId) {
-      throw new Error("Only the client can cancel this booking");
+
+    const isAdmin = actor.role === "ADMIN";
+    const isClient = existing.clientId === actor.id;
+    const isProvider = Boolean(actor.providerId) && actor.providerId === existing.providerId;
+    if (!isAdmin && !isClient && !isProvider) {
+      throw new Error("Only the client or provider for this booking can cancel it");
     }
+
     if (existing.status === BookingStatus.HELD) {
       throw new Error(
         "This booking is already paid and held in escrow — raise a dispute or contact support to have the funds returned",
@@ -199,6 +233,16 @@ export class BookingService implements IBookingService {
       .where(and(eq(bookings.id, id), eq(bookings.status, existing.status)))
       .returning();
     if (!row) return this.assertConcurrentChange(id, existing.status, BookingStatus.CANCELLED);
+
+    void notifyBookingCancelled(id);
+    void AuditService.log({
+      userId: actor.id,
+      action: "booking.cancelled",
+      entity: "bookings",
+      entityId: id,
+      oldValue: { status: existing.status },
+      newValue: { status: BookingStatus.CANCELLED },
+    }).catch(() => {});
 
     return mapBooking(row);
   }

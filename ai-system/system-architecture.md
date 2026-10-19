@@ -192,15 +192,17 @@ Data Stores
 1b. Provider lifecycle (explicit — accept had zero callers before 2026-10-19,
    which made payment unreachable): POST /api/bookings/[id]/accept|decline
    (provider-or-admin actor assert; race-safe conditional updates via
-   assertConcurrentChange) -> ACCEPTED | DECLINED; client may cancel while
-   REQUESTED (POST .../cancel; HELD is refused — only refundBookingFunds moves
+   assertConcurrentChange) -> ACCEPTED | DECLINED; client OR provider may cancel
+   while REQUESTED/ACCEPTED (POST .../cancel — client-owned, or provider-owned
+   pre-payment; HELD is refused for both — only refundBookingFunds moves
    money); provider starts work on HELD (POST .../start -> EscrowService
    .startBooking, HELD->IN_PROGRESS). All four write AuditService
    booking.accept|decline|cancel|start. Access: lib/booking-access.ts
    (resolveBookingViewer / assertProviderActor / assertClientActor — ADMIN
    passes, mock mode browsable, everything else 404/403). Surfaces: the detail
    page action matrix (/bookings/[id]) + Pay Now affordance on dashboard cards
-   (?action=pay deep link).
+   (?action=pay deep link); states with no dedicated panel get the shared
+   NextStepBanner (lib/booking-guidance.ts — who acts next + CTA).
 2. Client pays (only from ACCEPTED; MILESTONE excluded):
    Shared client money path = hooks/useBookingPayment.ts (one implementation
    for BookingDrawer + BookingPayPanel):
@@ -212,9 +214,25 @@ Data Stores
       resume(); hosted new-tab + verify polling as fallback, callback_url -> /bookings)
 3. Charge finalized server-side: Paystack webhook (primary) OR client verify
    (GET+POST /api/bookings/[id]/pay/verify -> verifyTransaction + metadata check)
-   -> EscrowService.onPaystackSuccess() (idempotent: payment-row fast path, loud
-   log for non-ACCEPTED bookings) -> holdBookingFunds(): conditional ACCEPTED->HELD
-   + payments row (status HELD) in ONE transaction (exactly-once under races)
+   -> EscrowService.onPaystackSuccess(ref, {bookingId}) -> HOLD RESULT IS
+   CLASSIFIED, not boolean (lib/payment-flow.ts classifyHoldOutcome -> HoldResult:
+   held / already_held / duplicate_charge / hold_lost_race [retryable] /
+   not_payable / no_booking). Truthful reporting per surface: verify maps
+   held->verified, retryable->hold_pending (client retries 5x3s), terminal->409
+   with user copy, amount mismatch->409, already-HELD->fast-path success; the
+   webhook records the de-dupe payments row ONLY on terminal outcomes
+   (retryable -> 500 so Paystack retries) and attributes via metadata.bookingId
+   -> parsed UUID from the CRELLAB-{bookingId}-{millis} ref (layered
+   resolveBookingForRef: exact ref -> metadata hint -> parsed id — survives
+   initiate()'s per-checkout ref overwrite with no schema change). Non-retryable
+   failures are audited (escrow.hold.failed / .duplicate). /pay pre-flight
+   reconciles an existing ref first (already held -> ALREADY_HELD success;
+   charge_pending/unverifiable -> 409, no double charge). Repair vocabulary:
+   reconcileBooking(bookingId) (processor-verify -> idempotent hold ->
+   escrow.reconcile audit) driven by the cron reconcileStuckHolds sweep
+   (every 6h, grace 120s), a rate-limited silent booking-page self-heal
+   (5/60s/user, 8s timeout), and the admin finance "Reconcile escrow" action
+   (POST /api/admin/finance/bookings/[id]/reconcile).
 4. Service date reached (cron /api/cron/escrow) -> setInProgress() (IN_PROGRESS).
    Release deadline = serviceDate + escrowReleaseDays via the single pure helper
    computeEscrowReleaseDeadline() (default 1 day, admin-editable; null-safe)
@@ -451,6 +469,12 @@ Files not yet implemented despite being in the planned architecture:
 ---
 
 ## Recent Changes
+
+### 2026-10-19 — Booking & Payment Flow Integrity + Guidance Affordances (execute-feature, no migrations)
+- Root-caused and fixed the "paid but stuck at stage 1" class of bug: `/pay/verify` no longer returns `verified:true` on a failed hold (truthful `HoldResult` mapping: held / `hold_pending` retry / 409 terminal / amount-mismatch 409 / already-HELD fast path); the webhook records the de-dupe `payments` row only on terminal outcomes (retryable → 500 so Paystack retries) and attributes via `metadata.bookingId` → parsed UUID from the `CRELLAB-{bookingId}-{millis}` ref (layered `resolveBookingForRef`, no schema change — survives `initiate()`'s ref overwrite); non-retryable hold failures audited (`escrow.hold.failed`/`.duplicate`).
+- New pure `lib/payment-flow.ts` (ref parse, exhaustive `classifyHoldOutcome`, `shouldRecordChargeEvent`, user-facing `holdFailureMessage`, `isHoldPending`) — one classification shared by webhook/verify/pay/cron/page/admin. `EscrowService`: `onPaystackSuccess(ref,{bookingId})→HoldResult`, `reconcileBooking` (processor-verify → idempotent hold → `escrow.reconcile` audit + `escrow.payment_row_missing` anomaly), `reconcileStuckHolds` sweep; `/pay` pre-flight reconcile (`ALREADY_HELD` / 409 no-double-charge); cron reconcile every 6h (`1 */6 * * *`) + rate-limited silent booking-page self-heal; admin `POST /api/admin/finance/bookings/[id]/reconcile` + finance-modal action with confirm dialog.
+- Flow affordances: `lib/booking-guidance.ts` `bookingNextStep` (exhaustive; null = dedicated panel owns the state) + `bookingFlow` config overrides + `NextStepBanner` on panel-less states; Confirm Release and provider-cancel `ClConfirmDialog`s (§UX-3 — release previously had none); provider cancel (service + route accept a provider actor pre-payment; HELD still refused); provider terminal panel.
+- Platform guidance: new `ClInfoTip` primitive (hover/focus/click, a11y, both themes; §4 decision logged); `lib/hints.ts` (8 config-driven tips, `{{name}}`/`{{feeRate}}`/`{{escrowWindow}}` token fill, "" = hide, `IHintsConfig` + admin Guidance section); placements on BookingPayPanel (+ "Top up your wallet →" CTA), EscrowTimeline, WalletBalanceCard, dashboard escrow stat, admin finance audit trail; role-aware bookings empty-state CTA. `BookingService.cancelBooking` + `/cancel` route now accept provider actors. +47 tests; 676/676 vitest, tsc clean, lint clean, build green. No migrations.
 
 ### 2026-10-19 — Booking & Payment Visibility End-to-End (execute-feature, no migrations)
 - Lifecycle made reachable: 4 new routes `app/api/bookings/[id]/{accept,decline,cancel,start}/route.ts` (requireAuth -> 404 -> `lib/booking-access.ts` actor assert -> service -> `AuditService.log` -> `lib/booking-action-errors.ts` mapping); `BookingService.acceptRequest`/`declineRequest` race-safe (conditional update + `assertConcurrentChange`), new `cancelBooking` (client-owned; HELD refused), new `EscrowService.startBooking` (HELD->IN_PROGRESS conditional), `validateTransition` exported.

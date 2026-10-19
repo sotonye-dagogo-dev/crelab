@@ -440,6 +440,33 @@ export interface IDashboardConfig {
   paymentHistoryDays: number;
 }
 
+/**
+ * Config-driven copy for info-icon tooltips (`ClInfoTip`) across money-path
+ * surfaces. Each key maps to one placement; an override string replaces the
+ * built-in default, and an empty-string override HIDES that tip entirely.
+ * Tokens ({{name}}, {{feeRate}}, {{escrowWindow}}) are filled at resolve time
+ * — see lib/hints.ts.
+ */
+export interface IHintsConfig {
+  /** Master switch — when off, no ClInfoTip placements render at all. */
+  enabled: boolean;
+  copy: Partial<Record<string, string>>;
+}
+
+/**
+ * "Who acts next" guidance banner on the booking detail page
+ * (`NextStepBanner`). `enabled` toggles the banner; `copy` overrides the
+ * built-in per-state guidance text (keyed by `${status}:${side}`), with an
+ * empty-string override hiding that specific state's banner. The admin UI
+ * exposes the toggle only — copy overrides are edited via the raw config JSON
+ * (documented in project-decisions: admin field is toggle-only to keep the
+ * config page from becoming a copy-writing IDE).
+ */
+export interface IBookingFlowConfig {
+  enabled: boolean;
+  copy?: Partial<Record<string, string>>;
+}
+
 /* ── Growth: founding-100, referrals, leaderboard, countdown, bug report,
      landing stats, back-to-top, webinars ── */
 
@@ -778,6 +805,8 @@ export interface IPlatformConfig {
   wallet: IWalletConfig;
   mediaUpload?: IMediaUploadConfig;
   dashboard?: IDashboardConfig;
+  hints?: IHintsConfig;
+  bookingFlow?: IBookingFlowConfig;
   firstHundred?: IEarlyMemberConfig;
   referral?: IReferralConfig;
   leaderboard?: ILeaderboardConfig;
@@ -927,6 +956,7 @@ export type {
   IDashboardQuickAction,
   IProviderDashboard,
   IClientPaymentRecord,
+  IProviderPaymentRecord,
   IClientDashboard,
 } from "./dashboard";
 

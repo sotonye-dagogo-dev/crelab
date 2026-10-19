@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
 import { wallets, walletTransactions, processedWebhookEvents } from "@/drizzle/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { PlatformConfigService } from "@/services/PlatformConfigService";
+import { eq, and, gte, sql } from "drizzle-orm";
 import { InsufficientBalanceError, DuplicateWebhookError } from "@/lib/errors";
 import { initiateTransfer } from "@/lib/paystack";
+import { AuditService } from "@/services/AuditService";
+import { notifyWalletTopup, notifyWithdrawalRequested } from "@/lib/lifecycle-emails";
 import type { IWallet, IWalletTransaction } from "@/types";
 import { WalletTransactionType } from "@/types";
 import crypto from "crypto";
@@ -48,6 +49,7 @@ export interface IWalletService {
   creditFromEscrowRelease(providerUserId: string, bookingId: string, netKobo: number, feeKobo: number): Promise<IWalletTransaction>;
   requestWithdrawal(userId: string, amountKobo: number, bankRecipientCode: string): Promise<{ transferCode: string }>;
   debitForMilestone(clientUserId: string, milestoneId: string, amountKobo: number, feeKobo: number): Promise<IWalletTransaction>;
+  reverseMilestoneDebit(clientUserId: string, milestoneId: string, amountKobo: number, feeKobo: number): Promise<IWalletTransaction>;
   creditMilestoneRelease(providerUserId: string, milestoneId: string, netKobo: number, feeKobo: number): Promise<IWalletTransaction>;
   debitForDirectPayment(clientUserId: string, providerUserId: string, amountKobo: number, feeKobo: number, bookingId: string): Promise<{ clientDebit: IWalletTransaction; providerCredit: IWalletTransaction; feeDebit: IWalletTransaction }>;
 }
@@ -104,21 +106,29 @@ export class WalletService implements IWalletService {
     const ref = `WALLET-TOPUP-CARD-${crypto.randomUUID()}`;
 
     const [txn] = await db.transaction(async (tx) => {
-      await tx.insert(processedWebhookEvents).values({
-        id: crypto.randomUUID(),
-        paystackRef,
-        eventType: "charge.success",
-      });
+      const [claimed] = await tx
+        .insert(processedWebhookEvents)
+        .values({
+          id: crypto.randomUUID(),
+          paystackRef,
+          eventType: "charge.success",
+        })
+        .onConflictDoNothing({ target: processedWebhookEvents.paystackRef })
+        .returning({ id: processedWebhookEvents.id });
+      // Lost the check-then-insert race to a concurrent delivery/verify: roll
+      // back our credit and surface the clean duplicate signal.
+      if (!claimed) throw new DuplicateWebhookError();
 
-      const balanceAfterKobo = wallet.balanceKobo + amountKobo;
-
-      await tx
+      // Read the post-update balance back from the DB so `balanceAfterKobo`
+      // stays truthful under concurrent credits (a pre-read would drift).
+      const [updated] = await tx
         .update(wallets)
         .set({
           balanceKobo: sql`${wallets.balanceKobo} + ${amountKobo}`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, wallet.id));
+        .where(eq(wallets.id, wallet.id))
+        .returning({ balanceKobo: wallets.balanceKobo });
 
       return tx
         .insert(walletTransactions)
@@ -128,12 +138,21 @@ export class WalletService implements IWalletService {
           type: "TOPUP_CARD",
           amountKobo,
           direction: "CREDIT",
-          balanceAfterKobo,
+          balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + amountKobo,
           reference: ref,
           paystackRef,
         })
         .returning();
     });
+
+    void AuditService.log({
+      userId,
+      action: "wallet.topup.card",
+      entity: "wallets",
+      entityId: wallet.id,
+      newValue: { amountKobo, paystackRef, reference: ref },
+    }).catch(() => {});
+    void notifyWalletTopup(userId, amountKobo);
 
     return mapTransaction(txn);
   }
@@ -158,21 +177,25 @@ export class WalletService implements IWalletService {
     const ref = `WALLET-TOPUP-BANK-${crypto.randomUUID()}`;
 
     const [txn] = await db.transaction(async (tx) => {
-      await tx.insert(processedWebhookEvents).values({
-        id: crypto.randomUUID(),
-        paystackRef,
-        eventType: "charge.success",
-      });
+      const [claimed] = await tx
+        .insert(processedWebhookEvents)
+        .values({
+          id: crypto.randomUUID(),
+          paystackRef,
+          eventType: "charge.success",
+        })
+        .onConflictDoNothing({ target: processedWebhookEvents.paystackRef })
+        .returning({ id: processedWebhookEvents.id });
+      if (!claimed) throw new DuplicateWebhookError();
 
-      const balanceAfterKobo = wallet.balanceKobo + amountKobo;
-
-      await tx
+      const [updated] = await tx
         .update(wallets)
         .set({
           balanceKobo: sql`${wallets.balanceKobo} + ${amountKobo}`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, wallet.id));
+        .where(eq(wallets.id, wallet.id))
+        .returning({ balanceKobo: wallets.balanceKobo });
 
       return tx
         .insert(walletTransactions)
@@ -182,12 +205,21 @@ export class WalletService implements IWalletService {
           type: "TOPUP_BANK",
           amountKobo,
           direction: "CREDIT",
-          balanceAfterKobo,
+          balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + amountKobo,
           reference: ref,
           paystackRef,
         })
         .returning();
     });
+
+    void AuditService.log({
+      userId,
+      action: "wallet.topup.bank",
+      entity: "wallets",
+      entityId: wallet.id,
+      newValue: { amountKobo, paystackRef, reference: ref },
+    }).catch(() => {});
+    void notifyWalletTopup(userId, amountKobo);
 
     return mapTransaction(txn);
   }
@@ -203,17 +235,21 @@ export class WalletService implements IWalletService {
     const feeRef = `BOOKING-FEE-${crypto.randomUUID()}`;
 
     const txns = await db.transaction(async (tx) => {
-      const balanceAfterDebit = wallet.balanceKobo - amountKobo;
-      const escrowAfter = wallet.escrowKobo + (amountKobo - feeKobo);
-
-      await tx
+      // Guarded debit: `balance >= amount` is enforced IN SQL so two concurrent
+      // debits can never overdraw (the pre-read above is only a fast-fail).
+      // The post-update balance is read back for an accurate ledger snapshot.
+      const [updated] = await tx
         .update(wallets)
         .set({
           balanceKobo: sql`${wallets.balanceKobo} - ${amountKobo}`,
           escrowKobo: sql`${wallets.escrowKobo} + ${amountKobo - feeKobo}`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, wallet.id));
+        .where(and(eq(wallets.id, wallet.id), gte(wallets.balanceKobo, amountKobo)))
+        .returning({ balanceKobo: wallets.balanceKobo });
+      if (!updated) throw new InsufficientBalanceError();
+
+      const balanceAfterDebit = updated.balanceKobo;
 
       const debit = await tx
         .insert(walletTransactions)
@@ -229,8 +265,6 @@ export class WalletService implements IWalletService {
         })
         .returning();
 
-      const feeBalanceAfterKobo = balanceAfterDebit;
-
       const fee = await tx
         .insert(walletTransactions)
         .values({
@@ -239,7 +273,7 @@ export class WalletService implements IWalletService {
           type: "FEE_DEBIT",
           amountKobo: feeKobo,
           direction: "DEBIT",
-          balanceAfterKobo: feeBalanceAfterKobo,
+          balanceAfterKobo: balanceAfterDebit,
           reference: feeRef,
           relatedBookingId: bookingId,
         })
@@ -441,18 +475,21 @@ export class WalletService implements IWalletService {
     }
 
     const ref = `WITHDRAWAL-${crypto.randomUUID()}`;
-    const balanceAfterKobo = wallet.balanceKobo - amountKobo;
 
-    const [txn] = await db.transaction(async (tx) => {
-      await tx
+    // Guarded debit (same overdraft-proof pattern as debitForBooking): the SQL
+    // WHERE clause is the source of truth under concurrency.
+    const balanceAfterKobo = await db.transaction(async (tx) => {
+      const [updated] = await tx
         .update(wallets)
         .set({
           balanceKobo: sql`${wallets.balanceKobo} - ${amountKobo}`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, wallet.id));
+        .where(and(eq(wallets.id, wallet.id), gte(wallets.balanceKobo, amountKobo)))
+        .returning({ balanceKobo: wallets.balanceKobo });
+      if (!updated) throw new InsufficientBalanceError();
 
-      return tx
+      await tx
         .insert(walletTransactions)
         .values({
           id: crypto.randomUUID(),
@@ -460,14 +497,24 @@ export class WalletService implements IWalletService {
           type: "WITHDRAWAL",
           amountKobo,
           direction: "DEBIT",
-          balanceAfterKobo,
+          balanceAfterKobo: updated.balanceKobo,
           reference: ref,
-        })
-        .returning();
+        });
+
+      return updated.balanceKobo;
     });
 
     try {
       const transferResult = await initiateTransfer(amountKobo, bankRecipientCode, ref);
+
+      void AuditService.log({
+        userId,
+        action: "wallet.withdrawal.requested",
+        entity: "wallets",
+        entityId: wallet.id,
+        newValue: { amountKobo, bankRecipientCode, transferCode: transferResult.transferCode, reference: ref },
+      }).catch(() => {});
+      void notifyWithdrawalRequested(userId, amountKobo);
 
       return { transferCode: transferResult.transferCode };
     } catch (err) {
@@ -506,17 +553,18 @@ export class WalletService implements IWalletService {
     }
 
     const ref = `MILESTONE-DEBIT-${crypto.randomUUID()}`;
-    const balanceAfterKobo = wallet.balanceKobo - amountKobo;
 
     const [txn] = await db.transaction(async (tx) => {
-      await tx
+      const [updated] = await tx
         .update(wallets)
         .set({
           balanceKobo: sql`${wallets.balanceKobo} - ${amountKobo}`,
           escrowKobo: sql`${wallets.escrowKobo} + ${amountKobo - feeKobo}`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, wallet.id));
+        .where(and(eq(wallets.id, wallet.id), gte(wallets.balanceKobo, amountKobo)))
+        .returning({ balanceKobo: wallets.balanceKobo });
+      if (!updated) throw new InsufficientBalanceError();
 
       return tx
         .insert(walletTransactions)
@@ -526,7 +574,7 @@ export class WalletService implements IWalletService {
           type: "MILESTONE_DEBIT",
           amountKobo,
           direction: "DEBIT",
-          balanceAfterKobo,
+          balanceAfterKobo: updated.balanceKobo,
           reference: ref,
           relatedMilestoneId: milestoneId,
         })
@@ -536,12 +584,63 @@ export class WalletService implements IWalletService {
     return mapTransaction(txn);
   }
 
+  /**
+   * Compensating refund for a milestone debit whose status flip lost the race
+   * (or failed) — restores the balance and clears the escrow that
+   * `debitForMilestone` parked. Deterministic reference keeps the compensation
+   * itself exactly-once.
+   */
+  async reverseMilestoneDebit(clientUserId: string, milestoneId: string, amountKobo: number, feeKobo: number): Promise<IWalletTransaction> {
+    const wallet = await this.getOrCreate(clientUserId);
+    const netKobo = Math.max(0, amountKobo - feeKobo);
+    const ref = `MILESTONE-DEBIT-REVERSAL-${milestoneId}`;
+
+    const [txn] = await db.transaction(async (tx) => {
+      await tx
+        .update(wallets)
+        .set({
+          balanceKobo: sql`${wallets.balanceKobo} + ${amountKobo}`,
+          escrowKobo: sql`GREATEST(${wallets.escrowKobo} - ${netKobo}, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(wallets.id, wallet.id));
+
+      const [updated] = await tx
+        .select({ balanceKobo: wallets.balanceKobo })
+        .from(wallets)
+        .where(eq(wallets.id, wallet.id));
+
+      return tx
+        .insert(walletTransactions)
+        .values({
+          id: crypto.randomUUID(),
+          walletId: wallet.id,
+          type: "REFUND",
+          amountKobo,
+          direction: "CREDIT",
+          balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + amountKobo,
+          reference: ref,
+          relatedMilestoneId: milestoneId,
+          metadata: { reason: "Milestone fund flip failed — debit reversed" },
+        })
+        .returning();
+    });
+
+    return mapTransaction(txn);
+  }
+
+  /**
+   * Credit the PROVIDER when a milestone is approved. Exactly-once: the
+   * reference is deterministic (`MILESTONE-RELEASE-{milestoneId}`, unique in
+   * wallet_transactions) so retries, double-clicks and the cron auto-approve
+   * overlapping a client approval all collapse to one credit — callers treat a
+   * unique violation as "already credited" (same pattern as escrow release).
+   */
   async creditMilestoneRelease(providerUserId: string, milestoneId: string, netKobo: number, feeKobo: number): Promise<IWalletTransaction> {
     const wallet = await this.getOrCreate(providerUserId);
     void feeKobo; // never part of the client-side escrow movement (see subtraction note below)
 
-    const ref = `MILESTONE-RELEASE-${crypto.randomUUID()}`;
-    const balanceAfterKobo = wallet.balanceKobo + netKobo;
+    const ref = `MILESTONE-RELEASE-${milestoneId}`;
 
     // Also clear client escrow for wallet-funded milestones
     let clientWalletId: string | null = null;
@@ -584,6 +683,13 @@ export class WalletService implements IWalletService {
           .where(eq(wallets.id, clientWalletId));
       }
 
+      // Read back the post-update balance — a pre-read would record a wrong
+      // balanceAfterKobo whenever two credits land concurrently.
+      const [updated] = await tx
+        .select({ balanceKobo: wallets.balanceKobo })
+        .from(wallets)
+        .where(eq(wallets.id, wallet.id));
+
       return tx
         .insert(walletTransactions)
         .values({
@@ -592,7 +698,7 @@ export class WalletService implements IWalletService {
           type: "MILESTONE_RELEASE",
           amountKobo: netKobo,
           direction: "CREDIT",
-          balanceAfterKobo,
+          balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + netKobo,
           reference: ref,
           relatedMilestoneId: milestoneId,
         })
@@ -615,25 +721,30 @@ export class WalletService implements IWalletService {
     const feeRef = `DIRECT-FEE-${crypto.randomUUID()}`;
 
     const txns = await db.transaction(async (tx) => {
-      const balanceAfterClientDebit = clientWallet.balanceKobo - amountKobo;
-      const balanceAfterProviderCredit = providerWallet.balanceKobo + (amountKobo - feeKobo);
-
-      await tx
+      // Guarded client debit — concurrent direct payments can never overdraw.
+      const [clientUpdated] = await tx
         .update(wallets)
         .set({
           balanceKobo: sql`${wallets.balanceKobo} - ${amountKobo}`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, clientWallet.id));
+        .where(and(eq(wallets.id, clientWallet.id), gte(wallets.balanceKobo, amountKobo)))
+        .returning({ balanceKobo: wallets.balanceKobo });
+      if (!clientUpdated) throw new InsufficientBalanceError();
 
-      await tx
+      const [providerUpdated] = await tx
         .update(wallets)
         .set({
           balanceKobo: sql`${wallets.balanceKobo} + ${amountKobo - feeKobo}`,
           totalEarnedKobo: sql`${wallets.totalEarnedKobo} + ${amountKobo - feeKobo}`,
           updatedAt: new Date(),
         })
-        .where(eq(wallets.id, providerWallet.id));
+        .where(eq(wallets.id, providerWallet.id))
+        .returning({ balanceKobo: wallets.balanceKobo });
+
+      const balanceAfterClientDebit = clientUpdated.balanceKobo;
+      const balanceAfterProviderCredit =
+        providerUpdated?.balanceKobo ?? providerWallet.balanceKobo + (amountKobo - feeKobo);
 
       const clientDebit = await tx
         .insert(walletTransactions)

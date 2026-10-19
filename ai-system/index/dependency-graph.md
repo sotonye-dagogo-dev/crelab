@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment visibility end-to-end)
+> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
 > - last-verified-against-code: 2026-10-19
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -66,6 +66,37 @@ Booking visibility layer (2026-10-19)
   → services/BookingService (acceptRequest/declineRequest race-safe, cancelBooking; exports
     validateTransition) + services/EscrowService.startBooking (HELD→IN_PROGRESS conditional)
   → app/api/bookings/[id]/{accept,decline,cancel,start} (actor assert → service → AuditService)
+
+Escrow hold integrity + guidance layer (2026-10-19)
+  → lib/payment-flow.ts (PURE leaf, zero deps: BOOKING_REF_PREFIX, parseBookingIdFromRef,
+    classifyHoldOutcome → HoldResult [held/already_held/duplicate_charge/hold_lost_race
+    retryable/not_payable/no_booking], shouldRecordChargeEvent, holdFailureMessage,
+    isHoldPending) ← consumed by services/EscrowService (onPaystackSuccess, reconcileBooking,
+    reconcileStuckHolds, logHoldFailure), /api/webhooks/paystack, /api/bookings/[id]/pay,
+    /pay/verify, /api/cron/escrow, /api/admin/finance/bookings/[id]/reconcile; unit-tested
+    exhaustively (no DB in the lib)
+  → services/EscrowService.resolveBookingForRef(ref, hint) — layered attribution:
+    exact paystackRef → explicit metadata.bookingId → UUID parsed from the ref
+    (survives initiate()'s per-checkout ref overwrite; no schema change)
+  → reconcileBooking(bookingId, opts) — processor-verify → amount/metadata checks →
+    idempotent hold → escrow.reconcile audit (+ escrow.payment_row_missing anomaly);
+    driven by 4 callers: /pay pre-flight, cron reconcileStuckHolds sweep (every 6h,
+    grace 120s), booking-detail page maybeReconcileStuckBooking (rate-limited 5/60s/user
+    via lib/rate-limit consumeRateWindow, 8s timeout, silent), admin finance reconcile route
+  → app/(auth)/bookings/[id]/page.tsx maybeReconcileStuckBooking → lib/rate-limit.ts
+  → hooks/useBookingPayment.ts — maps HoldResult surfaces: hold_pending → 5×3s retry loop,
+    ALREADY_HELD → treated as paid
+  → lib/booking-guidance.ts (PURE: bookingNextStep exhaustive, null = dedicated panel owns
+    the state; resolveBookingGuidance applies bookingFlow config + ${status}:${side} copy
+    overrides, "" hides) ← consumed by components/booking/NextStepBanner.tsx ←
+    BookingDetailClient (non-milestone, panel-less states only)
+  → lib/hints.ts (DEFAULT_HINTS ×8, resolveHint merge/hide/token fill) ← ClInfoTip
+    placements: BookingPayPanel (fee + escrow tips), EscrowTimeline (release window +
+    dispute), WalletBalanceCard (balance + withdraw), dashboard StatCard hintKey,
+    admin finance audit-trail tips; IHintsConfig/IBookingFlowConfig on IPlatformConfig
+    ← config/platform.config.ts defaults + app/admin/config Guidance section
+  → components/ui/ClInfoTip.tsx (new Cl* primitive; §4 decision logged) →
+    components/ui/index.ts export
 
 EscrowService settlement (services/EscrowService.ts)
   → services/WalletService (creditFromEscrowRelease / refundEscrowToClient / reverseBookingDebit — deterministic

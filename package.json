@@ -19,6 +19,7 @@
     "predb:seed:rollback": "npm run db:backup",
     "db:seed:rollback": "tsx scripts/seed-rollback.ts",
     "db:reset": "npm run db:backup && npm run db:seed:rollback && npm run db:migrate && npm run db:seed",
+    "vercel-build": "npm run db:generate && npm run db:migrate && next build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -62,6 +63,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.2",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

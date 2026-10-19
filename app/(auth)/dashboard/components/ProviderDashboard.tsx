@@ -5,6 +5,7 @@ import { PipelineKanban } from "./PipelineKanban";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { PortfolioPerformanceTable } from "./PortfolioPerformanceTable";
 import { PortfolioGalleryGrid } from "./PortfolioGalleryGrid";
+import { ProviderPaymentHistory } from "./ProviderPaymentHistory";
 import { ReferralBanner } from "./ReferralBanner";
 import type { IProviderDashboard } from "@/types";
 import { buildProviderSlug } from "@/lib/slug";
@@ -65,6 +66,22 @@ export function ProviderDashboard({ data }: { data: IProviderDashboard }) {
             </Link>
           </div>
           <PipelineKanban columns={data.pipeline} side="provider" />
+        </div>
+
+        {/* Payments & Earnings — booking-level money visibility for providers */}
+        <div className="mb-6 overflow-hidden rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+            <h2 className="font-[family-name:var(--font-display)] text-[16px] font-bold text-[var(--color-text-primary)]">
+              Payments &amp; Earnings
+            </h2>
+            <Link
+              href="/wallet"
+              className="text-[13px] text-[var(--color-accent)] no-underline transition-colors duration-150 hover:underline"
+            >
+              Wallet →
+            </Link>
+          </div>
+          <ProviderPaymentHistory records={data.paymentHistory ?? []} />
         </div>
 
         {data.availability.length > 0 && (

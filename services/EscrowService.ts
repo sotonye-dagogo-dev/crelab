@@ -1,9 +1,15 @@
 import { db } from "@/lib/db";
 import { bookings, payments, disputes } from "@/drizzle/schema";
-import { eq, and, lt, gte, isNull, or } from "drizzle-orm";
+import { eq, and, lt, gte, isNull, or, isNotNull, ne, asc } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { WalletService } from "@/services/WalletService";
-import { initTransaction, refund } from "@/lib/paystack";
+import { AuditService } from "@/services/AuditService";
+import { initTransaction, refund, verifyTransaction } from "@/lib/paystack";
+import {
+  classifyHoldOutcome,
+  parseBookingIdFromRef,
+  type HoldResult,
+} from "@/lib/payment-flow";
 import {
   EscrowState,
   BookingStatus,
@@ -14,6 +20,15 @@ import type {
   IDispute,
 } from "@/types";
 import { BookingService, validateTransition } from "@/services/BookingService";
+import { JobQueueService } from "@/services/JobQueueService";
+import {
+  notifyBookingStarted,
+  notifyDisputeOpened,
+  notifyDisputeResolved,
+  notifyFundsHeld,
+  notifyFundsRefunded,
+  notifyFundsReleased,
+} from "@/lib/lifecycle-emails";
 
 export const LEGAL_ESCROW_TRANSITIONS: Record<EscrowState, EscrowState[]> = {
   [EscrowState.PENDING]: [EscrowState.HELD],
@@ -56,6 +71,72 @@ export function isUniqueViolation(err: unknown): boolean {
   return String((err as Error).message ?? "").toLowerCase().includes("duplicate key");
 }
 
+/**
+ * Result of checking one booking's charge against the processor and (when the
+ * charge is real) re-attempting the escrow hold. Every stuck-charge surface —
+ * the pre-flight in `/pay`, the booking-detail self-heal, the cron sweep and
+ * the admin "Reconcile escrow" action — speaks this vocabulary so one word
+ * means one thing everywhere.
+ */
+export type ReconcileOutcome =
+  /** Funds are in escrow already (nothing to do). */
+  | "already_held"
+  /** This call created the hold from a verified charge. */
+  | "held"
+  /** Processor says the charge never succeeded (safe to start a new checkout). */
+  | "not_charged"
+  /** Processor says the charge is still processing (do NOT start another one). */
+  | "charge_pending"
+  /** Charged amount ≠ booked amount — never settle silently, refund review. */
+  | "amount_mismatch"
+  /** The reference belongs to a different payment/booking — refund review. */
+  | "attribution_mismatch"
+  /** Charged, but the booking left the payable state — refund review. */
+  | "not_payable"
+  /** A second charge for a booking that is already funded — refund review. */
+  | "duplicate_charge"
+  /** No stored reference — nothing has been charged under our records. */
+  | "no_reference"
+  /** Processor unreachable / hold still converging — try again shortly. */
+  | "unverifiable";
+
+export interface ReconcileOptions {
+  /** Ask Paystack for the authoritative charge status (default true). */
+  verifyWithProcessor?: boolean;
+  /** Write `escrow.reconcile` audit rows for material outcomes (default true). */
+  audit?: boolean;
+  /** Who triggered it — null/omitted = system (cron). */
+  actorId?: string | null;
+}
+
+export interface ReconcileResult {
+  outcome: ReconcileOutcome;
+  bookingId: string;
+  bookingStatus: string;
+  reference: string | null;
+  held: boolean;
+  alreadyHeld: boolean;
+  detail?: string;
+}
+
+export interface ReconcileSweepResult {
+  scanned: number;
+  held: number;
+  alreadyHeld: number;
+  /** Charged-but-unsettled anomalies an admin should look at. */
+  needsReview: number;
+  skipped: number;
+  errors: string[];
+}
+
+/** Outcomes that mean a human should review the money. */
+export const RECONCILE_REVIEW_OUTCOMES: ReconcileOutcome[] = [
+  "amount_mismatch",
+  "attribution_mismatch",
+  "not_payable",
+  "duplicate_charge",
+];
+
 function mapPayment(row: typeof payments.$inferSelect): IPayment {
   return {
     id: row.id,
@@ -89,10 +170,22 @@ export interface IEscrowService {
     accessCode: string;
     reference: string;
   }>;
-  /** Finalize a verified Paystack charge into escrow HELD. Idempotent; returns true when this call started escrow. */
-  onPaystackSuccess(reference: string): Promise<boolean>;
+  /** Finalize a verified Paystack charge into escrow HELD. Idempotent; returns the full hold outcome. */
+  onPaystackSuccess(
+    reference: string,
+    options?: { bookingId?: string | null },
+  ): Promise<HoldResult>;
   /** Exactly-once ACCEPTED→HELD transition + payment-row creation. Returns true when this call held the funds. */
   holdBookingFunds(bookingId: string, paystackRef: string, releaseDeadline: Date): Promise<boolean>;
+  /** Resolve a charge reference back to its booking (exact ref → hint → parsed id). */
+  resolveBookingForRef(
+    reference: string,
+    hintBookingId?: string | null,
+  ): Promise<typeof bookings.$inferSelect | null>;
+  /** Processor-verify one booking's stored charge and hold it when real. */
+  reconcileBooking(bookingId: string, options?: ReconcileOptions): Promise<ReconcileResult>;
+  /** Sweep charged-but-unheld bookings (cron safety net). */
+  reconcileStuckHolds(options?: { limit?: number; graceMs?: number }): Promise<ReconcileSweepResult>;
   /**
    * Provider (or admin) marks a paid booking as started: conditional HELD→IN_PROGRESS.
    * No money moves — settlement still only happens through settleRelease/refundBookingFunds.
@@ -105,6 +198,12 @@ export interface IEscrowService {
   setInProgress(): Promise<{ processed: number; errors: string[] }>;
   clientConfirmRelease(bookingId: string, clientId: string): Promise<IBooking>;
   autoRelease(): Promise<{ processed: number; errors: string[] }>;
+  /** Full idempotent safety sweep (reconcile stuck holds → in-progress → auto-release). */
+  runFullSweep(): Promise<{
+    results: Record<string, unknown>;
+    totalProcessed: number;
+    totalErrors: string[];
+  }>;
   raiseDispute(
     bookingId: string,
     clientId: string,
@@ -158,48 +257,388 @@ export class EscrowService implements IEscrowService {
   }
 
   /**
+   * Resolve a charge reference back to the booking it belongs to.
+   *
+   * Lookup order matters: `initiate()` issues a NEW reference on every checkout
+   * attempt and overwrites `bookings.paystackRef`, so a charge made under an
+   * earlier reference no longer matches the stored column. The hinted id (the
+   * webhook/verify metadata we already trust) and the id embedded in the
+   * reference itself both recover attribution without a schema change.
+   */
+  async resolveBookingForRef(
+    reference: string,
+    hintBookingId: string | null = null,
+  ): Promise<typeof bookings.$inferSelect | null> {
+    if (!reference) return null;
+
+    const [byRef] = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.paystackRef, reference))
+      .limit(1);
+    if (byRef) return byRef;
+
+    const parsedId = parseBookingIdFromRef(reference);
+    const candidateIds = [hintBookingId, parsedId].filter(
+      (id): id is string => typeof id === "string" && id.length > 0,
+    );
+    for (const candidateId of candidateIds) {
+      const [row] = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, candidateId))
+        .limit(1);
+      if (row) return row;
+    }
+    return null;
+  }
+
+  /** Loud, structured trace for a hold that did NOT move money (audit + log). */
+  private async logHoldFailure(
+    reference: string,
+    result: HoldResult,
+    bookingId: string | null,
+    actorId: string | null = null,
+  ): Promise<void> {
+    const action = result.duplicateCharge
+      ? "escrow.hold.duplicate"
+      : "escrow.hold.failed";
+    const detail = `ref=${reference} booking=${bookingId ?? "?"} reason=${result.reason ?? "unknown"} status=${result.bookingStatus ?? "?"}`;
+    if (result.retryable) {
+      console.warn(`[escrow] hold not finalized yet (${detail}) — caller will retry`);
+      return; // transient — a webhook retry (or verify poll) is already the retry path
+    }
+    console.error(`[escrow] ${action} ${detail} — manual review required`);
+    await AuditService.log({
+      userId: actorId,
+      action,
+      entity: "bookings",
+      entityId: bookingId,
+      oldValue: { reference, status: result.bookingStatus },
+      newValue: { reason: result.reason, reference, retryable: result.retryable },
+    }).catch((err) => {
+      console.error("[escrow] hold-failure audit log failed", err);
+    });
+  }
+
+  /**
    * Finalize a successful Paystack charge into escrow HELD. Idempotent on
    * purpose — the webhook AND the client-side verify endpoint may both run it:
    * a payment row already carrying this reference means the money is already
    * held (skip), and a booking that left the payable state needs a manual
    * refund instead of silently being resurrected.
-   * Returns true only when this call started escrow.
+   *
+   * Returns the full `HoldResult` so callers can distinguish "held",
+   * "already held" (safe to report success), "permanent failure" (record it,
+   * audit it, tell the truth) and "retryable" (never record — let Paystack's
+   * retry or the verify poll finish the job).
    */
-  async onPaystackSuccess(reference: string): Promise<boolean> {
-    const [booking] = await db
-      .select()
-      .from(bookings)
-      .where(eq(bookings.paystackRef, reference));
+  async onPaystackSuccess(
+    reference: string,
+    options: { bookingId?: string | null } = {},
+  ): Promise<HoldResult> {
+    const hintBookingId = options.bookingId ?? null;
+    const booking = await this.resolveBookingForRef(reference, hintBookingId);
 
-    if (!booking) throw new Error(`No booking found for ref ${reference}`);
+    if (!booking) {
+      const classified = classifyHoldOutcome({
+        bookingFound: false,
+        referenceAlreadyHeld: false,
+        statusBefore: null,
+        flipped: false,
+      });
+      const result: HoldResult = { ...classified, bookingId: hintBookingId };
+      await this.logHoldFailure(reference, result, hintBookingId);
+      return result;
+    }
 
     const [existingPayment] = await db
       .select({ id: payments.id })
       .from(payments)
       .where(eq(payments.paystackRef, reference))
       .limit(1);
-    if (existingPayment) return false; // duplicate webhook/verify — already held
 
-    if (booking.status !== "ACCEPTED") {
-      console.error(
-        `[escrow] charge.success ref=${reference} for booking ${booking.id} (status=${booking.status}) cannot be held — manual refund review required`,
+    let flipped = false;
+    if (booking.status === "ACCEPTED") {
+      const platformConfig = await PlatformConfigService.get();
+      const releaseDeadline = computeEscrowReleaseDeadline(
+        booking.serviceDate,
+        platformConfig.escrowReleaseDays,
       );
-      return false;
+      flipped = await this.holdBookingFunds(booking.id, reference, releaseDeadline);
     }
 
-    const platformConfig = await PlatformConfigService.get();
-    const releaseDeadline = computeEscrowReleaseDeadline(
-      booking.serviceDate,
-      platformConfig.escrowReleaseDays,
-    );
+    const statusAfter = flipped
+      ? "HELD"
+      : ((await new BookingService().getById(booking.id))?.status ?? booking.status);
 
-    const held = await this.holdBookingFunds(booking.id, reference, releaseDeadline);
-    if (!held) {
-      console.error(
-        `[escrow] charge.success ref=${reference}: booking ${booking.id} left the payable state before hold — no payment row created (manual review)`,
-      );
+    const classified = classifyHoldOutcome({
+      bookingFound: true,
+      referenceAlreadyHeld: Boolean(existingPayment),
+      statusBefore: booking.status,
+      flipped,
+      statusAfter,
+    });
+    const result: HoldResult = {
+      ...classified,
+      bookingId: booking.id,
+      bookingStatus: statusAfter,
+    };
+
+    if (!result.held && !result.alreadyHeld) {
+      await this.logHoldFailure(reference, result, booking.id, booking.clientId);
     }
-    return held;
+    return result;
+  }
+
+  /**
+   * Check ONE booking's stored charge against Paystack and hold it when the
+   * charge is real. Used by every self-heal surface:
+   *  - `/pay` pre-flight   → returns success immediately when an earlier
+   *    attempt actually went through, and blocks a second charge while one is
+   *    still processing;
+   *  - booking-detail page → a stuck booking heals itself on view;
+   *  - cron sweep          → background safety net;
+   *  - admin reconcile     → explicit, audited repair action.
+   * Never invents money: without the processor saying "success" (or a stored
+   * reference), no hold is attempted.
+   */
+  async reconcileBooking(
+    bookingId: string,
+    options: ReconcileOptions = {},
+  ): Promise<ReconcileResult> {
+    const { verifyWithProcessor = true, audit = true, actorId = null } = options;
+    const booking = await new BookingService().getById(bookingId);
+    if (!booking) throw new Error("Booking not found");
+
+    const base = {
+      bookingId,
+      bookingStatus: booking.status,
+      reference: booking.paystackRef,
+    };
+
+    const logReconcile = async (
+      outcome: ReconcileOutcome,
+      extra: Record<string, unknown>,
+    ) => {
+      if (!audit) return;
+      await AuditService.log({
+        userId: actorId,
+        action: "escrow.reconcile",
+        entity: "bookings",
+        entityId: bookingId,
+        newValue: { outcome, reference: booking.paystackRef, ...extra },
+      }).catch((err) => {
+        console.error(`[escrow] reconcile audit failed for booking ${bookingId}`, err);
+      });
+    };
+
+    // Already in escrow — including the held-but-no-payment-row anomaly, which
+    // must be visible (nothing would ever release it) rather than "fixed" by
+    // inventing a payment record for money we can't prove was charged.
+    if (booking.status === "HELD" || booking.escrowState === "HELD") {
+      const [pay] = await db
+        .select({ id: payments.id })
+        .from(payments)
+        .where(eq(payments.bookingId, bookingId))
+        .limit(1);
+      if (!pay) {
+        await AuditService.log({
+          userId: actorId,
+          action: "escrow.payment_row_missing",
+          entity: "bookings",
+          entityId: bookingId,
+          newValue: { reference: booking.paystackRef, status: booking.status },
+        }).catch((err) => {
+          console.error("[escrow] payment-row anomaly audit failed", err);
+        });
+      }
+      return {
+        ...base,
+        bookingStatus: "HELD",
+        outcome: "already_held",
+        held: false,
+        alreadyHeld: true,
+        detail: pay ? undefined : "Booking is held but has no payment row — review",
+      };
+    }
+
+    const reference = booking.paystackRef;
+    // Wallet-funded holds never store a Paystack reference (they settle
+    // synchronously), so there is nothing to verify — nothing charged here.
+    if (!reference || reference.startsWith("WALLET-")) {
+      return {
+        ...base,
+        outcome: "no_reference",
+        held: false,
+        alreadyHeld: false,
+        detail: "No stored charge reference for this booking",
+      };
+    }
+
+    if (verifyWithProcessor) {
+      let verified;
+      try {
+        verified = await verifyTransaction(reference);
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : "Processor unreachable";
+        return {
+          ...base,
+          outcome: "unverifiable",
+          held: false,
+          alreadyHeld: false,
+          detail,
+        };
+      }
+
+      if (verified.status !== "success") {
+        return {
+          ...base,
+          outcome: verified.status === "pending" ? "charge_pending" : "not_charged",
+          held: false,
+          alreadyHeld: false,
+          detail: `Processor status: ${verified.status}`,
+        };
+      }
+
+      if (verified.amountKobo !== booking.total) {
+        const detail = `Paid ${verified.amountKobo} kobo, booking expects ${booking.total} kobo`;
+        if (audit) {
+          console.error(`[escrow] reconcile amount mismatch for booking ${bookingId}: ${detail}`);
+        }
+        await logReconcile("amount_mismatch", { detail });
+        return {
+          ...base,
+          outcome: "amount_mismatch",
+          held: false,
+          alreadyHeld: false,
+          detail,
+        };
+      }
+
+      // Trust echoed metadata when present — a reference string alone must
+      // never move a booking into escrow (legacy charges without metadata pass).
+      const metaPurpose = verified.metadata?.purpose as string | undefined;
+      const metaBookingId = verified.metadata?.bookingId as string | undefined;
+      if ((metaPurpose && metaPurpose !== "BOOKING_PAYMENT") || (metaBookingId && metaBookingId !== bookingId)) {
+        const detail = "Charge metadata does not belong to this booking";
+        await logReconcile("attribution_mismatch", { detail, metaPurpose, metaBookingId });
+        return {
+          ...base,
+          outcome: "attribution_mismatch",
+          held: false,
+          alreadyHeld: false,
+          detail,
+        };
+      }
+    }
+
+    const hold = await this.onPaystackSuccess(reference, { bookingId });
+    if (hold.held) {
+      await logReconcile("held", {});
+      return {
+        ...base,
+        bookingStatus: "HELD",
+        outcome: "held",
+        held: true,
+        alreadyHeld: false,
+      };
+    }
+    if (hold.alreadyHeld) {
+      return {
+        ...base,
+        bookingStatus: "HELD",
+        outcome: "already_held",
+        held: false,
+        alreadyHeld: true,
+      };
+    }
+    if (hold.retryable) {
+      return {
+        ...base,
+        outcome: "unverifiable",
+        held: false,
+        alreadyHeld: false,
+        detail: "Hold is still converging — check again shortly",
+      };
+    }
+
+    const outcome: ReconcileOutcome =
+      hold.reason === "duplicate_charge"
+        ? "duplicate_charge"
+        : hold.reason === "not_payable"
+          ? "not_payable"
+          : "unverifiable";
+    if (RECONCILE_REVIEW_OUTCOMES.includes(outcome)) {
+      await logReconcile(outcome, { holdReason: hold.reason });
+    }
+    return {
+      ...base,
+      bookingStatus: hold.bookingStatus ?? booking.status,
+      outcome,
+      held: false,
+      alreadyHeld: false,
+      detail: hold.reason ?? undefined,
+    };
+  }
+
+  /**
+   * Background safety net: re-check bookings that are still `ACCEPTED` +
+   * `PENDING` with a stored reference after the grace period — exactly the
+   * "charged but never held" state the webhook/verify failures used to leave
+   * behind — and hold them when Paystack confirms the charge succeeded.
+   * Bounded (default 25) and processor-verified, so it can never hold funds
+   * for a checkout that was never paid.
+   */
+  async reconcileStuckHolds(
+    options: { limit?: number; graceMs?: number } = {},
+  ): Promise<ReconcileSweepResult> {
+    const limit = Math.max(1, Math.min(options.limit ?? 25, 100));
+    const graceMs = options.graceMs ?? 2 * 60 * 1000;
+    const cutoff = new Date(Date.now() - graceMs);
+
+    const candidates = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.status, "ACCEPTED"),
+          eq(bookings.escrowState, "PENDING"),
+          isNotNull(bookings.paystackRef),
+          ne(bookings.paymentMode, "MILESTONE"),
+          lt(bookings.updatedAt, cutoff),
+        ),
+      )
+      .orderBy(asc(bookings.updatedAt))
+      .limit(limit);
+
+    const result: ReconcileSweepResult = {
+      scanned: candidates.length,
+      held: 0,
+      alreadyHeld: 0,
+      needsReview: 0,
+      skipped: 0,
+      errors: [],
+    };
+
+    for (const candidate of candidates) {
+      try {
+        const reconciled = await this.reconcileBooking(candidate.id, {
+          actorId: null,
+          audit: true,
+        });
+        if (reconciled.outcome === "held") result.held++;
+        else if (reconciled.outcome === "already_held") result.alreadyHeld++;
+        else if (RECONCILE_REVIEW_OUTCOMES.includes(reconciled.outcome)) result.needsReview++;
+        else result.skipped++;
+      } catch (err) {
+        result.errors.push(
+          `Booking ${candidate.id}: ${err instanceof Error ? err.message : "Unknown error"}`,
+        );
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -215,7 +654,7 @@ export class EscrowService implements IEscrowService {
     paystackRef: string,
     releaseDeadline: Date,
   ): Promise<boolean> {
-    return db.transaction(async (tx) => {
+    const held = await db.transaction(async (tx) => {
       const [flipped] = await tx
         .update(bookings)
         .set({
@@ -239,6 +678,24 @@ export class EscrowService implements IEscrowService {
       });
       return true;
     });
+
+    if (held) {
+      // Post-commit side effects (never inside the money transaction):
+      // audit trail, client "funds in escrow" email, and queued follow-up
+      // escrow sweeps (+6h/+12h/+24h) so the Hobby daily-cron limit never
+      // delays stuck-hold repair.
+      void AuditService.log({
+        userId: null,
+        action: "escrow.held",
+        entity: "bookings",
+        entityId: bookingId,
+        newValue: { paystackRef, releaseDeadline: releaseDeadline.toISOString() },
+      }).catch(() => {});
+      void notifyFundsHeld(bookingId);
+      void new JobQueueService().enqueueEscrowFollowUps(bookingId);
+    }
+
+    return held;
   }
 
   /**
@@ -269,6 +726,7 @@ export class EscrowService implements IEscrowService {
       if (current?.status === "IN_PROGRESS") return current; // concurrent start won the race
       throw new Error("Booking is no longer awaiting work start");
     }
+    void notifyBookingStarted(bookingId);
     return new BookingService().getById(bookingId) as Promise<IBooking>;
   }
 
@@ -298,6 +756,7 @@ export class EscrowService implements IEscrowService {
 
     const walletService = new WalletService();
     for (const payment of held) {
+      let newlyReleased = false;
       try {
         await walletService.creditFromEscrowRelease(
           booking.providerId,
@@ -312,10 +771,23 @@ export class EscrowService implements IEscrowService {
         // on HELD (idempotent), so running it here is what completes the retry
         // instead of leaving the payment stuck in HELD.
       }
-      await db
+      const [flipped] = await db
         .update(payments)
         .set({ status: "RELEASED" })
-        .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")));
+        .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")))
+        .returning({ id: payments.id });
+      if (flipped) newlyReleased = true;
+
+      if (newlyReleased) {
+        void AuditService.log({
+          userId: null,
+          action: "escrow.released",
+          entity: "bookings",
+          entityId: bookingId,
+          newValue: { paymentId: payment.id, netKobo: payment.netAmount, feeKobo: payment.fee },
+        }).catch(() => {});
+        void notifyFundsReleased(bookingId, payment.netAmount);
+      }
     }
   }
 
@@ -361,10 +833,21 @@ export class EscrowService implements IEscrowService {
           // unique violation = a previous attempt already refunded — fall
           // through to the flip, which is conditional on HELD anyway.
         }
-        await db
+        const [flippedWallet] = await db
           .update(payments)
           .set({ status: "REFUNDED" })
-          .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")));
+          .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")))
+          .returning({ id: payments.id });
+        if (flippedWallet) {
+          void AuditService.log({
+            userId: null,
+            action: "escrow.refunded",
+            entity: "bookings",
+            entityId: bookingId,
+            newValue: { paymentId: payment.id, amountKobo: payment.amount, funding: "WALLET" },
+          }).catch(() => {});
+          void notifyFundsRefunded(bookingId);
+        }
         continue;
       }
 
@@ -374,6 +857,15 @@ export class EscrowService implements IEscrowService {
         .where(and(eq(payments.id, payment.id), eq(payments.status, "HELD")))
         .returning({ id: payments.id });
       if (!flipped) continue;
+
+      void AuditService.log({
+        userId: null,
+        action: "escrow.refunded",
+        entity: "bookings",
+        entityId: bookingId,
+        newValue: { paymentId: payment.id, amountKobo: payment.amount, funding: "CARD" },
+      }).catch(() => {});
+      void notifyFundsRefunded(bookingId);
 
       try {
         await refund(payment.paystackRef);
@@ -540,6 +1032,68 @@ export class EscrowService implements IEscrowService {
     return { processed, errors };
   }
 
+  /**
+   * The complete escrow safety sweep, shared by the daily Vercel cron
+   * (`/api/cron/escrow`) and the DB-backed `escrow_sweep` job handler. Every
+   * step is idempotent and individually error-isolated so one failing stage
+   * never skips the rest.
+   */
+  async runFullSweep(): Promise<{
+    results: Record<string, unknown>;
+    totalProcessed: number;
+    totalErrors: string[];
+  }> {
+    const results: Record<string, unknown> = {};
+
+    try {
+      results.reconcileStuckHolds = await this.reconcileStuckHolds();
+    } catch (err) {
+      results.reconcileStuckHolds = {
+        scanned: 0,
+        held: 0,
+        alreadyHeld: 0,
+        needsReview: 0,
+        skipped: 0,
+        errors: [err instanceof Error ? err.message : "Unknown error in reconcileStuckHolds"],
+      };
+    }
+
+    try {
+      results.setProgress = await this.setInProgress();
+    } catch (err) {
+      results.setProgress = {
+        processed: 0,
+        errors: [err instanceof Error ? err.message : "Unknown error in setInProgress"],
+      };
+    }
+
+    try {
+      results.autoRelease = await this.autoRelease();
+    } catch (err) {
+      results.autoRelease = {
+        processed: 0,
+        errors: [err instanceof Error ? err.message : "Unknown error in autoRelease"],
+      };
+    }
+
+    const reconcileResult = results.reconcileStuckHolds as { held: number; errors: string[] } | undefined;
+    const inProgressResult = results.setProgress as { processed: number; errors: string[] } | undefined;
+    const autoReleaseResult = results.autoRelease as { processed: number; errors: string[] } | undefined;
+
+    const totalProcessed =
+      (reconcileResult?.held ?? 0) +
+      (inProgressResult?.processed ?? 0) +
+      (autoReleaseResult?.processed ?? 0);
+
+    const totalErrors = [
+      ...(reconcileResult?.errors ?? []),
+      ...(inProgressResult?.errors ?? []),
+      ...(autoReleaseResult?.errors ?? []),
+    ];
+
+    return { results, totalProcessed, totalErrors };
+  }
+
   async raiseDispute(
     bookingId: string,
     clientId: string,
@@ -584,6 +1138,15 @@ export class EscrowService implements IEscrowService {
         })
         .returning();
     });
+
+    void AuditService.log({
+      userId: clientId,
+      action: "escrow.dispute.opened",
+      entity: "bookings",
+      entityId: bookingId,
+      newValue: { disputeId: dispute.id, reason },
+    }).catch(() => {});
+    void notifyDisputeOpened(bookingId);
 
     return mapDispute(dispute);
   }
@@ -643,6 +1206,16 @@ export class EscrowService implements IEscrowService {
         .from(disputes)
         .where(eq(disputes.id, disputeId));
     });
+
+    void AuditService.log({
+      userId: adminId,
+      action: "escrow.dispute.resolved",
+      entity: "bookings",
+      entityId: dispute.bookingId,
+      oldValue: { disputeOutcome: dispute.outcome },
+      newValue: { disputeId, outcome, adminNotes: adminNotes ?? null },
+    }).catch(() => {});
+    void notifyDisputeResolved(dispute.bookingId, outcome);
 
     return mapDispute(rows[0]);
   }
