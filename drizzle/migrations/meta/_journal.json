@@ -29,6 +29,13 @@
       "when": 1791368037651,
       "tag": "0003_close-out-schema-drift",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792485572801,
+      "tag": "0004_loving_silver_samurai",
+      "breakpoints": true
     }
   ]
 }
