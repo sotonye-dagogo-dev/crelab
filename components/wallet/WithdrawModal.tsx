@@ -8,6 +8,8 @@ import { resolvePaymentNotice } from "@/lib/payment-notices";
 import { isValidRecipientCode, RECIPIENT_CODE_HINT } from "@/lib/wallet-recipients";
 import { normalizePaymentProviders } from "@/lib/payments/config";
 import { PaymentNoticeBlock } from "@/components/shared/PaymentNoticeBlock";
+import { PaymentStatusNotice } from "@/components/shared/PaymentStatusNotice";
+import { usePaymentStatus } from "@/hooks/usePaymentStatus";
 
 interface WithdrawModalProps {
   open: boolean;
@@ -27,6 +29,8 @@ export function WithdrawModal({ open, onClose, balanceKobo, onSuccess }: Withdra
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const platformConfig = usePlatformConfig();
+  const { status } = usePaymentStatus();
+  const paymentsUnavailable = status?.available === false;
 
   const providers = normalizePaymentProviders(platformConfig.payments?.provider);
   const selectedProviderId =
@@ -49,7 +53,11 @@ export function WithdrawModal({ open, onClose, balanceKobo, onSuccess }: Withdra
   // also keeps withdrawals working when the server falls back to Monnify
   // because the active Paystack credentials are missing.
   const destinationValid = needsBankAccount ? bankAccountValid : codeLooksValid || bankAccountValid;
-  const isValid = amountKobo > 0 && amountKobo <= balanceKobo && destinationValid;
+  const isValid =
+    !paymentsUnavailable &&
+    amountKobo > 0 &&
+    amountKobo <= balanceKobo &&
+    destinationValid;
   const payoutNotice = resolvePaymentNotice(platformConfig, "payoutDetails");
   const feeNotice = resolvePaymentNotice(platformConfig, "processingFees");
 
@@ -122,6 +130,8 @@ export function WithdrawModal({ open, onClose, balanceKobo, onSuccess }: Withdra
         className="w-full rounded-[8px] bg-[var(--color-surface-raised)] p-3 border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] mb-4"
         style={{ fontFamily: "'JetBrains Mono', monospace" }}
       />
+
+      <PaymentStatusNotice compact className="mb-4" />
 
       {amountKobo > balanceKobo && (
         <p className="text-[12px] text-red-500 mb-4">

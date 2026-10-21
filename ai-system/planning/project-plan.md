@@ -1,8 +1,8 @@
 # Project Plan
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: re-verify if project scope or phase changes
 
 > **Overview:** High-level feature checklist organized by development phase per ROADMAP.md. See `planning/task-queue.md` for granular, sprint-level tasks.
@@ -43,6 +43,7 @@
 - [x] Escrow Timeline UI: EscrowTimeline visual component
 - [x] Booking Detail Page: booking summary, escrow timeline, action zone, dispute modal
 - [x] Cron endpoints: setInProgress, autoRelease
+- [x] Payment rail awareness: config-driven no-provider/test-mode/fallback copy, shared status API + hook, admin environment banner, 503 money-route mapping, test↔live fallback guard, email wiring parity tests (2026-10-21)
 
 ### Milestone 1.4 — Admin & SEO (Week 5)
 

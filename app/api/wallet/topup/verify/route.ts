@@ -5,6 +5,7 @@ import { PaymentProviderService } from "@/services/PaymentProviderService";
 import { asPaymentProviderId } from "@/lib/payments/config";
 import type { PaymentProviderId } from "@/lib/payments/types";
 import { WalletService } from "@/services/WalletService";
+import { isPaymentProviderUnavailable, paymentUnavailableResponse } from "@/lib/payments/http";
 
 /**
  * Verifies a provider wallet top-up on the post-payment callback page and
@@ -86,6 +87,11 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthorized") {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+    if (isPaymentProviderUnavailable(err)) {
+      return paymentUnavailableResponse(
+        "We couldn't verify this payment because the payment provider is temporarily unavailable. If you were charged, it will be confirmed automatically once the provider is back.",
+      );
     }
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : "Internal server error" },

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { AdminSidebar } from "./AdminSidebar";
+import { PaymentEnvironmentBanner } from "./PaymentEnvironmentBanner";
 import { Menu } from "lucide-react";
 import { ClLogo } from "@/components/ui";
+import type { PaymentProviderStatus } from "@/services/PaymentProviderService";
 
 const COLLAPSED_KEY = "admin-sidebar-collapsed";
 
@@ -13,7 +15,13 @@ const COLLAPSED_KEY = "admin-sidebar-collapsed";
  * (240px ↔ 72px icon-only). Below lg it becomes a slide-in drawer toggled from
  * a mobile top bar, so admin views stay usable on small screens.
  */
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  paymentStatus = null,
+}: {
+  children: React.ReactNode;
+  paymentStatus?: PaymentProviderStatus | null;
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -60,7 +68,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <main className="flex-1 min-w-0 pt-14 lg:pt-0">
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="p-4 sm:p-6 lg:p-8">
+          <PaymentEnvironmentBanner status={paymentStatus} />
+          {children}
+        </div>
       </main>
     </div>
   );

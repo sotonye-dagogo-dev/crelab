@@ -4,7 +4,11 @@ import {
   providerSettings,
   asPaymentProviderId,
 } from "@/lib/payments/config";
-import { choosePaymentRuntime, getRecordedRuntime } from "@/lib/payments/runtime";
+import {
+  choosePaymentRuntime,
+  getRecordedRuntime,
+  isProviderUsable,
+} from "@/lib/payments/runtime";
 import type { IPaymentProvidersConfig } from "@/types";
 
 function config(overrides: Partial<IPaymentProvidersConfig> = {}): IPaymentProvidersConfig {
@@ -93,6 +97,42 @@ describe("choosePaymentRuntime", () => {
       },
     });
     expect(() => choosePaymentRuntime(cfg)).toThrow(/No payment provider is available/);
+  });
+
+  it("refuses a fallback that would switch sandbox to live mode", () => {
+    delete process.env.PAYSTACK_SECRET_KEY;
+    const cfg = config({
+      active: "PAYSTACK",
+      fallback: "MONNIFY",
+      providers: {
+        paystack: { enabled: true, testMode: false },
+        monnify: { enabled: true, testMode: true },
+      },
+    });
+    expect(() => choosePaymentRuntime(cfg)).toThrow(/sandbox and live/);
+  });
+
+  it("allows a same-environment fallback when the active provider is disabled", () => {
+    const cfg = config({
+      active: "PAYSTACK",
+      fallback: "MONNIFY",
+      providers: {
+        paystack: { enabled: false, testMode: false },
+        monnify: { enabled: true, testMode: true },
+      },
+    });
+    expect(choosePaymentRuntime(cfg)).toEqual({
+      provider: "MONNIFY",
+      testMode: true,
+      fallbackFrom: "PAYSTACK",
+    });
+  });
+
+  it("reports provider usability per environment without throwing", () => {
+    expect(isProviderUsable("PAYSTACK", false)).toBe(true);
+    expect(isProviderUsable("PAYSTACK", true)).toBe(false);
+    expect(isProviderUsable("MONNIFY", true)).toBe(true);
+    expect(isProviderUsable("MONNIFY", false)).toBe(false);
   });
 
   it("never falls back for refunds/payouts on already-moved money", () => {

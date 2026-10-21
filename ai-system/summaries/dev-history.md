@@ -1,9 +1,43 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
 > - last-verified-against-code: 2026-10-21
 
+
+## Session 2026-10-21 — execute-feature: Payment Rail Awareness (No-Provider Feedback + Test Mode + Email Parity)
+
+### What
+Operational hardening on top of the Paystack/Monnify abstraction: users get
+config-driven feedback wherever money actions live when no provider is usable,
+both users and admins see when checkout is sandbox/test mode, and payment
+lifecycle emails are test-proven to fire for either provider. No migrations.
+
+### Key decisions
+- `lib/payments/status.ts` is pure (config copy + availability); the authoritative
+  credential-aware answer comes from `PaymentProviderService.getStatus()` and the
+  sanitized `/api/payments/status` route. Client status is advisory; server routes
+  still enforce and return 503 with the same copy.
+- A test↔live fallback is now a hard stop (`PaymentProviderUnavailableError`).
+  Missing credentials must never silently charge real cards during a "test" run
+  or make a live checkout free.
+- Bank-transfer top-ups remain Paystack-only (DVA capability) and are gated on
+  enabled+configured before any provider API call.
+- User copy never names processors; admin copy uses `{{provider}}`/`{{fallback}}`
+  tokens because admins already see processor identities in finance.
+
+### Files
+`lib/payments/{status,http}.ts`; `hooks/usePaymentStatus.ts`;
+`components/shared/PaymentStatusNotice.tsx`;
+`components/admin/PaymentEnvironmentBanner.tsx`; status route;
+`PaymentProviderService`; payment/wallet/booking routes; TopUp/Withdraw/Booking
+pay panels; `PaymentStatusClient`; admin layout/shell/config; `types/index.ts`;
+`config/platform.config.ts`; `lib/payments/{config,runtime}.ts`; two new test
+files + runtime test extensions.
+
+### Verification
+`npm test` **717/717** (59 files); `tsc --noEmit` clean; `next lint` 0 errors
+(pre-existing warnings only); `next build` green.
 
 ## Session 2026-10-21 — execute-feature: Multi-Provider Payments (Paystack + Monnify)
 

@@ -1,7 +1,7 @@
 # Dependency Graph
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
 > - last-verified-against-code: 2026-10-21
 > - staleness-policy: auto-regenerable — can be derived from import analysis tools. Manual content only for conventions and rules that cannot be inferred from code.
 
@@ -76,13 +76,20 @@ Multi-provider payment rail (2026-10-21)
     naira↔kobo conversion, 1h token cache, SHA-512 webhook signature, redirect checkout,
     refund min ₦100 + transactionReference, disbursement source account)
   → lib/payments/runtime.ts (PURE choosePaymentRuntime active→fallback with enabled+
-    credential checks; getRecordedRuntime never falls back for refunds/payouts)
+    credential checks and a test↔live fallback guard; getRecordedRuntime never falls back
+    for refunds/payouts; isProviderUsable)
   → services/PaymentProviderService.ts (only layer reading PlatformConfigService; returns
-    runtime+adapter; lib stays service-free)
+    runtime+adapter and a never-throwing getStatus snapshot; lib stays service-free)
   → consumed by EscrowService.initiate/reconcileBooking/refundBookingFunds, WalletService
     topUpFromCard/requestWithdrawal, PaymentService, /wallet/topup/*, /wallet/withdraw,
     /bookings/[id]/pay/verify, /webhooks/monnify; finance/analytics aggregate
     payments.provider+test_mode and wallet_transactions.provider+test_mode
+  → lib/payments/status.ts (PURE resolvePaymentStatusCopy + fillPaymentStatusTokens +
+    resolveConfiguredAvailability) and lib/payments/http.ts (503 code/message mapping)
+  → services/PaymentProviderService.getStatus() → GET /api/payments/status (sanitized)
+    → hooks/usePaymentStatus (30s cache/inflight) → components/shared/PaymentStatusNotice
+    (wallet/booking pay/top-up/withdraw/result) + components/admin/PaymentEnvironmentBanner
+    (AdminShell); copy edited via payments.status.* in /admin/config
 
 Escrow hold integrity + guidance layer (2026-10-19)
   → lib/payment-flow.ts (PURE leaf, zero deps: BOOKING_REF_PREFIX, parseBookingIdFromRef,
@@ -447,7 +454,7 @@ Drizzle
 | Google Drive API (raw fetch — no SDK import in lib/drive.ts) | Google Drive portfolio sync + read-only link preview | lib/drive.ts, services/DriveService.ts, app/api/portfolio/drive, app/api/portfolio/drive/preview |
 | @sanity/client, @sanity/image-url (via next-sanity) | Sanity CMS content fetching + image URL builder | lib/sanity.ts, sanity/, app/(public)/blog/ |
 | resend | Transactional email (raw HTTP, no SDK) | services/EmailService.ts |
-| Paystack API (raw fetch), Monnify API (raw fetch) | Charges, verify, refunds, payouts; provider selected at runtime from admin config | lib/paystack.ts, lib/payments/paystack.ts, lib/payments/monnify.ts |
+| Paystack API (raw fetch), Monnify API (raw fetch) | Charges, verify, refunds, payouts; provider selected at runtime from admin config; rail status + test/fallback awareness surfaced via `/api/payments/status` | lib/paystack.ts, lib/payments/paystack.ts, lib/payments/monnify.ts, lib/payments/status.ts |
 | Not yet wired: Paystack SDK, Mux SDK, Flutterwave | — | — |
 
 ---

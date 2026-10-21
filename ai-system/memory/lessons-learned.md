@@ -938,3 +938,21 @@
 
 **Supersedes:** None
 **Superseded by:** None
+
+---
+
+## Fail Closed Across Test/Live Boundaries — and Prove Provider Parity With Tests
+
+**Context:** With an admin-selectable active/fallback provider, a missing credential on the active rail could quietly hand checkout to a fallback configured for the other environment. At the same time, "emails fire for both providers" was an unverified assumption.
+
+**What We Learned:**
+1. A fallback is only safe when both rails agree on test vs live. An enabled-but-uncredentialed active provider whose fallback runs in the other environment must pause payments with an explicit admin reason — charging real cards during a "test" run (or making live checkout free) is far worse than a 503.
+2. Client-side availability is UX, not enforcement: derive the first paint from public config, refine with a sanitized status endpoint, and keep the server-side runtime check + `503` on every money route.
+3. Make operational states explicit and configurable (unavailable / test mode / fallback) with separate user and admin copy; never leak processor names to users, but give admins labels and a reason.
+4. Prove cross-provider parity with code-level invariants: assert every lifecycle email template key used by `fire(...)` exists and is enabled, and assert both webhooks converge on the same idempotent handlers. A `grep` audit is not a regression test.
+5. Each provider can have different capabilities (DVA/bank transfer is Paystack-only today); model capability availability on the status object instead of assuming full parity.
+
+**Apply When:** Adding a payment/view provider, routing fallback, or any feature where "both paths should behave the same" — encode the invariant in tests and expose capability differences explicitly.
+
+**Supersedes:** None
+**Superseded by:** None

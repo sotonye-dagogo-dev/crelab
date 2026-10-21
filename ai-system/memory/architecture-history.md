@@ -1,8 +1,8 @@
 # Architecture History
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-19)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: historical entries do not go stale — only the current architecture (in system-architecture.md) needs re-verification
 
 > **Overview:** Chronological record of how Crelab's system architecture has evolved.
@@ -10,6 +10,21 @@
 ---
 
 ## History
+
+### 2026-10-21 — Payment Rail Status + Fail-Closed Environment Guard
+
+**State:**
+Payment routing gained an operational-status layer above the adapter runtime. `PaymentProviderService.getStatus()` returns a never-throwing snapshot (available, provider labels, test mode, fallback origin/usage, per-provider enabled/configured, Paystack-only DVA capability, admin reason), exposed publicly in sanitized form through `GET /api/payments/status` and consumed by `hooks/usePaymentStatus` → `PaymentStatusNotice` (user money surfaces) and `PaymentEnvironmentBanner` (admin shell). Copy lives in `payments.status.*` with separate user/admin variants.
+
+`choosePaymentRuntime` now fails closed when an enabled-but-uncredentialed active provider would fall back into the opposite test/live environment; payments pause with a loud reason instead of silently charging real cards or making live checkout free. Every money route maps `PaymentProviderUnavailableError` to 503 + the same config copy, and bank top-up pre-checks Paystack enabled+configured before any DVA API call.
+
+**Rationale:**
+Operational truth belongs in one snapshot rather than being inferred per surface. Client status is UX (advisory), while route-level runtime checks remain the enforcement boundary, so a stale/failed probe can never complete a doomed checkout. Environment mismatch is a safety incident, not a routing preference — fail closed and let admins fix credentials.
+
+**Drift resolved:**
+- `isProviderUsable` is now the single capability check shared by runtime, status and recorded-provider operations.
+
+---
 
 ### 2026-10-19 — Escrow Hold Integrity + Guidance Layer
 
