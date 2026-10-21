@@ -1,9 +1,44 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
+> - last-verified-against-code: 2026-10-21
 
+
+## Session 2026-10-21 — execute-feature: Multi-Provider Payments (Paystack + Monnify)
+
+### What
+Payment expansion from a single Paystack rail to an admin-configurable Paystack/Monnify
+rail, with per-provider sandbox toggles, audited fallback, and provider + test-mode
+attribution across bookings, payments, wallet ledger, finance and analytics. User-facing
+processor names were removed from public copy. Config/metadata-driven, non-breaking,
+full QA gate + `update-ai-system.md` deep sync.
+
+### Key decisions
+- `payments.provider = { active, fallback, providers: { paystack, monnify } }`; old
+  configs normalise to Paystack live, so no deploy can leave the platform rail-less.
+- Credentials stay ENV-only (`*_TEST_*` pairs) and never cross-fallback; Paystack test
+  mode requires a dedicated test secret rather than reusing the live key.
+- `PaymentProviderService` owns config→runtime resolution (lib stays service-free).
+  Refunds/payouts/reconciliation use `getRecordedRuntime(provider, testMode)` — never
+  fallback, because the money already moved at that processor.
+- Monnify: NGN decimals at the boundary (kobo internally), 1h token cache, redirect
+  checkout, `paymentReference` verify, SHA-512 webhook, refunds require
+  `transactionReference` and ≥₦100, payouts require a funded source account.
+- Schema is additive/idempotent: `0009_payment_providers.sql` backfills PAYSTACK/live.
+
+### Files
+`lib/payments/{types,config,runtime,paystack,monnify}.ts`;
+`services/PaymentProviderService.ts`; `app/api/webhooks/monnify/route.ts`;
+`drizzle/migrations/0009_payment_providers.sql`; updates to `EscrowService`,
+`WalletService`, `PaymentService`, `PlatformConfigService`, `FinanceService`,
+`AnalyticsService`, `types/index.ts`, `drizzle/schema.ts`, `config/platform.config.ts`,
+payment/wallet routes, `useBookingPayment`, TopUp/Withdraw modals, admin config/finance,
+landing/privacy/how-it-works copy, `.env.example`, two new test files.
+
+### Verification
+`npm run typecheck` clean; `npm test` 703/703; `npm run lint` clean (pre-existing
+warnings only); `npm run build` green.
 
 ## Session 2026-10-19 — execute-feature: Booking & Payment Flow Integrity + Guidance Affordances
 

@@ -2,12 +2,38 @@ import { db } from "@/lib/db";
 import { wallets, walletTransactions, processedWebhookEvents } from "@/drizzle/schema";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { InsufficientBalanceError, DuplicateWebhookError } from "@/lib/errors";
-import { initiateTransfer } from "@/lib/paystack";
+import { PaymentProviderService } from "@/services/PaymentProviderService";
+import type { PayoutDestination, PaymentProviderId } from "@/lib/payments/types";
 import { AuditService } from "@/services/AuditService";
 import { notifyWalletTopup, notifyWithdrawalRequested } from "@/lib/lifecycle-emails";
 import type { IWallet, IWalletTransaction } from "@/types";
 import { WalletTransactionType } from "@/types";
 import crypto from "crypto";
+
+/** Bank details for a payout. `recipientCode` is Paystack's legacy shortcut. */
+export interface WithdrawalDestination {
+  recipientCode?: string;
+  accountNumber?: string;
+  bankCode?: string;
+  accountName?: string;
+}
+
+function toPayoutDestination(destination: WithdrawalDestination): PayoutDestination | null {
+  if (destination.recipientCode) {
+    return { kind: "recipient_code", code: destination.recipientCode };
+  }
+  if (destination.accountNumber && destination.bankCode && destination.accountName) {
+    return {
+      kind: "bank_account",
+      account: {
+        accountNumber: destination.accountNumber,
+        bankCode: destination.bankCode,
+        accountName: destination.accountName,
+      },
+    };
+  }
+  return null;
+}
 
 function mapWallet(row: typeof wallets.$inferSelect): IWallet {
   return {
@@ -35,6 +61,8 @@ function mapTransaction(row: typeof walletTransactions.$inferSelect): IWalletTra
     relatedBookingId: row.relatedBookingId ?? undefined,
     relatedMilestoneId: row.relatedMilestoneId ?? undefined,
     paystackRef: row.paystackRef ?? undefined,
+    provider: row.provider as PaymentProviderId,
+    testMode: row.testMode,
     metadata: row.metadata as Record<string, unknown>,
     createdAt: row.createdAt.toISOString(),
   };
@@ -43,11 +71,20 @@ function mapTransaction(row: typeof walletTransactions.$inferSelect): IWalletTra
 export interface IWalletService {
   getOrCreate(userId: string): Promise<IWallet>;
   getBalance(userId: string): Promise<{ balanceKobo: number; escrowKobo: number; totalEarnedKobo: number }>;
-  topUpFromCard(userId: string, amountKobo: number, paystackRef: string): Promise<IWalletTransaction>;
+  topUpFromCard(
+    userId: string,
+    amountKobo: number,
+    paystackRef: string,
+    options?: { provider?: PaymentProviderId; testMode?: boolean },
+  ): Promise<IWalletTransaction>;
   topUpFromBankTransfer(userId: string, amountKobo: number, paystackRef: string): Promise<IWalletTransaction>;
   debitForBooking(userId: string, bookingId: string, amountKobo: number, feeKobo: number): Promise<{ debit: IWalletTransaction; fee: IWalletTransaction }>;
   creditFromEscrowRelease(providerUserId: string, bookingId: string, netKobo: number, feeKobo: number): Promise<IWalletTransaction>;
-  requestWithdrawal(userId: string, amountKobo: number, bankRecipientCode: string): Promise<{ transferCode: string }>;
+  requestWithdrawal(
+    userId: string,
+    amountKobo: number,
+    destination: WithdrawalDestination,
+  ): Promise<{ transferCode: string; provider: PaymentProviderId; testMode: boolean }>;
   debitForMilestone(clientUserId: string, milestoneId: string, amountKobo: number, feeKobo: number): Promise<IWalletTransaction>;
   reverseMilestoneDebit(clientUserId: string, milestoneId: string, amountKobo: number, feeKobo: number): Promise<IWalletTransaction>;
   creditMilestoneRelease(providerUserId: string, milestoneId: string, netKobo: number, feeKobo: number): Promise<IWalletTransaction>;
@@ -86,7 +123,12 @@ export class WalletService implements IWalletService {
     };
   }
 
-  async topUpFromCard(userId: string, amountKobo: number, paystackRef: string): Promise<IWalletTransaction> {
+  async topUpFromCard(
+    userId: string,
+    amountKobo: number,
+    paystackRef: string,
+    options: { provider?: PaymentProviderId; testMode?: boolean } = {},
+  ): Promise<IWalletTransaction> {
     const [existing] = await db
       .select()
       .from(processedWebhookEvents)
@@ -141,6 +183,8 @@ export class WalletService implements IWalletService {
           balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + amountKobo,
           reference: ref,
           paystackRef,
+          provider: options.provider ?? "PAYSTACK",
+          testMode: options.testMode ?? false,
         })
         .returning();
     });
@@ -150,7 +194,13 @@ export class WalletService implements IWalletService {
       action: "wallet.topup.card",
       entity: "wallets",
       entityId: wallet.id,
-      newValue: { amountKobo, paystackRef, reference: ref },
+      newValue: {
+        amountKobo,
+        paystackRef,
+        reference: ref,
+        provider: options.provider ?? "PAYSTACK",
+        testMode: options.testMode ?? false,
+      },
     }).catch(() => {});
     void notifyWalletTopup(userId, amountKobo);
 
@@ -208,6 +258,8 @@ export class WalletService implements IWalletService {
           balanceAfterKobo: updated?.balanceKobo ?? wallet.balanceKobo + amountKobo,
           reference: ref,
           paystackRef,
+          provider: "PAYSTACK",
+          testMode: false,
         })
         .returning();
     });
@@ -217,7 +269,7 @@ export class WalletService implements IWalletService {
       action: "wallet.topup.bank",
       entity: "wallets",
       entityId: wallet.id,
-      newValue: { amountKobo, paystackRef, reference: ref },
+      newValue: { amountKobo, paystackRef, reference: ref, provider: "PAYSTACK", testMode: false },
     }).catch(() => {});
     void notifyWalletTopup(userId, amountKobo);
 
@@ -467,7 +519,16 @@ export class WalletService implements IWalletService {
     return mapTransaction(txn);
   }
 
-  async requestWithdrawal(userId: string, amountKobo: number, bankRecipientCode: string): Promise<{ transferCode: string }> {
+  async requestWithdrawal(
+    userId: string,
+    amountKobo: number,
+    destination: WithdrawalDestination,
+  ): Promise<{ transferCode: string; provider: PaymentProviderId; testMode: boolean }> {
+    const payoutDestination = toPayoutDestination(destination);
+    if (!payoutDestination) {
+      throw new Error("Enter valid bank account details for this withdrawal");
+    }
+    const { runtime, adapter } = await PaymentProviderService.getRuntime();
     const wallet = await this.getOrCreate(userId);
 
     if (wallet.balanceKobo < amountKobo) {
@@ -499,24 +560,40 @@ export class WalletService implements IWalletService {
           direction: "DEBIT",
           balanceAfterKobo: updated.balanceKobo,
           reference: ref,
+          provider: runtime.provider,
+          testMode: runtime.testMode,
         });
 
       return updated.balanceKobo;
     });
 
     try {
-      const transferResult = await initiateTransfer(amountKobo, bankRecipientCode, ref);
+      const transferResult = await adapter.payout(
+        { amountKobo, reference: ref, destination: payoutDestination },
+        runtime.testMode,
+      );
 
       void AuditService.log({
         userId,
         action: "wallet.withdrawal.requested",
         entity: "wallets",
         entityId: wallet.id,
-        newValue: { amountKobo, bankRecipientCode, transferCode: transferResult.transferCode, reference: ref },
+        newValue: {
+          amountKobo,
+          transferCode: transferResult.transferCode,
+          reference: ref,
+          provider: runtime.provider,
+          testMode: runtime.testMode,
+          fallbackFrom: runtime.fallbackFrom,
+        },
       }).catch(() => {});
       void notifyWithdrawalRequested(userId, amountKobo);
 
-      return { transferCode: transferResult.transferCode };
+      return {
+        transferCode: transferResult.transferCode,
+        provider: runtime.provider,
+        testMode: runtime.testMode,
+      };
     } catch (err) {
       await db.transaction(async (tx) => {
         await tx

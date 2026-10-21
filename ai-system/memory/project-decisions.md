@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment visibility end-to-end)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -33,6 +33,32 @@
 ---
 
 ## Decisions
+
+
+## Multi-Provider Payment Rail: Admin Routing, Recorded-Provider Refunds, ENV-Only Credentials
+
+**Decision:** Processor choice becomes configuration, not code. `payments.provider` stores `{ active, fallback, providers: { paystack, monnify } }` with per-provider `enabled` + `testMode`; credentials stay in ENV (live and `*_TEST_*` pairs). New charges resolve active → fallback via `PaymentProviderService` (audited as `payment.provider.fallback`), while refunds, payouts and reconciliation resolve the provider/test mode **recorded on the money row** through `getRecordedRuntime()` and never fall back. Every booking, payment and wallet transaction stores `provider` + `test_mode`; finance/analytics filter and aggregate on them. Monnify is a first-class adapter (redirect checkout, `paymentReference` verify, SHA-512 webhook, ₦100-min refunds, source-account payouts) behind the same contract as Paystack. Public copy names no processor except where policy/legal notices require it (per `payments.notices`).
+**Date:** 2026-10-21
+**Made by:** Implementer (execute-feature — per payment expansion directive)
+**Supersedes:** None — extends the 2026-10-14 "Paystack Rail" decision to multiple rails; that decision's app-side escrow and payout-on-release semantics remain unchanged.
+**Superseded by:** None
+
+**Reason:**
+Monnify covers the same Nigerian cards/transfers/bank rails with a hosted checkout and sandbox, but the platform must survive provider outages, onboarding gaps and sandbox/live separation without a deploy. Hard-coding one processor also leaks vendor names into public UX and makes historical attribution impossible after a switch. Recording provider+mode at movement time is the only way refunds and audits remain correct when the active provider changes later.
+
+**Alternatives Considered:**
+- Auto-fallback for refunds/payouts — rejected: refunding through a processor that never received the charge is an unaudited cross-rail transfer.
+- Store API keys in `platform_config` — rejected: config rows are readable by admins/API and would widen secret exposure; ENV keeps credentials out of the database and normal sanitisation.
+- Reusing the live Paystack key when "test mode" is on — rejected: silent real-money charges; test mode instead requires `PAYSTACK_TEST_SECRET_KEY` and fails loudly.
+- Parallel provider-specific routes/services — rejected: duplicated escrow/wallet invariants; one adapter contract keeps ACID money paths shared and testable.
+- Renaming `paystack_ref` columns — rejected: provider-agnostic in practice, and a rename is a breaking migration for zero behavioural gain; `provider_ref` is additive.
+
+**Implications:**
+- Enabling a provider = set ENV credentials + toggle it in `/admin/config`; no code change.
+- Adding a third processor = implement `PaymentProviderAdapter`, register it, add settings/type/UI option, and run the runtime tests.
+- Refund/payout failures are terminal for that rail (no fallback) and surface loudly for manual reconciliation.
+- Historical finance rows created before 0009 are attributed PAYSTACK/live; no other backfill is possible or attempted.
+- `lib` remains service-free: config-resolution lives in `services/PaymentProviderService.ts`, pure selection in `lib/payments/runtime.ts`.
 
 ## Escrow Hold Integrity: Truthful Verify, Terminal-Only De-Dupe, Ref-Attribution Fallback, Reconcile Vocabulary
 

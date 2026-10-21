@@ -88,6 +88,8 @@ export function normalizeTransactionFilters(query: Record<string, string | strin
   kind: "ALL" | "PAYMENT" | "WALLET";
   status: string;
   type: string;
+  provider: "" | "PAYSTACK" | "MONNIFY";
+  testMode: "ALL" | "LIVE" | "TEST";
   from: string | null;
   to: string | null;
   page: number;
@@ -100,6 +102,10 @@ export function normalizeTransactionFilters(query: Record<string, string | strin
   const pageSize = Math.min(100, Math.max(1, rawSize));
   const kindRaw = first(query.kind).toUpperCase();
   const kind = kindRaw === "PAYMENT" || kindRaw === "WALLET" ? kindRaw : "ALL";
+  const providerRaw = first(query.provider).toUpperCase();
+  const provider = providerRaw === "PAYSTACK" || providerRaw === "MONNIFY" ? providerRaw : "";
+  const testModeRaw = first(query.testMode).toUpperCase();
+  const testMode = testModeRaw === "TEST" || testModeRaw === "LIVE" ? testModeRaw : "ALL";
   const fromRaw = first(query.from).trim();
   const toRaw = first(query.to).trim();
   const from = fromRaw && !Number.isNaN(Date.parse(fromRaw)) ? fromRaw : null;
@@ -109,6 +115,8 @@ export function normalizeTransactionFilters(query: Record<string, string | strin
     kind,
     status: first(query.status).trim().slice(0, 40),
     type: first(query.type).trim().slice(0, 40),
+    provider,
+    testMode,
     from,
     to,
     page,

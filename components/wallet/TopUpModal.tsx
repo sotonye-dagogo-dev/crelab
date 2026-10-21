@@ -32,7 +32,7 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Could not start payment");
 
-      // Redirect to Paystack checkout. On completion Paystack returns to
+      // Redirect to the processor's hosted checkout. On completion it returns to
       // /wallet/payment-status which verifies the transaction and reflects it.
       window.location.href = json.data.authorizationUrl;
     } catch (err) {
@@ -131,12 +131,12 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
             loading={isLoading}
             onClick={handleCardTopUp}
           >
-            Proceed to Paystack
+            Proceed to secure checkout
           </ClButton>
 
           <p className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)] mt-4 text-center">
             <Lock size={11} strokeWidth={2} />
-            Secured by Paystack. Your card details are never seen by {platformName}.
+            Secured by our payment partner. Your card details are never seen by {platformName}.
           </p>
         </>
       ) : (

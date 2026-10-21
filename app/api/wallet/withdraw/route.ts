@@ -3,12 +3,17 @@ import { requireRole } from "@/lib/auth";
 import { WalletService } from "@/services/WalletService";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { isValidRecipientCode } from "@/lib/wallet-recipients";
+import { PaymentProviderService } from "@/services/PaymentProviderService";
 
 export async function POST(req: NextRequest) {
   try {
     const session = await requireRole("PROVIDER", "ADMIN");
     const body = await req.json();
-    const { amountKobo, bankRecipientCode } = body;
+    const { amountKobo, bankRecipientCode, bankAccount } = body as {
+      amountKobo?: number;
+      bankRecipientCode?: string;
+      bankAccount?: { accountNumber?: string; bankCode?: string; accountName?: string };
+    };
 
     if (!amountKobo || amountKobo <= 0) {
       return NextResponse.json(
@@ -17,21 +22,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!bankRecipientCode) {
+    const { runtime } = await PaymentProviderService.getRuntime();
+    const hasBankAccount = Boolean(
+      bankAccount?.accountNumber && bankAccount?.bankCode && bankAccount?.accountName,
+    );
+
+    if (runtime.provider === "MONNIFY" && !hasBankAccount) {
       return NextResponse.json(
-        { success: false, error: "Bank recipient code is required" },
+        {
+          success: false,
+          error:
+            "Enter the destination bank account number, bank code and account name for this payout.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!hasBankAccount && !bankRecipientCode) {
+      return NextResponse.json(
+        { success: false, error: "Bank account details are required" },
         { status: 400 },
       );
     }
 
     // Format check BEFORE any wallet debit — a malformed code would otherwise
-    // debit the balance and only fail later at Paystack transfer time.
-    if (typeof bankRecipientCode !== "string" || !isValidRecipientCode(bankRecipientCode)) {
+    // debit the balance and only fail later at transfer time.
+    if (bankRecipientCode && !isValidRecipientCode(bankRecipientCode)) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Invalid payout recipient code — expected a Paystack code like RCP_x8f2k4q9. Double-check the details you are paying out to; payouts sent to the wrong details cannot be recovered.",
+            "Invalid payout recipient code. Double-check the details you are paying out to; payouts sent to the wrong details cannot be recovered.",
         },
         { status: 400 },
       );
@@ -49,7 +70,13 @@ export async function POST(req: NextRequest) {
     const result = await walletService.requestWithdrawal(
       session.user.id,
       amountKobo,
-      bankRecipientCode.trim(),
+      hasBankAccount
+        ? {
+            accountNumber: bankAccount!.accountNumber!.trim(),
+            bankCode: bankAccount!.bankCode!.trim(),
+            accountName: bankAccount!.accountName!.trim(),
+          }
+        : { recipientCode: bankRecipientCode!.trim() },
     );
 
     return NextResponse.json({ success: true, data: result });

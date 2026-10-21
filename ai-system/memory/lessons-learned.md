@@ -905,3 +905,36 @@
 
 **Supersedes:** None
 **Superseded by:** None
+
+---
+
+## Normalise Provider Units at the Adapter Boundary; Never Let Naira and Kobo Mix
+
+**Context:** Monnify's API accepts and returns NGN decimals while the platform stores every amount as integer kobo. A single missed conversion would over/under-charge by 100× and could not be fixed by retrying.
+
+**What We Learned:**
+1. Each adapter owns exactly one unit conversion (`nairaToKobo` / `koboToNaira`) and the shared contract speaks kobo only. Services never branch on provider units.
+2. Status strings must be mapped explicitly, including ambiguous ones: Monnify `PARTIALLY_PAID` is treated as `pending` (never a second auto-charge), and only `PAID`/`OVERPAID` are `success`.
+3. Provider-specific prerequisites are validated before any ledger mutation: Monnify refunds need `transactionReference` and ≥₦100; disbursements need bank details + a funded source account. Failing before the debit keeps the wallet consistent.
+
+**Apply When:** Adding any payment processor — define the internal unit, one conversion per adapter, explicit status mapping, and pre-debit capability checks.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Fallback Is For New Charges Only — Money Already Moved Uses Its Recorded Provider
+
+**Context:** Multi-provider routing can silently switch the active processor when credentials are missing. Applying that fallback to refunds or payouts would send money through a different rail than the one that received it.
+
+**What We Learned:**
+1. Split resolution into two functions: `choosePaymentRuntime(config)` for new checkouts (active → fallback, audited via `fallbackFrom`) and `getRecordedRuntime(provider, testMode)` for refunds/payouts/reconciliation (configured credentials required, no fallback).
+2. Persist `provider` + `testMode` on every money row at creation; derive later operations from the row, never from the current admin setting.
+3. Test mode must use dedicated sandbox credentials. Reusing a live key under a "test" toggle is worse than refusing to start — refuse and let fallback/error handling surface it.
+4. Keep lib service-free: runtime resolution that needs persisted config belongs in a service (`PaymentProviderService`); the pure decision stays in `lib/payments/runtime.ts` and is unit-tested.
+
+**Apply When:** Any multi-vendor abstraction in a money path — separate routing-for-new-work from replay-for-existing-work, and record the vendor on the ledger row.
+
+**Supersedes:** None
+**Superseded by:** None

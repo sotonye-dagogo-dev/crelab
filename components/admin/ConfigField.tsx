@@ -6,7 +6,8 @@ import { usePlatformConfig } from "@/lib/config-context";
 export interface ConfigFieldProps {
   label: string;
   fieldKey: string;
-  type: "text" | "color" | "number" | "toggle" | "textarea";
+  type: "text" | "color" | "number" | "toggle" | "textarea" | "select";
+  options?: { label: string; value: string }[];
   value: unknown;
   defaultValue: unknown;
   unit?: string;
@@ -22,6 +23,7 @@ export function ConfigField({
   defaultValue,
   unit,
   hint,
+  options,
   onChange,
 }: ConfigFieldProps) {
   const platformConfig = usePlatformConfig();
@@ -69,6 +71,13 @@ export function ConfigField({
       if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
         onChange(fieldKey, hex);
       }
+    },
+    [fieldKey, onChange],
+  );
+
+  const handleSelect = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      onChange(fieldKey, e.target.value);
     },
     [fieldKey, onChange],
   );
@@ -134,6 +143,16 @@ export function ConfigField({
           </span>
         )}
       </div>
+    ) : type === "select" ? (
+      <select
+        value={String(value ?? "")}
+        onChange={handleSelect}
+        className="h-10 px-3 rounded-[8px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[14px] text-[var(--color-text-primary)] outline-none w-full max-w-[240px] focus:border-[var(--color-accent)] transition-[border-color] duration-[150ms]"
+      >
+        {(options ?? []).map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
     ) : type === "textarea" ? (
       <textarea
         value={displayValue}

@@ -178,7 +178,16 @@ export const bookings = pgTable("bookings", {
   serviceDate: timestamp("service_date", { withTimezone: true }),
   scopeNotes: text("scope_notes"),
   releaseDeadline: timestamp("release_deadline", { withTimezone: true }),
+  /**
+   * Processor reference (legacy column name). Stores our own generated
+   * payment reference, which is provider-agnostic — `paymentProvider` records
+   * which processor issued it.
+   */
   paystackRef: text("paystack_ref"),
+  /** Processor selected for the latest checkout (PAYSTACK | MONNIFY). */
+  paymentProvider: text("payment_provider").notNull().default("PAYSTACK"),
+  /** True when the latest checkout ran against the processor's sandbox. */
+  paymentTestMode: boolean("payment_test_mode").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -233,6 +242,10 @@ export const walletTransactions = pgTable("wallet_transactions", {
   relatedBookingId: text("related_booking_id").references(() => bookings.id),
   relatedMilestoneId: uuid("related_milestone_id").references(() => bookingMilestones.id),
   paystackRef: text("paystack_ref"),
+  /** Processor that funded/settled this ledger entry (defaults for pure wallet moves). */
+  provider: text("provider").notNull().default("PAYSTACK"),
+  /** True when the funding/settlement ran in the processor's sandbox. */
+  testMode: boolean("test_mode").notNull().default(false),
   metadata: jsonb("metadata").notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -256,6 +269,16 @@ export const payments = pgTable("payments", {
   /** Money in kobo */
   netAmount: integer("net_amount").notNull(),
   paystackRef: text("paystack_ref").notNull(),
+  /** Processor that handled this payment. */
+  provider: text("provider").notNull().default("PAYSTACK"),
+  /** True when the payment ran against the processor's sandbox. */
+  testMode: boolean("test_mode").notNull().default(false),
+  /**
+   * Provider-side transaction reference. Paystack uses `paystackRef` for
+   * refunds; Monnify refunds require the `transactionReference` returned by
+   * checkout, which is stored here.
+   */
+  providerRef: text("provider_ref"),
   status: text("status").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

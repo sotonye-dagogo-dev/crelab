@@ -39,6 +39,7 @@ async function getBookingDetail(id: string) {
     status: row.booking.status as IBooking["status"],
     escrowState: row.booking.escrowState as IBooking["escrowState"],
     paymentMode: (row.booking.paymentMode ?? "ESCROW") as IBooking["paymentMode"],
+    paymentProvider: row.booking.paymentProvider as IBooking["paymentProvider"],
     serviceDate: row.booking.serviceDate?.toISOString() ?? null,
     releaseDeadline: row.booking.releaseDeadline?.toISOString() ?? null,
     createdAt: row.booking.createdAt.toISOString(),
@@ -48,6 +49,9 @@ async function getBookingDetail(id: string) {
   const payment: IPayment | null = row.payment
     ? {
         ...row.payment,
+        provider: row.payment.provider as IPayment["provider"],
+        testMode: row.payment.testMode,
+        providerRef: row.payment.providerRef ?? null,
         createdAt: row.payment.createdAt.toISOString(),
       }
     : null;

@@ -43,11 +43,22 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
   // Config-driven payment notices/disclaimers (render-time tokens:
   // {{name}}, {{feeRate}}, {{escrowWindow}} — see lib/platform-copy.fillConfigCopy)
   payments: {
+    // Admin-togglable processor routing. Credentials are environment-only
+    // (never config) so switching providers can never leak or persist secrets.
+    // Paystack stays the default for backward compatibility.
+    provider: {
+      active: "PAYSTACK",
+      fallback: "MONNIFY",
+      providers: {
+        paystack: { enabled: true, testMode: false },
+        monnify: { enabled: false, testMode: true },
+      },
+    },
     notices: {
       payoutDetails: {
         enabled: true,
         title: "Check your payout details",
-        body: "Payouts are sent to the bank account details you provide. Double-check your account number and bank before you withdraw — a payout sent to incorrect details cannot be recovered, and neither {{name}} nor Paystack can be held liable for payouts made to the details you entered.",
+        body: "Payouts are sent to the bank account details you provide. Double-check your account number and bank before you withdraw — a payout sent to incorrect details cannot be recovered, and neither {{name}} nor its payment partners can be held liable for payouts made to the details you entered.",
       },
       processingFees: {
         enabled: true,

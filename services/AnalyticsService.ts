@@ -69,6 +69,8 @@ export interface IAnalyticsOverview {
     bookingsByStatus: IAnalyticsBreakdown[];
     revenueByCategoryKobo: IAnalyticsBreakdown[];
     usersByRole: IAnalyticsBreakdown[];
+    /** Payment count + GMV grouped by processor and environment. */
+    paymentsByProvider: (IAnalyticsBreakdown & { testMode: boolean; provider: string; gmvKobo: number })[];
   };
   topProviders: ITopProvider[];
   platform: Record<string, number>;
@@ -101,12 +103,13 @@ export class AnalyticsService {
 
     const [userStats, lifetime] = await Promise.all([this.userStats(from, prevFrom), this.lifetimeStats()]);
 
-    const [statusRows, categoryRows, roleRows, topRows, platform] = await Promise.all([
+    const [statusRows, categoryRows, roleRows, topRows, platform, providerRows] = await Promise.all([
       this.bookingsByStatus(from),
       this.revenueByCategory(from),
       this.usersByRole(),
       this.topProviders(5),
       this.extendedCounts(),
+      this.paymentsByProvider(from),
     ]);
 
     // ── Daily series ──
@@ -224,6 +227,7 @@ export class AnalyticsService {
         bookingsByStatus: statusRows,
         revenueByCategoryKobo: categoryRows,
         usersByRole: roleRows,
+        paymentsByProvider: providerRows,
       },
       topProviders: topRows,
       platform,
@@ -402,6 +406,32 @@ export class AnalyticsService {
     const map = new Map<string, number>();
     for (const r of rows) map.set(r.day, Number(r.sum ?? 0));
     return map;
+  }
+
+  private async paymentsByProvider(
+    from: Date,
+  ): Promise<(IAnalyticsBreakdown & { testMode: boolean; provider: string; gmvKobo: number })[]> {
+    const rows = await db
+      .select({
+        provider: payments.provider,
+        testMode: payments.testMode,
+        count: sql<number>`COUNT(*)`.as("count"),
+        gmv: sql<number>`COALESCE(SUM(${payments.amount}), 0)`.as("gmv"),
+      })
+      .from(payments)
+      .where(gte(payments.createdAt, from))
+      .groupBy(payments.provider, payments.testMode);
+
+    return rows.map((r) => ({
+      key: `${r.provider}:${r.testMode ? "TEST" : "LIVE"}`,
+      label: `${r.provider}${r.testMode ? " (test)" : ""}`,
+      value: Number(r.count ?? 0),
+      provider: r.provider,
+      testMode: r.testMode,
+      // GMV is carried separately by the finance summary; the breakdown's
+      // numeric `value` stays a count so charts keep a consistent unit.
+      gmvKobo: Number(r.gmv ?? 0),
+    }));
   }
 
   /* ── Lifetime platform-wide counters (single bounded aggregates) ── */
