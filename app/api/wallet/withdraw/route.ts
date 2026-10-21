@@ -4,6 +4,12 @@ import { WalletService } from "@/services/WalletService";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { isValidRecipientCode } from "@/lib/wallet-recipients";
 import { PaymentProviderService } from "@/services/PaymentProviderService";
+import {
+  DEFAULT_PAYMENT_UNAVAILABLE_MESSAGE,
+  isPaymentProviderUnavailable,
+  paymentUnavailableResponse,
+} from "@/lib/payments/http";
+import { resolvePaymentStatusCopy } from "@/lib/payments/status";
 
 export async function POST(req: NextRequest) {
   try {
@@ -86,6 +92,18 @@ export async function POST(req: NextRequest) {
     }
     if (err instanceof Error && err.message === "Unauthorized") {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+    if (isPaymentProviderUnavailable(err)) {
+      let message = DEFAULT_PAYMENT_UNAVAILABLE_MESSAGE;
+      try {
+        message = resolvePaymentStatusCopy(
+          await PlatformConfigService.get(),
+          "unavailable",
+        ).body;
+      } catch {
+        // Config read failed — fall back to the stable message above.
+      }
+      return paymentUnavailableResponse(message);
     }
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : "Internal server error" },

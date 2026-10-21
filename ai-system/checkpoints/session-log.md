@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -11,6 +11,23 @@
 
 ## Sessions
 
+## Session 2026-10-21 — Payment Rail Awareness: No-Provider Feedback, Test-Mode, Email Parity (execute-feature)
+
+**Directive:** Make the multi-provider rail operationally honest: users must get clear, config-driven feedback when no payment provider is enabled; both users and admins must know when checkout is running in test/sandbox mode; and every wired lifecycle email must fire regardless of which provider (or fallback) handled the money. Config/metadata-driven, reusable, non-breaking, ACID, with graceful fallbacks and edge cases; close with full QA + `update-ai-system.md`.
+
+**Planning pass (Step 1):** Re-read `execute-feature.md` + `update-ai-system.md`, the prior multi-provider session, all payment surfaces/routes, and email triggers. Code-verified facts: money paths throw `PaymentProviderUnavailableError` only from `choosePaymentRuntime`/`getRecordedRuntime`; `/admin/finance` already exposes provider + test-mode filters; both webhooks converge on `EscrowService.onPaystackSuccess` / `WalletService.topUpFromCard`; lifecycle emails are fire-and-forget post-commit and gated by `features.emailNotifications` + Resend presence. Root risks identified: silent sandbox↔live fallback, generic 500s on a dead rail, no user-visible test-mode warning, and no automated proof that payment templates stay enabled/wired. **Go.**
+
+**Completed:**
+1. **Config + pure helpers —** `IPaymentStatusConfig` (+ admin/user copy + `bankTransferUnavailableBody`) on `IPaymentsConfig`, shipped defaults, legacy-safe `normalizeStatus()`; new pure `lib/payments/status.ts` (`resolvePaymentStatusCopy` with token fill, `fillPaymentStatusTokens`, `resolveConfiguredAvailability`). New `lib/payments/http.ts` (503 code + config-driven message; `isPaymentProviderUnavailable`).
+2. **Runtime safety —** exported `isProviderUsable`; `choosePaymentRuntime` now throws when an enabled-but-uncredentialed active provider would fall back across test↔live (no silent sandbox/live switch). `PaymentProviderService.getStatus()` returns a never-throwing snapshot (availability, provider labels, test mode, fallback, per-provider enabled/configured, `bankTransferAvailable`, loud reason).
+3. **Public status API/UI —** `GET /api/payments/status` (sanitized, `no-store`); `hooks/usePaymentStatus` (30s cache + inflight dedupe + config-first all-disabled answer + `refresh`); `components/shared/PaymentStatusNotice` (danger/warning/info, retry); integrated on Wallet, booking pay panel (card disabled only; wallet balance remains usable), TopUp (card + bank-specific gate), Withdraw, and the payment-result page (test-mode copy).
+4. **Admin awareness —** `PaymentEnvironmentBanner` in `AdminShell` via `app/admin/layout.tsx` (no usable provider / test mode / fallback; links to config); `payments.status.*` editor fields under "Fees & Escrow".
+5. **Route honesty —** `PaymentProviderUnavailableError` → 503 + config copy on card top-up, withdraw, booking pay and both verify routes; bank top-up refuses early when Paystack is disabled/uncredentialed (DVA is Paystack-only).
+6. **Email parity proof —** new tests assert every `fire(...)` template key in `lib/lifecycle-emails.ts` exists, is enabled and non-empty, and both webhooks call the same idempotent handlers.
+7. **Tests/QA —** +14 tests (`payment-status`, `payment-email-wiring`, runtime guard/usability) → **717/717 (59 files)**; `tsc --noEmit` clean; `next lint` 0 errors (pre-existing warnings only); `next build` green.
+8. **Docs —** repo-map, dependency-graph, system-architecture, task-queue, project-plan, dev-history, project-decisions, lessons-learned, test-results, this log; in-progress cleared. No migrations.
+
+**Residual risks:** the client status probe is advisory (a failed fetch leaves CTAs enabled and the server still returns 503); fallback guard intentionally pauses payments when environments mismatch rather than risk real charges; bank-transfer availability is hard-coded to Paystack until Monnify reserved accounts are implemented; admin banner copy names processors (admins already see them) while user copy stays processor-agnostic.
 
 ## Session 2026-10-21 — Multi-Provider Payments: Paystack + Monnify (execute-feature)
 

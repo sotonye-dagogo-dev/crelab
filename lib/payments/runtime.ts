@@ -22,14 +22,25 @@ export function getAdapter(provider: PaymentProviderId): PaymentProviderAdapter 
   return adapters[provider];
 }
 
-function isUsable(provider: PaymentProviderId, testMode: boolean): boolean {
+export function isProviderUsable(
+  provider: PaymentProviderId,
+  testMode: boolean,
+): boolean {
   const adapter = adapters[provider];
   return adapter.supportsTestMode || !testMode ? adapter.isConfigured(testMode) : false;
 }
 
+const isUsable = isProviderUsable;
+
 /**
  * Pure routing decision so it can be unit-tested without a DB.
  * Order: active (enabled + credentials) → fallback (enabled + credentials).
+ *
+ * Safety: when the active provider is enabled but unusable (missing
+ * credentials), the fallback must run in the SAME environment. Silently
+ * switching from sandbox to live (or vice versa) would either charge real money
+ * during a "test mode" run or make a live checkout silently free — both are
+ * unacceptable. A mismatched fallback therefore fails loudly instead.
  */
 export function choosePaymentRuntime(
   rawConfig: IPaymentProvidersConfig | undefined,
@@ -44,11 +55,29 @@ export function choosePaymentRuntime(
 
   const fallback = config.fallback;
   const fallbackSettings = providerSettings(config, fallback);
-  if (
+  const fallbackUsable =
     fallback !== active &&
     fallbackSettings.enabled &&
-    isUsable(fallback, fallbackSettings.testMode)
+    isUsable(fallback, fallbackSettings.testMode);
+
+  // Only guard the "active was meant to handle this but its credentials are
+  // missing" case. A deliberately disabled active provider is an explicit
+  // admin choice to route to the fallback's own configured environment.
+  if (
+    fallbackUsable &&
+    activeSettings.enabled &&
+    fallbackSettings.testMode !== activeSettings.testMode
   ) {
+    throw new PaymentProviderUnavailableError(
+      `${PAYMENT_PROVIDER_LABELS[active]} is enabled in ${
+        activeSettings.testMode ? "test" : "live"
+      } mode but its credentials are missing, and ${PAYMENT_PROVIDER_LABELS[fallback]} ` +
+        `is configured for ${fallbackSettings.testMode ? "test" : "live"} mode. ` +
+        "Payments are paused to avoid switching between sandbox and live.",
+    );
+  }
+
+  if (fallbackUsable) {
     return {
       provider: fallback,
       testMode: fallbackSettings.testMode,

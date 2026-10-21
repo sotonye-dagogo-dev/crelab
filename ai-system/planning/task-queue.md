@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
 > - last-verified-against-code: 2026-10-21
-> - last-synced: 2026-10-21 (Multi-provider payments: 703/703, docs reconciled)
+> - last-synced: 2026-10-21 (Payment rail awareness: 717/717, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -34,6 +34,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | Size | Task | Status |
 |------|------|--------|
 | [XL] | Payment System Expansion — Wallet, Milestone, Direct modes | [x] |
+| [M] | Payment rail awareness — no-provider feedback, test-mode banners, admin environment notice, 503 mapping, test↔live fallback guard, email wiring tests | [x] |
 | [S] | Google OAuth sign-in UI (login) + sign-up/register wiring + onboarding handoff + role endpoint | [x] |
 | [S] | Paystack env vars + production config | [x] |
 | [S] | Light theme design system documentation | [x] |

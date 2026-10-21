@@ -5,6 +5,7 @@ import { EscrowService } from "@/services/EscrowService";
 import { getRecordedRuntime } from "@/lib/payments/runtime";
 import { asPaymentProviderId } from "@/lib/payments/config";
 import { holdFailureMessage, isHoldPending, parseBookingIdFromRef } from "@/lib/payment-flow";
+import { isPaymentProviderUnavailable, paymentUnavailableResponse } from "@/lib/payments/http";
 
 /**
  * Verifies a booking card payment on the client's callback (popup success or
@@ -137,6 +138,11 @@ async function handleVerify(
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthorized") {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+    if (isPaymentProviderUnavailable(err)) {
+      return paymentUnavailableResponse(
+        "We couldn't verify this payment because the payment provider is temporarily unavailable. If you were charged, it will be confirmed automatically once the provider is back.",
+      );
     }
     // Paystack unreachable/verify error — report honestly; never "verified".
     const msg = err instanceof Error ? err.message : "Payment verification failed";

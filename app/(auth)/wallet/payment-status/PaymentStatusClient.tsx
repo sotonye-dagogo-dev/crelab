@@ -4,6 +4,8 @@ import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ClBackButton } from "@/components/ui";
+import { usePlatformConfig } from "@/lib/config-context";
+import { resolvePaymentStatusCopy } from "@/lib/payments/status";
 import { Check, XCircle, Loader2, AlertTriangle } from "lucide-react";
 
 function WalletLink({
@@ -46,6 +48,10 @@ export function PaymentStatusClient({
   testMode: boolean;
 }) {
   const router = useRouter();
+  const platformConfig = usePlatformConfig();
+  const testModeCopy = testMode
+    ? resolvePaymentStatusCopy(platformConfig, "userTestMode")
+    : null;
   const [phase, setPhase] = useState<Phase>("loading");
   const [result, setResult] = useState<VerifyResult | null>(null);
 
@@ -85,6 +91,32 @@ export function PaymentStatusClient({
 
   return (
     <div className="max-w-[520px] mx-auto p-6">
+      {testModeCopy?.enabled && (
+        <div
+          role="status"
+          className="mb-4 rounded-[12px] border p-4 flex items-start gap-2.5"
+          style={{
+            borderColor: "rgba(250,204,21,0.35)",
+            backgroundColor: "rgba(250,204,21,0.08)",
+          }}
+        >
+          <AlertTriangle
+            size={15}
+            strokeWidth={2}
+            aria-hidden="true"
+            className="shrink-0 mt-0.5"
+            style={{ color: "var(--color-warning, #facc15)" }}
+          />
+          <div className="min-w-0">
+            <div className="text-[12px] font-semibold text-[var(--color-text-primary)] mb-0.5">
+              {testModeCopy.title}
+            </div>
+            <p className="text-[12px] leading-relaxed text-[var(--color-text-secondary)]">
+              {testModeCopy.body}
+            </p>
+          </div>
+        </div>
+      )}
       <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-8 text-center">
         {phase === "loading" && (
           <>

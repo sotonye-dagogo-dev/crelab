@@ -2,6 +2,7 @@ import { DEFAULT_CONFIG } from "@/config/platform.config";
 import type {
   IPaymentProviderSettings,
   IPaymentProvidersConfig,
+  IPaymentStatusConfig,
   IPaymentsConfig,
   PaymentProviderId,
 } from "@/types";
@@ -76,7 +77,41 @@ export function normalizePaymentProviders(raw: unknown): IPaymentProvidersConfig
   };
 }
 
-/** Normalises the whole `payments` config subtree (notices preserved). */
+function normalizeStatus(raw: unknown): IPaymentStatusConfig {
+  const defaults = DEFAULT_CONFIG.payments?.status as IPaymentStatusConfig;
+  if (!raw || typeof raw !== "object") return defaults;
+  const obj = raw as Partial<IPaymentStatusConfig> & Record<string, unknown>;
+  const pickString = (key: keyof IPaymentStatusConfig): string => {
+    const value = obj[key];
+    return typeof value === "string" && value.trim().length > 0
+      ? value
+      : (defaults[key] as string);
+  };
+  const pickBoolean = (key: keyof IPaymentStatusConfig): boolean => {
+    const value = obj[key];
+    return typeof value === "boolean" ? value : (defaults[key] as boolean);
+  };
+  return {
+    userTestModeNoticeEnabled: pickBoolean("userTestModeNoticeEnabled"),
+    userTestModeTitle: pickString("userTestModeTitle"),
+    userTestModeBody: pickString("userTestModeBody"),
+    unavailableTitle: pickString("unavailableTitle"),
+    unavailableBody: pickString("unavailableBody"),
+    bankTransferUnavailableBody: pickString("bankTransferUnavailableBody"),
+    userFallbackNoticeEnabled: pickBoolean("userFallbackNoticeEnabled"),
+    userFallbackTitle: pickString("userFallbackTitle"),
+    userFallbackBody: pickString("userFallbackBody"),
+    adminBannerEnabled: pickBoolean("adminBannerEnabled"),
+    adminTestModeTitle: pickString("adminTestModeTitle"),
+    adminTestModeBody: pickString("adminTestModeBody"),
+    adminUnavailableTitle: pickString("adminUnavailableTitle"),
+    adminUnavailableBody: pickString("adminUnavailableBody"),
+    adminFallbackTitle: pickString("adminFallbackTitle"),
+    adminFallbackBody: pickString("adminFallbackBody"),
+  };
+}
+
+/** Normalises the whole `payments` config subtree (notices/status preserved). */
 export function normalizePaymentsConfig(raw: unknown): IPaymentsConfig {
   const defaults = DEFAULT_CONFIG.payments as IPaymentsConfig;
   if (!raw || typeof raw !== "object") return defaults;
@@ -88,6 +123,7 @@ export function normalizePaymentsConfig(raw: unknown): IPaymentsConfig {
       ...defaults.notices,
       ...(obj.notices ?? {}),
     },
+    status: normalizeStatus(obj.status),
     provider: normalizePaymentProviders(obj.provider),
   };
 }

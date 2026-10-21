@@ -787,6 +787,38 @@ export interface IPaymentNotice {
   body: string;
 }
 
+/**
+ * Admin-editable copy for payment-rail availability/test-mode awareness.
+ * Tokens `{{name}}`, `{{provider}}` and `{{fallback}}` are filled at render
+ * time from the live config/runtime (see `lib/payments/status.ts`). Provider
+ * names are only used in the admin copy; user copy stays processor-agnostic.
+ */
+export interface IPaymentStatusConfig {
+  /** Show the end-user test-mode banner where money actions happen. */
+  userTestModeNoticeEnabled: boolean;
+  userTestModeTitle: string;
+  userTestModeBody: string;
+  /** Shown to end users when no provider can take a payment. */
+  unavailableTitle: string;
+  unavailableBody: string;
+  /** Shown when cards work but the bank-transfer (DVA) rail is unavailable. */
+  bankTransferUnavailableBody: string;
+  /** Tell end users when the backup partner handled the checkout. */
+  userFallbackNoticeEnabled: boolean;
+  userFallbackTitle: string;
+  userFallbackBody: string;
+  /** Admin environment banner (active provider, mode, fallback, outage). */
+  adminBannerEnabled: boolean;
+  adminTestModeTitle: string;
+  /** Tokens: `{{name}}`, `{{provider}}`, `{{fallback}}` */
+  adminTestModeBody: string;
+  adminUnavailableTitle: string;
+  adminUnavailableBody: string;
+  adminFallbackTitle: string;
+  /** Tokens: `{{name}}`, `{{provider}}` (intended), `{{fallback}}` (used) */
+  adminFallbackBody: string;
+}
+
 export interface IPaymentsConfig {
   /** Disclaimers shown where users act on payout/bank details. */
   notices: {
@@ -799,6 +831,11 @@ export interface IPaymentsConfig {
    * configs saved before multi-provider support keep resolving to Paystack.
    */
   provider?: IPaymentProvidersConfig;
+  /**
+   * Availability/test-mode copy + toggles. Optional so legacy configs resolve
+   * to the shipped defaults via `normalizePaymentsConfig`.
+   */
+  status?: IPaymentStatusConfig;
 }
 
 export interface IFinanceConfig {

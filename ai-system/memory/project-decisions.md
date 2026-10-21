@@ -1,7 +1,7 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
 > - last-verified-against-code: 2026-10-21
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
@@ -1023,3 +1023,28 @@ Several money-path surfaces (pay panel, escrow timeline, wallet balance, finance
 - `ClInfoTip` is the ONLY tooltip/info-tip primitive — future "info icon" needs use it, never a bespoke `title` or a new popover.
 - Tooltip copy itself is config-driven (`hints` in platform config, resolved via `lib/hints.ts`) — the primitive is presentational only; it never hardcodes business copy.
 - Listed in the design-system component catalog as part of this session's doc sync.
+
+---
+
+## Payment Rail Status Is Advisory on the Client, Authoritative on the Server
+
+**Decision:** Expose a sanitized `GET /api/payments/status` (`available`, `testMode`, `fallbackUsed`, `bankTransferAvailable`) and a shared `usePaymentStatus` hook for UI warnings/CTA gating. The client answer is advisory only: every money route still enforces the runtime and maps `PaymentProviderUnavailableError` to `503` with the same admin-editable copy. Copy lives in `payments.status.*`; user copy stays processor-agnostic, admin copy may interpolate provider labels.
+**Date:** 2026-10-21
+**Made by:** execute-feature ("no payment provider enabled feedback + test mode awareness")
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Users were hitting generic failures (or silent test charges) when the rail was disabled or uncredentialed, while admins had no platform-wide indicator outside finance filters. A status endpoint keeps credential checks server-side, lets the first paint use public config to catch "all providers disabled" immediately, and avoids duplicating provider logic in components. The server must remain authoritative because a stale/failed probe must never let a doomed checkout succeed.
+
+**Alternatives Considered:**
+- Disable CTAs purely from public config — rejected: misses missing credentials (the common outage) and would falsely enable when only one provider is configured.
+- Redirect users away from money pages when unavailable — rejected: wallet balance and other non-checkout actions must keep working; balance payments on bookings do not need a provider.
+- Return full provider diagnostics publicly — rejected: leaks operational/credential state; admins get that via `getStatus()`.
+- Hardcode banner copy in components — rejected: admin-managed platform requires editable copy.
+
+**Implications:**
+- New money surfaces must use `PaymentStatusNotice` + `usePaymentStatus` and still handle the route's `503` (`PAYMENT_UNAVAILABLE`).
+- `PaymentStatusNotice`/`PaymentEnvironmentBanner` are the only rail-status surfaces; do not add bespoke "Paystack is down" copy.
+- Test↔live fallback is deliberately paused (not auto-switched); when environments mismatch, `getStatus()` reports unavailable with an admin-facing reason.
+- Bank-transfer top-up remains Paystack-only until Monnify reserved accounts are implemented; `bankTransferAvailable` encodes that capability.
