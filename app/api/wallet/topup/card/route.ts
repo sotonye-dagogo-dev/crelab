@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { initTransaction } from "@/lib/paystack";
+import { PaymentProviderService } from "@/services/PaymentProviderService";
 import { appOrigin } from "@/lib/url";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { WalletService } from "@/services/WalletService";
@@ -33,22 +33,31 @@ export async function POST(req: NextRequest) {
 
     await new WalletService().getOrCreate(userId);
 
-    const result = await initTransaction(amountKobo, email, ref, {
-      // Metadata lets the charge.success webhook attribute this payment to the
-      // right wallet without trusting the amount/reference alone.
-      metadata: { purpose: "WALLET_TOPUP", userId },
-      // Bring the customer back to a status page that verifies the transaction
-      // so the wallet reflects what actually happened after payment.
-      callbackUrl: `${appOrigin()}/wallet/payment-status`,
-    });
+    const { runtime, adapter } = await PaymentProviderService.getRuntime();
+    const result = await adapter.initTransaction(
+      {
+        amountKobo,
+        email,
+        reference: ref,
+        // Metadata lets the charge.success webhook attribute this payment to the
+        // right wallet without trusting the amount/reference alone.
+        metadata: {
+          purpose: "WALLET_TOPUP",
+          userId,
+          provider: runtime.provider,
+          testMode: runtime.testMode,
+        },
+        // Bring the customer back to a status page that verifies the transaction
+        // so the wallet reflects what actually happened after payment.
+        callbackUrl: `${appOrigin()}/wallet/payment-status?provider=${runtime.provider}&testMode=${runtime.testMode ? "1" : "0"}`,
+        customerName: session.user.name ?? undefined,
+      },
+      runtime.testMode,
+    );
 
     return NextResponse.json({
       success: true,
-      data: {
-        authorizationUrl: result.authorizationUrl,
-        accessCode: result.accessCode,
-        reference: result.reference,
-      },
+      data: { ...result, fallbackFrom: runtime.fallbackFrom },
     });
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthorized") {

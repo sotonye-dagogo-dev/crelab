@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { verifyTransaction } from "@/lib/paystack";
+import { getRecordedRuntime } from "@/lib/payments/runtime";
+import { PaymentProviderService } from "@/services/PaymentProviderService";
+import { asPaymentProviderId } from "@/lib/payments/config";
+import type { PaymentProviderId } from "@/lib/payments/types";
 import { WalletService } from "@/services/WalletService";
 
 /**
- * Verifies a Paystack wallet top-up on the post-payment callback page and
+ * Verifies a provider wallet top-up on the post-payment callback page and
  * credits the wallet immediately (idempotently) so the balance reflects what
  * actually happened — the platform never reports success based on its own 200
  * alone. The webhook remains the source of truth for server-side crediting;
@@ -33,9 +36,25 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const verified = await verifyTransaction(reference);
+    // The callback URL is generated server-side at init with the processor and
+    // mode that created the checkout. A forged value cannot fabricate a paid
+    // transaction — verification still has to succeed at that processor.
+    const providerParam = asPaymentProviderId(req.nextUrl.searchParams.get("provider"));
+    const testModeParam = req.nextUrl.searchParams.get("testMode") === "1";
+    let provider: PaymentProviderId;
+    let testMode: boolean;
+    if (providerParam) {
+      provider = providerParam;
+      testMode = testModeParam;
+    } else {
+      const runtime = (await PaymentProviderService.getRuntime()).runtime;
+      provider = runtime.provider;
+      testMode = runtime.testMode;
+    }
+    const { adapter } = getRecordedRuntime(provider, testMode);
+    const verified = await adapter.verifyTransaction(reference, testMode);
 
-    // Trust metadata echoed by Paystack over the reference prefix alone.
+    // Trust metadata echoed by the processor over the reference prefix alone.
     const metaUserId = verified.metadata?.userId as string | undefined;
     const metaPurpose = verified.metadata?.purpose as string | undefined;
     if (metaPurpose !== "WALLET_TOPUP" || metaUserId !== userId) {
@@ -47,7 +66,10 @@ export async function GET(req: NextRequest) {
 
     let credited = false;
     if (verified.status === "success" && verified.amountKobo > 0) {
-      await new WalletService().topUpFromCard(userId, verified.amountKobo, reference);
+      await new WalletService().topUpFromCard(userId, verified.amountKobo, reference, {
+        provider: verified.provider,
+        testMode: verified.testMode,
+      });
       credited = true;
     }
 
@@ -57,6 +79,8 @@ export async function GET(req: NextRequest) {
         status: verified.status,
         amountKobo: verified.amountKobo,
         credited,
+        provider: verified.provider,
+        testMode: verified.testMode,
       },
     });
   } catch (err) {

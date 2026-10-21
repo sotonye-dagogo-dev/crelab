@@ -12,7 +12,7 @@ import { useToast } from "@/lib/toast";
  * don't assume"):
  *  - confirmation ALWAYS comes from server-side `/pay/verify` (the webhook
  *    remains the primary finalizer) — never from the popup callback alone;
- *  - Paystack popup handlers are registered BEFORE `resume()` so a fast
+ *  - popup handlers are registered BEFORE `resume()` so a fast
  *    success can't be missed;
  *  - `isPaying` covers the whole lifecycle (including an in-flight popup or
  *    hosted tab) so a second competing charge can't be started, but a
@@ -53,7 +53,7 @@ const HOLD_PENDING_INTERVAL_MS = 3000;
 export interface IUseBookingPayment {
   /** Pay from the wallet balance (synchronous server-side debit + escrow hold). */
   payWithWallet: (bookingId: string) => Promise<PayOutcome>;
-  /** Start Paystack checkout (inline popup, hosted new-tab fallback). */
+  /** Start processor checkout (inline popup when supported, hosted redirect otherwise). */
   payWithCard: (bookingId: string) => Promise<PayOutcome>;
   /** True from the moment money starts moving until a terminal outcome. */
   isPaying: boolean;
@@ -320,8 +320,9 @@ export function useBookingPayment(): IUseBookingPayment {
           return "in-flight";
         }
 
-        // No popup library — open the hosted checkout in a NEW tab so this
-        // surface stays intact, then poll until Paystack settles it (the webhook
+        // No popup path (library unavailable or redirect-only provider like
+        // Monnify) — open the hosted checkout in a NEW tab so this surface stays
+        // intact, then poll until the processor settles it (the webhook
         // finalizes server-side regardless).
         if (authorizationUrl && reference) {
           const opened = window.open(authorizationUrl, "_blank", "noopener,noreferrer");

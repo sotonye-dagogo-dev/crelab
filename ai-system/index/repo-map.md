@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -14,7 +14,7 @@
 ```
 crelab/
 ├── __tests__/               # Vitest test files for all services + lib helpers
-├── .env                    # Environment variables (DB, auth, Paystack keys, mock data toggle)
+├── .env                    # Environment variables (DB, auth, Paystack + Monnify live/test keys, mock data toggle)
 ├── .env.example            # Template with all required vars (recommended defaults)
 ├── .github/                 # GitHub Actions workflows
 ├── .ai-system/              # AI-assisted development governance
@@ -86,8 +86,8 @@ crelab/
 │       ├── verify-email/   # Verify-email: /send (shared sendVerificationEmailTo helper) + /welcome (fires welcome once verified) + /verify (case-insensitive token verify with affected-row check)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
 │       ├── webinars/       # GET /webinars + GET /webinars/mine (my seats + subscriber flag) + POST/DELETE /webinars/[id]/register (id-or-slug, unique-index upsert, MARKETING grant on opt-in; idempotent user cancel)
-│       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or Paystack initiate with real client email + metadata
-│       └── webhooks/       # Paystack webhook handler
+│       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or active-provider initiate with real client email + metadata
+│       └── webhooks/       # Paystack + Monnify webhook handlers (signature-verified, process-before-record)
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog, ClBackButton, ClDataTable, ClPagination, ClInfoTip)
 │   ├── explore/            # ExploreFilterBar, ExploreGrid (scroll-stable, no layout anim), ExploreVideoCard (persistent VIDEO tag + halo, ordered display: avatar → portfolioThumbnails carousel on 3.5s interval → initials fallback; no img remount on tick; mount-on-view video), PortfolioGallery (scroll-stable)
@@ -117,6 +117,7 @@ crelab/
   │   ├── MediaAssetService.ts  # Media asset registry: record, list, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile, backfillOrphans (bulk owner-matched rescue)
 │   ├── MilestoneService.ts
 │   ├── MockDataService.ts
+│   ├── PaymentProviderService.ts # Server-side provider routing (config → runtime/fallback; no secrets in config)
 │   ├── PaymentService.ts
 │   ├── PlatformConfigService.ts # Config CRUD with DB override + setNestedValue deep-merge of dotted keys
 │   ├── PlatformStatsService.ts # Cached landing aggregates with null → fallbackValue degradation
@@ -155,6 +156,7 @@ crelab/
 │   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
 │   ├── media.ts            # Media file/URL validation helpers (type, size, link; oversize reason keeps "too large" substring + per-file-limit detail)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
+│   ├── payments/           # Provider abstraction: types (runtime/init/verify/refund/payout), config normaliser, runtime fallback resolver, Paystack + Monnify adapters
 │   ├── paystack.ts         # Init transaction, verify webhook, split, refund, DVA, transfer
 │   ├── payment-notices.ts  # PAYMENT_NOTICE_KEYS + resolvePaymentNotice(s): saved notices merged over DEFAULT_CONFIG payments.notices + token fill (disabled/empty → hidden)
 │   ├── payment-flow.ts     # PURE escrow-hold vocabulary: BOOKING_REF_PREFIX (CRELLAB-{bookingId}-{millis}), parseBookingIdFromRef, classifyHoldOutcome → HoldResult, shouldRecordChargeEvent (terminal-only de-dupe), holdFailureMessage, isHoldPending — shared by webhook/verify/pay/cron/page/admin

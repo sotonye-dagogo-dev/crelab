@@ -36,7 +36,15 @@ interface VerifyResult {
 
 type Phase = "loading" | "success" | "not-paid" | "error";
 
-export function PaymentStatusClient({ reference }: { reference: string | null }) {
+export function PaymentStatusClient({
+  reference,
+  provider,
+  testMode,
+}: {
+  reference: string | null;
+  provider: string | null;
+  testMode: boolean;
+}) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
   const [result, setResult] = useState<VerifyResult | null>(null);
@@ -47,7 +55,10 @@ export function PaymentStatusClient({ reference }: { reference: string | null })
       return;
     }
     try {
-      const res = await fetch(`/api/wallet/topup/verify?reference=${encodeURIComponent(reference)}`);
+      const params = new URLSearchParams({ reference });
+      if (provider) params.set("provider", provider);
+      if (testMode) params.set("testMode", "1");
+      const res = await fetch(`/api/wallet/topup/verify?${params.toString()}`);
       const json = await res.json();
       if (!json.success) {
         setPhase("error");
@@ -66,7 +77,7 @@ export function PaymentStatusClient({ reference }: { reference: string | null })
       setPhase("error");
       router.replace(`/wallet?topup=failed`);
     }
-  }, [reference, router]);
+  }, [reference, provider, testMode, router]);
 
   useEffect(() => {
     verify();
@@ -84,7 +95,7 @@ export function PaymentStatusClient({ reference }: { reference: string | null })
               Confirming payment
             </h1>
             <p className="text-[13px] text-[var(--color-text-secondary)]">
-              Verifying your transaction with Paystack…
+              Verifying your transaction with our payment partner…
             </p>
           </>
         )}
@@ -123,7 +134,7 @@ export function PaymentStatusClient({ reference }: { reference: string | null })
             <p className="text-[13px] text-[var(--color-text-secondary)] mb-6">
               We couldn&apos;t confirm a successful payment for this transaction.
               Your wallet balance is unchanged. If funds were debited, they will
-              be credited automatically once Paystack confirms the charge.
+              be credited automatically once our payment partner confirms the charge.
             </p>
             <WalletLink href="/wallet" variant="outlined">
               Back to Wallet
@@ -141,8 +152,8 @@ export function PaymentStatusClient({ reference }: { reference: string | null })
             </h1>
             <p className="text-[13px] text-[var(--color-text-secondary)] mb-6">
               We couldn&apos;t verify your transaction right now. Head back to the
-              wallet — your balance will update as soon as Paystack confirms the
-              charge.
+              wallet — your balance will update as soon as our payment partner
+              confirms the charge.
             </p>
             <WalletLink href="/wallet">
               Back to Wallet

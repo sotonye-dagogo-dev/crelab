@@ -1,7 +1,17 @@
 import crypto from "crypto";
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE = "https://api.paystack.co";
+
+/**
+ * Resolve the Paystack secret at call time. `testMode` routes to the dedicated
+ * test key when one is configured (never silently reuses a live key), so a
+ * sandbox payment can never accidentally move real money.
+ */
+export function paystackSecret(testMode = false): string | undefined {
+  return testMode
+    ? process.env.PAYSTACK_TEST_SECRET_KEY
+    : process.env.PAYSTACK_SECRET_KEY;
+}
 
 interface PaystackInitResponse {
   status: boolean;
@@ -13,9 +23,10 @@ interface PaystackInitResponse {
   };
 }
 
-function getHeaders(): Record<string, string> {
+function getHeaders(secretKey?: string): Record<string, string> {
+  const secret = secretKey ?? process.env.PAYSTACK_SECRET_KEY;
   return {
-    Authorization: `Bearer ${PAYSTACK_SECRET}`,
+    Authorization: `Bearer ${secret}`,
     "Content-Type": "application/json",
   };
 }
@@ -35,6 +46,7 @@ export async function initTransaction(
   email: string,
   ref: string,
   options: InitTransactionOptions = {},
+  secretKey?: string,
 ): Promise<{
   authorizationUrl: string;
   accessCode: string;
@@ -54,7 +66,7 @@ export async function initTransaction(
 
   const res = await fetch(`${PAYSTACK_BASE}/transaction/initialize`, {
     method: "POST",
-    headers: getHeaders(),
+    headers: getHeaders(secretKey),
     body: JSON.stringify(payload),
   });
 
@@ -90,10 +102,10 @@ export interface VerifiedTransaction {
  * callback page so the wallet reflects what actually happened instead of
  * assuming success — a 200 on the platform API never means money moved.
  */
-export async function verifyTransaction(reference: string): Promise<VerifiedTransaction> {
+export async function verifyTransaction(reference: string, secretKey?: string): Promise<VerifiedTransaction> {
   const res = await fetch(`${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
     method: "GET",
-    headers: getHeaders(),
+    headers: getHeaders(secretKey),
   });
 
   if (!res.ok) {
@@ -152,13 +164,14 @@ export function verifyWebhookSignature(
 
 export async function subaccountSplit(
   paymentId: string,
+  secretKey?: string,
 ): Promise<{
   subaccountCode: string;
   splitCode: string;
 }> {
   const res = await fetch(`${PAYSTACK_BASE}/split`, {
     method: "POST",
-    headers: getHeaders(),
+    headers: getHeaders(secretKey),
     body: JSON.stringify({
       type: "flat",
       currency: "NGN",
@@ -183,10 +196,11 @@ export async function initiateTransfer(
   amountKobo: number,
   recipientCode: string,
   reference: string,
+  secretKey?: string,
 ): Promise<{ transferCode: string }> {
   const res = await fetch(`${PAYSTACK_BASE}/transfer`, {
     method: "POST",
-    headers: getHeaders(),
+    headers: getHeaders(secretKey),
     body: JSON.stringify({
       source: "balance",
       amount: amountKobo,
@@ -212,13 +226,14 @@ export async function createDedicatedVirtualAccount(
   customerEmail: string,
   customerName: string,
   phone?: string,
+  secretKey?: string,
 ): Promise<{
   accountNumber: string;
   bankName: string;
 }> {
   const res = await fetch(`${PAYSTACK_BASE}/dedicated_account`, {
     method: "POST",
-    headers: getHeaders(),
+    headers: getHeaders(secretKey),
     body: JSON.stringify({
       customer: {
         email: customerEmail,
@@ -249,10 +264,11 @@ export async function getTransferRecipient(
   bankCode: string,
   accountNumber: string,
   name: string,
+  secretKey?: string,
 ): Promise<{ recipientCode: string }> {
   const res = await fetch(`${PAYSTACK_BASE}/transferrecipient`, {
     method: "POST",
-    headers: getHeaders(),
+    headers: getHeaders(secretKey),
     body: JSON.stringify({
       type: "nuban",
       name,
@@ -275,10 +291,10 @@ export async function getTransferRecipient(
   return { recipientCode: json.data.recipient_code };
 }
 
-export async function refund(paystackRef: string): Promise<void> {
+export async function refund(paystackRef: string, secretKey?: string): Promise<void> {
   const res = await fetch(`${PAYSTACK_BASE}/refund`, {
     method: "POST",
-    headers: getHeaders(),
+    headers: getHeaders(secretKey),
     body: JSON.stringify({
       reference: paystackRef,
     }),

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyWebhookSignature } from "@/lib/paystack";
+import { paystackAdapter } from "@/lib/payments/paystack";
+import { asPaymentProviderId } from "@/lib/payments/config";
 import { DuplicateWebhookError } from "@/lib/errors";
 import { EscrowService } from "@/services/EscrowService";
 import { shouldRecordChargeEvent } from "@/lib/payment-flow";
@@ -13,16 +14,15 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-paystack-signature") ?? "";
 
-  const secretKey = process.env.PAYSTACK_SECRET_KEY;
-  if (!secretKey) {
-    console.error("[paystack-webhook] PAYSTACK_SECRET_KEY not configured");
+  if (!process.env.PAYSTACK_SECRET_KEY && !process.env.PAYSTACK_TEST_SECRET_KEY) {
+    console.error("[paystack-webhook] no Paystack secret configured");
     return NextResponse.json(
       { error: "Server configuration error" },
       { status: 500 },
     );
   }
 
-  const isValid = verifyWebhookSignature(rawBody, signature, secretKey);
+  const isValid = paystackAdapter.verifyWebhookSignature({ rawBody, signature });
   if (!isValid) {
     console.warn(
       "[paystack-webhook] Invalid signature received",
@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
 
     if (metadata.purpose === "WALLET_TOPUP") {
       const userId = metadata.userId as string;
+      const provider = asPaymentProviderId(metadata.provider) ?? "PAYSTACK";
+      const testMode = metadata.testMode === true;
 
       const [existing] = await db
         .select()
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
         // Process BEFORE recording: if crediting throws, the event is not
         // recorded, so Paystack's retry can actually complete the work (the
         // credit itself is reference-idempotent — see DuplicateWebhookError).
-        await walletService.topUpFromCard(userId, amount, ref);
+        await walletService.topUpFromCard(userId, amount, ref, { provider, testMode });
       } catch (err) {
         // The post-payment callback page may already have credited this ref
         // (see /api/wallet/topup/verify). A duplicate here is a success, not an
@@ -104,6 +106,8 @@ export async function POST(req: NextRequest) {
       const escrowService = new EscrowService();
       const outcome = await escrowService.onPaystackSuccess(ref, {
         bookingId: typeof metadata.bookingId === "string" ? metadata.bookingId : null,
+        provider: asPaymentProviderId(metadata.provider) ?? "PAYSTACK",
+        testMode: metadata.testMode === true,
       });
 
       if (!shouldRecordChargeEvent(outcome)) {

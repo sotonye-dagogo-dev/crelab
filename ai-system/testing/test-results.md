@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments: Paystack + Monnify)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,18 @@
 
 ## Last Run
 
-**Date:** 2026-10-19
-**Run by:** execute-feature (Booking & payment flow integrity + guidance affordances)
+**Date:** 2026-10-21
+**Run by:** execute-feature (Multi-provider payments: Paystack + Monnify)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 676 | 0 | 0 |
+| Unit (vitest) | 703 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | ESLint (`npm run lint` via next lint) | — | 0 errors | — |
-| Production build (`npm run build`) | — | 0 errors (reconcile + guidance routes/components compiled) | — |
+| Production build (`npm run build`) | — | 0 errors (Monnify webhook + provider-aware routes compiled) | — |
 
-**Overall Status:** ✅ All 676/676 tests pass (53 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. New: `__tests__/lib/payment-flow.test.ts` (HoldResult classification incl. retryable/terminal/duplicate/already-held, ref parse round-trip, terminal-only de-dupe recording, hold-failure copy), `__tests__/lib/booking-guidance.test.ts` (exhaustive status×side coverage, null-for-panel states, config override + "" hide), `__tests__/lib/hints.test.ts` (defaults merge, "" hide, token fill `{{feeRate}}`/`{{escrowWindow}}`/`{{name}}`), `__tests__/components/ClInfoTip.test.tsx` (render, a11y roles, open/close). Platform-name compliance: `CRELLAB-` payment-ref literals allowlisted as infrastructure identifiers (reasons recorded; rule stays strict). Prior run: 629/629 (2026-10-19, booking & payment visibility end-to-end).
+**Overall Status:** ✅ All 703/703 tests pass (57 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. New: `__tests__/lib/monnify.test.ts` (NGN↔kobo, SHA-512 signature, init payload/redirect mode, status mapping, refund/payout guards, disbursement payload) and `__tests__/lib/payment-provider-runtime.test.ts` (legacy config normalisation, active/fallback selection incl. missing credentials, recorded-provider resolution with no fallback). Architecture check: `lib/payments/runtime.ts` is service-free after moving config resolution to `services/PaymentProviderService.ts`. Prior run: 676/676 (2026-10-19, booking & payment flow integrity).
 
 ---
 
@@ -38,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-21 | 703 | 0 | execute-feature: multi-provider payments — Paystack + Monnify adapters behind one contract, admin active/fallback + per-provider test mode, audited runtime fallback, recorded-provider-only refunds/payouts, Monnify webhook (SHA-512; unsigned sandbox only without live secret), provider/test-mode attribution on bookings/payments/wallet/finance/analytics, provider-aware withdrawal UI, sanitised public copy, idempotent `0009_payment_providers.sql` (+27 tests, 2 new files). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-19 | 676 | 0 | execute-feature: booking & payment flow integrity (truthful verify HoldResult mapping, terminal-only webhook de-dupe, ref-attribution fallback, reconcileBooking + cron sweep + page self-heal + admin reconcile) + guidance affordances (bookingNextStep/NextStepBanner, release + provider-cancel confirm dialogs, provider cancel) + platform tips (ClInfoTip, lib/hints, admin Guidance section) (+47 tests, 4 new files). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-18 | 596 | 0 | execute-feature: admin finance bookings (list/detail/settle via EscrowService + dual-level audit, 4 routes, entityId audit filter, Transactions\|Bookings tabs) + MediaUpload dedupe + useDrivePreview + admin media Drive tab (+21 tests). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-18 | 575 | 0 | execute-feature: Drive link quick preview (rate-limit window limiter, folder metadata + bounded sample, zero-DB preview route with per-user budget, UI card + cooldown) (+20 tests). tsc 0 errors, lint 0 errors, build green |

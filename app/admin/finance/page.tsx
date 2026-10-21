@@ -29,6 +29,14 @@ interface IFinanceSummary {
   refundedPayments: number;
   totalBookings: number;
   bookingsByStatus: Record<string, number>;
+  providerBreakdown?: {
+    provider: string;
+    testMode: boolean;
+    count: number;
+    gmvKobo: number;
+    feesKobo: number;
+    refunded: number;
+  }[];
 }
 
 interface ITxn {
@@ -44,6 +52,8 @@ interface ITxn {
   actorName: string | null;
   actorEmail: string | null;
   providerName: string | null;
+  provider: string | null;
+  testMode: boolean;
   createdAt: string;
 }
 
@@ -62,6 +72,8 @@ interface IBookingRow {
   paymentStatus: string | null;
   heldPayments: number;
   paystackRef: string | null;
+  paymentProvider: string;
+  paymentTestMode: boolean;
   serviceDate: string | null;
   createdAt: string;
 }
@@ -87,6 +99,9 @@ interface IBookingDetail {
     netAmountKobo: number;
     status: string;
     paystackRef: string;
+    provider: string;
+    testMode: boolean;
+    providerRef: string | null;
     createdAt: string;
   }[];
   walletTransactions: {
@@ -218,9 +233,11 @@ export default function AdminFinancePage() {
   const [kind, setKind] = useState("ALL");
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
+  const [providerFilter, setProviderFilter] = useState("");
+  const [testModeFilter, setTestModeFilter] = useState("ALL");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [applied, setApplied] = useState({ q: "", kind: "ALL", status: "", type: "", from: "", to: "" });
+  const [applied, setApplied] = useState({ q: "", kind: "ALL", status: "", type: "", provider: "", testMode: "ALL", from: "", to: "" });
   const [selected, setSelected] = useState<ITxn | null>(null);
   const [invoice, setInvoice] = useState<IInvoiceData | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
@@ -254,6 +271,8 @@ export default function AdminFinancePage() {
     if (applied.kind !== "ALL") p.set("kind", applied.kind);
     if (applied.status) p.set("status", applied.status);
     if (applied.type) p.set("type", applied.type);
+    if (applied.provider) p.set("provider", applied.provider);
+    if (applied.testMode !== "ALL") p.set("testMode", applied.testMode);
     if (applied.from) p.set("from", applied.from);
     if (applied.to) p.set("to", applied.to);
     return p.toString();
@@ -396,15 +415,18 @@ export default function AdminFinancePage() {
     }
   };
 
-  const applyFilters = () => setApplied({ q: q.trim(), kind, status, type, from, to });
+  const applyFilters = () =>
+    setApplied({ q: q.trim(), kind, status, type, provider: providerFilter, testMode: testModeFilter, from, to });
   const resetFilters = () => {
     setQ("");
     setKind("ALL");
     setStatus("");
     setType("");
+    setProviderFilter("");
+    setTestModeFilter("ALL");
     setFrom("");
     setTo("");
-    setApplied({ q: "", kind: "ALL", status: "", type: "", from: "", to: "" });
+    setApplied({ q: "", kind: "ALL", status: "", type: "", provider: "", testMode: "ALL", from: "", to: "" });
     setPage(1);
   };
 
@@ -438,7 +460,7 @@ export default function AdminFinancePage() {
       toast("Nothing to export on this page", "error");
       return;
     }
-    const cols = ["id", "kind", "type", "status", "amountKobo", "feeKobo", "direction", "reference", "bookingId", "actorName", "actorEmail", "providerName", "createdAt"];
+    const cols = ["id", "kind", "type", "status", "amountKobo", "feeKobo", "direction", "reference", "bookingId", "actorName", "actorEmail", "providerName", "provider", "testMode", "createdAt"];
     const csv = transactionsToCsv(rows as unknown as Record<string, unknown>[], cols);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -451,8 +473,14 @@ export default function AdminFinancePage() {
   };
 
   const stats = summaryQuery.data;
+  const liveGmv = stats?.providerBreakdown?.filter((p) => !p.testMode).reduce((n, p) => n + p.gmvKobo, 0) ?? 0;
+  const testGmv = stats?.providerBreakdown?.filter((p) => p.testMode).reduce((n, p) => n + p.gmvKobo, 0) ?? 0;
+  const providerMix = (stats?.providerBreakdown ?? [])
+    .map((p) => `${p.provider}${p.testMode ? " (test)" : ""}: ${p.count}`)
+    .join(" · ");
   const statCards = [
     { label: "Lifetime GMV", value: stats ? kobo(stats.lifetimeGmvKobo) : "—", hint: `${stats?.totalPayments ?? 0} payments` },
+    { label: "Live / test GMV", value: stats ? `${kobo(liveGmv)} / ${kobo(testGmv)}` : "—", hint: providerMix || "no processor payments yet" },
     { label: "Platform fees earned", value: stats ? kobo(stats.lifetimeFeesKobo) : "—", hint: "lifetime" },
     { label: "Held in escrow", value: stats ? kobo(stats.heldEscrowKobo) : "—", hint: "across wallets" },
     { label: "Wallet balances", value: stats ? kobo(stats.walletBalancesKobo) : "—", hint: "user funds" },
@@ -495,6 +523,17 @@ export default function AdminFinancePage() {
         <div className="min-w-0">
           <div className="text-[12px] truncate">{r.actorName ?? "—"}{r.providerName ? ` → ${r.providerName}` : ""}</div>
           {r.actorEmail && <div className="text-[11px] text-[var(--color-text-tertiary)] truncate">{r.actorEmail}</div>}
+        </div>
+      ),
+    },
+    {
+      key: "processor",
+      header: "Processor",
+      hideOnMobile: true,
+      cell: (r) => (
+        <div className="flex flex-col gap-1">
+          <ClBadge variant={r.testMode ? "warning" : "default"}>{r.provider ?? "—"}</ClBadge>
+          {r.testMode && <span className="text-[10px] text-[var(--color-text-tertiary)]">test mode</span>}
         </div>
       ),
     },
@@ -556,6 +595,17 @@ export default function AdminFinancePage() {
             {r.packageLabel ?? "—"} · {r.paymentMode}
           </div>
           {r.clientEmail && <div className="text-[10px] text-[var(--color-text-tertiary)] truncate">{r.clientEmail}</div>}
+        </div>
+      ),
+    },
+    {
+      key: "processor",
+      header: "Processor",
+      hideOnMobile: true,
+      cell: (r) => (
+        <div className="flex flex-col gap-1">
+          <ClBadge variant={r.paymentTestMode ? "warning" : "default"}>{r.paymentProvider}</ClBadge>
+          {r.paymentTestMode && <span className="text-[10px] text-[var(--color-text-tertiary)]">test mode</span>}
         </div>
       ),
     },
@@ -733,6 +783,22 @@ export default function AdminFinancePage() {
                   {WALLET_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] mb-1">Provider</label>
+                <select value={providerFilter} onChange={(e) => setProviderFilter(e.target.value)} className="w-full h-9 rounded-[8px] border border-[var(--color-border-mid)] bg-[var(--color-surface-raised)] px-2 text-[13px] outline-none">
+                  <option value="">All</option>
+                  <option value="PAYSTACK">Paystack</option>
+                  <option value="MONNIFY">Monnify</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)] mb-1">Environment</label>
+                <select value={testModeFilter} onChange={(e) => setTestModeFilter(e.target.value)} className="w-full h-9 rounded-[8px] border border-[var(--color-border-mid)] bg-[var(--color-surface-raised)] px-2 text-[13px] outline-none">
+                  <option value="ALL">All</option>
+                  <option value="LIVE">Live</option>
+                  <option value="TEST">Test</option>
+                </select>
+              </div>
               <div className="flex items-end gap-2">
                 <ClButton variant="primary" size="default" onClick={applyFilters}>
                   <Search size={14} strokeWidth={2} className="mr-1.5" />
@@ -870,6 +936,7 @@ export default function AdminFinancePage() {
               <div><span className="text-[var(--color-text-tertiary)]">Type:</span> <span className="font-[family-name:var(--font-mono)]">{selected.type}</span></div>
               <div><span className="text-[var(--color-text-tertiary)]">Amount:</span> <strong className="font-[family-name:var(--font-mono)]">{kobo(selected.amountKobo)}</strong></div>
               <div><span className="text-[var(--color-text-tertiary)]">Date:</span> {fmtDate(selected.createdAt)}</div>
+              <div><span className="text-[var(--color-text-tertiary)]">Processor:</span> {selected.provider ?? "—"}{selected.testMode ? " (test mode)" : ""}</div>
               <div className="col-span-2 break-all"><span className="text-[var(--color-text-tertiary)]">Reference:</span> <span className="font-[family-name:var(--font-mono)] text-[12px]">{selected.reference}</span></div>
               {selected.bookingId && <div className="col-span-2 break-all"><span className="text-[var(--color-text-tertiary)]">Booking:</span> <span className="font-[family-name:var(--font-mono)] text-[12px]">{selected.bookingId}</span></div>}
             </div>
@@ -981,6 +1048,8 @@ export default function AdminFinancePage() {
                         actorName: bookingDetailQuery.data!.booking.clientName,
                         actorEmail: bookingDetailQuery.data!.booking.clientEmail,
                         providerName: bookingDetailQuery.data!.booking.providerName,
+                        provider: bookingDetailQuery.data!.booking.paymentProvider,
+                        testMode: bookingDetailQuery.data!.booking.paymentTestMode,
                         createdAt: bookingDetailQuery.data!.booking.createdAt,
                       });
                     })

@@ -1,11 +1,11 @@
 # Project Context
 
 > **Metadata**
-> - last-updated-by: update-ai-system (Session 2026-10-14 — Paystack rail reconciliation)
-> - last-verified-against-code: 2026-10-14
+> - last-updated-by: execute-feature (Session 2026-10-21 — Multi-provider payments)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: re-verify if >10 sessions old or after major scope changes
 
-> **Overview:** Crelab is a standalone, video-first creative services marketplace for Nigeria that connects creative professionals (content creators, cinematographers) with brands and businesses. Providers win jobs based on the quality of their work, not follower count. Payments are protected by Paystack escrow with a hybrid auto-release mechanism.
+> **Overview:** Crelab is a standalone, video-first creative services marketplace for Nigeria that connects creative professionals (content creators, cinematographers) with brands and businesses. Providers win jobs based on the quality of their work, not follower count. Payments are protected by escrow with a hybrid auto-release mechanism. The processor rail is config-driven: Paystack (default) or Monnify, with per-provider sandbox toggles, admin-selected active/fallback routing, and provider+test-mode attribution in finance and analytics.
 
 ---
 

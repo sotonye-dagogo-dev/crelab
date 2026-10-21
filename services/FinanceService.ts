@@ -34,6 +34,15 @@ export interface IFinanceSummary {
   refundedPayments: number;
   totalBookings: number;
   bookingsByStatus: Record<string, number>;
+  /** Payments grouped by processor + test mode (finance/analytics truth). */
+  providerBreakdown: {
+    provider: string;
+    testMode: boolean;
+    count: number;
+    gmvKobo: number;
+    feesKobo: number;
+    refunded: number;
+  }[];
 }
 
 export interface IUnifiedTransaction {
@@ -50,6 +59,10 @@ export interface IUnifiedTransaction {
   actorName: string | null;
   actorEmail: string | null;
   providerName: string | null;
+  /** Payment processor (null for wallet-only ledger rows). */
+  provider: string | null;
+  /** True when the processor ran in sandbox/test mode. */
+  testMode: boolean;
   /** ISO 8601 */
   createdAt: string;
 }
@@ -82,6 +95,8 @@ export interface IAdminBookingRow {
   /** Count of payments currently in HELD state (funds actionable). */
   heldPayments: number;
   paystackRef: string | null;
+  paymentProvider: string;
+  paymentTestMode: boolean;
   serviceDate: string | null;
   /** ISO 8601 */
   createdAt: string;
@@ -104,6 +119,9 @@ export interface IBookingFinanceDetail {
     netAmountKobo: number;
     status: string;
     paystackRef: string;
+    provider: string;
+    testMode: boolean;
+    providerRef: string | null;
     createdAt: string;
   }[];
   walletTransactions: {
@@ -132,6 +150,18 @@ export class FinanceService {
         refunded: sql<number>`COUNT(*) FILTER (WHERE ${payments.status} = 'REFUNDED')`.as("refunded"),
       })
       .from(payments);
+
+    const providerRows = await db
+      .select({
+        provider: payments.provider,
+        testMode: payments.testMode,
+        count: sql<number>`COUNT(*)`.as("count"),
+        gmv: sql<number>`COALESCE(SUM(${payments.amount}), 0)`.as("gmv"),
+        fees: sql<number>`COALESCE(SUM(${payments.fee}), 0)`.as("fees"),
+        refunded: sql<number>`COUNT(*) FILTER (WHERE ${payments.status} = 'REFUNDED')`.as("refunded"),
+      })
+      .from(payments)
+      .groupBy(payments.provider, payments.testMode);
 
     const [walletAgg] = await db
       .select({
@@ -162,6 +192,14 @@ export class FinanceService {
       refundedPayments: Number(payAgg?.refunded ?? 0),
       totalBookings,
       bookingsByStatus,
+      providerBreakdown: providerRows.map((r) => ({
+        provider: r.provider,
+        testMode: r.testMode,
+        count: Number(r.count ?? 0),
+        gmvKobo: Number(r.gmv ?? 0),
+        feesKobo: Number(r.fees ?? 0),
+        refunded: Number(r.refunded ?? 0),
+      })),
     };
   }
 
@@ -180,6 +218,8 @@ export class FinanceService {
       if (fromDate) payConds.push(gte(payments.createdAt, fromDate));
       if (toDate) payConds.push(lte(payments.createdAt, toDate));
       if (f.status) payConds.push(eq(payments.status, f.status));
+      if (f.provider) payConds.push(eq(payments.provider, f.provider));
+      if (f.testMode !== "ALL") payConds.push(eq(payments.testMode, f.testMode === "TEST"));
       if (f.q) {
         payConds.push(
           or(
@@ -196,6 +236,8 @@ export class FinanceService {
           fee: payments.fee,
           status: payments.status,
           paystackRef: payments.paystackRef,
+          provider: payments.provider,
+          testMode: payments.testMode,
           bookingId: payments.bookingId,
           createdAt: payments.createdAt,
           clientName: user.name,
@@ -226,6 +268,8 @@ export class FinanceService {
           actorName: r.clientName ?? null,
           actorEmail: r.clientEmail ?? null,
           providerName: r.providerName ?? null,
+          provider: r.provider,
+          testMode: r.testMode,
           createdAt: r.createdAt.toISOString(),
         });
       }
@@ -236,6 +280,8 @@ export class FinanceService {
       if (fromDate) wConds.push(gte(walletTransactions.createdAt, fromDate));
       if (toDate) wConds.push(lte(walletTransactions.createdAt, toDate));
       if (f.type) wConds.push(eq(walletTransactions.type, f.type as never));
+      if (f.provider) wConds.push(eq(walletTransactions.provider, f.provider));
+      if (f.testMode !== "ALL") wConds.push(eq(walletTransactions.testMode, f.testMode === "TEST"));
       if (f.q) {
         wConds.push(
           or(
@@ -253,6 +299,8 @@ export class FinanceService {
           amountKobo: walletTransactions.amountKobo,
           direction: walletTransactions.direction,
           reference: walletTransactions.reference,
+          provider: walletTransactions.provider,
+          testMode: walletTransactions.testMode,
           bookingId: walletTransactions.relatedBookingId,
           createdAt: walletTransactions.createdAt,
           actorName: user.name,
@@ -292,6 +340,8 @@ export class FinanceService {
           actorName: r.actorName ?? null,
           actorEmail: r.actorEmail ?? null,
           providerName: r.bookingId ? (providerByBooking.get(r.bookingId) ?? null) : null,
+          provider: r.provider,
+          testMode: r.testMode,
           createdAt: r.createdAt.toISOString(),
         });
       }
@@ -363,6 +413,8 @@ export class FinanceService {
         fee: bookings.fee,
         total: bookings.total,
         paystackRef: bookings.paystackRef,
+        paymentProvider: bookings.paymentProvider,
+        paymentTestMode: bookings.paymentTestMode,
         serviceDate: bookings.serviceDate,
         createdAt: bookings.createdAt,
         clientName: user.name,
@@ -380,7 +432,16 @@ export class FinanceService {
 
     // Aggregate payment state per booking from a single bounded query.
     const ids = bRows.map((b) => b.id);
-    const payByBooking = new Map<string, { latestStatus: string | null; held: number; latestRef: string | null }>();
+    const payByBooking = new Map<
+      string,
+      {
+        latestStatus: string | null;
+        held: number;
+        latestRef: string | null;
+        latestProvider: string | null;
+        latestTestMode: boolean | null;
+      }
+    >();
     if (ids.length > 0) {
       const pRows = await db
         .select({
@@ -388,16 +449,26 @@ export class FinanceService {
           bookingId: payments.bookingId,
           status: payments.status,
           paystackRef: payments.paystackRef,
+          provider: payments.provider,
+          testMode: payments.testMode,
           createdAt: payments.createdAt,
         })
         .from(payments)
         .where(sql`${payments.bookingId} IN (${sql.join(ids.map((b) => sql`${b}`), sql`, `)})`)
         .orderBy(desc(payments.createdAt));
       for (const p of pRows) {
-        const entry = payByBooking.get(p.bookingId) ?? { latestStatus: null, held: 0, latestRef: null };
+        const entry = payByBooking.get(p.bookingId) ?? {
+          latestStatus: null,
+          held: 0,
+          latestRef: null,
+          latestProvider: null,
+          latestTestMode: null,
+        };
         if (entry.latestStatus === null) {
           entry.latestStatus = p.status;
           entry.latestRef = p.paystackRef;
+          entry.latestProvider = p.provider;
+          entry.latestTestMode = p.testMode;
         }
         if (p.status === "HELD") entry.held += 1;
         payByBooking.set(p.bookingId, entry);
@@ -421,6 +492,8 @@ export class FinanceService {
         paymentStatus: pay?.latestStatus ?? null,
         heldPayments: pay?.held ?? 0,
         paystackRef: pay?.latestRef ?? b.paystackRef ?? null,
+        paymentProvider: pay?.latestProvider ?? b.paymentProvider,
+        paymentTestMode: pay?.latestTestMode ?? b.paymentTestMode,
         serviceDate: b.serviceDate ? b.serviceDate.toISOString() : null,
         createdAt: b.createdAt.toISOString(),
       };
@@ -452,6 +525,8 @@ export class FinanceService {
         fee: bookings.fee,
         total: bookings.total,
         paystackRef: bookings.paystackRef,
+        paymentProvider: bookings.paymentProvider,
+        paymentTestMode: bookings.paymentTestMode,
         serviceDate: bookings.serviceDate,
         createdAt: bookings.createdAt,
         clientName: user.name,
@@ -476,6 +551,9 @@ export class FinanceService {
           netAmount: payments.netAmount,
           status: payments.status,
           paystackRef: payments.paystackRef,
+          provider: payments.provider,
+          testMode: payments.testMode,
+          providerRef: payments.providerRef,
           createdAt: payments.createdAt,
         })
         .from(payments)
@@ -524,6 +602,8 @@ export class FinanceService {
       paymentStatus: pRows[0]?.status ?? null,
       heldPayments: pRows.filter((p) => p.status === "HELD").length,
       paystackRef: pRows[0]?.paystackRef ?? bRow.paystackRef ?? null,
+      paymentProvider: pRows[0]?.provider ?? bRow.paymentProvider,
+      paymentTestMode: pRows[0]?.testMode ?? bRow.paymentTestMode,
       serviceDate: bRow.serviceDate ? bRow.serviceDate.toISOString() : null,
       createdAt: bRow.createdAt.toISOString(),
     };
@@ -537,6 +617,9 @@ export class FinanceService {
         netAmountKobo: p.netAmount,
         status: p.status,
         paystackRef: p.paystackRef,
+        provider: p.provider,
+        testMode: p.testMode,
+        providerRef: p.providerRef,
         createdAt: p.createdAt.toISOString(),
       })),
       walletTransactions: wRows.map((w) => ({

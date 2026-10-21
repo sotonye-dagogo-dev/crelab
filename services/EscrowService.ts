@@ -4,7 +4,10 @@ import { eq, and, lt, gte, isNull, or, isNotNull, ne, asc } from "drizzle-orm";
 import { PlatformConfigService } from "@/services/PlatformConfigService";
 import { WalletService } from "@/services/WalletService";
 import { AuditService } from "@/services/AuditService";
-import { initTransaction, refund, verifyTransaction } from "@/lib/paystack";
+import { getRecordedRuntime, verifyPaymentRecord } from "@/lib/payments/runtime";
+import { PaymentProviderService } from "@/services/PaymentProviderService";
+import { asPaymentProviderId } from "@/lib/payments/config";
+import type { PaymentProviderId } from "@/lib/payments/types";
 import {
   classifyHoldOutcome,
   parseBookingIdFromRef,
@@ -145,6 +148,9 @@ function mapPayment(row: typeof payments.$inferSelect): IPayment {
     fee: row.fee,
     netAmount: row.netAmount,
     paystackRef: row.paystackRef,
+    provider: asPaymentProviderId(row.provider) ?? "PAYSTACK",
+    testMode: row.testMode,
+    providerRef: row.providerRef ?? null,
     status: row.status,
     createdAt: row.createdAt.toISOString(),
   };
@@ -167,16 +173,35 @@ function mapDispute(row: typeof disputes.$inferSelect): IDispute {
 export interface IEscrowService {
   initiate(bookingId: string): Promise<{
     authorizationUrl: string;
-    accessCode: string;
+    accessCode: string | null;
     reference: string;
+    providerReference: string | null;
+    checkoutMode: "POPUP" | "REDIRECT";
+    provider: PaymentProviderId;
+    testMode: boolean;
+    fallbackFrom: PaymentProviderId | null;
   }>;
-  /** Finalize a verified Paystack charge into escrow HELD. Idempotent; returns the full hold outcome. */
+  /** Finalize a verified processor charge into escrow HELD. Idempotent; returns the full hold outcome. */
   onPaystackSuccess(
     reference: string,
-    options?: { bookingId?: string | null },
+    options?: {
+      bookingId?: string | null;
+      provider?: PaymentProviderId;
+      testMode?: boolean;
+      providerReference?: string | null;
+    },
   ): Promise<HoldResult>;
   /** Exactly-once ACCEPTED→HELD transition + payment-row creation. Returns true when this call held the funds. */
-  holdBookingFunds(bookingId: string, paystackRef: string, releaseDeadline: Date): Promise<boolean>;
+  holdBookingFunds(
+    bookingId: string,
+    paystackRef: string,
+    releaseDeadline: Date,
+    options?: {
+      provider?: PaymentProviderId;
+      testMode?: boolean;
+      providerReference?: string | null;
+    },
+  ): Promise<boolean>;
   /** Resolve a charge reference back to its booking (exact ref → hint → parsed id). */
   resolveBookingForRef(
     reference: string,
@@ -235,25 +260,52 @@ export class EscrowService implements IEscrowService {
     // bookings list, where status is rendered server-side — a truthful end state
     // either way (the webhook remains the primary finalizer).
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/+$/, "");
-    const result = await initTransaction(
-      booking.total,
-      clientEmail,
-      ref,
+    const { runtime, adapter } = await PaymentProviderService.getRuntime();
+    const result = await adapter.initTransaction(
       {
-        metadata: { purpose: "BOOKING_PAYMENT", bookingId, clientId: booking.clientId, providerId: booking.providerId },
+        amountKobo: booking.total,
+        email: clientEmail,
+        reference: ref,
+        metadata: {
+          purpose: "BOOKING_PAYMENT",
+          bookingId,
+          clientId: booking.clientId,
+          providerId: booking.providerId,
+          provider: runtime.provider,
+          testMode: runtime.testMode,
+        },
         callbackUrl: appUrl ? `${appUrl}/bookings` : undefined,
+        customerName: client?.email ?? undefined,
       },
+      runtime.testMode,
     );
 
     await db
       .update(bookings)
       .set({
         paystackRef: ref,
+        paymentProvider: runtime.provider,
+        paymentTestMode: runtime.testMode,
         updatedAt: new Date(),
       })
       .where(eq(bookings.id, bookingId));
 
-    return result;
+    if (runtime.fallbackFrom) {
+      void AuditService.log({
+        userId: booking.clientId,
+        action: "payment.provider.fallback",
+        entity: "bookings",
+        entityId: bookingId,
+        newValue: {
+          requested: runtime.fallbackFrom,
+          used: runtime.provider,
+          testMode: runtime.testMode,
+          reference: ref,
+        },
+      }).catch(() => {});
+    }
+
+    return { ...result, fallbackFrom: runtime.fallbackFrom };
   }
 
   /**
@@ -335,7 +387,12 @@ export class EscrowService implements IEscrowService {
    */
   async onPaystackSuccess(
     reference: string,
-    options: { bookingId?: string | null } = {},
+    options: {
+      bookingId?: string | null;
+      provider?: PaymentProviderId;
+      testMode?: boolean;
+      providerReference?: string | null;
+    } = {},
   ): Promise<HoldResult> {
     const hintBookingId = options.bookingId ?? null;
     const booking = await this.resolveBookingForRef(reference, hintBookingId);
@@ -365,7 +422,14 @@ export class EscrowService implements IEscrowService {
         booking.serviceDate,
         platformConfig.escrowReleaseDays,
       );
-      flipped = await this.holdBookingFunds(booking.id, reference, releaseDeadline);
+      flipped = await this.holdBookingFunds(booking.id, reference, releaseDeadline, {
+        provider:
+          options.provider ??
+          asPaymentProviderId(booking.paymentProvider) ??
+          "PAYSTACK",
+        testMode: options.testMode ?? booking.paymentTestMode ?? false,
+        providerReference: options.providerReference ?? null,
+      });
     }
 
     const statusAfter = flipped
@@ -479,7 +543,11 @@ export class EscrowService implements IEscrowService {
     if (verifyWithProcessor) {
       let verified;
       try {
-        verified = await verifyTransaction(reference);
+        verified = await verifyPaymentRecord(
+          asPaymentProviderId(booking.paymentProvider) ?? "PAYSTACK",
+          booking.paymentTestMode ?? false,
+          reference,
+        );
       } catch (err) {
         const detail = err instanceof Error ? err.message : "Processor unreachable";
         return {
@@ -653,7 +721,14 @@ export class EscrowService implements IEscrowService {
     bookingId: string,
     paystackRef: string,
     releaseDeadline: Date,
+    options: {
+      provider?: PaymentProviderId;
+      testMode?: boolean;
+      providerReference?: string | null;
+    } = {},
   ): Promise<boolean> {
+    const provider = options.provider ?? "PAYSTACK";
+    const testMode = options.testMode ?? false;
     const held = await db.transaction(async (tx) => {
       const [flipped] = await tx
         .update(bookings)
@@ -661,6 +736,8 @@ export class EscrowService implements IEscrowService {
           status: "HELD",
           escrowState: "HELD",
           releaseDeadline,
+          paymentProvider: provider,
+          paymentTestMode: testMode,
           updatedAt: new Date(),
         })
         .where(and(eq(bookings.id, bookingId), eq(bookings.status, "ACCEPTED")))
@@ -674,6 +751,9 @@ export class EscrowService implements IEscrowService {
         fee: flipped.fee,
         netAmount: flipped.total - flipped.fee,
         paystackRef,
+        provider,
+        testMode,
+        providerRef: options.providerReference ?? null,
         status: "HELD",
       });
       return true;
@@ -689,7 +769,12 @@ export class EscrowService implements IEscrowService {
         action: "escrow.held",
         entity: "bookings",
         entityId: bookingId,
-        newValue: { paystackRef, releaseDeadline: releaseDeadline.toISOString() },
+        newValue: {
+          paystackRef,
+          releaseDeadline: releaseDeadline.toISOString(),
+          provider,
+          testMode,
+        },
       }).catch(() => {});
       void notifyFundsHeld(bookingId);
       void new JobQueueService().enqueueEscrowFollowUps(bookingId);
@@ -868,10 +953,21 @@ export class EscrowService implements IEscrowService {
       void notifyFundsRefunded(bookingId);
 
       try {
-        await refund(payment.paystackRef);
+        const provider = asPaymentProviderId(payment.provider) ?? "PAYSTACK";
+        const { adapter } = getRecordedRuntime(provider, payment.testMode);
+        await adapter.refund(
+          {
+            reference: payment.paystackRef,
+            providerReference: payment.providerRef,
+            amountKobo: payment.amount,
+            reason: "Booking refund",
+          },
+          payment.testMode,
+        );
       } catch (err) {
+        const provider = asPaymentProviderId(payment.provider) ?? "PAYSTACK";
         console.error(
-          `[escrow] Paystack refund failed for ${payment.paystackRef} (booking ${bookingId}) — refund manually from the Paystack dashboard`,
+          `[escrow] ${provider} refund failed for ${payment.paystackRef} (booking ${bookingId}) — refund manually from the ${provider} dashboard`,
           err,
         );
       }
