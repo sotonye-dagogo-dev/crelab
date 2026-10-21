@@ -35,7 +35,7 @@
 - [ ] API routes: Portfolio CRUD (happy path + auth gating)
 - [ ] API routes: Drive sync trigger + drive/preview (auth, role guard, no provider-row gate on preview, validation, per-user budget 429, error states)
 - [ ] API routes: Admin config update (auth, validation)
-- [ ] API routes: Webhook handlers (Paystack HMAC verification, idempotency)
+- [ ] API routes: Webhook handlers (Paystack HMAC + Monnify SHA-512 verification, idempotency; unsigned Monnify events accepted only when no live secret is configured)
 - [ ] Auth flow: registration, login, role assignment, consent recording
 - [ ] Database: Drizzle CRUD operations for all tables
 - [ ] Database: RLS policy enforcement (users can only access own data)

@@ -1,8 +1,8 @@
 # Project Decisions
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment visibility end-to-end)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: each entry has its own staleness — check supersedes links
 
 > **Overview:** Log of significant architectural, technical, and product decisions for Crelab.
@@ -33,6 +33,32 @@
 ---
 
 ## Decisions
+
+
+## Multi-Provider Payment Rail: Admin Routing, Recorded-Provider Refunds, ENV-Only Credentials
+
+**Decision:** Processor choice becomes configuration, not code. `payments.provider` stores `{ active, fallback, providers: { paystack, monnify } }` with per-provider `enabled` + `testMode`; credentials stay in ENV (live and `*_TEST_*` pairs). New charges resolve active → fallback via `PaymentProviderService` (audited as `payment.provider.fallback`), while refunds, payouts and reconciliation resolve the provider/test mode **recorded on the money row** through `getRecordedRuntime()` and never fall back. Every booking, payment and wallet transaction stores `provider` + `test_mode`; finance/analytics filter and aggregate on them. Monnify is a first-class adapter (redirect checkout, `paymentReference` verify, SHA-512 webhook, ₦100-min refunds, source-account payouts) behind the same contract as Paystack. Public copy names no processor except where policy/legal notices require it (per `payments.notices`).
+**Date:** 2026-10-21
+**Made by:** Implementer (execute-feature — per payment expansion directive)
+**Supersedes:** None — extends the 2026-10-14 "Paystack Rail" decision to multiple rails; that decision's app-side escrow and payout-on-release semantics remain unchanged.
+**Superseded by:** None
+
+**Reason:**
+Monnify covers the same Nigerian cards/transfers/bank rails with a hosted checkout and sandbox, but the platform must survive provider outages, onboarding gaps and sandbox/live separation without a deploy. Hard-coding one processor also leaks vendor names into public UX and makes historical attribution impossible after a switch. Recording provider+mode at movement time is the only way refunds and audits remain correct when the active provider changes later.
+
+**Alternatives Considered:**
+- Auto-fallback for refunds/payouts — rejected: refunding through a processor that never received the charge is an unaudited cross-rail transfer.
+- Store API keys in `platform_config` — rejected: config rows are readable by admins/API and would widen secret exposure; ENV keeps credentials out of the database and normal sanitisation.
+- Reusing the live Paystack key when "test mode" is on — rejected: silent real-money charges; test mode instead requires `PAYSTACK_TEST_SECRET_KEY` and fails loudly.
+- Parallel provider-specific routes/services — rejected: duplicated escrow/wallet invariants; one adapter contract keeps ACID money paths shared and testable.
+- Renaming `paystack_ref` columns — rejected: provider-agnostic in practice, and a rename is a breaking migration for zero behavioural gain; `provider_ref` is additive.
+
+**Implications:**
+- Enabling a provider = set ENV credentials + toggle it in `/admin/config`; no code change.
+- Adding a third processor = implement `PaymentProviderAdapter`, register it, add settings/type/UI option, and run the runtime tests.
+- Refund/payout failures are terminal for that rail (no fallback) and surface loudly for manual reconciliation.
+- Historical finance rows created before 0009 are attributed PAYSTACK/live; no other backfill is possible or attempted.
+- `lib` remains service-free: config-resolution lives in `services/PaymentProviderService.ts`, pure selection in `lib/payments/runtime.ts`.
 
 ## Escrow Hold Integrity: Truthful Verify, Terminal-Only De-Dupe, Ref-Attribution Fallback, Reconcile Vocabulary
 
@@ -997,3 +1023,28 @@ Several money-path surfaces (pay panel, escrow timeline, wallet balance, finance
 - `ClInfoTip` is the ONLY tooltip/info-tip primitive — future "info icon" needs use it, never a bespoke `title` or a new popover.
 - Tooltip copy itself is config-driven (`hints` in platform config, resolved via `lib/hints.ts`) — the primitive is presentational only; it never hardcodes business copy.
 - Listed in the design-system component catalog as part of this session's doc sync.
+
+---
+
+## Payment Rail Status Is Advisory on the Client, Authoritative on the Server
+
+**Decision:** Expose a sanitized `GET /api/payments/status` (`available`, `testMode`, `fallbackUsed`, `bankTransferAvailable`) and a shared `usePaymentStatus` hook for UI warnings/CTA gating. The client answer is advisory only: every money route still enforces the runtime and maps `PaymentProviderUnavailableError` to `503` with the same admin-editable copy. Copy lives in `payments.status.*`; user copy stays processor-agnostic, admin copy may interpolate provider labels.
+**Date:** 2026-10-21
+**Made by:** execute-feature ("no payment provider enabled feedback + test mode awareness")
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+Users were hitting generic failures (or silent test charges) when the rail was disabled or uncredentialed, while admins had no platform-wide indicator outside finance filters. A status endpoint keeps credential checks server-side, lets the first paint use public config to catch "all providers disabled" immediately, and avoids duplicating provider logic in components. The server must remain authoritative because a stale/failed probe must never let a doomed checkout succeed.
+
+**Alternatives Considered:**
+- Disable CTAs purely from public config — rejected: misses missing credentials (the common outage) and would falsely enable when only one provider is configured.
+- Redirect users away from money pages when unavailable — rejected: wallet balance and other non-checkout actions must keep working; balance payments on bookings do not need a provider.
+- Return full provider diagnostics publicly — rejected: leaks operational/credential state; admins get that via `getStatus()`.
+- Hardcode banner copy in components — rejected: admin-managed platform requires editable copy.
+
+**Implications:**
+- New money surfaces must use `PaymentStatusNotice` + `usePaymentStatus` and still handle the route's `503` (`PAYMENT_UNAVAILABLE`).
+- `PaymentStatusNotice`/`PaymentEnvironmentBanner` are the only rail-status surfaces; do not add bespoke "Paystack is down" copy.
+- Test↔live fallback is deliberately paused (not auto-switched); when environments mismatch, `getStatus()` reports unavailable with an admin-facing reason.
+- Bank-transfer top-up remains Paystack-only until Monnify reserved accounts are implemented; `bankTransferAvailable` encodes that capability.

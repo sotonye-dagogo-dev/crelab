@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { ClModal, ClButton } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { usePlatformConfig } from "@/lib/config-context";
+import { usePaymentStatus } from "@/hooks/usePaymentStatus";
+import { PaymentStatusNotice } from "@/components/shared/PaymentStatusNotice";
 import { Lock, Building2, CreditCard } from "lucide-react";
 
 interface TopUpModalProps {
@@ -16,7 +18,15 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [method, setMethod] = useState<"card" | "bank">("card");
   const { toast } = useToast();
-  const { name: platformName } = usePlatformConfig();
+  const platformConfig = usePlatformConfig();
+  const { name: platformName } = platformConfig;
+  const { status } = usePaymentStatus();
+  const paymentsUnavailable = status?.available === false;
+  const bankUnavailable =
+    paymentsUnavailable || status?.bankTransferAvailable === false;
+  const bankUnavailableBody =
+    platformConfig.payments?.status?.bankTransferUnavailableBody?.trim() ||
+    "Bank-transfer top-ups are temporarily unavailable. Please use card payment, or try again later.";
 
   const handleCardTopUp = useCallback(async () => {
     const amountKobo = parseInt(amount, 10) * 100;
@@ -32,7 +42,7 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Could not start payment");
 
-      // Redirect to Paystack checkout. On completion Paystack returns to
+      // Redirect to the processor's hosted checkout. On completion it returns to
       // /wallet/payment-status which verifies the transaction and reflects it.
       window.location.href = json.data.authorizationUrl;
     } catch (err) {
@@ -95,6 +105,8 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
         style={{ fontFamily: "'JetBrains Mono', monospace" }}
       />
 
+      <PaymentStatusNotice compact className="mb-4" allowRetry />
+
       <div className="flex gap-2 mb-4">
         <button
           type="button"
@@ -127,16 +139,16 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
           <ClButton
             variant="primary"
             fullWidth
-            disabled={!amount || parseInt(amount) <= 0}
+            disabled={!amount || parseInt(amount) <= 0 || paymentsUnavailable}
             loading={isLoading}
             onClick={handleCardTopUp}
           >
-            Proceed to Paystack
+            Proceed to secure checkout
           </ClButton>
 
           <p className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-tertiary)] mt-4 text-center">
             <Lock size={11} strokeWidth={2} />
-            Secured by Paystack. Your card details are never seen by {platformName}.
+            Secured by our payment partner. Your card details are never seen by {platformName}.
           </p>
         </>
       ) : (
@@ -144,17 +156,23 @@ export function TopUpModal({ open, onClose }: TopUpModalProps) {
           <ClButton
             variant="primary"
             fullWidth
-            disabled={!amount || parseInt(amount) <= 0}
+            disabled={!amount || parseInt(amount) <= 0 || bankUnavailable}
             loading={isLoading}
             onClick={handleBankTopUp}
           >
             Generate Bank Account Details
           </ClButton>
 
-          <p className="text-[11px] text-[var(--color-text-tertiary)] mt-4 text-center">
-            You will receive a unique virtual account number to transfer funds to.
-            Your wallet will be credited automatically once the transfer is received.
-          </p>
+          {bankUnavailable ? (
+            <p className="text-[12px] text-[var(--color-text-secondary)] mt-3 text-center">
+              {bankUnavailableBody}
+            </p>
+          ) : (
+            <p className="text-[11px] text-[var(--color-text-tertiary)] mt-4 text-center">
+              You will receive a unique virtual account number to transfer funds to.
+              Your wallet will be credited automatically once the transfer is received.
+            </p>
+          )}
         </>
       )}
     </ClModal>

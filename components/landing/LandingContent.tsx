@@ -74,7 +74,7 @@ export function LandingContent({ config, stats = null }: Props) {
             {/* Trust row */}
             <div className="mt-8 flex flex-wrap gap-4 max-[900px]:justify-center text-[12px] text-[var(--color-text-tertiary)]">
               <span className="inline-flex items-center gap-1.5"><Shield size={14} /> Escrow protected</span>
-              <span className="inline-flex items-center gap-1.5"><Wallet size={14} /> Paystack & wallet</span>
+              <span className="inline-flex items-center gap-1.5"><Wallet size={14} /> Secure cards & wallet</span>
               <span className="inline-flex items-center gap-1.5"><Star size={14} /> Verified creators</span>
             </div>
           </div>
@@ -202,7 +202,7 @@ export function LandingContent({ config, stats = null }: Props) {
               <Shield size={18} />
             </div>
             <h3 className="font-semibold text-[14px] text-[var(--color-text-primary)]">Escrow & dispute handling</h3>
-            <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mt-1">Payments are held by Paystack. Admin mediation if anything goes wrong — fair, documented, auditable.</p>
+            <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mt-1">Payments are held in escrow. Admin mediation if anything goes wrong — fair, documented, auditable.</p>
           </div>
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[12px] p-5">
             <div className="w-9 h-9 rounded-[8px] bg-[var(--color-accent-muted)] flex items-center justify-center text-[var(--color-accent)] mb-3">

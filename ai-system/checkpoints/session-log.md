@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -10,6 +10,41 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-21 — Payment Rail Awareness: No-Provider Feedback, Test-Mode, Email Parity (execute-feature)
+
+**Directive:** Make the multi-provider rail operationally honest: users must get clear, config-driven feedback when no payment provider is enabled; both users and admins must know when checkout is running in test/sandbox mode; and every wired lifecycle email must fire regardless of which provider (or fallback) handled the money. Config/metadata-driven, reusable, non-breaking, ACID, with graceful fallbacks and edge cases; close with full QA + `update-ai-system.md`.
+
+**Planning pass (Step 1):** Re-read `execute-feature.md` + `update-ai-system.md`, the prior multi-provider session, all payment surfaces/routes, and email triggers. Code-verified facts: money paths throw `PaymentProviderUnavailableError` only from `choosePaymentRuntime`/`getRecordedRuntime`; `/admin/finance` already exposes provider + test-mode filters; both webhooks converge on `EscrowService.onPaystackSuccess` / `WalletService.topUpFromCard`; lifecycle emails are fire-and-forget post-commit and gated by `features.emailNotifications` + Resend presence. Root risks identified: silent sandbox↔live fallback, generic 500s on a dead rail, no user-visible test-mode warning, and no automated proof that payment templates stay enabled/wired. **Go.**
+
+**Completed:**
+1. **Config + pure helpers —** `IPaymentStatusConfig` (+ admin/user copy + `bankTransferUnavailableBody`) on `IPaymentsConfig`, shipped defaults, legacy-safe `normalizeStatus()`; new pure `lib/payments/status.ts` (`resolvePaymentStatusCopy` with token fill, `fillPaymentStatusTokens`, `resolveConfiguredAvailability`). New `lib/payments/http.ts` (503 code + config-driven message; `isPaymentProviderUnavailable`).
+2. **Runtime safety —** exported `isProviderUsable`; `choosePaymentRuntime` now throws when an enabled-but-uncredentialed active provider would fall back across test↔live (no silent sandbox/live switch). `PaymentProviderService.getStatus()` returns a never-throwing snapshot (availability, provider labels, test mode, fallback, per-provider enabled/configured, `bankTransferAvailable`, loud reason).
+3. **Public status API/UI —** `GET /api/payments/status` (sanitized, `no-store`); `hooks/usePaymentStatus` (30s cache + inflight dedupe + config-first all-disabled answer + `refresh`); `components/shared/PaymentStatusNotice` (danger/warning/info, retry); integrated on Wallet, booking pay panel (card disabled only; wallet balance remains usable), TopUp (card + bank-specific gate), Withdraw, and the payment-result page (test-mode copy).
+4. **Admin awareness —** `PaymentEnvironmentBanner` in `AdminShell` via `app/admin/layout.tsx` (no usable provider / test mode / fallback; links to config); `payments.status.*` editor fields under "Fees & Escrow".
+5. **Route honesty —** `PaymentProviderUnavailableError` → 503 + config copy on card top-up, withdraw, booking pay and both verify routes; bank top-up refuses early when Paystack is disabled/uncredentialed (DVA is Paystack-only).
+6. **Email parity proof —** new tests assert every `fire(...)` template key in `lib/lifecycle-emails.ts` exists, is enabled and non-empty, and both webhooks call the same idempotent handlers.
+7. **Tests/QA —** +14 tests (`payment-status`, `payment-email-wiring`, runtime guard/usability) → **717/717 (59 files)**; `tsc --noEmit` clean; `next lint` 0 errors (pre-existing warnings only); `next build` green.
+8. **Docs —** repo-map, dependency-graph, system-architecture, task-queue, project-plan, dev-history, project-decisions, lessons-learned, test-results, this log; in-progress cleared. No migrations.
+
+**Residual risks:** the client status probe is advisory (a failed fetch leaves CTAs enabled and the server still returns 503); fallback guard intentionally pauses payments when environments mismatch rather than risk real charges; bank-transfer availability is hard-coded to Paystack until Monnify reserved accounts are implemented; admin banner copy names processors (admins already see them) while user copy stays processor-agnostic.
+
+## Session 2026-10-21 — Multi-Provider Payments: Paystack + Monnify (execute-feature)
+
+**Directive:** Add Monnify alongside Paystack with full functional parity (init, verify, webhook, refund, payout), let admins switch the active provider and each provider's test mode, remove user-facing "Paystack" copy, and audit provider + test-mode on finance/analytics records and stats. Config/metadata-driven, reusable modular code, non-breaking, ACID, with fallbacks and edge-case handling. Validate Monnify against the existing escrow/wallet architecture first.
+
+**Planning pass (Step 1):** Read `execute-feature.md`, `update-ai-system.md`, project context, task queue, payment directive; surveyed services and all payment call sites. Code facts: money is kobo everywhere; refs are `CRELLAB-{bookingId}-{millis}` / `WALLET-TOPUP-{userId}-{millis}`; `paystack_ref` columns are provider-agnostic in practice. Monnify capability review: hosted redirect checkout (no popup), verify by `paymentReference`, SHA-512 webhook (sandbox omits the header), refunds require `transactionReference` + activation + ₦100 minimum, payouts require bank details + funded source account, amounts are NGN decimals. Self-check passed; **Go**.
+
+**Completed:**
+1. **Types/config —** `PaymentProviderId`, `IPaymentProviderSettings`, `IPaymentProvidersConfig`; optional `payments.provider`; default `{active: PAYSTACK, fallback: MONNIFY, paystack enabled live, monnify disabled test}`; normaliser handles legacy/partial DB config.
+2. **Adapters —** `lib/payments/types.ts` (single contract), `lib/payments/paystack.ts` (popup, test-key isolation, bank-account or recipient-code payout), `lib/payments/monnify.ts` (token cache, NGN↔kobo, init/verify by payment reference, SHA-512 signature, stringified metadata, refund guards, disbursement), `lib/payments/runtime.ts` (pure active→fallback + no-fallback recorded runtime), `services/PaymentProviderService.ts` (config read). Monnify redirects append `paymentReference` (not `reference`), so the payment-status page accepts both.
+3. **Schema —** idempotent `0009_payment_providers.sql` (every statement separated by a Drizzle `--> statement-breakpoint`): bookings `payment_provider`/`payment_test_mode`; payments `provider`/`test_mode`/`provider_ref`; wallet_transactions `provider`/`test_mode`; indexes; journal entry idx 5. Existing rows backfill PAYSTACK/live. Partial/legacy config blocks inherit per-provider defaults instead of collapsing to disabled.
+4. **Money paths —** Escrow initiate/reconcile/hold/refund are provider-aware; wallet topup credit and withdrawal payout route through the runtime; Paystack webhook attributes provider/test mode; new Monnify webhook with process-before-record + retry semantics; wallet verify reconstructs provider/test mode from the server-issued callback URL.
+5. **Admin/UI —** config `select` field + Active/Fallback provider selects and per-provider enabled/test-mode toggles; withdrawals accept NUBAN details for Monnify and optionally for Paystack (so a Paystack→Monnify credential fallback still works) with the recipient-code shortcut retained; finance transaction filters (provider/environment), processor column, live-vs-test GMV + mix card; analytics `paymentsByProvider`; public copy sanitised to "payment partner".
+6. **Tests —** `__tests__/lib/monnify.test.ts` (units/signature/init/verify/refund/payout) + `payment-provider-runtime.test.ts` (fallback/no-fallback); suite **703/703**; tsc clean; lint clean; build green.
+7. **Docs —** repo-map, dependency-graph, system-architecture, project-context, task-queue, dev-history, lessons-learned, test-results, this log; `in-progress` cleared.
+
+**Residual risks:** Monnify refunds must be enabled by Monnify support (failure is loud + manual dashboard fallback); Monnify sandbox webhooks are unsigned by design (accepted only when no live secret is configured); Paystack test mode requires `PAYSTACK_TEST_SECRET_KEY` (intentional refusal to reuse live keys); payouts depend on a funded Monnify source account; provider mix is stored on payment/wallet rows only (no backfill of historical provider beyond PAYSTACK).
 
 ## Session 2026-10-19 — Booking & Payment Flow Integrity + Guidance Affordances (execute-feature)
 

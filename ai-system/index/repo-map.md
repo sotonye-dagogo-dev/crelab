@@ -1,8 +1,8 @@
 # Repository Map
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment flow integrity + guidance affordances)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: auto-regenerable — can be derived from `tree` command. Manual content only where intent cannot be derived from structure.
 
 > **Overview:** Visual map of the Crelab project folder structure with purpose descriptions.
@@ -14,7 +14,7 @@
 ```
 crelab/
 ├── __tests__/               # Vitest test files for all services + lib helpers
-├── .env                    # Environment variables (DB, auth, Paystack keys, mock data toggle)
+├── .env                    # Environment variables (DB, auth, Paystack + Monnify live/test keys, mock data toggle)
 ├── .env.example            # Template with all required vars (recommended defaults)
 ├── .github/                 # GitHub Actions workflows
 ├── .ai-system/              # AI-assisted development governance
@@ -86,8 +86,8 @@ crelab/
 │       ├── verify-email/   # Verify-email: /send (shared sendVerificationEmailTo helper) + /welcome (fires welcome once verified) + /verify (case-insensitive token verify with affected-row check)
 │       ├── wallet/         # Wallet: topup (card + verify callback), withdraw, balance, transactions
 │       ├── webinars/       # GET /webinars + GET /webinars/mine (my seats + subscriber flag) + POST/DELETE /webinars/[id]/register (id-or-slug, unique-index upsert, MARKETING grant on opt-in; idempotent user cancel)
-│       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or Paystack initiate with real client email + metadata
-│       └── webhooks/       # Paystack webhook handler
+│       ├── bookings/[id]/pay # Booking payment: wallet debit (atomic) or active-provider initiate with real client email + metadata
+│       └── webhooks/       # Paystack + Monnify webhook handlers (signature-verified, process-before-record)
 ├── components/
 │   ├── ui/                  # Cl* wrappers around shadcn/ui (ClLogo, ClErrorState, ClEmptyState, ClPasswordInput, ClConfirmDialog, ClBackButton, ClDataTable, ClPagination, ClInfoTip)
 │   ├── explore/            # ExploreFilterBar, ExploreGrid (scroll-stable, no layout anim), ExploreVideoCard (persistent VIDEO tag + halo, ordered display: avatar → portfolioThumbnails carousel on 3.5s interval → initials fallback; no img remount on tick; mount-on-view video), PortfolioGallery (scroll-stable)
@@ -117,6 +117,7 @@ crelab/
   │   ├── MediaAssetService.ts  # Media asset registry: record, list, referenced-URL scan (providers/portfolio/blog/team), orphan cleanup, delete, replace, reconcile, backfillOrphans (bulk owner-matched rescue)
 │   ├── MilestoneService.ts
 │   ├── MockDataService.ts
+│   ├── PaymentProviderService.ts # Server-side provider routing (config → runtime/fallback; no secrets in config)
 │   ├── PaymentService.ts
 │   ├── PlatformConfigService.ts # Config CRUD with DB override + setNestedValue deep-merge of dotted keys
 │   ├── PlatformStatsService.ts # Cached landing aggregates with null → fallbackValue degradation
@@ -155,6 +156,7 @@ crelab/
 │   ├── errors.ts           # Business error classes (BookingError, EscrowError, CloudinaryNotConfiguredError, etc.)
 │   ├── media.ts            # Media file/URL validation helpers (type, size, link; oversize reason keeps "too large" substring + per-file-limit detail)
 │   ├── oauth.ts            # Google OAuth callback helpers (register finalize routing, role guard)
+│   ├── payments/           # Provider abstraction: types (runtime/init/verify/refund/payout), config normaliser, runtime fallback resolver (test↔live guard), status copy/availability helpers, 503 HTTP helper, Paystack + Monnify adapters
 │   ├── paystack.ts         # Init transaction, verify webhook, split, refund, DVA, transfer
 │   ├── payment-notices.ts  # PAYMENT_NOTICE_KEYS + resolvePaymentNotice(s): saved notices merged over DEFAULT_CONFIG payments.notices + token fill (disabled/empty → hidden)
 │   ├── payment-flow.ts     # PURE escrow-hold vocabulary: BOOKING_REF_PREFIX (CRELLAB-{bookingId}-{millis}), parseBookingIdFromRef, classifyHoldOutcome → HoldResult, shouldRecordChargeEvent (terminal-only de-dupe), holdFailureMessage, isHoldPending — shared by webhook/verify/pay/cron/page/admin
@@ -178,7 +180,8 @@ crelab/
 │   └── migrations/         # Generated SQL migrations
 ├── hooks/
 │   ├── useAuth.ts          # Client-side auth hook (signIn, signInWithGoogle, signOut, signUp, refresh — verification mail is server-sent via the auth hook)
-│   └── useDrivePreview.ts  # Shared Drive folder-link preview state (validateFolderUrl, cooldown countdown, 429/503 backoff, stale-clear) — DriveConnectSettings + MediaUpload
+│   ├── useDrivePreview.ts  # Shared Drive folder-link preview state (validateFolderUrl, cooldown countdown, 429/503 backoff, stale-clear) — DriveConnectSettings + MediaUpload
+│   └── usePaymentStatus.ts # Public payment-rail status (GET /api/payments/status): 30s cache, inflight dedupe, config-first all-disabled answer, refresh
 ├── scripts/                 # Database seeding + utility scripts
 │   ├── seed.ts             # DB seed: creates users via Better Auth API + inserts all seed data
 │   ├── seed-rollback.ts    # Rollback: deletes all seed data in FK-safe reverse order
@@ -204,9 +207,9 @@ crelab/
 | `components/profile/` | Provider profile: hero, portfolio grid, packages, reviews, drive settings, media upload | ProviderHero, PortfolioGrid, ServicePackages, MediaUpload |
 | `components/booking/` | Booking flow: drawer, escrow timeline, dispute modal, pay panel, next-step guidance | BookingDrawer, EscrowTimeline, BookingPayPanel, NextStepBanner |
 | `components/blog/` | Blog article body, cards, creator spotlight embed, ToC sidebar, content section renderer | ArticleBody, BlogCard, CreatorSpotlightEmbed, ToCSidebar, ContentBlocks |
-| `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor, ImageUploadField, AnalyticsCharts (Line/Bar/Donut + tooltips), InvoicePreview (print/PDF + HTML download) |
+| `components/admin/` | Admin panel components | AdminSidebar, AdminShell, CategoryModal, ConfigField, ContentBlocksEditor, EmailTemplateBlocksEditor, ImageUploadField, AnalyticsCharts (Line/Bar/Donut + tooltips), InvoicePreview (print/PDF + HTML download), PaymentEnvironmentBanner (admin payment status/testing/fallback) |
 | `components/error/` | Error-boundary UX: report/continue popup + global window catcher | ErrorReportDialog, GlobalErrorCatcher |
-| `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth (auth-agnostic claim retry), CountdownWidget/Slot, ScrollToTopButton, PaymentNoticeBlock (config-driven payment disclaimers), ThemeToggler (System/Light/Dark), NavbarOverflowNav + lib/nav-overflow (pure nav partition/fit) | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth, CountdownWidget, ScrollToTopButton, PaymentNoticeBlock, ThemeToggler, NavbarOverflowNav |
+| `components/shared/` | Shared: Providers, AuthGate, MediaEmbed, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth (auth-agnostic claim retry), CountdownWidget/Slot, ScrollToTopButton, PaymentNoticeBlock (config-driven payment disclaimers), PaymentStatusNotice (unavailable/test/fallback banner), ThemeToggler (System/Light/Dark), NavbarOverflowNav + lib/nav-overflow (pure nav partition/fit) | Providers, AuthGate, CookieConsentBanner, EarlyMemberBadge, ReferralCapture, ReferralClaimOnAuth, CountdownWidget, ScrollToTopButton, PaymentNoticeBlock, PaymentStatusNotice, ThemeToggler, NavbarOverflowNav |
 | `components/team/` | Team page social icons | `TeamSocialIcon.tsx` |
 | `sanity/` | Sanity CMS project config + content schemas | `sanity.config.ts`, `schemas/` |
 | `services/` | OOP class-based business logic with exported interfaces | BookingService, EscrowService, PlatformConfigService, ExploreService, DashboardService, MediaAssetService, EmailService, BlogPostService, EarlyMemberService, ReferralService, LeaderboardService, WebinarService, PlatformStatsService, TeamService, FinanceService, AnalyticsService |
@@ -214,9 +217,9 @@ crelab/
 | `config/` | Platform configuration with hardcoded fallback + DB override | `platform.config.ts` |
 | `lib/` | Third-party SDK wrappers + shared utilities + blog fallback content | `auth.ts`, `db.ts`, `paystack.ts`, `payment-notices.ts`, `payment-flow.ts` (pure HoldResult vocabulary + ref parse), `booking-guidance.ts` (pure who-acts-next + config overrides), `hints.ts` (config-driven tip copy resolver), `booking-status.ts` (pure status sets/grouping/merge/affordances), `booking-access.ts` (viewer resolution + actor asserts, fail-closed), `booking-action-errors.ts` (route error mapping), `wallet-recipients.ts`, `sanity.ts`, `cloudinary.ts`, `media.ts`, `errors.ts`, `slug.ts`, `currency.ts`, `finance.ts`, `analytics.ts`, `use-undoable.ts`, `blog-fallback.ts`, `blog-hero.ts`, `config-context.tsx`, `consent.ts`, `oauth.ts`, `url.ts`, `seo.ts`, `email-blocks.ts`, `email-templates.ts`, `drive.ts`, `platform-copy.ts`, `sanitize-error.ts`, `error-log-buffer.ts`, `countdown.ts`, `countdown-icons.ts`, `referral-cookie.ts`, `landing-stats.ts`, `webinars.ts`, `social-platforms.ts`, `rate-limit.ts` |
 | `drizzle/` | Database schema, migrations, drizzle-kit config | `schema.ts` (tables incl. `referral_codes`, `referral_events`, `webinars`, `webinar_registrations`, `bug_reports.error_context`), `migrations/` (journal tracks 0000–0002; 0003+ are standalone SQL applied by hand — incl. `0007_referrals_and_error_context.sql`, NOT yet applied) |
-| `hooks/` | Custom React hooks | `useAuth.ts`, `useDrivePreview.ts`, `useBookingPayment.ts` (shared wallet/card money path: server-verify-only success, hosted fallback, watchdog) |
+| `hooks/` | Custom React hooks | `useAuth.ts`, `useDrivePreview.ts`, `useBookingPayment.ts` (shared wallet/card money path: server-verify-only success, hosted fallback, watchdog), `usePaymentStatus.ts` (public rail status + refresh) |
 | `scripts/` | DB seeding: creates users via Better Auth API, inserts seed data, rollback | `seed.ts`, `seed-rollback.ts` |
-| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `services/ReferralService.test.ts`, `services/LeaderboardService.test.ts`, `services/WebinarService.test.ts`, `services/TeamService.test.ts`, `services/BlogPostService.test.ts` (adminList expects DB + fallback merge), `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `platform-name-compliance.test.ts`, `lib/finance.test.ts`, `lib/analytics.test.ts`, `lib/config-helpers.test.ts`, `lib/payment-notices.test.ts`, `lib/payment-flow.test.ts` (HoldResult classification + ref parse), `lib/booking-guidance.test.ts` (exhaustive next-step coverage), `lib/hints.test.ts` (resolveHint merge/hide/token fill), `components/ClInfoTip.test.tsx`, `lib/email-blocks.test.ts`, `lib/email-templates.test.ts`, `lib/countdown.test.ts`, `lib/early-member.test.ts`, `lib/error-log-buffer.test.ts`, `lib/sanitize-error.test.ts`, `lib/social-platforms.test.ts`, `lib/booking-status.test.ts` (full-status coverage invariants), `lib/booking-access.test.ts` (viewer/actor guards incl. fail-closed + mock bypass) |
+| `__tests__/` | Vitest test files for all services + lib helpers | `services/BookingService.test.ts`, `services/EscrowService.test.ts`, `services/ExploreService.test.ts`, `services/DashboardService.test.ts`, `services/EmailService.test.ts`, `services/MediaAssetService.test.ts`, `services/ReferralService.test.ts`, `services/LeaderboardService.test.ts`, `services/WebinarService.test.ts`, `services/TeamService.test.ts`, `services/BlogPostService.test.ts` (adminList expects DB + fallback merge), `oauth.test.ts`, `media.test.ts`, `slug.test.ts`, `currency.test.ts`, `cloudinary.test.ts`, `platform-name-compliance.test.ts`, `lib/finance.test.ts`, `lib/analytics.test.ts`, `lib/config-helpers.test.ts`, `lib/payment-notices.test.ts`, `lib/payment-flow.test.ts` (HoldResult classification + ref parse), `lib/booking-guidance.test.ts` (exhaustive next-step coverage), `lib/hints.test.ts` (resolveHint merge/hide/token fill), `components/ClInfoTip.test.tsx`, `lib/email-blocks.test.ts`, `lib/email-templates.test.ts`, `lib/countdown.test.ts`, `lib/early-member.test.ts`, `lib/error-log-buffer.test.ts`, `lib/sanitize-error.test.ts`, `lib/social-platforms.test.ts`, `lib/booking-status.test.ts` (full-status coverage invariants), `lib/booking-access.test.ts` (viewer/actor guards incl. fail-closed + mock bypass), `lib/payment-status.test.ts` (copy/token/availability), `lib/payment-email-wiring.test.ts` (template + webhook parity) |
 
 ---
 
@@ -233,6 +236,7 @@ crelab/
 | Platform config React context | `lib/config-context.tsx` |
 | Explore feed API | `app/api/explore/route.ts` |
 | Dashboard API | `app/api/dashboard/route.ts` |
+| Public payment status | `app/api/payments/status/route.ts` |
 | Blog index | `app/(public)/blog/page.tsx` |
 | Admin layout | `app/admin/layout.tsx` |
 | Sanity CMS config | `sanity/sanity.config.ts` |

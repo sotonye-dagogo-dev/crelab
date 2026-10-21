@@ -7,6 +7,8 @@ import { ClButton, ClInfoTip } from "@/components/ui";
 import { useToast } from "@/lib/toast";
 import { usePlatformConfig } from "@/lib/config-context";
 import { useBookingPayment } from "@/hooks/useBookingPayment";
+import { usePaymentStatus } from "@/hooks/usePaymentStatus";
+import { PaymentStatusNotice } from "@/components/shared/PaymentStatusNotice";
 import { resolvePaymentNotice } from "@/lib/payment-notices";
 import { resolveHint } from "@/lib/hints";
 import { formatKobo } from "@/lib/currency";
@@ -29,6 +31,8 @@ export function BookingPayPanel({ booking, providerName }: BookingPayPanelProps)
   const { toast } = useToast();
   const platformConfig = usePlatformConfig();
   const { payWithWallet, payWithCard, isPaying, paid } = useBookingPayment();
+  const { status: paymentStatus } = usePaymentStatus();
+  const cardPaymentsUnavailable = paymentStatus?.available === false;
   const [walletBalanceKobo, setWalletBalanceKobo] = useState<number | null>(null);
 
   useEffect(() => {
@@ -90,6 +94,8 @@ export function BookingPayPanel({ booking, providerName }: BookingPayPanelProps)
         protected until you approve delivery.
       </p>
 
+      <PaymentStatusNotice compact className="mb-4" allowRetry />
+
       <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-4 mb-4">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[13px] text-[var(--color-text-secondary)]">Subtotal</span>
@@ -123,6 +129,7 @@ export function BookingPayPanel({ booking, providerName }: BookingPayPanelProps)
           variant="primary"
           className="flex-1"
           loading={isPaying}
+          disabled={cardPaymentsUnavailable}
           onClick={() => void payWithCard(booking.id)}
         >
           <CreditCard size={15} strokeWidth={2} className="mr-2" />
@@ -146,6 +153,13 @@ export function BookingPayPanel({ booking, providerName }: BookingPayPanelProps)
           </ClButton>
         )}
       </div>
+
+      {cardPaymentsUnavailable && walletEnabled && !walletCanCover && (
+        <p className="mt-2 text-[12px] text-[var(--color-text-tertiary)]">
+          Card payments are temporarily unavailable. Please try again shortly or
+          contact support if this persists.
+        </p>
+      )}
 
       {walletEnabled && walletBalanceLoaded && !walletCanCover && (
         <p className="mt-2 text-[12px] text-[var(--color-text-tertiary)]">

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { BookingService } from "@/services/BookingService";
 import { EscrowService } from "@/services/EscrowService";
-import { verifyTransaction } from "@/lib/paystack";
+import { getRecordedRuntime } from "@/lib/payments/runtime";
+import { asPaymentProviderId } from "@/lib/payments/config";
 import { holdFailureMessage, isHoldPending, parseBookingIdFromRef } from "@/lib/payment-flow";
+import { isPaymentProviderUnavailable, paymentUnavailableResponse } from "@/lib/payments/http";
 
 /**
  * Verifies a booking card payment on the client's callback (popup success or
@@ -34,7 +36,7 @@ async function handleVerify(
     if (booking.clientId !== session.user.id) {
       return NextResponse.json({ success: false, error: "Only the client can verify this payment" }, { status: 403 });
     }
-    // Wallet-funded payments have no Paystack transaction to verify — the debit
+    // Wallet-funded payments have no processor transaction to verify — the debit
     // already happened synchronously server-side.
     if (reference.startsWith("WALLET-")) {
       return NextResponse.json({ success: false, error: "Not a card payment" }, { status: 400 });
@@ -60,10 +62,13 @@ async function handleVerify(
       });
     }
 
-    const verified = await verifyTransaction(reference);
+    const provider = asPaymentProviderId(booking.paymentProvider) ?? "PAYSTACK";
+    const testMode = booking.paymentTestMode ?? false;
+    const { adapter } = getRecordedRuntime(provider, testMode);
+    const verified = await adapter.verifyTransaction(reference, testMode);
 
-    // Trust the metadata Paystack echoes over the reference prefix alone — a
-    // reference string alone must never be enough to move a booking to HELD.
+    // Trust the metadata the processor echoes over the reference prefix alone —
+    // a reference string alone must never be enough to move a booking to HELD.
     const metaPurpose = verified.metadata?.purpose as string | undefined;
     const metaBookingId = verified.metadata?.bookingId as string | undefined;
     const metaClientId = verified.metadata?.clientId as string | undefined;
@@ -87,7 +92,12 @@ async function handleVerify(
       }
 
       const escrowService = new EscrowService();
-      const hold = await escrowService.onPaystackSuccess(reference, { bookingId });
+      const hold = await escrowService.onPaystackSuccess(reference, {
+        bookingId,
+        provider: verified.provider,
+        testMode: verified.testMode,
+        providerReference: verified.providerReference,
+      });
       if (hold.held || hold.alreadyHeld) {
         // The money is now (or already was) in escrow — the only honest
         // "verified" signal. This is what the client's "Payment received"
@@ -128,6 +138,11 @@ async function handleVerify(
   } catch (err) {
     if (err instanceof Error && err.message === "Unauthorized") {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+    if (isPaymentProviderUnavailable(err)) {
+      return paymentUnavailableResponse(
+        "We couldn't verify this payment because the payment provider is temporarily unavailable. If you were charged, it will be confirmed automatically once the provider is back.",
+      );
     }
     // Paystack unreachable/verify error — report honestly; never "verified".
     const msg = err instanceof Error ? err.message : "Payment verification failed";

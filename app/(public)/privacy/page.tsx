@@ -48,7 +48,7 @@ export default async function PrivacyPage() {
             <ul className="list-disc pl-5 space-y-1">
               <li>Personal identification information (name, email address, phone number)</li>
               <li>Profile information (bio, portfolio, work samples, service packages)</li>
-              <li>Payment information (processed securely through Paystack)</li>
+              <li>Payment information (processed securely through our payment partners)</li>
               <li>Communication data (messages between users)</li>
               <li>Usage data (pages visited, features used)</li>
               <li>Device and browser information</li>
@@ -118,7 +118,7 @@ export default async function PrivacyPage() {
             </h2>
             <p>We may share your data with:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Paystack:</strong> Payment processing and escrow services</li>
+              <li><strong>Payment processors:</strong> Payment processing and escrow services</li>
               <li><strong>Cloudinary:</strong> Video and image hosting</li>
               <li><strong>Mux:</strong> Video streaming</li>
               <li><strong>Google Drive:</strong> Portfolio sync (with your explicit consent)</li>

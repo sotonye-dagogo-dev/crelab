@@ -43,11 +43,49 @@ export const DEFAULT_CONFIG: IPlatformConfig = {
   // Config-driven payment notices/disclaimers (render-time tokens:
   // {{name}}, {{feeRate}}, {{escrowWindow}} — see lib/platform-copy.fillConfigCopy)
   payments: {
+    // Admin-togglable processor routing. Credentials are environment-only
+    // (never config) so switching providers can never leak or persist secrets.
+    // Paystack stays the default for backward compatibility.
+    provider: {
+      active: "PAYSTACK",
+      fallback: "MONNIFY",
+      providers: {
+        paystack: { enabled: true, testMode: false },
+        monnify: { enabled: false, testMode: true },
+      },
+    },
+    // Admin-editable availability/test-mode awareness copy. User-facing copy
+    // deliberately names no processor; admin copy may name them for operations.
+    status: {
+      userTestModeNoticeEnabled: true,
+      userTestModeTitle: "Test mode is on",
+      userTestModeBody:
+        "Payments on {{name}} are currently running in test mode. No real money will be charged, and test payments do not settle to real bank accounts.",
+      unavailableTitle: "Payments are temporarily unavailable",
+      unavailableBody:
+        "We can't start a payment right now. Please try again shortly — your wallet balance and bookings are unaffected.",
+      bankTransferUnavailableBody:
+        "Bank-transfer top-ups are temporarily unavailable. Please use card payment, or try again later.",
+      userFallbackNoticeEnabled: true,
+      userFallbackTitle: "Backup payment partner in use",
+      userFallbackBody:
+        "Our default payment partner is temporarily unavailable, so your payment will be processed securely by our backup partner.",
+      adminBannerEnabled: true,
+      adminTestModeTitle: "Payment test mode is active",
+      adminTestModeBody:
+        "{{provider}} is running in test mode. Checkouts, top-ups and payouts use sandbox credentials — no real money moves. Turn test mode off under Fees & Escrow before going live.",
+      adminUnavailableTitle: "No payment provider is available",
+      adminUnavailableBody:
+        "No provider is enabled with usable credentials. Card checkouts, wallet top-ups, withdrawals, refunds and payouts will fail until a provider is enabled and its environment credentials are configured.",
+      adminFallbackTitle: "Fallback payment provider in use",
+      adminFallbackBody:
+        "{{provider}} is unavailable, so new payments are routed to {{fallback}}. Re-enable or reconfigure {{provider}} to restore the intended routing.",
+    },
     notices: {
       payoutDetails: {
         enabled: true,
         title: "Check your payout details",
-        body: "Payouts are sent to the bank account details you provide. Double-check your account number and bank before you withdraw — a payout sent to incorrect details cannot be recovered, and neither {{name}} nor Paystack can be held liable for payouts made to the details you entered.",
+        body: "Payouts are sent to the bank account details you provide. Double-check your account number and bank before you withdraw — a payout sent to incorrect details cannot be recovered, and neither {{name}} nor its payment partners can be held liable for payouts made to the details you entered.",
       },
       processingFees: {
         enabled: true,

@@ -5,6 +5,7 @@ import { platformConfig, auditLog } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { DEFAULT_CONFIG } from "@/config/platform.config";
 import { resolveEmailConfig } from "@/lib/email-templates";
+import { normalizePaymentsConfig } from "@/lib/payments/config";
 import type { IPlatformConfig } from "@/types";
 
 export function setNestedValue(
@@ -58,6 +59,10 @@ export class PlatformConfigService {
     // remain available. DB values still win on conflicts and admin-created
     // keys are preserved.
     merged.emailConfig = resolveEmailConfig(merged as unknown as IPlatformConfig);
+
+    // Older config rows predate provider routing / may be partial. Normalise so
+    // every read yields a complete, safe payments block (Paystack default).
+    merged.payments = normalizePaymentsConfig(merged.payments);
 
     return merged as unknown as IPlatformConfig;
   }

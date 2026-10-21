@@ -1,8 +1,8 @@
 # System Architecture
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-19 — Booking & payment visibility end-to-end)
-> - last-verified-against-code: 2026-10-19
+> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
+> - last-verified-against-code: 2026-10-21
 > - staleness-policy: re-verify before trusting if any architecture-affecting commits have been made since last-verified-against-code
 
 > **Overview:** Crelab is a metadata-driven, config-first creative services marketplace. Architecture follows a layered Next.js App Router pattern with OOP class-based services, interface-first TypeScript, and ConfigContext-driven runtime overrides.
@@ -184,6 +184,48 @@ Data Stores
 3. Delete -> DELETE /api/admin/users/[id] with self-guard (cannot delete own admin account)
 ```
 
+### Payment Provider Abstraction (2026-10-21)
+```
+Admin config (payments.provider)
+  { active, fallback, providers: { paystack:{enabled,testMode}, monnify:{enabled,testMode} } }
+  -> PlatformConfigService normalises legacy/partial configs (Paystack live default)
+  -> PaymentProviderService.getRuntime(): active if enabled+credentialed, else fallback
+     (runtime.fallbackFrom audited as payment.provider.fallback), else throw
+  -> lib/payments adapters speak one contract:
+       initTransaction  -> { authorizationUrl, accessCode|null, providerReference,
+                             checkoutMode POPUP|REDIRECT }
+       verifyTransaction-> normalised kobo + metadata + status success|pending|failed
+       refund           -> provider-specific (Monnify needs providerReference, min ₦100)
+       payout           -> recipient_code (Paystack) OR bank_account (both; Monnify
+                           requires MONNIFY_SOURCE_ACCOUNT_NUMBER)
+Credentials are ENV-only (live + `*_TEST_*` pairs, never cross-fallback), so config
+rows can change routing without storing or leaking secrets. Money already moved is
+refunded/reconciled through getRecordedRuntime(provider, testMode) — no fallback.
+A fallback that would cross test↔live environments is refused (payments pause)
+rather than silently charging real money in a sandbox run or making live checkout free.
+
+Operational status:
+  PaymentProviderService.getStatus() (never throws) -> available, provider labels,
+  testMode, fallbackFrom/Used, per-provider {enabled,testMode,configured},
+  bankTransferAvailable (Paystack DVA only), admin reason
+  -> GET /api/payments/status (sanitized public subset, no-store)
+  -> hooks/usePaymentStatus (30s cache + inflight dedupe)
+  -> PaymentStatusNotice (user: unavailable/test/fallback) +
+     PaymentEnvironmentBanner (admin shell)
+  Copy lives in payments.status.* (admin-editable; {{name}}/{{provider}}/{{fallback}}).
+  Money routes map PaymentProviderUnavailableError -> 503 with the same user copy.
+
+Ledger/analytics attribution:
+  bookings.payment_provider/payment_test_mode, payments.provider/test_mode/provider_ref,
+  wallet_transactions.provider/test_mode; finance summary + transaction filters and
+  analytics paymentsByProvider expose live vs test volume per processor.
+
+Monnify status mapping: PAID/OVERPAID -> success; PENDING/PARTIALLY_PAID -> pending
+(never auto-recharge); FAILED/REVERSED/EXPIRED/CANCELLED/ABANDONED -> failed.
+Webhooks: Monnify `monnify-signature` = SHA-512(clientSecret + raw body); unsigned
+sandbox events only accepted when no live Monnify secret exists.
+```
+
 ### Booking & Payment Flow
 ```
 1. Client selects package -> booking created REQUESTED (paymentMode ESCROW;
@@ -209,11 +251,16 @@ Data Stores
    a. Wallet -> /api/bookings/[id]/pay?useWallet -> debitForBooking (atomic, throws
       InsufficientBalance) -> EscrowService.holdBookingFunds() with a WALLET-* ref;
       any hold failure reverses the debit (WalletService.reverseBookingDebit)
-   b. Card -> EscrowService.initiate() -> Paystack inline popup (next/script loads
-      js.paystack.co/v1/inline.js; success/cancel/error handlers registered BEFORE
-      resume(); hosted new-tab + verify polling as fallback, callback_url -> /bookings)
-3. Charge finalized server-side: Paystack webhook (primary) OR client verify
-   (GET+POST /api/bookings/[id]/pay/verify -> verifyTransaction + metadata check)
+   b. Card -> EscrowService.initiate() -> PaymentProviderService.getRuntime()
+      (admin active provider, optional audited fallback) -> adapter.initTransaction:
+      Paystack inline popup (js.paystack.co/v1/inline.js; handlers registered BEFORE
+      resume()) OR Monnify hosted redirect (checkoutUrl, 40-min expiry; no popup).
+      Both fall back to hosted new-tab + verify polling. Booking stores
+      payment_provider + payment_test_mode; metadata echoes them for attribution.
+3. Charge finalized server-side: provider webhook (primary; /webhooks/paystack or
+   /webhooks/monnify with provider-specific signature) OR client verify
+   (GET+POST /api/bookings/[id]/pay/verify -> recorded provider adapter verify +
+   metadata check)
    -> EscrowService.onPaystackSuccess(ref, {bookingId}) -> HOLD RESULT IS
    CLASSIFIED, not boolean (lib/payment-flow.ts classifyHoldOutcome -> HoldResult:
    held / already_held / duplicate_charge / hold_lost_race [retryable] /
@@ -435,7 +482,7 @@ This is the "undo" instinct applied one layer up from data (§22 covers user-fac
 | Auth | Better Auth | 1.6.x |
 | Database | PostgreSQL (Supabase) | - |
 | ORM | Drizzle ORM | latest stable |
-| Payment | Paystack (primary) / Flutterwave (fallback) | 2.x |
+| Payment | Paystack + Monnify (admin-selected active/fallback, per-provider test mode) | raw REST |
 | Video | Cloudinary (upload/thumbnails/signed delete via raw fetch) + Mux (streaming) | cloudinary@2.x / @mux/mux-node@14.x |
 | Drive | Google Drive Files API v3 (raw fetch) | googleapis@20.x |
 | CMS | Sanity CMS | @sanity/client@7.x |
@@ -470,6 +517,10 @@ Files not yet implemented despite being in the planned architecture:
 
 ## Recent Changes
 
+### 2026-10-21 — Payment Rail Awareness: No-Provider Feedback, Test Mode, Email Parity (execute-feature, no migrations)
+- **Status surface:** new never-throwing `PaymentProviderService.getStatus()` + public sanitized `GET /api/payments/status`; pure `lib/payments/status.ts` resolves admin-editable copy (`payments.status.*`) and config-only availability; `hooks/usePaymentStatus` (30s cache, inflight dedupe, refresh); `PaymentStatusNotice` on wallet/booking-pay/top-up/withdraw/payment-result; `PaymentEnvironmentBanner` in the admin shell. User copy stays processor-agnostic; admin copy may interpolate `{{provider}}`/`{{fallback}}`.
+- **Safety:** `choosePaymentRuntime` now refuses a fallback that crosses test↔live when the enabled active provider lacks credentials (no silent sandbox/live switch); `isProviderUsable` exported. `PaymentProviderUnavailableError` maps to 503 + config copy on card top-up, withdraw, booking pay and both verify routes; bank top-up refuses early unless Paystack is enabled+configured.
+- **Email parity:** payment/booking/dispute/wallet/milestone emails remain provider-independent (both webhooks converge on `EscrowService.onPaystackSuccess` / `WalletService.topUpFromCard`; notifications fire post-commit). New tests enforce every `fire(...)` template key exists, is enabled and non-empty. +14 tests; 717/717, tsc clean, lint 0 errors, build green.
 ### 2026-10-19 — Booking & Payment Flow Integrity + Guidance Affordances (execute-feature, no migrations)
 - Root-caused and fixed the "paid but stuck at stage 1" class of bug: `/pay/verify` no longer returns `verified:true` on a failed hold (truthful `HoldResult` mapping: held / `hold_pending` retry / 409 terminal / amount-mismatch 409 / already-HELD fast path); the webhook records the de-dupe `payments` row only on terminal outcomes (retryable → 500 so Paystack retries) and attributes via `metadata.bookingId` → parsed UUID from the `CRELLAB-{bookingId}-{millis}` ref (layered `resolveBookingForRef`, no schema change — survives `initiate()`'s ref overwrite); non-retryable hold failures audited (`escrow.hold.failed`/`.duplicate`).
 - New pure `lib/payment-flow.ts` (ref parse, exhaustive `classifyHoldOutcome`, `shouldRecordChargeEvent`, user-facing `holdFailureMessage`, `isHoldPending`) — one classification shared by webhook/verify/pay/cron/page/admin. `EscrowService`: `onPaystackSuccess(ref,{bookingId})→HoldResult`, `reconcileBooking` (processor-verify → idempotent hold → `escrow.reconcile` audit + `escrow.payment_row_missing` anomaly), `reconcileStuckHolds` sweep; `/pay` pre-flight reconcile (`ALREADY_HELD` / 409 no-double-charge); cron reconcile every 6h (`1 */6 * * *`) + rate-limited silent booking-page self-heal; admin `POST /api/admin/finance/bookings/[id]/reconcile` + finance-modal action with confirm dialog.

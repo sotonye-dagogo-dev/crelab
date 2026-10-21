@@ -905,3 +905,54 @@
 
 **Supersedes:** None
 **Superseded by:** None
+
+---
+
+## Normalise Provider Units at the Adapter Boundary; Never Let Naira and Kobo Mix
+
+**Context:** Monnify's API accepts and returns NGN decimals while the platform stores every amount as integer kobo. A single missed conversion would over/under-charge by 100× and could not be fixed by retrying.
+
+**What We Learned:**
+1. Each adapter owns exactly one unit conversion (`nairaToKobo` / `koboToNaira`) and the shared contract speaks kobo only. Services never branch on provider units.
+2. Status strings must be mapped explicitly, including ambiguous ones: Monnify `PARTIALLY_PAID` is treated as `pending` (never a second auto-charge), and only `PAID`/`OVERPAID` are `success`.
+3. Provider-specific prerequisites are validated before any ledger mutation: Monnify refunds need `transactionReference` and ≥₦100; disbursements need bank details + a funded source account. Failing before the debit keeps the wallet consistent.
+
+**Apply When:** Adding any payment processor — define the internal unit, one conversion per adapter, explicit status mapping, and pre-debit capability checks.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Fallback Is For New Charges Only — Money Already Moved Uses Its Recorded Provider
+
+**Context:** Multi-provider routing can silently switch the active processor when credentials are missing. Applying that fallback to refunds or payouts would send money through a different rail than the one that received it.
+
+**What We Learned:**
+1. Split resolution into two functions: `choosePaymentRuntime(config)` for new checkouts (active → fallback, audited via `fallbackFrom`) and `getRecordedRuntime(provider, testMode)` for refunds/payouts/reconciliation (configured credentials required, no fallback).
+2. Persist `provider` + `testMode` on every money row at creation; derive later operations from the row, never from the current admin setting.
+3. Test mode must use dedicated sandbox credentials. Reusing a live key under a "test" toggle is worse than refusing to start — refuse and let fallback/error handling surface it.
+4. Keep lib service-free: runtime resolution that needs persisted config belongs in a service (`PaymentProviderService`); the pure decision stays in `lib/payments/runtime.ts` and is unit-tested.
+
+**Apply When:** Any multi-vendor abstraction in a money path — separate routing-for-new-work from replay-for-existing-work, and record the vendor on the ledger row.
+
+**Supersedes:** None
+**Superseded by:** None
+
+---
+
+## Fail Closed Across Test/Live Boundaries — and Prove Provider Parity With Tests
+
+**Context:** With an admin-selectable active/fallback provider, a missing credential on the active rail could quietly hand checkout to a fallback configured for the other environment. At the same time, "emails fire for both providers" was an unverified assumption.
+
+**What We Learned:**
+1. A fallback is only safe when both rails agree on test vs live. An enabled-but-uncredentialed active provider whose fallback runs in the other environment must pause payments with an explicit admin reason — charging real cards during a "test" run (or making live checkout free) is far worse than a 503.
+2. Client-side availability is UX, not enforcement: derive the first paint from public config, refine with a sanitized status endpoint, and keep the server-side runtime check + `503` on every money route.
+3. Make operational states explicit and configurable (unavailable / test mode / fallback) with separate user and admin copy; never leak processor names to users, but give admins labels and a reason.
+4. Prove cross-provider parity with code-level invariants: assert every lifecycle email template key used by `fire(...)` exists and is enabled, and assert both webhooks converge on the same idempotent handlers. A `grep` audit is not a regression test.
+5. Each provider can have different capabilities (DVA/bank transfer is Paystack-only today); model capability availability on the status object instead of assuming full parity.
+
+**Apply When:** Adding a payment/view provider, routing fallback, or any feature where "both paths should behave the same" — encode the invariant in tests and expose capability differences explicitly.
+
+**Supersedes:** None
+**Superseded by:** None

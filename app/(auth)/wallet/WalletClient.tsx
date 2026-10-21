@@ -6,6 +6,7 @@ import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
 import { TopUpModal } from "@/components/wallet/TopUpModal";
 import { WithdrawModal } from "@/components/wallet/WithdrawModal";
 import { ClButton, ClBackButton } from "@/components/ui";
+import { PaymentStatusNotice } from "@/components/shared/PaymentStatusNotice";
 import type { IWalletTransaction, WalletTransactionType } from "@/types";
 import { ArrowUpRight, ArrowDownLeft, CheckCircle2, XCircle } from "lucide-react";
 
@@ -101,6 +102,8 @@ export function WalletClient({
   return (
     <div>
       <ClBackButton href="/dashboard" label="Back to dashboard" className="mb-5" />
+
+      <PaymentStatusNotice className="mb-5" allowRetry />
 
       {topupStatus === "success" && (
         <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[var(--color-success)]/30 bg-[rgba(74,222,128,0.08)] px-4 py-3">

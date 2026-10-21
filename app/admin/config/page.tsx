@@ -22,6 +22,28 @@ const configFields = [
   { key: "name", label: "Platform Name", type: "text" as const, section: "Branding" },
   { key: "tagline", label: "Tagline", type: "text" as const, section: "Branding" },
   { key: "primaryColor", label: "Primary Colour", type: "color" as const, section: "Branding" },
+  { key: "payments.provider.active", label: "Active Payment Provider", type: "select" as const, section: "Fees & Escrow", options: [{ label: "Paystack", value: "PAYSTACK" }, { label: "Monnify", value: "MONNIFY" }], hint: "Routes new checkouts; refunds and payouts always use the provider recorded on the original payment. Credentials stay in environment variables; test mode is per provider below." },
+  { key: "payments.provider.fallback", label: "Fallback Provider", type: "select" as const, section: "Fees & Escrow", options: [{ label: "Paystack", value: "PAYSTACK" }, { label: "Monnify", value: "MONNIFY" }], hint: "Used only when the active provider is disabled or has no credentials. Every fallback is audited." },
+  { key: "payments.provider.providers.paystack.enabled", label: "Paystack Enabled", type: "toggle" as const, section: "Fees & Escrow" },
+  { key: "payments.provider.providers.paystack.testMode", label: "Paystack Test Mode", type: "toggle" as const, section: "Fees & Escrow", hint: "Requires PAYSTACK_TEST_SECRET_KEY. Sandbox payments are tagged in finance/analytics." },
+  { key: "payments.provider.providers.monnify.enabled", label: "Monnify Enabled", type: "toggle" as const, section: "Fees & Escrow", hint: "Requires MONNIFY_* (or MONNIFY_TEST_* in test mode) credentials." },
+  { key: "payments.provider.providers.monnify.testMode", label: "Monnify Test Mode", type: "toggle" as const, section: "Fees & Escrow", hint: "Uses the Monnify sandbox keys and tags payments as test in finance/analytics." },
+  { key: "payments.status.userTestModeNoticeEnabled", label: "Show User Test-Mode Banner", type: "toggle" as const, section: "Fees & Escrow", hint: "Warns users wherever money actions happen (wallet, booking payment, payment result) that checkout is running in sandbox mode." },
+  { key: "payments.status.userTestModeTitle", label: "User Test-Mode Title", type: "text" as const, section: "Fees & Escrow" },
+  { key: "payments.status.userTestModeBody", label: "User Test-Mode Body", type: "textarea" as const, section: "Fees & Escrow", hint: "Tokens: {{name}}. Never name the processor in user-facing copy." },
+  { key: "payments.status.unavailableTitle", label: "User Payments-Unavailable Title", type: "text" as const, section: "Fees & Escrow" },
+  { key: "payments.status.unavailableBody", label: "User Payments-Unavailable Body", type: "textarea" as const, section: "Fees & Escrow", hint: "Shown on money pages and returned when a checkout has no usable provider." },
+  { key: "payments.status.bankTransferUnavailableBody", label: "Bank Top-Up Unavailable Body", type: "textarea" as const, section: "Fees & Escrow", hint: "Shown when cards work but the Paystack dedicated-virtual-account rail is unavailable." },
+  { key: "payments.status.userFallbackNoticeEnabled", label: "Show User Fallback Banner", type: "toggle" as const, section: "Fees & Escrow", hint: "Tells users when a backup payment partner is handling their checkout." },
+  { key: "payments.status.userFallbackTitle", label: "User Fallback Title", type: "text" as const, section: "Fees & Escrow" },
+  { key: "payments.status.userFallbackBody", label: "User Fallback Body", type: "textarea" as const, section: "Fees & Escrow" },
+  { key: "payments.status.adminBannerEnabled", label: "Show Admin Environment Banner", type: "toggle" as const, section: "Fees & Escrow", hint: "Admin-wide banner for test mode, fallback routing and no-usable-provider outages. Links to this page." },
+  { key: "payments.status.adminTestModeTitle", label: "Admin Test-Mode Title", type: "text" as const, section: "Fees & Escrow" },
+  { key: "payments.status.adminTestModeBody", label: "Admin Test-Mode Body", type: "textarea" as const, section: "Fees & Escrow", hint: "Tokens: {{name}}, {{provider}}" },
+  { key: "payments.status.adminUnavailableTitle", label: "Admin Unavailable Title", type: "text" as const, section: "Fees & Escrow" },
+  { key: "payments.status.adminUnavailableBody", label: "Admin Unavailable Body", type: "textarea" as const, section: "Fees & Escrow", hint: "Tokens: {{name}}" },
+  { key: "payments.status.adminFallbackTitle", label: "Admin Fallback Title", type: "text" as const, section: "Fees & Escrow" },
+  { key: "payments.status.adminFallbackBody", label: "Admin Fallback Body", type: "textarea" as const, section: "Fees & Escrow", hint: "Tokens: {{name}}, {{provider}} (intended), {{fallback}} (used)" },
   { key: "feeRate", label: "Platform Fee Rate", type: "number" as const, section: "Fees & Escrow", unit: "%" },
   { key: "escrowReleaseDays", label: "Escrow Release Days", type: "number" as const, section: "Fees & Escrow", unit: "days" },
   { key: "cancellationPolicy.fullRefundThresholdHours", label: "Client Cancel Threshold", type: "number" as const, section: "Fees & Escrow", unit: "hours" },
@@ -360,6 +382,7 @@ export default function ConfigPage() {
                     defaultValue={defaultValue}
                     unit={"unit" in field ? (field as { unit?: string }).unit : undefined}
                     hint={"hint" in field ? (field as { hint?: string }).hint : undefined}
+                    options={"options" in field ? (field as { options?: { label: string; value: string }[] }).options : undefined}
                     onChange={handleChange}
                   />
                 );

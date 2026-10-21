@@ -69,7 +69,7 @@ const DEFAULT_HOW_IT_WORKS: IHowItWorksPage = {
     { question: "Can I cancel a booking?", answer: "Yes. Full refunds are available within 48 hours of booking. After that, a 50% cancellation fee applies to protect the creator's time.", category: "bookings" },
     { question: "How do I build my portfolio?", answer: "Upload videos and images directly, or connect Google Drive to sync your existing portfolio. Portfolio items appear on your public profile and in the Explore feed.", category: "creators" },
     { question: "What types of creators can I hire?", answer: "We support Content Creators (UGC, lifestyle, brand content) and Cinematographers/Videographers (events, commercials, narrative, documentary). Each has tailored profile fields.", category: "clients" },
-    { question: "Is my data secure?", answer: "Yes. We use bank-grade encryption, row-level database security, and comply with NDPR 2023. Payment data is handled by Paystack (PCI DSS Level 1 certified).", category: "security" },
+    { question: "Is my data secure?", answer: "Yes. We use bank-grade encryption, row-level database security, and comply with NDPR 2023. Payment data is handled by PCI DSS Level 1 certified payment partners.", category: "security" },
   ],
   metaTitle: "How It Works - {{name}}",
   metaDescription: "Learn how {{name}} works for creators and clients. Booking flow, escrow protection, milestone payments, and more.",

@@ -178,7 +178,12 @@ export interface IBooking {
   /** ISO 8601 */
   releaseDeadline: string | null;
   paymentMode: PaymentMode;
+  /** Processor reference (legacy column name — provider-agnostic). */
   paystackRef: string | null;
+  /** Processor that issued the latest checkout for this booking. */
+  paymentProvider?: PaymentProviderId;
+  /** True when that checkout ran in the provider's test mode. */
+  paymentTestMode?: boolean;
   /** ISO 8601 */
   createdAt: string;
   /** ISO 8601 */
@@ -194,7 +199,14 @@ export interface IPayment {
   fee: number;
   /** Money in kobo */
   netAmount: number;
+  /** Processor reference (legacy column name — now provider-agnostic) */
   paystackRef: string;
+  /** Processor that handled this payment. */
+  provider?: PaymentProviderId;
+  /** True when the payment ran against the provider's sandbox/test mode. */
+  testMode?: boolean;
+  /** Provider-side transaction reference (Monnify needs it for refunds). */
+  providerRef?: string | null;
   status: string;
   /** ISO 8601 */
   createdAt: string;
@@ -222,7 +234,12 @@ export interface IWalletTransaction {
   reference: string;
   relatedBookingId?: string;
   relatedMilestoneId?: string;
+  /** Processor reference (legacy column name — provider-agnostic). */
   paystackRef?: string;
+  /** Processor used for funding/settlement of this entry. */
+  provider?: PaymentProviderId;
+  /** True when that processor ran in sandbox/test mode. */
+  testMode?: boolean;
   metadata: Record<string, unknown>;
   createdAt: string;
 }
@@ -387,6 +404,34 @@ export interface IMilestonePaymentsConfig {
   minMilestones: number;
   minMilestoneAmountKobo: number;
   reviewWindowDays: number;
+}
+
+/** Payment processors the platform can route through. */
+export type PaymentProviderId = "PAYSTACK" | "MONNIFY";
+
+export interface IPaymentProviderSettings {
+  /** Master switch — a disabled provider is never selected or used as fallback. */
+  enabled: boolean;
+  /**
+   * When true the adapter talks to the provider's sandbox and the payment is
+   * flagged `testMode` in the ledger/audit trail. Disabled providers ignore it.
+   */
+  testMode: boolean;
+}
+
+/**
+ * Config-driven payment routing. The admin picks the active processor (and can
+ * flip either processor's test mode) without a deploy. `fallback` is only used
+ * when the active provider is disabled or missing credentials — every switch is
+ * audited with the provider + test-mode that actually handled the money.
+ */
+export interface IPaymentProvidersConfig {
+  active: PaymentProviderId;
+  fallback: PaymentProviderId;
+  providers: {
+    paystack: IPaymentProviderSettings;
+    monnify: IPaymentProviderSettings;
+  };
 }
 
 export interface IWalletConfig {
@@ -742,6 +787,38 @@ export interface IPaymentNotice {
   body: string;
 }
 
+/**
+ * Admin-editable copy for payment-rail availability/test-mode awareness.
+ * Tokens `{{name}}`, `{{provider}}` and `{{fallback}}` are filled at render
+ * time from the live config/runtime (see `lib/payments/status.ts`). Provider
+ * names are only used in the admin copy; user copy stays processor-agnostic.
+ */
+export interface IPaymentStatusConfig {
+  /** Show the end-user test-mode banner where money actions happen. */
+  userTestModeNoticeEnabled: boolean;
+  userTestModeTitle: string;
+  userTestModeBody: string;
+  /** Shown to end users when no provider can take a payment. */
+  unavailableTitle: string;
+  unavailableBody: string;
+  /** Shown when cards work but the bank-transfer (DVA) rail is unavailable. */
+  bankTransferUnavailableBody: string;
+  /** Tell end users when the backup partner handled the checkout. */
+  userFallbackNoticeEnabled: boolean;
+  userFallbackTitle: string;
+  userFallbackBody: string;
+  /** Admin environment banner (active provider, mode, fallback, outage). */
+  adminBannerEnabled: boolean;
+  adminTestModeTitle: string;
+  /** Tokens: `{{name}}`, `{{provider}}`, `{{fallback}}` */
+  adminTestModeBody: string;
+  adminUnavailableTitle: string;
+  adminUnavailableBody: string;
+  adminFallbackTitle: string;
+  /** Tokens: `{{name}}`, `{{provider}}` (intended), `{{fallback}}` (used) */
+  adminFallbackBody: string;
+}
+
 export interface IPaymentsConfig {
   /** Disclaimers shown where users act on payout/bank details. */
   notices: {
@@ -749,6 +826,16 @@ export interface IPaymentsConfig {
     processingFees: IPaymentNotice;
     escrowExplainer: IPaymentNotice;
   };
+  /**
+   * Processor routing (Paystack/Monnify + per-provider test mode). Optional so
+   * configs saved before multi-provider support keep resolving to Paystack.
+   */
+  provider?: IPaymentProvidersConfig;
+  /**
+   * Availability/test-mode copy + toggles. Optional so legacy configs resolve
+   * to the shipped defaults via `normalizePaymentsConfig`.
+   */
+  status?: IPaymentStatusConfig;
 }
 
 export interface IFinanceConfig {
