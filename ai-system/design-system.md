@@ -1,8 +1,8 @@
 # Design System
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-16 — navbar overflow pattern note)
-> - last-verified-against-code: 2026-10-16
+> - last-updated-by: execute-feature (Session 2026-10-22 — tabbed admin config pattern)
+> - last-verified-against-code: 2026-10-22
 > - staleness-policy: re-verify if UI components or styling dependencies change
 
 > **Overview:** Dark-dominant, video-first design direction with a full light theme alternative. Electric yellow-green accent (#E8FF47) on near-black (#0A0A0A) for dark mode, earthier olive accent (#A3B800) on near-white (#FAFAF9) for light mode. Theme switching via tabbed toggler (System/Light/Dark) with localStorage persistence. All tokens defined as CSS custom properties with platform config overridability. The colour, typography, and spacing tables below are the single source of truth for design tokens — components must consume these tokens via Cl* wrappers rather than redeclaring values.
@@ -194,6 +194,14 @@ Size scale: 0.75rem / 0.875rem / 1rem / 1.125rem / 1.25rem / 1.5rem / 1.875rem /
 - Input fields: dark surface bg, border, focus accent ring
 - Error messages: below field, error colour, small text
 - Validation on blur and submit
+
+### Tabs
+- Primitives: `ClTabs` / `ClTabsList` / `ClTabsTrigger` / `ClTabsContent` — controlled (`value` + `onValueChange`) or uncontrolled (`defaultValue`)
+- Semantics: `role="tablist"/"tab"/"tabpanel"` with `aria-selected`, `aria-controls` and `aria-labelledby`; active tab is the only one in the tab order
+- Keyboard: Arrow Left/Right cycles tabs (automatic activation), Home/End jump to first/last
+- Overflow: the tab list scrolls horizontally (`overflow-x-auto`, hidden scrollbar) and triggers use `flex-1 min-w-max` so labels never squash; suitable for 6+ tabs on mobile
+- Active: accent background + inverse text. Unsaved-state dots use `--color-warning`
+- Use tabs to break up long admin forms (e.g. `/admin/config` sections) instead of one continuous scroll; keep edits in parent state so switching tabs never loses them, reflect the active tab in the URL hash, and keep a single global save/revert action visible in the sticky tab bar
 
 ### Cards / Containers
 - bg: var(--color-surface), border: var(--color-border)

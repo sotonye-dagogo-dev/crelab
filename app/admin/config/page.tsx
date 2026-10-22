@@ -1,11 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClButton, ClCard, ClDataTable, type ClColumn } from "@/components/ui";
+import {
+  ClButton,
+  ClCard,
+  ClDataTable,
+  ClInput,
+  ClTabs,
+  ClTabsContent,
+  ClTabsList,
+  ClTabsTrigger,
+  type ClColumn,
+} from "@/components/ui";
 import { ConfigField } from "@/components/admin/ConfigField";
 import { AuditValueCell } from "@/components/admin/AuditValueCell";
 import { useToast } from "@/lib/toast";
+import {
+  CreditCard,
+  History,
+  Image as ImageIcon,
+  Lightbulb,
+  Mail,
+  Navigation,
+  Palette,
+  SlidersHorizontal,
+  TrendingUp,
+} from "lucide-react";
 
 interface ChangeLogEntry {
   id: string;
@@ -150,6 +171,94 @@ const configFields = [
   { key: "navigation.walletHref", label: "Wallet Link Target", type: "text" as const, section: "Navigation" },
 ];
 
+type ConfigFieldDef = (typeof configFields)[number];
+
+const SECTION_TABS = [
+  {
+    id: "branding",
+    section: "Branding",
+    label: "Branding",
+    icon: Palette,
+    description: "Platform name, tagline and accent colour.",
+  },
+  {
+    id: "fees-escrow",
+    section: "Fees & Escrow",
+    label: "Fees & Escrow",
+    icon: CreditCard,
+    description: "Payment providers, fees, escrow window and the notices shown around money.",
+  },
+  {
+    id: "features",
+    section: "Features",
+    label: "Features",
+    icon: SlidersHorizontal,
+    description: "Platform feature flags plus availability and history windows.",
+  },
+  {
+    id: "guidance",
+    section: "Guidance",
+    label: "Guidance",
+    icon: Lightbulb,
+    description: "Info tooltips and the next-step guidance banner.",
+  },
+  {
+    id: "email",
+    section: "Email",
+    label: "Email",
+    icon: Mail,
+    description: "Sender identity and the verify-email reminder.",
+  },
+  {
+    id: "media",
+    section: "Media",
+    label: "Media",
+    icon: ImageIcon,
+    description: "Upload limits and orphaned-media cleanup.",
+  },
+  {
+    id: "growth",
+    section: "Growth",
+    label: "Growth",
+    icon: TrendingUp,
+    description: "Referrals, leaderboard, webinars, stats, countdown and error reporting.",
+  },
+  {
+    id: "navigation",
+    section: "Navigation",
+    label: "Navigation",
+    icon: Navigation,
+    description: "Navbar overflow behaviour and the wallet link.",
+  },
+] as const;
+
+const CHANGE_LOG_TAB = {
+  id: "change-log",
+  label: "Change Log",
+  icon: History,
+  description: "Audit trail of configuration updates — who changed what, with old and new values.",
+} as const;
+
+const DEFAULT_TAB_ID = SECTION_TABS[0].id;
+
+const TAB_IDS: ReadonlySet<string> = new Set([
+  ...SECTION_TABS.map((tab) => tab.id),
+  CHANGE_LOG_TAB.id,
+]);
+
+function fieldMatchesQuery(field: ConfigFieldDef, query: string): boolean {
+  if (!query) return true;
+  const haystack = [
+    field.label,
+    field.key,
+    "hint" in field ? field.hint : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   return path.split(".").reduce((acc, part) => {
     if (acc && typeof acc === "object") {
@@ -241,6 +350,8 @@ export default function ConfigPage() {
   const { toast } = useToast();
   const [config, setConfig] = useState<Record<string, unknown>>({});
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<string>(DEFAULT_TAB_ID);
+  const [query, setQuery] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-config"],
@@ -267,6 +378,45 @@ export default function ConfigPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const syncFromHash = () => {
+      const hash = window.location.hash.replace(/^#/, "");
+      if (TAB_IDS.has(hash)) {
+        setActiveTab(hash);
+        setQuery("");
+      }
+    };
+    syncFromHash();
+    window.addEventListener("hashchange", syncFromHash);
+    return () => window.removeEventListener("hashchange", syncFromHash);
+  }, []);
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+    setQuery("");
+    try {
+      window.history.replaceState(null, "", `#${tab}`);
+    } catch {
+      // History API unavailable — tab switching still works in-memory.
+    }
+  }, []);
+
+  const dirtyFields = useMemo(() => {
+    if (!data) return [] as ConfigFieldDef[];
+    const saved = data as Record<string, unknown>;
+    return configFields.filter(
+      (field) =>
+        getNestedValue(config as Record<string, unknown>, field.key) !==
+        getNestedValue(saved, field.key),
+    );
+  }, [config, data]);
+
+  const dirtyCount = dirtyFields.length;
+  const dirtySections = useMemo(
+    () => new Set(dirtyFields.map((field) => field.section)),
+    [dirtyFields],
+  );
+
   const saveMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
       const res = await fetch("/api/admin/config", {
@@ -277,13 +427,6 @@ export default function ConfigPage() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error ?? "Failed to save");
       return json;
-    },
-    onSuccess: () => {
-      toast("Config updated successfully", "success");
-      queryClient.invalidateQueries({ queryKey: ["admin-config"] });
-    },
-    onError: (err: Error) => {
-      toast(err.message, "error");
     },
   });
 
@@ -312,8 +455,30 @@ export default function ConfigPage() {
       toast("No changes to save", "info");
       return;
     }
-    Promise.all(promises).then(() => {
+    Promise.allSettled(promises).then((results) => {
       queryClient.invalidateQueries({ queryKey: ["admin-config"] });
+
+      const failures = results.filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === "rejected",
+      );
+      if (failures.length === 0) {
+        toast(
+          `${promises.length} ${promises.length === 1 ? "setting" : "settings"} saved`,
+          "success",
+        );
+        return;
+      }
+
+      const reason = failures[0].reason;
+      toast(
+        failures.length === 1
+          ? reason instanceof Error
+            ? reason.message
+            : "Failed to save setting"
+          : `${failures.length} settings failed to save`,
+        "error",
+      );
     });
   }, [config, data, saveMutation, toast, queryClient]);
 
@@ -324,7 +489,16 @@ export default function ConfigPage() {
     }
   }, [data, toast]);
 
-  const sections = ["Branding", "Fees & Escrow", "Features", "Guidance", "Email", "Media", "Growth", "Navigation"] as const;
+  const activeSection = SECTION_TABS.find((tab) => tab.id === activeTab);
+  const normalizedQuery = query.trim().toLowerCase();
+  const activeFields = activeSection
+    ? configFields.filter((field) => field.section === activeSection.section)
+    : [];
+  const visibleFields = activeFields.filter((field) =>
+    fieldMatchesQuery(field, normalizedQuery),
+  );
+  const activeDescription =
+    activeSection?.description ?? CHANGE_LOG_TAB.description;
 
   if (isLoading) {
     return (
@@ -336,7 +510,7 @@ export default function ConfigPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-5 gap-2">
         <div>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-[22px] tracking-[-0.01em]">
             Platform Configuration
@@ -345,70 +519,168 @@ export default function ConfigPage() {
             Changes apply immediately across the entire platform.
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ClButton variant="primary" size="default" onClick={handleSave} loading={saveMutation.isPending}>
-            Save Changes
-          </ClButton>
-          <ClButton variant="ghost" size="default" onClick={handleRevert}>
-            Revert
-          </ClButton>
+        <div
+          className={`text-[12px] font-medium whitespace-nowrap ${
+            dirtyCount > 0
+              ? "text-[var(--color-warning)]"
+              : "text-[var(--color-text-tertiary)]"
+          }`}
+          aria-live="polite"
+        >
+          {dirtyCount === 0
+            ? "All changes saved"
+            : `${dirtyCount} unsaved ${
+                dirtyCount === 1 ? "change" : "changes"
+              }`}
         </div>
       </div>
 
-      {sections.map((section) => {
-        const fields = configFields.filter((f) => f.section === section);
-        return (
-          <div key={section}>
-            <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-tertiary)] mb-2 py-3">
-              {section}
-            </div>
-            <ClCard className="mb-6 p-2 sm:p-4">
-              {fields.map((field) => {
-                const currentValue = getNestedValue(
-                  config as Record<string, unknown>,
-                  field.key,
-                );
-                const defaultValue = getNestedValue(
-                  (data ?? {}) as Record<string, unknown>,
-                  field.key,
-                );
+      <ClTabs value={activeTab} onValueChange={handleTabChange}>
+        <div className="sticky top-14 lg:top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-4 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-border)]">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+            <ClTabsList
+              ariaLabel="Configuration sections"
+              className="min-w-0 flex-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {SECTION_TABS.map((tab) => {
+                const Icon = tab.icon;
                 return (
-                  <ConfigField
-                    key={field.key}
-                    label={field.label}
-                    fieldKey={field.key}
-                    type={field.type}
-                    value={currentValue}
-                    defaultValue={defaultValue}
-                    unit={"unit" in field ? (field as { unit?: string }).unit : undefined}
-                    hint={"hint" in field ? (field as { hint?: string }).hint : undefined}
-                    options={"options" in field ? (field as { options?: { label: string; value: string }[] }).options : undefined}
-                    onChange={handleChange}
-                  />
+                  <ClTabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    title={tab.description}
+                  >
+                    <Icon size={14} strokeWidth={1.8} aria-hidden="true" />
+                    <span>{tab.label}</span>
+                    {dirtySections.has(tab.section) && (
+                      <span
+                        className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]"
+                        title="Unsaved changes in this section"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </ClTabsTrigger>
                 );
               })}
-            </ClCard>
-          </div>
-        );
-      })}
-
-      <div className="mt-8">
-        <div className="mb-1 text-[14px] font-semibold">Recent Changes</div>
-        <div className="text-[12px] text-[var(--color-text-tertiary)] mb-4">
-          Audit trail of configuration updates — who changed what, with old/new values summarised (expand to view the full value).
-        </div>
-        <ClDataTable
-          columns={changeLogColumns}
-          rows={changeLog}
-          rowKey={(e) => e.id}
-          pageSize={8}
-          emptyState={
-            <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
-              No changes recorded yet.
+              <ClTabsTrigger
+                value={CHANGE_LOG_TAB.id}
+                title={CHANGE_LOG_TAB.description}
+              >
+                <History size={14} strokeWidth={1.8} aria-hidden="true" />
+                <span>{CHANGE_LOG_TAB.label}</span>
+              </ClTabsTrigger>
+            </ClTabsList>
+            <div className="flex items-center gap-2 shrink-0">
+              <ClButton
+                variant="primary"
+                size="sm"
+                onClick={handleSave}
+                loading={saveMutation.isPending}
+              >
+                Save Changes
+              </ClButton>
+              <ClButton
+                variant="ghost"
+                size="sm"
+                onClick={handleRevert}
+                disabled={dirtyCount === 0}
+              >
+                Revert
+              </ClButton>
             </div>
-          }
-        />
-      </div>
+          </div>
+        </div>
+
+        <div className="text-[12px] text-[var(--color-text-tertiary)] mb-3">
+          {activeDescription}
+        </div>
+
+        {SECTION_TABS.map((tab) => (
+          <ClTabsContent key={tab.id} value={tab.id}>
+            {activeSection?.id === tab.id && activeFields.length > 8 && (
+              <ClInput
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={`Filter ${tab.label.toLowerCase()} settings…`}
+                aria-label={`Filter ${tab.label} settings`}
+                className="max-w-[360px] mb-3"
+              />
+            )}
+            <ClCard className="p-2 sm:p-4">
+              {visibleFields.length === 0 ? (
+                <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
+                  No settings match “{query}”.
+                </div>
+              ) : (
+                visibleFields.map((field) => {
+                  const currentValue = getNestedValue(
+                    config as Record<string, unknown>,
+                    field.key,
+                  );
+                  const defaultValue = getNestedValue(
+                    (data ?? {}) as Record<string, unknown>,
+                    field.key,
+                  );
+                  return (
+                    <ConfigField
+                      key={field.key}
+                      label={field.label}
+                      fieldKey={field.key}
+                      type={field.type}
+                      value={currentValue}
+                      defaultValue={defaultValue}
+                      unit={
+                        "unit" in field
+                          ? (field as { unit?: string }).unit
+                          : undefined
+                      }
+                      hint={
+                        "hint" in field
+                          ? (field as { hint?: string }).hint
+                          : undefined
+                      }
+                      options={
+                        "options" in field
+                          ? (
+                              field as {
+                                options?: { label: string; value: string }[];
+                              }
+                            ).options
+                          : undefined
+                      }
+                      onChange={handleChange}
+                    />
+                  );
+                })
+              )}
+            </ClCard>
+            <div className="text-[11px] text-[var(--color-text-tertiary)] mt-2 mb-4">
+              {activeFields.length}{" "}
+              {activeFields.length === 1 ? "setting" : "settings"} in this
+              section
+              {normalizedQuery &&
+              visibleFields.length !== activeFields.length
+                ? ` · ${visibleFields.length} shown`
+                : ""}
+            </div>
+          </ClTabsContent>
+        ))}
+
+        <ClTabsContent value={CHANGE_LOG_TAB.id}>
+          <ClDataTable
+            columns={changeLogColumns}
+            rows={changeLog}
+            rowKey={(e) => e.id}
+            pageSize={8}
+            emptyState={
+              <div className="text-[12px] text-[var(--color-text-tertiary)] text-center py-8">
+                No changes recorded yet.
+              </div>
+            }
+          />
+        </ClTabsContent>
+      </ClTabs>
     </div>
   );
 }
