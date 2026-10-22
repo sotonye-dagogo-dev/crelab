@@ -1,8 +1,8 @@
 # Test Results
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
-> - last-verified-against-code: 2026-10-21
+> - last-updated-by: execute-feature (Session 2026-10-22 — tabbed admin config)
+> - last-verified-against-code: 2026-10-22
 > - staleness-policy: overwritten on every test run — always current
 
 > **Overview:** Latest test run results. Updated by agents after running tests. Gives a quick snapshot of current project health.
@@ -11,18 +11,18 @@
 
 ## Last Run
 
-**Date:** 2026-10-21
-**Run by:** execute-feature (Payment rail awareness: no-provider feedback, test-mode, email parity)
+**Date:** 2026-10-22
+**Run by:** execute-feature (Tabbed admin config)
 
 **Results:**
 | Suite | Passed | Failed | Skipped |
 |-------|--------|--------|---------|
-| Unit (vitest) | 717 | 0 | 0 |
+| Unit (vitest) | 722 | 0 | 0 |
 | TypeScript (tsc --noEmit) | — | 0 errors | — |
 | ESLint (`npm run lint` via next lint) | — | 0 errors | — |
-| Production build (`npm run build`) | — | 0 errors (payment status route + admin banner compiled) | — |
+| Production build (`npm run build`) | — | 0 errors (admin config tabs compiled) | — |
 
-**Overall Status:** ✅ All 717/717 tests pass (59 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. New/extended: `__tests__/lib/payment-status.test.ts` (copy overrides/defaults/tokens, config availability, all-disabled), `__tests__/lib/payment-email-wiring.test.ts` (every lifecycle `fire(...)` key exists + enabled + non-empty; both webhooks call the idempotent handlers), `__tests__/lib/payment-provider-runtime.test.ts` (+3: test↔live fallback guard, same-environment fallback, `isProviderUsable`). Prior run: 703/703 (2026-10-21, multi-provider payments).
+**Overall Status:** ✅ All 722/722 tests pass (60 files). Typecheck clean. Lint 0 errors (pre-existing warnings only, none in changed files). Production build green. New: `__tests__/components/ClTabs.test.tsx` (tablist/tab/tabpanel semantics, click switching, Arrow/Home/End navigation, controlled mode, scrollable overflow). Prior run: 717/717 (2026-10-21, payment rail awareness).
 
 ---
 
@@ -38,6 +38,7 @@ None. Previously-active failures (resolved 2026-10-08, non-breaking):
 
 | Date | Passed | Failed | Notes |
 |------|--------|--------|-------|
+| 2026-10-22 | 722 | 0 | execute-feature: `/admin/config` converted from one long scroll into section tabs (Branding → Navigation + Change Log) with sticky tab/action bar, URL-hash tab persistence, per-tab unsaved dots, global unsaved counter, in-section filter for large tabs, and tab-local change log. `ClTabs` upgraded to accessible controlled/uncontrolled tabs with keyboard nav and horizontal scroll. (+5 tests, 1 new file). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-21 | 717 | 0 | execute-feature: payment rail awareness — config-driven unavailable/test/fallback copy, sanitized status API + shared hook/notice, admin environment banner + config fields, 503 mapping on money routes, Paystack-only bank gate, test↔live fallback guard, email wiring parity tests (+14 tests, 2 new files). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-21 | 703 | 0 | execute-feature: multi-provider payments — Paystack + Monnify adapters behind one contract, admin active/fallback + per-provider test mode, audited runtime fallback, recorded-provider-only refunds/payouts, Monnify webhook (SHA-512; unsigned sandbox only without live secret), provider/test-mode attribution on bookings/payments/wallet/finance/analytics, provider-aware withdrawal UI, sanitised public copy, idempotent `0009_payment_providers.sql` (+27 tests, 2 new files). tsc 0 errors, lint 0 errors, build green |
 | 2026-10-19 | 676 | 0 | execute-feature: booking & payment flow integrity (truthful verify HoldResult mapping, terminal-only webhook de-dupe, ref-attribution fallback, reconcileBooking + cron sweep + page self-heal + admin reconcile) + guidance affordances (bookingNextStep/NextStepBanner, release + provider-cancel confirm dialogs, provider cancel) + platform tips (ClInfoTip, lib/hints, admin Guidance section) (+47 tests, 4 new files). tsc 0 errors, lint 0 errors, build green |

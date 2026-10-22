@@ -1,9 +1,9 @@
 # Development Task Queue
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
-> - last-verified-against-code: 2026-10-21
-> - last-synced: 2026-10-21 (Payment rail awareness: 717/717, docs reconciled)
+> - last-updated-by: execute-feature (Session 2026-10-22 — Tabbed admin config)
+> - last-verified-against-code: 2026-10-22
+> - last-synced: 2026-10-22 (Tabbed admin config: 722/722, docs reconciled)
 > - staleness-policy: re-verify before each session
 
 > **Overview:** Sprint-level task queue with complexity tagging. Agents execute tasks top to bottom within the current sprint. Each task is sized so it can be completed in a single session.
@@ -51,6 +51,7 @@ All Milestones substantially complete. Blog system, sitemap/robots completed. Re
 | [S] | Button loading states across auth/booking/admin flows + footer bug-report link | [x] |
 | [M] | Collapsible admin sidebar (icon-only collapsed rail + mobile drawer via AdminShell) + responsive audit of admin/all pages | [x] |
 | [M] | Reusable `ClDataTable` + `ClPagination` adopted across users/media/providers/team/categories/config | [x] |
+| [S] | Admin config page — section tabs (Branding → Navigation + Change Log), sticky action bar, URL-hash persistence, per-tab dirty markers, large-tab filter; accessible/scrollable `ClTabs` primitive | [x] |
 | [S] | Email templates: h1 default `#E8FF47` + editable template name | [x] |
 | [S] | `{{name}}` resolves to platform name (preview sample var fix) + `logoUrl` origin hardening (`appOrigin` trailing-slash normalisation) | [x] |
 | [M] | Blog sections builder via shared `ContentBlocksEditor` + `ContentBlocks` renderer (blog page sections) | [x] |
