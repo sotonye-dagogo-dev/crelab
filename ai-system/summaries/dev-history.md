@@ -1,9 +1,38 @@
 # Development History
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
-> - last-verified-against-code: 2026-10-21
+> - last-updated-by: execute-feature (Session 2026-10-22 — Tabbed admin config)
+> - last-verified-against-code: 2026-10-22
 
+
+## Session 2026-10-22 — execute-feature: Tabbed Admin Config
+
+### What
+`/admin/config` was a single ~100-field scroll with the audit log appended at the
+bottom. It is now organised into section tabs (Branding through Navigation plus a
+Change Log tab) with a sticky tab/action bar, per-tab unsaved markers, a global
+unsaved counter, URL-hash persistence and an in-section filter for the largest
+tabs. No API, schema or config semantics changed.
+
+### Key decisions
+- Tabs are organisational only: edits stay in parent state and the single global
+  Save/Revert still spans all sections, so nothing can be lost by switching tabs.
+  Per-tab warning dots and the live unsaved count compensate for the wider scope.
+- The previously unused `ClTabs` primitive was hardened rather than bypassed:
+  controlled/uncontrolled modes, proper tab semantics, keyboard navigation and
+  horizontal overflow scrolling now live in the design system.
+- The change log moved into its own tab instead of lengthening the main scroll.
+- Save uses `Promise.allSettled` and one aggregate toast, then always resyncs — a
+  partial failure no longer triggers N success toasts or leaves stale local state.
+
+### Files
+`components/ui/ClTabs.tsx`; `app/admin/config/page.tsx`;
+`__tests__/components/ClTabs.test.tsx`; design-system, repo-map, task-queue,
+test-plan, test-results, project-decisions and this history.
+
+### Verification
+`npm test` **722/722** (60 files); `tsc --noEmit` clean; `next lint` 0 errors
+(pre-existing warnings only); `next build` green.
 
 ## Session 2026-10-21 — execute-feature: Payment Rail Awareness (No-Provider Feedback + Test Mode + Email Parity)
 

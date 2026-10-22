@@ -1,8 +1,8 @@
 # Development Checkpoints — Session Log
 
 > **Metadata**
-> - last-updated-by: execute-feature (Session 2026-10-21 — Payment rail awareness: no-provider feedback, test-mode, email parity)
-> - last-verified-against-code: 2026-10-21
+> - last-updated-by: execute-feature (Session 2026-10-22 — Tabbed admin config)
+> - last-verified-against-code: 2026-10-22
 > - staleness-policy: append-only — never modify past entries
 
 > **Overview:** Append-only running log of development sessions. Each entry records what was completed, what comes next, and which files were modified. Agents write here at the end of every session so work can be resumed without re-reading the entire codebase.
@@ -10,6 +10,23 @@
 ---
 
 ## Sessions
+
+## Session 2026-10-22 — Tabbed Admin Config (execute-feature)
+
+**Directive:** The admin config page has become too long — make it tabbed by section so users do not have to scroll a single continuous form to see and edit settings.
+
+**Planning pass (Step 1):** Read `execute-feature.md`, `sync-context.md`, the config page, `ConfigField`, the unused `ClTabs` primitive, and the design-system tab guidance. Facts: `/admin/config` renders all 100+ fields for 8 sections plus the change-log table in one column; edits live in parent state and save globally via one `PATCH` per dirty key; the existing `ClTabs` had no roles, no keyboard navigation, and fixed `flex-1` triggers that would squash with 9 tabs. Scope classified `[S]`/UI-only (no schema, API, or architecture change). **Go.**
+
+**Completed:**
+1. **`ClTabs` primitive** — controlled (`value` + `onValueChange`) and uncontrolled (`defaultValue`) modes; `role=tablist/tab/tabpanel` with `aria-selected`/`aria-controls`/`aria-labelledby`; roving tab index; Arrow Left/Right with wrap, Home/End; horizontal overflow scrolling with `min-w-max` triggers so labels never squash; visible focus ring.
+2. **Config page tabs** — Branding, Fees & Escrow, Features, Guidance, Email, Media, Growth, Navigation, plus Change Log. Sticky tab + save/revert bar (offset below the mobile admin top bar); active tab persisted in the URL hash and restored on load; icon + label per tab.
+3. **Editing safety** — all edits still held in parent state so switching tabs never loses them; per-tab warning dots for unsaved sections; global unsaved-count live region; global save/revert remain the single action (unchanged API semantics). Save now reports a single aggregate result via `allSettled`, always resyncs after partial failures, and no longer fires one toast/refetch per changed key.
+4. **Long-tab usability** — in-section filter (label/key/hint) appears for sections with more than 8 settings; empty-filter message and shown-count; settings count per tab.
+5. **Change log** — moved into its own tab (was below every section) so it no longer extends the main scroll.
+6. **Tests/QA** — new `__tests__/components/ClTabs.test.tsx` (5 tests). Full suite **722/722 (60 files)**; `tsc --noEmit` clean; `next lint` 0 errors (pre-existing warnings only); `next build` green.
+7. **Docs** — design-system tab pattern, repo-map (ClTabs + test), task-queue, test-plan, test-results, project-decisions, dev-history, this log; in-progress cleared. No migrations.
+
+**Residual risks:** tabs are purely organisational — save scope is still all sections, so a dirty dot on another tab can be missed if the user does not notice the counter; the filter is per-tab (it does not search across tabs); hash history uses `replaceState` (no back-button traversal between tabs by design).
 
 ## Session 2026-10-21 — Payment Rail Awareness: No-Provider Feedback, Test-Mode, Email Parity (execute-feature)
 

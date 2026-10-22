@@ -22,6 +22,7 @@
 - [x] Pure booking guidance — `lib/booking-guidance.ts` bookingNextStep exhaustive status×side (null = dedicated panel owns state), resolveBookingGuidance config toggle + `${status}:${side}` override + "" hide (covered 2026-10-19, `__tests__/lib/booking-guidance.test.ts`)
 - [x] Config tip copy — `lib/hints.ts` resolveHint defaults merge, "" hide, `{{name}}`/`{{feeRate}}`/`{{escrowWindow}}` token fill (covered 2026-10-19, `__tests__/lib/hints.test.ts`)
 - [x] Component: ClInfoTip — render, a11y (button role/aria), open/close interactions (covered 2026-10-19, `__tests__/components/ClInfoTip.test.tsx`)
+- [x] Component: ClTabs — tablist/tab/tabpanel semantics, click switching, Arrow/Home/End keyboard navigation, controlled mode, scrollable overflow list (covered 2026-10-22, `__tests__/components/ClTabs.test.tsx`)
 - [x] Component: MediaUpload Drive link tab — single link input (dedupe), Quick-preview button, onChange, tab switch (covered 2026-10-18, `__tests__/components/MediaUpload.test.tsx`; needs `esbuild: { jsx: "automatic" }` in vitest.config.ts)
 - [ ] Service layer: ReviewService (create, aggregate rating)
 - [ ] Utility functions: kobo formatting, date calculations, slug generation

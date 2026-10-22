@@ -1048,3 +1048,26 @@ Users were hitting generic failures (or silent test charges) when the rail was d
 - `PaymentStatusNotice`/`PaymentEnvironmentBanner` are the only rail-status surfaces; do not add bespoke "Paystack is down" copy.
 - Test↔live fallback is deliberately paused (not auto-switched); when environments mismatch, `getStatus()` reports unavailable with an admin-facing reason.
 - Bank-transfer top-up remains Paystack-only until Monnify reserved accounts are implemented; `bankTransferAvailable` encodes that capability.
+
+---
+
+## Admin Config Tabs Are Organisational, Not Save Scopes
+
+**Decision:** `/admin/config` is split into section tabs (Branding, Fees & Escrow, Features, Guidance, Email, Media, Growth, Navigation, Change Log) using the shared `ClTabs` primitive. Tabs only control what is visible: edits remain in parent state and one global Save/Revert still spans every section. Active tab is reflected in the URL hash (`#fees-escrow`, `#change-log`); unsaved sections get a warning dot and a global live count. The in-section filter only filters the active tab.
+**Date:** 2026-10-22
+**Made by:** execute-feature ("Admin config page has become too long, make it tabbed")
+**Supersedes:** None
+**Superseded by:** None
+
+**Reason:**
+The page rendered 100+ settings plus the audit log in one column. Per-tab save scopes would be a breaking mental-model change (and could leave users unsure whether a change was persisted), while pure visibility tabs preserve the existing API and save semantics. Because a save scope wider than the visible tab can hide pending work, the UI must make dirtiness visible per tab and globally.
+
+**Alternatives Considered:**
+- Save per tab — rejected: changes the contract of the config API/UI and risks half-applied configuration; a single save keeps the existing all-or-nothing user action.
+- Accordion sections — rejected: still one long scroll and harder to jump between distant sections.
+- Bespoke tab markup — rejected: §13/§4 require the Cl* catalog; `ClTabs` existed but lacked a11y and overflow behaviour, so it was fixed instead.
+
+**Implications:**
+- Future config sections should be added to `SECTION_TABS` (id + section + icon + description), not as new ad-hoc markup.
+- `ClTabs` is now the only tab primitive: use its roles/keyboard/overflow behaviour instead of hand-rolled `role="tab"` groups.
+- Tabs must not become save boundaries without an explicit decision update.
